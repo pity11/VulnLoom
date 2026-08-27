@@ -66,6 +66,28 @@ target_snapshot:
 
 Artifact 进入 quarantine 不代表它已在 Scope 内；只有名称、类型和 digest（或 Git URL 与 commit）匹配已批准 Scope 后，才可以生成 Target Snapshot。
 
+### SourceGraph 与 StaticSignal
+
+```yaml
+source_graph:
+  graph_id: sha256
+  target_id: uuid
+  target_version: string
+  manifest_id: sha256
+  analyzer_version: string
+  files_analyzed: []
+  functions: []
+  routes: []
+  calls: []
+  guards: []
+  sinks: []
+  flows: []
+  signals: []
+  parse_failures: []
+```
+
+`StaticSignal` 保存规则、位置、置信度和局限性，是静态假设而不是漏洞结论。`SourceGraph` 不保存源码片段、凭据或完整工具输出，也不存在直接转成 `Finding` 的状态迁移。
+
 ### Candidate
 
 ```yaml

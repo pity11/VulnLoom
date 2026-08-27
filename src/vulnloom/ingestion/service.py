@@ -78,6 +78,21 @@ class IngestionService:
         self.quarantine.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.snapshots.mkdir(parents=True, exist_ok=True, mode=0o700)
 
+    def load_snapshot(self, manifest_id: str) -> TargetSnapshot:
+        if not re.fullmatch(r"[0-9a-f]{64}", manifest_id):
+            raise IngestionError("snapshot manifest identifier is invalid")
+        final = self.snapshots / manifest_id
+        try:
+            snapshot = TargetSnapshot.model_validate_json(
+                (final / "snapshot.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError) as exc:
+            raise IngestionError("snapshot metadata is unavailable or invalid") from exc
+        if snapshot.manifest.manifest_id != manifest_id:
+            raise IngestionError("snapshot manifest identifier mismatch")
+        self._verify_snapshot_files(final, snapshot)
+        return snapshot
+
     def ingest_archive(
         self,
         source: Path,

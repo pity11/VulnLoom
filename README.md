@@ -98,6 +98,15 @@ M1 安全目标导入现已具备：
 - 原子 Target Snapshot、文件级 SHA-256 Manifest、只读权限和重复导入复用。
 - `TargetIngested` 幂等事件；失败和超时不会留下半成品 Snapshot。
 
+M2 Python Web Source Mapper 现已具备：
+
+- 不导入、不执行目标代码的 Python AST 索引，支持 Flask、FastAPI、Starlette 和 Django。
+- 路由、函数、跨文件调用、身份/权限/ownership guard、危险 sink 和输入传播路径。
+- 输出内容寻址的 `SourceGraph` 与 `StaticSignal`；signal 只是待验证线索，不能成为 Finding。
+- 对快照中每个源码文件重新校验大小和 SHA-256，篡改、越界、超限和超时均 fail-closed。
+- Semgrep 本地可信规则集 adapter：禁用联网指标/版本检查，不继承宿主环境或 API key。
+- `SourceGraphBuilt` 幂等摘要事件；完整图单独只读保存，不进入普通事件日志。
+
 ### 本地开发
 
 ```bash
@@ -124,6 +133,11 @@ vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
 vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
   target-register-image --scope-file scope.json \
   --image-ref ghcr.io/example/app --digest sha256:<digest>
+
+# 对已导入且校验通过的文件系统 Snapshot 做离线 Python Web 映射。
+vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
+  source-map --snapshot-id <manifest-sha256> \
+  --analysis-store .vulnloom/analysis
 ```
 
 ### 模型密钥边界

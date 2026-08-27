@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_python_files": {
+      "default": 5000,
+      "exclusiveMinimum": 0,
+      "title": "Max Python Files",
+      "type": "integer"
+    },
+    "max_single_file_bytes": {
+      "default": 2097152,
+      "exclusiveMinimum": 0,
+      "title": "Max Single File Bytes",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 52428800,
+      "exclusiveMinimum": 0,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "max_call_depth": {
+      "default": 12,
+      "exclusiveMinimum": 0,
+      "maximum": 100,
+      "title": "Max Call Depth",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60,
+      "exclusiveMinimum": 0,
+      "maximum": 3600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "SourceMapperLimits",
+  "type": "object"
+}

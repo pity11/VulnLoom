@@ -1,4 +1,4 @@
-"""Phase 0 CLI: create engagements, approve Scope documents, inspect events."""
+"""VulnLoom CLI for trusted workflow and offline source mapping."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
 from vulnloom.domain.models import (
     ArtifactKind,
     Engagement,
@@ -150,6 +151,44 @@ def register_image(args: argparse.Namespace) -> int:
     return _record_snapshot(args, snapshot)
 
 
+def source_map(args: argparse.Namespace) -> int:
+    service = IngestionService(Path(args.store))
+    snapshot = service.load_snapshot(args.snapshot_id)
+    graph = PythonWebSourceMapper().analyze(snapshot, service.root)
+    graph_path, graph_created = SourceGraphStore(Path(args.analysis_store)).put(graph)
+    summary = {
+        "graph_id": graph.graph_id,
+        "manifest_id": graph.manifest_id,
+        "analyzer_version": graph.analyzer_version,
+        "graph_ref": str(graph_path),
+        "files_analyzed": len(graph.files_analyzed),
+        "routes": len(graph.routes),
+        "flows": len(graph.flows),
+        "signals": len(graph.signals),
+    }
+    event = Event(
+        engagement_id=snapshot.target.engagement_id,
+        event_type="SourceGraphBuilt",
+        aggregate_id=graph.graph_id,
+        payload=summary,
+        idempotency_key=args.idempotency_key or f"source-map:{graph.graph_id}",
+    )
+    with _store(args.db) as store:
+        stored, event_created = store.append(event)
+    print(
+        json.dumps(
+            {
+                "graph_created": graph_created,
+                "event_created": event_created,
+                "graph": summary,
+                "event_id": str(stored.event_id),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -208,6 +247,12 @@ def build_parser() -> argparse.ArgumentParser:
     image.add_argument("--digest", required=True)
     image.add_argument("--idempotency-key")
     image.set_defaults(handler=register_image)
+
+    mapping = sub.add_parser("source-map")
+    mapping.add_argument("--snapshot-id", required=True)
+    mapping.add_argument("--analysis-store", default=".vulnloom/analysis")
+    mapping.add_argument("--idempotency-key")
+    mapping.set_defaults(handler=source_map)
     return parser
 
 

@@ -64,6 +64,8 @@ VulnLoom 采用可信控制面与不可信 Worker 分离的架构。LLM 输出�
 
 构建路由、入口、身份、权限检查、数据流、危险点和部署配置之间的图。输出 `Signal`，不直接输出 Finding。
 
+M2 的首版 mapper 只读取 M1 已验证的文件系统 Snapshot，并在读取时复核 Manifest。它使用标准库 AST，绝不 import 目标模块；跨文件调用解析和 taint 均设置深度、文件大小、总量与墙钟限制。完整 `SourceGraph` 内容寻址保存，事件流只写统计摘要。
+
 ### Recon Worker
 
 只对测试环境进行低影响、只读表面收集，输出接口、技术栈和身份边界。
@@ -105,6 +107,8 @@ Worker 不直接调用宿主 Shell。首期工具接口应保持狭窄：
 - `ModelAdapter`：模型调用、结构化输出、成本和重试。
 - `SandboxAdapter`：本地 rootless Docker；以后可替换为 gVisor/Firecracker。
 - `DisclosureAdapter`：首期只负责把 Report 导出成渠道格式，不实现网络提交。
+
+Semgrep adapter 只接受 Control Plane 预注册的本地规则集，不接受 Agent 提供任意配置路径；禁用 metrics 和版本检查，以显式最小环境启动，并校验输出路径仍位于 Snapshot 内。
 
 ## 7. 部署建议
 

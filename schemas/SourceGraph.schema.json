@@ -1,0 +1,567 @@
+{
+  "$defs": {
+    "CallEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "caller_symbol": {
+          "title": "Caller Symbol",
+          "type": "string"
+        },
+        "callee": {
+          "title": "Callee",
+          "type": "string"
+        },
+        "resolved_symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved Symbol"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        }
+      },
+      "required": [
+        "caller_symbol",
+        "callee",
+        "location"
+      ],
+      "title": "CallEdge",
+      "type": "object"
+    },
+    "DataFlowPath": {
+      "additionalProperties": false,
+      "properties": {
+        "flow_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Flow Id",
+          "type": "string"
+        },
+        "route_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Id",
+          "type": "string"
+        },
+        "source_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Names",
+          "type": "array"
+        },
+        "call_chain": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Call Chain",
+          "type": "array"
+        },
+        "sink_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sink Id",
+          "type": "string"
+        },
+        "guard_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Guard Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "flow_id",
+        "route_id",
+        "source_names",
+        "call_chain",
+        "sink_id",
+        "confidence"
+      ],
+      "title": "DataFlowPath",
+      "type": "object"
+    },
+    "FunctionNode": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "minLength": 1,
+          "title": "Symbol",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "decorators": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Decorators",
+          "type": "array"
+        }
+      },
+      "required": [
+        "symbol",
+        "location",
+        "parameters"
+      ],
+      "title": "FunctionNode",
+      "type": "object"
+    },
+    "GuardKind": {
+      "enum": [
+        "authentication",
+        "authorization",
+        "ownership",
+        "input_validation",
+        "csrf"
+      ],
+      "title": "GuardKind",
+      "type": "string"
+    },
+    "GuardNode": {
+      "additionalProperties": false,
+      "properties": {
+        "guard_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Guard Id",
+          "type": "string"
+        },
+        "function_symbol": {
+          "title": "Function Symbol",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GuardKind"
+        },
+        "mechanism": {
+          "title": "Mechanism",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        }
+      },
+      "required": [
+        "guard_id",
+        "function_symbol",
+        "kind",
+        "mechanism",
+        "location"
+      ],
+      "title": "GuardNode",
+      "type": "object"
+    },
+    "ParseFailure": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "error_type": {
+          "title": "Error Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "error_type"
+      ],
+      "title": "ParseFailure",
+      "type": "object"
+    },
+    "RouteNode": {
+      "additionalProperties": false,
+      "properties": {
+        "route_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Id",
+          "type": "string"
+        },
+        "framework": {
+          "$ref": "#/$defs/WebFramework"
+        },
+        "http_methods": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Http Methods",
+          "type": "array"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "handler_symbol": {
+          "title": "Handler Symbol",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "input_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Names",
+          "type": "array"
+        },
+        "dependency_names": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependency Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route_id",
+        "framework",
+        "http_methods",
+        "path",
+        "handler_symbol",
+        "location",
+        "input_names"
+      ],
+      "title": "RouteNode",
+      "type": "object"
+    },
+    "SignalKind": {
+      "enum": [
+        "tainted_sink",
+        "object_lookup_without_visible_authorization",
+        "parse_failure",
+        "external_analyzer"
+      ],
+      "title": "SignalKind",
+      "type": "string"
+    },
+    "SinkKind": {
+      "enum": [
+        "object_lookup",
+        "sql",
+        "command",
+        "file",
+        "network",
+        "template",
+        "deserialization",
+        "redirect"
+      ],
+      "title": "SinkKind",
+      "type": "string"
+    },
+    "SinkNode": {
+      "additionalProperties": false,
+      "properties": {
+        "sink_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sink Id",
+          "type": "string"
+        },
+        "function_symbol": {
+          "title": "Function Symbol",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SinkKind"
+        },
+        "callee": {
+          "title": "Callee",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        }
+      },
+      "required": [
+        "sink_id",
+        "function_symbol",
+        "kind",
+        "callee",
+        "location"
+      ],
+      "title": "SinkNode",
+      "type": "object"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "StaticSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Signal Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SignalKind"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "title": "Locations",
+          "type": "array"
+        },
+        "route_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Route Id"
+        },
+        "sink_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sink Id"
+        },
+        "flow_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flow Id"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "limitations": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "signal_id",
+        "target_id",
+        "kind",
+        "rule_id",
+        "summary",
+        "locations",
+        "confidence"
+      ],
+      "title": "StaticSignal",
+      "type": "object"
+    },
+    "WebFramework": {
+      "enum": [
+        "flask",
+        "fastapi",
+        "django",
+        "starlette",
+        "unknown"
+      ],
+      "title": "WebFramework",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "title": "Target Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "analyzer_version": {
+      "title": "Analyzer Version",
+      "type": "string"
+    },
+    "files_analyzed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Files Analyzed",
+      "type": "array"
+    },
+    "functions": {
+      "items": {
+        "$ref": "#/$defs/FunctionNode"
+      },
+      "title": "Functions",
+      "type": "array"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/RouteNode"
+      },
+      "title": "Routes",
+      "type": "array"
+    },
+    "calls": {
+      "items": {
+        "$ref": "#/$defs/CallEdge"
+      },
+      "title": "Calls",
+      "type": "array"
+    },
+    "guards": {
+      "items": {
+        "$ref": "#/$defs/GuardNode"
+      },
+      "title": "Guards",
+      "type": "array"
+    },
+    "sinks": {
+      "items": {
+        "$ref": "#/$defs/SinkNode"
+      },
+      "title": "Sinks",
+      "type": "array"
+    },
+    "flows": {
+      "items": {
+        "$ref": "#/$defs/DataFlowPath"
+      },
+      "title": "Flows",
+      "type": "array"
+    },
+    "signals": {
+      "items": {
+        "$ref": "#/$defs/StaticSignal"
+      },
+      "title": "Signals",
+      "type": "array"
+    },
+    "parse_failures": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ParseFailure"
+      },
+      "title": "Parse Failures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "graph_id",
+    "target_id",
+    "target_version",
+    "manifest_id",
+    "analyzer_version",
+    "files_analyzed",
+    "functions",
+    "routes",
+    "calls",
+    "guards",
+    "sinks",
+    "flows",
+    "signals"
+  ],
+  "title": "SourceGraph",
+  "type": "object"
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from vulnloom.analyzers import SourceGraph, SourceMapperLimits
 from vulnloom.domain.models import (
     ApprovalRequest,
     Artifact,
@@ -28,6 +29,8 @@ MODELS = (
     TargetManifest,
     TargetSnapshot,
     IngestionLimits,
+    SourceMapperLimits,
+    SourceGraph,
     Candidate,
     ApprovalRequest,
     ValidationRun,

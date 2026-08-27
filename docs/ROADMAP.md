@@ -35,6 +35,18 @@
 
 M1 不执行目标构建脚本、不拉取远程 Git、不拉取 OCI 镜像，也不连接 Docker 或 Kubernetes。远程获取必须在后续独立 adapter 中增加协议、地址和下载预算约束。
 
+### M2：Python Web Source Mapper（已完成首版）
+
+- 对 M1 只读 Target Snapshot 做文件级完整性复核后，以 Python AST 离线分析。
+- 识别 Flask/FastAPI/Starlette 装饰器路由和 Django `urlpatterns`。
+- 建立函数、跨文件调用、输入源、guard、sink 与有限深度数据流图。
+- 产生确定性的 `SourceGraph` 和可解释 `StaticSignal`，不产生 Candidate 或 Finding。
+- 通过 adapter 接入预注册的本地 Semgrep 规则集；不下载规则、不继承完整环境。
+- 图对象内容寻址、只读持久化，事件日志只记录不含源码的统计摘要。
+- 固定微型基准覆盖跨文件对象查询、FastAPI dependency、Django ownership、SSRF 输入源和语法失败。
+
+M2 的 guard 与 taint 是保守启发式线索，不声称完整的控制流支配或运行时可利用性。下一里程碑将以这些图和 signal 为输入实现 Candidate 合并、反证任务与重复指纹。
+
 ## Phase 2：受控动态验证
 
 目标：在本地 Docker 测试应用中验证一个人工选择的 Candidate。

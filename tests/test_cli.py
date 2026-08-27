@@ -4,6 +4,7 @@ import hashlib
 import json
 import zipfile
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -148,3 +149,71 @@ def test_cli_ingests_scoped_archive_idempotently(tmp_path, capsys, approved_scop
     assert main(args) == 0
     second = json.loads(capsys.readouterr().out)
     assert second["created"] is False
+
+
+def test_cli_builds_source_graph_and_records_summary_idempotently(tmp_path, capsys, approved_scope):
+    archive = tmp_path / "source.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr(
+            "app.py",
+            """from flask import Flask
+app = Flask(__name__)
+@app.get('/hello/<name>')
+def hello(name):
+    return open(name).read()
+""",
+        )
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    scope = approved_scope.model_copy(
+        update={
+            "artifacts": (
+                ArtifactScope(
+                    kind=ArtifactKind.SOURCE_ARCHIVE,
+                    sha256=digest,
+                    source_name=archive.name,
+                ),
+            )
+        }
+    )
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(scope.model_dump_json(), encoding="utf-8")
+    db = tmp_path / "events.db"
+    target_store = tmp_path / "targets"
+    ingest_args = [
+        "--db",
+        str(db),
+        "--store",
+        str(target_store),
+        "target-ingest-archive",
+        "--scope-file",
+        str(scope_file),
+        "--source",
+        str(archive),
+    ]
+    assert main(ingest_args) == 0
+    ingested = json.loads(capsys.readouterr().out)
+    manifest_id = ingested["event"]["payload"]["manifest"]["manifest_id"]
+    map_args = [
+        "--db",
+        str(db),
+        "--store",
+        str(target_store),
+        "source-map",
+        "--snapshot-id",
+        manifest_id,
+        "--analysis-store",
+        str(tmp_path / "analysis"),
+    ]
+
+    assert main(map_args) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert first["graph_created"] is True
+    assert first["event_created"] is True
+    assert first["graph"]["routes"] == 1
+    assert first["graph"]["signals"] == 1
+    assert Path(first["graph"]["graph_ref"]).is_file()
+
+    assert main(map_args) == 0
+    repeated = json.loads(capsys.readouterr().out)
+    assert repeated["graph_created"] is False
+    assert repeated["event_created"] is False
