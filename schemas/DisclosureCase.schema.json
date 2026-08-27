@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "ProductIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "vendor": {
+          "minLength": 1,
+          "title": "Vendor",
+          "type": "string"
+        },
+        "product": {
+          "minLength": 1,
+          "title": "Product",
+          "type": "string"
+        },
+        "component": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component"
+        },
+        "ecosystem": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ecosystem"
+        },
+        "repository_url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repository Url"
+        }
+      },
+      "required": [
+        "vendor",
+        "product"
+      ],
+      "title": "ProductIdentity",
+      "type": "object"
+    },
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "disclosure_case_id": {
+      "format": "uuid",
+      "title": "Disclosure Case Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "product": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductIdentity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "intended_channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "eligibility_rationale": {
+      "minLength": 1,
+      "title": "Eligibility Rationale",
+      "type": "string"
+    },
+    "report_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Report Ids",
+      "type": "array"
+    },
+    "external_reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Reference"
+    },
+    "status": {
+      "default": "draft",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "intended_channel",
+    "eligibility_rationale"
+  ],
+  "title": "DisclosureCase",
+  "type": "object"
+}

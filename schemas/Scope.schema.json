@@ -1,0 +1,213 @@
+{
+  "$defs": {
+    "ApprovalAction": {
+      "enum": [
+        "run_untrusted_build",
+        "mutate_target_state",
+        "use_real_credentials",
+        "external_callback",
+        "submit_report"
+      ],
+      "title": "ApprovalAction",
+      "type": "string"
+    },
+    "NetworkTargetScope": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "minLength": 1,
+          "title": "Host",
+          "type": "string"
+        },
+        "ports": {
+          "items": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Ports",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "schemes": {
+          "default": [
+            "https"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Schemes",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "host",
+        "ports"
+      ],
+      "title": "NetworkTargetScope",
+      "type": "object"
+    },
+    "RepositoryScope": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "commit": {
+          "pattern": "^[0-9a-fA-F]{7,64}$",
+          "title": "Commit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "commit"
+      ],
+      "title": "RepositoryScope",
+      "type": "object"
+    },
+    "ScopeState": {
+      "enum": [
+        "draft",
+        "approved",
+        "revoked"
+      ],
+      "title": "ScopeState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "authority_reference": {
+      "minLength": 1,
+      "title": "Authority Reference",
+      "type": "string"
+    },
+    "valid_from": {
+      "format": "date-time",
+      "title": "Valid From",
+      "type": "string"
+    },
+    "valid_until": {
+      "format": "date-time",
+      "title": "Valid Until",
+      "type": "string"
+    },
+    "repositories": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RepositoryScope"
+      },
+      "title": "Repositories",
+      "type": "array"
+    },
+    "network_targets": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/NetworkTargetScope"
+      },
+      "title": "Network Targets",
+      "type": "array"
+    },
+    "allowed_identities": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Identities",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "allowed_test_classes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Test Classes",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "denied_actions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Denied Actions",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "rate_limits": {
+      "additionalProperties": {
+        "minimum": 1,
+        "type": "integer"
+      },
+      "title": "Rate Limits",
+      "type": "object"
+    },
+    "approval_requirements": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ApprovalAction"
+      },
+      "title": "Approval Requirements",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "state": {
+      "$ref": "#/$defs/ScopeState",
+      "default": "draft"
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved By"
+    },
+    "approved_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved At"
+    }
+  },
+  "required": [
+    "engagement_id",
+    "authority_reference",
+    "valid_from",
+    "valid_until"
+  ],
+  "title": "Scope",
+  "type": "object"
+}

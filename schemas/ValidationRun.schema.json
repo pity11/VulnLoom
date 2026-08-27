@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "sandbox_image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Sandbox Image Digest",
+      "type": "string"
+    },
+    "policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "plan": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Plan",
+      "type": "array"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "finished_at": {
+      "format": "date-time",
+      "title": "Finished At",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "side_effects": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Side Effects",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "resource_usage": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "title": "Resource Usage",
+      "type": "object"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "target_version",
+    "scope_version",
+    "sandbox_image_digest",
+    "policy_digest",
+    "plan",
+    "started_at",
+    "finished_at",
+    "result"
+  ],
+  "title": "ValidationRun",
+  "type": "object"
+}

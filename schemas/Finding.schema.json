@@ -1,0 +1,96 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "root_cause": {
+      "minLength": 1,
+      "title": "Root Cause",
+      "type": "string"
+    },
+    "affected_versions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Affected Versions",
+      "type": "array"
+    },
+    "preconditions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "impact": {
+      "minLength": 1,
+      "title": "Impact",
+      "type": "string"
+    },
+    "severity_assessment": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "title": "Severity Assessment",
+      "type": "object"
+    },
+    "validation_run_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Validation Run Ids",
+      "type": "array"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "duplicate_family_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duplicate Family Id"
+    },
+    "state": {
+      "default": "verified",
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "root_cause",
+    "affected_versions",
+    "preconditions",
+    "impact",
+    "severity_assessment",
+    "validation_run_ids",
+    "evidence_bundle_id"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "EvidenceKind": {
+      "enum": [
+        "source",
+        "http",
+        "log",
+        "screenshot",
+        "test",
+        "policy"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/EvidenceKind"
+    },
+    "source_ref": {
+      "minLength": 1,
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "producer": {
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "redaction_policy": {
+      "minLength": 1,
+      "title": "Redaction Policy",
+      "type": "string"
+    },
+    "content_ref": {
+      "minLength": 1,
+      "title": "Content Ref",
+      "type": "string"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "kind",
+    "source_ref",
+    "producer",
+    "target_version",
+    "redaction_policy",
+    "content_ref",
+    "summary"
+  ],
+  "title": "Evidence",
+  "type": "object"
+}

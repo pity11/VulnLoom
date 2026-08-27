@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "reproduction": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reproduction",
+      "type": "array"
+    },
+    "impact": {
+      "minLength": 1,
+      "title": "Impact",
+      "type": "string"
+    },
+    "remediation": {
+      "minLength": 1,
+      "title": "Remediation",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "redaction_status": {
+      "default": "passed",
+      "title": "Redaction Status",
+      "type": "string"
+    },
+    "review_status": {
+      "default": "draft",
+      "title": "Review Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "channel",
+    "title",
+    "summary",
+    "reproduction",
+    "impact",
+    "remediation",
+    "evidence_refs"
+  ],
+  "title": "Report",
+  "type": "object"
+}

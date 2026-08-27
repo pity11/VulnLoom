@@ -1,0 +1,111 @@
+# 架构设计
+
+## 1. 架构目标
+
+VulnLoom 采用可信控制面与不可信 Worker 分离的架构。LLM 输出、被测源码、网页内容、工具输出和附件都被视为不可信输入。只有 Control Plane 可以改变领域状态、批准权限和生成外部副作用。
+
+## 2. 总体拓扑
+
+```text
+                           Human Console / CLI
+                                   │
+                                   ▼
+┌──────────────────────────── Control Plane ────────────────────────────┐
+│ Engagement + Scope │ Workflow │ Scheduler │ Budget │ Approval Ledger │
+│ Policy Engine      │ Reducer  │ Adapter   │ Audit  │ Report Review    │
+└───────────────┬──────────────────────┬──────────────────────┬─────────┘
+                │ TaskEnvelope         │ ToolRequest          │ Event
+                ▼                      ▼                      ▲
+        ┌──────────────┐       ┌───────────────┐       ┌──────────────┐
+        │ Agent Worker │──────▶│  Tool Broker  │──────▶│Evidence Store│
+        └──────────────┘       └───────┬───────┘       └──────────────┘
+                                      │
+                       ┌──────────────┼──────────────┐
+                       ▼              ▼              ▼
+                 Static Sandbox  Validation     Report Sandbox
+                 no network      target-only    no target network
+```
+
+## 3. Control Plane
+
+### Workflow Engine
+
+- 实现 `Candidate` 到 `Finding` 的显式状态机。
+- 接收结构化 Worker 结果，通过确定性 reducer 产生下一状态。
+- 拒绝缺少 Scope、版本、Evidence 或 Approval 的迁移。
+- 所有命令带 `engagement_id`、`target_id`、`task_id` 和幂等键。
+
+### Scheduler
+
+- 支持 `single`、`parallel` 和 `chain`，但将它们表达成有类型 DAG。
+- 每个 Target 同时最多一个主要分析 lane。
+- 默认最多两个 side lane，全局 Worker 并发首期限制为四。
+- 长任务保存 checkpoint；相同幂等键不能产生第二个 Validation Run。
+- 每个任务有时间、token、请求次数和计算资源预算。
+
+### Policy Engine
+
+- 编译 Scope 为可执行策略：仓库、commit、地址、端口、身份、方法、速率和允许的测试等级。
+- 工具调用前判定，而不是完成后审计。
+- 域名解析后再次校验实际 IP，防止 DNS rebinding 和私网范围漂移。
+- 策略不明确时 fail-closed。
+
+### Approval Service
+
+人工审批对象不是聊天文本，而是不可变 `ApprovalRequest`：包含请求动作、目标、预期副作用、证据摘要、过期时间和策略版本。批准只对该对象生效，不能泛化为后续动作。
+
+## 4. Worker 角色
+
+### Scope Interpreter
+
+把授权材料转换成待人工确认的 Scope 草稿；它无权自行扩大范围。
+
+### Source Mapper
+
+构建路由、入口、身份、权限检查、数据流、危险点和部署配置之间的图。输出 `Signal`，不直接输出 Finding。
+
+### Recon Worker
+
+只对测试环境进行低影响、只读表面收集，输出接口、技术栈和身份边界。
+
+### Hypothesis Worker
+
+把 Signal 合并为 Candidate，必须填写 CWE、入口、危险点、调用链、前置条件、最便宜的反证实验和预期安全不变量。
+
+### Validator Worker
+
+只处理一个 Candidate。通过 Tool Broker 在 Validation Sandbox 中运行有限实验，输出 Evidence Bundle 和复现结论。
+
+### Critic Worker
+
+与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。
+
+### Reporter Worker
+
+只接收 Finding 和脱敏 Evidence Bundle，生成报告草稿；不连接目标，不持有提交凭据。
+
+## 5. Tool Broker
+
+Worker 不直接调用宿主 Shell。首期工具接口应保持狭窄：
+
+- `source.read(path, line_range)`
+- `source.search(query, path)`
+- `analyzer.run(rule_set, target)`
+- `http.request(method, scoped_url, headers_ref, body, limits)`
+- `browser.action(session, typed_action)`
+- `sandbox.exec(tool_id, args, cwd_ref, limits)`
+- `evidence.capture(kind, source_ref, redaction_policy)`
+
+`sandbox.exec` 只允许镜像中注册过的 `tool_id`，不接收一段任意 Shell 字符串。确有必要的实验脚本先作为 Artifact 保存、静态检查并经策略批准，再在沙盒中执行。
+
+## 6. Adapter 边界
+
+- `TargetAdapter`：Git 仓库、容器镜像、Docker Compose、测试 URL。
+- `AnalyzerAdapter`：Semgrep、CodeQL、tree-sitter、Trivy 等。
+- `ModelAdapter`：模型调用、结构化输出、成本和重试。
+- `SandboxAdapter`：本地 rootless Docker；以后可替换为 gVisor/Firecracker。
+- `DisclosureAdapter`：首期只负责把 Report 导出成渠道格式，不实现网络提交。
+
+## 7. 部署建议
+
+第一阶段使用单机 Linux：Control Plane 运行在普通用户进程，Runner 使用 rootless Docker。Control Plane 不进入目标网络，Worker 不挂载 Docker socket。Docker 操作由一个最小权限 Runner Service 代理。成熟后再将 Validation Sandbox 移到独立 VM 或 gVisor/Firecracker。

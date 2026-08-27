@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "ApprovalAction": {
+      "enum": [
+        "run_untrusted_build",
+        "mutate_target_state",
+        "use_real_credentials",
+        "external_callback",
+        "submit_report"
+      ],
+      "title": "ApprovalAction",
+      "type": "string"
+    },
+    "ApprovalStatus": {
+      "enum": [
+        "pending",
+        "granted",
+        "denied",
+        "revoked"
+      ],
+      "title": "ApprovalStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "target_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Id"
+    },
+    "action": {
+      "$ref": "#/$defs/ApprovalAction"
+    },
+    "action_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Digest",
+      "type": "string"
+    },
+    "expected_side_effects": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Side Effects",
+      "type": "array"
+    },
+    "evidence_summary": {
+      "minLength": 1,
+      "title": "Evidence Summary",
+      "type": "string"
+    },
+    "policy_version": {
+      "minimum": 1,
+      "title": "Policy Version",
+      "type": "integer"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ApprovalStatus",
+      "default": "pending"
+    },
+    "decided_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decided By"
+    },
+    "decided_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decided At"
+    }
+  },
+  "required": [
+    "engagement_id",
+    "action",
+    "action_digest",
+    "expected_side_effects",
+    "evidence_summary",
+    "policy_version",
+    "expires_at"
+  ],
+  "title": "ApprovalRequest",
+  "type": "object"
+}
