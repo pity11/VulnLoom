@@ -26,6 +26,20 @@ DRAFT_SCOPE → SCOPE_APPROVED → INGESTED → MAPPED → CANDIDATE
 
 ## 2. 典型编排
 
+### 目标导入链
+
+```text
+Local Artifact
+  → Quarantine + SHA-256
+  → Scope 草稿引用名称、类型和摘要
+  → Human Scope Approval
+  → Archive/Git Member Validation
+  → Atomic Read-only Target Snapshot + Manifest
+  → TargetIngested
+```
+
+Quarantine 只接收和标识输入，不授予分析权限。Git 目标直接以 Scope 中的 URL+commit 固定；OCI 目标首期只注册 Scope 中的 image reference+digest，不拉取镜像。
+
 ### 仓库分析链
 
 ```text

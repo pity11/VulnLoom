@@ -87,6 +87,17 @@ Phase 0 已具备第一版可运行骨架：
 - `engagement-create`、`scope-approve` 和 `status` CLI。
 - OpenAI-compatible 模型 provider 配置边界；尚未发起网络模型调用。
 
+M1 安全目标导入现已具备：
+
+- ZIP/TAR 原始 Artifact 的流式限额复制和内容寻址 quarantine。
+- 不使用 `extractall()` 的逐成员安全解压。
+- 归一化路径、符号链接、特殊文件、文件数量、单文件大小、总展开大小和压缩比检查。
+- 本地 Git 仓库的精确 commit 固定；只读取 Git object，不 checkout、不执行 hook 或目标代码。
+- Kubernetes、Helm、Terraform、Dockerfile 和 Compose 文件静态分类。
+- OCI 镜像引用的 `sha256` digest 注册；当前不拉取镜像或连接 Docker。
+- 原子 Target Snapshot、文件级 SHA-256 Manifest、只读权限和重复导入复用。
+- `TargetIngested` 幂等事件；失败和超时不会留下半成品 Snapshot。
+
 ### 本地开发
 
 ```bash
@@ -94,6 +105,25 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest --cov=vulnloom --cov-report=term-missing
 .venv/bin/python scripts/export_schemas.py
+```
+
+目标导入需要一个仍在有效期内、且明确包含 Artifact digest 或 Git URL+commit 的已批准 Scope：
+
+```bash
+vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
+  artifact-quarantine --engagement-id <uuid> --source source.zip
+
+# 将上一步输出的 source_name、kind 和 artifact_id 写入 Scope 并人工批准。
+vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
+  target-ingest-archive --scope-file scope.json --source source.zip
+
+vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
+  target-ingest-git --scope-file scope.json --source /local/repo \
+  --repository-url https://example.invalid/project.git --commit <full-commit>
+
+vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
+  target-register-image --scope-file scope.json \
+  --image-ref ghcr.io/example/app --digest sha256:<digest>
 ```
 
 ### 模型密钥边界

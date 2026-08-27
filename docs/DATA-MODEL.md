@@ -26,6 +26,7 @@ authority_reference: string
 valid_from: datetime
 valid_until: datetime
 repositories: []
+artifacts: []
 network_targets: []
 allowed_identities: []
 allowed_test_classes: []
@@ -34,6 +35,36 @@ rate_limits: {}
 approval_requirements: []
 approved_by: string
 ```
+
+### Artifact 与 Target Snapshot
+
+```yaml
+artifact:
+  artifact_id: sha256
+  engagement_id: uuid
+  kind: source_archive | iac_bundle | git_repository | oci_image
+  source_name: string
+  source_ref: string
+  original_size: integer
+  detected_format: zip | tar | git | oci-manifest
+  quarantine_ref: string | null
+
+target_snapshot:
+  target: Target
+  artifact: Artifact
+  manifest:
+    manifest_id: sha256
+    target_version: string
+    files:
+      - path: normalized/path
+        size: integer
+        sha256: string
+        category: enum
+    total_size: integer
+  root_ref: string | null
+```
+
+Artifact 进入 quarantine 不代表它已在 Scope 内；只有名称、类型和 digest（或 Git URL 与 commit）匹配已批准 Scope 后，才可以生成 Target Snapshot。
 
 ### Candidate
 

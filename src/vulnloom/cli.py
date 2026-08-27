@@ -7,7 +7,16 @@ import json
 from pathlib import Path
 from uuid import UUID
 
-from vulnloom.domain.models import Engagement, EngagementState, Scope, ScopeState, utc_now
+from vulnloom.domain.models import (
+    ArtifactKind,
+    Engagement,
+    EngagementState,
+    Scope,
+    ScopeState,
+    TargetSnapshot,
+    utc_now,
+)
+from vulnloom.ingestion import IngestionService
 from vulnloom.storage.events import Event, EventStore
 
 
@@ -65,9 +74,86 @@ def show_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_scope(path: str) -> Scope:
+    return Scope.model_validate_json(Path(path).read_text(encoding="utf-8"))
+
+
+def _record_snapshot(args: argparse.Namespace, snapshot: TargetSnapshot) -> int:
+    event = Event(
+        engagement_id=snapshot.target.engagement_id,
+        event_type="TargetIngested",
+        aggregate_id=str(snapshot.target.target_id),
+        payload=snapshot.model_dump(mode="json"),
+        idempotency_key=(
+            args.idempotency_key
+            or f"target:ingest:{snapshot.target.target_id}:{snapshot.manifest.manifest_id}"
+        ),
+    )
+    with _store(args.db) as store:
+        stored, created = store.append(event)
+    print(
+        json.dumps(
+            {"created": created, "event": stored.model_dump(mode="json")},
+            indent=2,
+        )
+    )
+    return 0
+
+
+def ingest_archive(args: argparse.Namespace) -> int:
+    snapshot = IngestionService(Path(args.store)).ingest_archive(
+        Path(args.source),
+        scope=_load_scope(args.scope_file),
+        kind=ArtifactKind(args.kind),
+    )
+    return _record_snapshot(args, snapshot)
+
+
+def quarantine_artifact(args: argparse.Namespace) -> int:
+    artifact = IngestionService(Path(args.store)).quarantine_artifact(
+        Path(args.source),
+        engagement_id=UUID(args.engagement_id),
+        kind=ArtifactKind(args.kind),
+    )
+    event = Event(
+        engagement_id=artifact.engagement_id,
+        event_type="ArtifactQuarantined",
+        aggregate_id=artifact.artifact_id,
+        payload=artifact.model_dump(mode="json", exclude={"captured_at"}),
+        idempotency_key=(
+            args.idempotency_key
+            or f"artifact:quarantine:{artifact.engagement_id}:{artifact.artifact_id}"
+        ),
+    )
+    with _store(args.db) as store:
+        stored, created = store.append(event)
+    print(json.dumps({"created": created, "event": stored.model_dump(mode="json")}, indent=2))
+    return 0
+
+
+def ingest_git(args: argparse.Namespace) -> int:
+    snapshot = IngestionService(Path(args.store)).ingest_git(
+        Path(args.source),
+        repository_url=args.repository_url,
+        commit=args.commit,
+        scope=_load_scope(args.scope_file),
+    )
+    return _record_snapshot(args, snapshot)
+
+
+def register_image(args: argparse.Namespace) -> int:
+    snapshot = IngestionService(Path(args.store)).register_oci_image(
+        args.image_ref,
+        args.digest,
+        scope=_load_scope(args.scope_file),
+    )
+    return _record_snapshot(args, snapshot)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
+    parser.add_argument("--store", default=".vulnloom/targets")
     sub = parser.add_subparsers(required=True)
 
     engagement = sub.add_parser("engagement-create")
@@ -85,6 +171,43 @@ def build_parser() -> argparse.ArgumentParser:
     status = sub.add_parser("status")
     status.add_argument("--engagement-id", required=True)
     status.set_defaults(handler=show_status)
+
+    quarantine = sub.add_parser("artifact-quarantine")
+    quarantine.add_argument("--engagement-id", required=True)
+    quarantine.add_argument("--source", required=True)
+    quarantine.add_argument(
+        "--kind",
+        choices=(ArtifactKind.SOURCE_ARCHIVE.value, ArtifactKind.IAC_BUNDLE.value),
+        default=ArtifactKind.SOURCE_ARCHIVE.value,
+    )
+    quarantine.add_argument("--idempotency-key")
+    quarantine.set_defaults(handler=quarantine_artifact)
+
+    archive = sub.add_parser("target-ingest-archive")
+    archive.add_argument("--scope-file", required=True)
+    archive.add_argument("--source", required=True)
+    archive.add_argument(
+        "--kind",
+        choices=(ArtifactKind.SOURCE_ARCHIVE.value, ArtifactKind.IAC_BUNDLE.value),
+        default=ArtifactKind.SOURCE_ARCHIVE.value,
+    )
+    archive.add_argument("--idempotency-key")
+    archive.set_defaults(handler=ingest_archive)
+
+    git = sub.add_parser("target-ingest-git")
+    git.add_argument("--scope-file", required=True)
+    git.add_argument("--source", required=True)
+    git.add_argument("--repository-url", required=True)
+    git.add_argument("--commit", required=True)
+    git.add_argument("--idempotency-key")
+    git.set_defaults(handler=ingest_git)
+
+    image = sub.add_parser("target-register-image")
+    image.add_argument("--scope-file", required=True)
+    image.add_argument("--image-ref", required=True)
+    image.add_argument("--digest", required=True)
+    image.add_argument("--idempotency-key")
+    image.set_defaults(handler=register_image)
     return parser
 
 

@@ -30,8 +30,8 @@ def approved_scope(now, engagement_id) -> Scope:
     return Scope(
         engagement_id=engagement_id,
         authority_reference="signed-authorization-42",
-        valid_from=now - timedelta(hours=1),
-        valid_until=now + timedelta(hours=1),
+        valid_from=now - timedelta(days=1),
+        valid_until=now + timedelta(days=1),
         repositories=(RepositoryScope(url="https://example.test/app.git", commit="a" * 40),),
         network_targets=(NetworkTargetScope(host="app.example.test", ports=frozenset({443})),),
         allowed_test_classes=frozenset({"read_only", "idor"}),

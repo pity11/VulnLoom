@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "SnapshotFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/StaticFileCategory"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "sha256",
+        "category"
+      ],
+      "title": "SnapshotFile",
+      "type": "object"
+    },
+    "StaticFileCategory": {
+      "enum": [
+        "source",
+        "kubernetes",
+        "helm",
+        "terraform",
+        "dockerfile",
+        "compose",
+        "config",
+        "documentation",
+        "other"
+      ],
+      "title": "StaticFileCategory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "artifact_id": {
+      "minLength": 1,
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/SnapshotFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "total_size": {
+      "minimum": 0,
+      "title": "Total Size",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "artifact_id",
+    "target_id",
+    "target_version",
+    "files",
+    "total_size"
+  ],
+  "title": "TargetManifest",
+  "type": "object"
+}

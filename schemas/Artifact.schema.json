@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "enum": [
+        "source_archive",
+        "iac_bundle",
+        "git_repository",
+        "oci_image"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ArtifactKind"
+    },
+    "source_name": {
+      "minLength": 1,
+      "title": "Source Name",
+      "type": "string"
+    },
+    "source_ref": {
+      "minLength": 1,
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "original_size": {
+      "minimum": 0,
+      "title": "Original Size",
+      "type": "integer"
+    },
+    "detected_format": {
+      "minLength": 1,
+      "title": "Detected Format",
+      "type": "string"
+    },
+    "quarantine_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quarantine Ref"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "engagement_id",
+    "kind",
+    "source_name",
+    "source_ref",
+    "original_size",
+    "detected_format"
+  ],
+  "title": "Artifact",
+  "type": "object"
+}

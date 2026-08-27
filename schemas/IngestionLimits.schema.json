@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_archive_bytes": {
+      "default": 104857600,
+      "exclusiveMinimum": 0,
+      "title": "Max Archive Bytes",
+      "type": "integer"
+    },
+    "max_files": {
+      "default": 10000,
+      "exclusiveMinimum": 0,
+      "title": "Max Files",
+      "type": "integer"
+    },
+    "max_single_file_bytes": {
+      "default": 20971520,
+      "exclusiveMinimum": 0,
+      "title": "Max Single File Bytes",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 209715200,
+      "exclusiveMinimum": 0,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "max_compression_ratio": {
+      "default": 100.0,
+      "exclusiveMinimum": 0,
+      "title": "Max Compression Ratio",
+      "type": "number"
+    },
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 3600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "IngestionLimits",
+  "type": "object"
+}

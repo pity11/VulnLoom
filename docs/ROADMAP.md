@@ -24,6 +24,17 @@
 
 验收：在固定小型基准集上重复运行结果稳定；每个 Candidate 都能定位入口、危险点和最便宜反证实验。
 
+### M1：安全目标导入（已完成首版）
+
+- ZIP/TAR quarantine、格式识别和内容摘要。
+- 路径、链接、特殊文件、数量、大小、展开总量和压缩比门禁。
+- 本地 Git 精确 commit 的无 checkout 快照。
+- IaC Bundle 文件分类和 OCI digest 注册。
+- 原子、只读、内容寻址 Target Snapshot 与 Manifest。
+- Scope 拒绝、超时、清理和重复导入回归测试。
+
+M1 不执行目标构建脚本、不拉取远程 Git、不拉取 OCI 镜像，也不连接 Docker 或 Kubernetes。远程获取必须在后续独立 adapter 中增加协议、地址和下载预算约束。
+
 ## Phase 2：受控动态验证
 
 目标：在本地 Docker 测试应用中验证一个人工选择的 Candidate。

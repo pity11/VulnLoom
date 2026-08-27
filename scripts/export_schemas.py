@@ -7,6 +7,7 @@ from pathlib import Path
 
 from vulnloom.domain.models import (
     ApprovalRequest,
+    Artifact,
     Candidate,
     DisclosureCase,
     Evidence,
@@ -14,12 +15,19 @@ from vulnloom.domain.models import (
     Finding,
     Report,
     Scope,
+    TargetManifest,
+    TargetSnapshot,
     ValidationRun,
 )
 from vulnloom.domain.protocol import TaskEnvelope, WorkerResult
+from vulnloom.ingestion import IngestionLimits
 
 MODELS = (
     Scope,
+    Artifact,
+    TargetManifest,
+    TargetSnapshot,
+    IngestionLimits,
     Candidate,
     ApprovalRequest,
     ValidationRun,

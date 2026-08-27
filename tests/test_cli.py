@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import zipfile
 from datetime import timedelta
 
 import pytest
 
 from vulnloom.cli import main
-from vulnloom.domain.models import Scope, utc_now
+from vulnloom.domain.models import ArtifactKind, ArtifactScope, Scope, utc_now
 
 
 def test_cli_create_and_status(tmp_path, capsys):
@@ -90,3 +92,59 @@ def test_cli_refuses_expired_scope(tmp_path, approved_scope):
                 "reviewer",
             ]
         )
+
+
+def test_cli_ingests_scoped_archive_idempotently(tmp_path, capsys, approved_scope):
+    archive = tmp_path / "source.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr("app.py", "pass\n")
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    scope = approved_scope.model_copy(
+        update={
+            "artifacts": (
+                ArtifactScope(
+                    kind=ArtifactKind.SOURCE_ARCHIVE,
+                    sha256=digest,
+                    source_name=archive.name,
+                ),
+            )
+        }
+    )
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(scope.model_dump_json(), encoding="utf-8")
+    quarantine_args = [
+        "--db",
+        str(tmp_path / "events.db"),
+        "--store",
+        str(tmp_path / "targets"),
+        "artifact-quarantine",
+        "--engagement-id",
+        str(scope.engagement_id),
+        "--source",
+        str(archive),
+    ]
+    assert main(quarantine_args) == 0
+    quarantined = json.loads(capsys.readouterr().out)
+    assert quarantined["event"]["event_type"] == "ArtifactQuarantined"
+    assert quarantined["event"]["payload"]["artifact_id"] == digest
+
+    args = [
+        "--db",
+        str(tmp_path / "events.db"),
+        "--store",
+        str(tmp_path / "targets"),
+        "target-ingest-archive",
+        "--scope-file",
+        str(scope_file),
+        "--source",
+        str(archive),
+    ]
+
+    assert main(args) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert first["created"] is True
+    assert first["event"]["event_type"] == "TargetIngested"
+
+    assert main(args) == 0
+    second = json.loads(capsys.readouterr().out)
+    assert second["created"] is False

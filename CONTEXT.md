@@ -16,6 +16,18 @@ _Avoid_: Target list, Prompt instruction
 Scope 中一个可独立标识和版本化的被测对象，例如仓库提交、容器镜像或测试服务。
 _Avoid_: Host, Victim
 
+**Artifact**：
+进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
+_Avoid_: Target, Workspace, Attachment
+
+**Target Snapshot**：
+从已授权 Artifact 或固定 Git commit 生成的不可变、带 Manifest 的只读目标视图。
+_Avoid_: Repository, Extraction Directory, Working Copy
+
+**Target Manifest**：
+描述 Target Snapshot 中每个文件的归一化路径、大小、内容摘要和静态类别的不可变清单。
+_Avoid_: File listing, Agent summary
+
 ## 发现与验证
 
 **Signal**：

@@ -45,6 +45,25 @@ class TargetKind(StrEnum):
     IAC_BUNDLE = "iac_bundle"
 
 
+class ArtifactKind(StrEnum):
+    SOURCE_ARCHIVE = "source_archive"
+    IAC_BUNDLE = "iac_bundle"
+    GIT_REPOSITORY = "git_repository"
+    OCI_IMAGE = "oci_image"
+
+
+class StaticFileCategory(StrEnum):
+    SOURCE = "source"
+    KUBERNETES = "kubernetes"
+    HELM = "helm"
+    TERRAFORM = "terraform"
+    DOCKERFILE = "dockerfile"
+    COMPOSE = "compose"
+    CONFIG = "config"
+    DOCUMENTATION = "documentation"
+    OTHER = "other"
+
+
 class CandidateState(StrEnum):
     PROPOSED = "proposed"
     REJECTED = "rejected"
@@ -110,6 +129,12 @@ class RepositoryScope(DomainModel):
     commit: Annotated[str, Field(pattern=r"^[0-9a-fA-F]{7,64}$")]
 
 
+class ArtifactScope(DomainModel):
+    kind: ArtifactKind
+    sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    source_name: NonEmpty
+
+
 class NetworkTargetScope(DomainModel):
     host: NonEmpty
     ports: frozenset[Annotated[int, Field(ge=1, le=65535)]]
@@ -132,6 +157,7 @@ class Scope(DomainModel):
     valid_from: AwareDatetime
     valid_until: AwareDatetime
     repositories: tuple[RepositoryScope, ...] = ()
+    artifacts: tuple[ArtifactScope, ...] = ()
     network_targets: tuple[NetworkTargetScope, ...] = ()
     allowed_identities: frozenset[str] = frozenset()
     allowed_test_classes: frozenset[str] = frozenset()
@@ -158,6 +184,42 @@ class Target(DomainModel):
     source_ref: NonEmpty
     version: NonEmpty
     ingested_at: AwareDatetime = Field(default_factory=utc_now)
+
+
+class Artifact(DomainModel):
+    artifact_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    engagement_id: UUID
+    kind: ArtifactKind
+    source_name: NonEmpty
+    source_ref: NonEmpty
+    original_size: Annotated[int, Field(ge=0)]
+    detected_format: NonEmpty
+    quarantine_ref: str | None = None
+    captured_at: AwareDatetime = Field(default_factory=utc_now)
+
+
+class SnapshotFile(DomainModel):
+    path: NonEmpty
+    size: Annotated[int, Field(ge=0)]
+    sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    category: StaticFileCategory
+
+
+class TargetManifest(DomainModel):
+    manifest_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    artifact_id: NonEmpty
+    target_id: UUID
+    target_version: NonEmpty
+    files: tuple[SnapshotFile, ...]
+    total_size: Annotated[int, Field(ge=0)]
+    created_at: AwareDatetime = Field(default_factory=utc_now)
+
+
+class TargetSnapshot(DomainModel):
+    target: Target
+    artifact: Artifact
+    manifest: TargetManifest
+    root_ref: str | None = None
 
 
 class SourceLocation(DomainModel):

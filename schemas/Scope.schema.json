@@ -11,6 +11,41 @@
       "title": "ApprovalAction",
       "type": "string"
     },
+    "ArtifactKind": {
+      "enum": [
+        "source_archive",
+        "iac_bundle",
+        "git_repository",
+        "oci_image"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactScope": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_name": {
+          "minLength": 1,
+          "title": "Source Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "sha256",
+        "source_name"
+      ],
+      "title": "ArtifactScope",
+      "type": "object"
+    },
     "NetworkTargetScope": {
       "additionalProperties": false,
       "properties": {
@@ -118,6 +153,14 @@
         "$ref": "#/$defs/RepositoryScope"
       },
       "title": "Repositories",
+      "type": "array"
+    },
+    "artifacts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ArtifactScope"
+      },
+      "title": "Artifacts",
       "type": "array"
     },
     "network_targets": {

@@ -71,6 +71,8 @@ OAST、Webhook 或外部回连使用一次性 Approval 和一次性 callback 标
 - 解压目录使用 `noexec,nodev,nosuid`。
 - 分析前生成 manifest；未知二进制不得在宿主机执行。
 
+M1 实现采用逐成员解压，不调用 `extractall()`；拒绝符号链接、硬链接、设备文件、命名管道、路径大小写/Unicode 归一化冲突和加密 ZIP。成功结果通过原子重命名发布为只读 Target Snapshot，失败或超时清除未完成目录。
+
 ## 6. Evidence 安全
 
 - Evidence 采用内容寻址，记录来源、时间、Target 版本、工具版本和策略版本。
