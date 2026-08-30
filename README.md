@@ -1,15 +1,15 @@
 # VulnLoom
 
-VulnLoom is a vulnerability research agent for **explicitly authorized targets**. It finds security candidates in source code, APIs, and cloud-native configuration, validates them in isolated environments, challenges them through an independent review step, and produces auditable report drafts for human review.
+VulnLoom is an in-development vulnerability research system for **explicitly authorized targets**. It currently ingests trusted local targets, maps Python Web source code, generates deterministic security Candidates, and provides controlled validation building blocks. The target product will validate Candidates in isolated environments, challenge them through an independent review step, and produce auditable report drafts for human review.
 
 The goal is not autonomous exploitation of public targets. VulnLoom is designed to improve the recall, evidence quality, and reporting efficiency of white-box security research while enforcing scope, network boundaries, credential isolation, and human approval in code.
 
 ## Initial scope
 
 - White-box analysis of Python Web and API projects.
-- Controlled dynamic validation in local Docker Compose test environments.
+- Planned controlled dynamic validation in local Docker Compose test environments.
 - IDOR/BOLA, SSRF, path traversal, injection, insecure deserialization, authorization flaws, and sensitive data exposure.
-- Human-reviewable report drafts for vendors, EduSRC, CNVD/CNNVD, and similar disclosure channels.
+- Planned human-reviewable report drafts for vendors, EduSRC, CNVD/CNNVD, and similar disclosure channels.
 - No scanning of unauthorized public targets, automatic platform submission, or automatic CVE requests.
 
 ## Core principles
@@ -36,30 +36,30 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 
 ```text
 VulnLoom/
-├── apps/                   # CLI and future API entry points
 ├── src/vulnloom/
-│   ├── domain/             # Domain objects, state machines, and policy
-│   ├── orchestrator/       # DAG scheduling, budgets, verdicts, and approval gates
-│   ├── agents/             # Agent roles and structured output protocols
-│   ├── broker/             # Typed tool mediation and permission checks
-│   ├── runners/            # Docker/rootless sandbox runners
-│   ├── analyzers/          # AST, Semgrep, and future CodeQL adapters
-│   ├── validators/         # HTTP, browser, and test-script validators
-│   ├── evidence/           # Redaction, hashing, and evidence indexing
-│   ├── reporting/          # Report templates and exporters
-│   └── adapters/           # Target, model, and disclosure adapters
-├── policies/               # Scope, network, tool, and resource policies
-├── prompts/                # Versioned prompts
-├── schemas/                # JSON Schema contracts
-├── sandboxes/              # Images and runtime profiles
-├── benchmarks/             # Test targets, ground truth, and evaluation scripts
-├── tests/
-└── docs/
+│   ├── adapters/           # Model-provider configuration boundary
+│   ├── analyzers/          # Python AST and optional Semgrep analysis
+│   ├── broker/             # Typed tool mediation and HTTP policy enforcement
+│   ├── domain/             # Domain objects, state machines, and protocols
+│   ├── evidence/           # Redaction, hashing, and evidence storage
+│   ├── hypotheses/         # Deterministic Candidate generation
+│   ├── ingestion/          # Archive, Git, and OCI target ingestion
+│   ├── policy/             # Scope and approval enforcement
+│   ├── runners/            # Offline and Docker sandbox runners
+│   ├── storage/            # Event and validation persistence
+│   ├── validation/         # Plans, orchestration, and deterministic judging
+│   └── cli.py              # Current command-line entry point
+├── docs/                   # Architecture, workflow, security, and roadmap
+├── schemas/                # Exported JSON Schema contracts
+├── scripts/                # Schema and development utilities
+└── tests/                  # Offline tests and opt-in integration probes
 ```
+
+An HTTP API, LLM-backed agent runtime, Critic, report exporters, disclosure adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
 
 ## First end-to-end path
 
-The initial product path is deliberately narrow:
+The target end-to-end product path is deliberately narrow:
 
 ```text
 Approved scope
@@ -72,6 +72,8 @@ Approved scope
 → Run an independent Critic
 → Produce a Markdown report draft
 ```
+
+The current implementation reaches deterministic validation and Evidence bundling. The independent Critic and report-draft stages remain planned work.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -136,7 +138,7 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Accepts HTTP methods, normalized credential-free URLs, safe headers, opaque credential/body references, and explicit time/size/redirect budgets—never raw credentials or request bodies.
 - Derives state-changing behavior from the HTTP method in trusted code and requires exact, unexpired approvals for mutations and credential use.
 - Reauthorizes every redirect, resolves every hop, pins the selected IP, verifies the reported peer, and rejects loopback, link-local metadata, multicast, unspecified, mixed-dangerous, and configured host-gateway addresses.
-- Returns only policy records, URL digests, peer metadata, Evidence IDs, and budget usage; response bodies and sensitive headers stay outside the normal result path.
+- Returns only policy records, URL digests, peer metadata, Evidence IDs, final response-body SHA-256 digests, and budget usage; raw response bodies and sensitive headers stay outside the normal result path.
 - Uses deterministic offline resolver and transport adapters. No real HTTP request or network isolation claim is introduced in M4.2.
 
 ### M4.3: ephemeral Docker Runner (in progress)
@@ -224,14 +226,27 @@ vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
 vulnloom --db .vulnloom/events.db \
   candidate-generate --graph-id <graph-sha256> --scope-file scope.json \
   --analysis-store .vulnloom/analysis --candidate-store .vulnloom/candidates
+
+# Exercise a pre-sealed ValidationPlan through the offline control-plane path.
+# The plan must not contain Broker calls.
+vulnloom --db .vulnloom/events.db \
+  validation-run-offline --scope-file scope.json \
+  --candidate-store .vulnloom/candidates \
+  --candidate-set-id <candidate-set-sha256> --candidate-id <candidate-uuid> \
+  --plan-file validation-plan.json --validation-db .vulnloom/validation.db \
+  --evidence-store .vulnloom/evidence
 ```
+
+`validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
 ## Model credential boundary
 
-The Control Plane resolves model API keys through `ModelProviderConfig.api_key_env` immediately before a provider request. Keys do not appear in `TaskEnvelope`, Worker environments, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
+`ModelProviderConfig.api_key_env` defines how a future Control Plane provider adapter must resolve an API key immediately before making a request. No model-provider HTTP or SDK call is implemented yet. The boundary is designed so keys never appear in `TaskEnvelope`, Worker environments, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, sandbox contracts, and an offline-tested Tool Broker with typed HTTP policy enforcement. Real sandbox/network execution, dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
+
+Live Docker/Broker validation is currently exposed only through library and integration-test paths, not a production CLI or HTTP API. Production rootless Linux deployment and OS-level egress defense in depth remain incomplete. An independent Critic, report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.
