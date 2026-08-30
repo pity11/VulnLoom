@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Mapping
-from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Self
 from uuid import UUID, uuid4
 
 from pydantic import Field, field_validator, model_validator
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope
 
@@ -149,7 +146,7 @@ class SandboxProfile(DomainModel):
 
 
 def sandbox_profile_digest(profile: SandboxProfile) -> str:
-    return _digest(profile.model_dump(mode="python"))
+    return canonical_digest(profile.model_dump(mode="python"))
 
 
 class WorkingDirectory(StrEnum):
@@ -185,8 +182,8 @@ class RunnerCheckpoint(DomainModel):
 
 
 def checkpoint_digest(checkpoint: RunnerCheckpoint) -> str:
-    payload = checkpoint.model_dump(mode="json", exclude={"checkpoint_id"})
-    return _digest(payload)
+    payload = checkpoint.model_dump(mode="python", exclude={"checkpoint_id"})
+    return canonical_digest(payload)
 
 
 class SandboxRunRequest(DomainModel):
@@ -207,11 +204,11 @@ class SandboxRunRequest(DomainModel):
 
 
 def invocation_digest(invocation: ToolInvocation) -> str:
-    return _digest(invocation.model_dump(mode="json"))
+    return canonical_digest(invocation.model_dump(mode="python"))
 
 
 def run_request_digest(request: SandboxRunRequest) -> str:
-    return _digest(request.model_dump(mode="json", exclude={"run_id"}))
+    return canonical_digest(request.model_dump(mode="python", exclude={"run_id"}))
 
 
 class SandboxRunStatus(StrEnum):
@@ -272,25 +269,3 @@ class SandboxRunResult(DomainModel):
         if self.status is not SandboxRunStatus.CHECKPOINTED and self.checkpoint is not None:
             raise ValueError("only checkpointed results may include a checkpoint")
         return self
-
-
-def _digest(value: object) -> str:
-    encoded = json.dumps(
-        _canonicalize(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def _canonicalize(value: object) -> object:
-    if isinstance(value, Mapping):
-        return {str(key): _canonicalize(item) for key, item in value.items()}
-    if isinstance(value, (set, frozenset)):
-        items = [_canonicalize(item) for item in value]
-        return sorted(items, key=lambda item: json.dumps(item, sort_keys=True, default=str))
-    if isinstance(value, (list, tuple)):
-        return [_canonicalize(item) for item in value]
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    if isinstance(value, UUID):
-        return str(value)
-    return value

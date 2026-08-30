@@ -146,8 +146,12 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Applies and re-inspects a read-only root, non-root UID/GID, dropped capabilities, `no-new-privileges`, seccomp, no network, resource limits, read-only content, and bounded `noexec,nosuid,nodev` tmpfs mounts.
 - Kills timed-out Workers, removes containers and anonymous storage, and refuses to report a normal result unless absence is verified.
 - Includes opt-in real-container probes for isolation, secret non-inheritance, timeout, and cleanup.
+- Adds a live Broker-owned HTTP/HTTPS transport that connects directly to the policy-selected IP, preserves the authorized hostname for HTTP Host and TLS verification, ignores proxy environment variables, verifies the actual peer, and enforces response limits.
+- Binds the selected resolver and transport implementation digest into the Tool Registry; queued work is rejected if offline and live adapters are swapped.
+- Resolves request bodies by content digest and credentials through separate opaque providers; neither raw material is copied into Broker results or HTTP Evidence metadata.
+- Stores only redacted response transcripts in the Evidence Store. Sensitive response headers, raw URLs, credential material, binary bodies, email addresses, and JSON-shaped secrets are excluded or redacted.
 - Requires a rootless daemon by default. The current Docker Desktop engine is rootful, so its integration tests use an explicit test-only exception and do not satisfy the production rootless criterion.
-- Rejects `target_only` profiles until a destination-enforcing egress adapter exists; typed HTTP remains offline in this slice.
+- Docker Workers still reject direct `target_only` networking and remain network-disabled. Authorized target access now belongs to the trusted Broker; rootless Linux end-to-end deployment and OS-level egress defense in depth remain unfinished.
 
 ## Local development
 
@@ -161,6 +165,9 @@ python3 -m venv .venv
 
 # Optional; requires a local Alpine 3.22 image and Docker engine.
 VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integration.py
+
+# Optional; opens one temporary loopback-only HTTP server.
+VULNLOOM_SOCKET_INTEGRATION=1 .venv/bin/pytest tests/test_live_http_integration.py
 ```
 
 ## Basic usage

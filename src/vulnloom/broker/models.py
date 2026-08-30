@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from enum import StrEnum
 from typing import Annotated, Self
@@ -12,6 +11,7 @@ from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel
 from vulnloom.domain.protocol import TaskEnvelope
 from vulnloom.policy.engine import DecisionEffect
@@ -108,6 +108,10 @@ class HttpHeader(DomainModel):
     def no_header_injection(cls, value: str) -> str:
         if "\r" in value or "\n" in value or "\x00" in value:
             raise ValueError("HTTP header value contains control characters")
+        try:
+            value.encode("latin-1")
+        except UnicodeEncodeError as exc:
+            raise ValueError("HTTP header value is not Latin-1 encodable") from exc
         return value
 
 
@@ -190,7 +194,7 @@ class BrokerCall(DomainModel):
 
 
 def broker_call_digest(call: BrokerCall) -> str:
-    return _digest(call.model_dump(mode="json", exclude={"call_id"}))
+    return canonical_digest(call.model_dump(mode="python", exclude={"call_id"}))
 
 
 class PolicyRecord(DomainModel):
@@ -253,8 +257,3 @@ def sandbox_binding_matches(call: BrokerCall) -> bool:
 
 def url_digest(url: str) -> str:
     return hashlib.sha256(url.encode()).hexdigest()
-
-
-def _digest(value: object) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Iterable
 
 from pydantic import ValidationError
 
+from vulnloom.domain.digests import canonical_digest
+
+from .implementation import (
+    OFFLINE_HTTP_IMPLEMENTATION_DIGEST,
+    PINNED_HTTP_IMPLEMENTATION_DIGEST,
+)
 from .models import (
     SideEffectMode,
     ToolRegistration,
@@ -28,12 +32,10 @@ class ToolRegistry:
             raise ValueError("tool registry contains duplicate tool ids")
         self._entries = by_id
         payload = [
-            item.model_dump(mode="json")
+            item.model_dump(mode="python")
             for item in sorted(entries, key=lambda entry: entry.tool_id)
         ]
-        self.digest = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        self.digest = canonical_digest(payload)
 
     def require(self, tool_id: str) -> ToolRegistration:
         try:
@@ -43,14 +45,26 @@ class ToolRegistry:
 
 
 def default_tool_registry() -> ToolRegistry:
+    return _http_tool_registry(
+        version="1", implementation_digest=OFFLINE_HTTP_IMPLEMENTATION_DIGEST
+    )
+
+
+def pinned_http_tool_registry() -> ToolRegistry:
+    return _http_tool_registry(
+        version="2", implementation_digest=PINNED_HTTP_IMPLEMENTATION_DIGEST
+    )
+
+
+def _http_tool_registry(*, version: str, implementation_digest: str) -> ToolRegistry:
     registration = ToolRegistration(
         tool_id="http.request",
-        version="1",
+        version=version,
         capability="http_request",
         allowed_profiles=frozenset({"validation"}),
         requires_network=True,
         accepts_credential_ref=True,
         side_effect_mode=SideEffectMode.CONDITIONAL,
-        implementation_digest=hashlib.sha256(b"vulnloom:offline-http:v1").hexdigest(),
+        implementation_digest=implementation_digest,
     )
     return ToolRegistry((registration,))

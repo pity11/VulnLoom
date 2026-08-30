@@ -14,13 +14,16 @@ from vulnloom.broker import (
     HttpHeader,
     HttpLimits,
     HttpRequestPlan,
+    HttpResponseLimitExceeded,
     OfflineHttpHop,
     OfflineHttpTransport,
     StaticResolver,
     ToolBroker,
     ToolRegistry,
     default_tool_registry,
+    pinned_http_tool_registry,
 )
+from vulnloom.broker.models import broker_call_digest
 from vulnloom.domain.models import (
     ApprovalAction,
     ApprovalRequest,
@@ -348,6 +351,12 @@ def test_state_change_and_credential_use_require_exact_approvals(approved_scope,
             "method": "GET",
             "url": URL,
             "test_class": "read_only",
+            "headers": ({"name": "X-Test", "value": "not-http-🙂"},),
+        },
+        {
+            "method": "GET",
+            "url": URL,
+            "test_class": "read_only",
             "body_ref": "a" * 64,
             "body_bytes": 1,
         },
@@ -391,6 +400,19 @@ def test_timeout_size_transport_failure_and_request_budget_paths(approved_scope,
     ).execute(_call(now, approved_scope, key="transport"), now=now)
     assert failed.status is BrokerStatus.FAILED
     assert failed.error_codes == ("http_transport_failed",)
+
+    class LiveSizeFailure:
+        implementation_digest = OfflineHttpTransport.implementation_digest
+
+        def send(self, request):
+            raise HttpResponseLimitExceeded("fixture response too large")
+
+    live_size = _broker(
+        approved_scope,
+        StaticResolver({"app.example.test": (IP,)}),
+        LiveSizeFailure(),
+    ).execute(_call(now, approved_scope, key="live-size"), now=now)
+    assert live_size.error_codes == ("http_response_size_exceeded",)
 
     expired = _call(now, approved_scope, key="expired")
     expired = expired.model_copy(update={"task": expired.task.model_copy(update={"deadline": now})})
@@ -514,6 +536,31 @@ def test_broker_revalidates_bypassed_models_and_detects_idempotency_conflict(app
     )
     with pytest.raises(BrokerIdempotencyConflict):
         broker.execute(valid_changed, now=now)
+
+
+def test_broker_call_digest_survives_boundary_reparse(approved_scope, now):
+    call = _call(now, approved_scope)
+    reparsed = BrokerCall.model_validate(call.model_dump(mode="python"))
+    assert broker_call_digest(reparsed) == broker_call_digest(call)
+
+
+def test_broker_rejects_transport_not_bound_by_registry(approved_scope, now):
+    registry = pinned_http_tool_registry()
+    call = _call(now, approved_scope)
+    call = call.model_copy(
+        update={
+            "task": call.task.model_copy(update={"tool_registry_digest": registry.digest})
+        }
+    )
+    broker = ToolBroker(
+        scope=approved_scope,
+        registry=registry,
+        resolver=StaticResolver({"app.example.test": (IP,)}),
+        http_transport=OfflineHttpTransport({URL: _hop()}),
+    )
+    with pytest.raises(BrokerRejected, match="adapters"):
+        broker.execute(call, now=now)
+    assert broker._results == {}
 
 
 def test_registry_is_deterministic_and_rejects_duplicates():

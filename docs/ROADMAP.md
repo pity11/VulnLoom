@@ -120,10 +120,19 @@ egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Dock
   open-files 限额，以及有界 `noexec,nosuid,nodev` tmpfs。
 - 已用真实 Alpine 容器验证无默认路由、无 Docker socket、无宿主密钥继承、只读边界、scratch
   写入、正常清理，以及墙钟超时后的 kill 与清理。
+- 已实现 Broker-owned live HTTP/HTTPS adapter：系统解析结果经现有策略筛选后固定数字 IP，连接
+  不使用代理环境，Host/TLS hostname 保持授权域名，实际 peer 再由 Broker 复核。
+- offline/live resolver 与 transport 使用不同 implementation digest，Broker preflight 要求两者
+  同时匹配 Task 绑定的 Tool Registry，禁止排队后静默替换网络实现。
+- request body 从 O_NOFOLLOW 的内容寻址对象读取，凭据从独立 opaque provider 注入；原始数据
+  不进入 Broker result。响应预算、redirect shape、超时/失败和脱敏 Evidence 路径已有离线测试。
+- 已用真实 loopback socket 验证固定 IP 连接、Host 保留，以及敏感 header、JSON secret、邮箱和
+  raw URL 不进入普通 Evidence 内容。
 - 生产默认要求 rootless daemon；当前 Docker Desktop 仅有 seccomp/cgroup namespace，没有
   rootless 标志，因此本机测试例外不能满足 rootless 验收条件。
-- `TARGET_ONLY` 暂时 fail-closed 拒绝。完成 M4.3 仍需 rootless Linux 集成环境、目标级 egress
-  enforcement、真实 HTTP socket pinning/DNS rebinding/宿主网关测试，以及 Evidence 单向导出。
+- Docker Worker 的直接 `TARGET_ONLY` 仍 fail-closed 拒绝，授权网络访问由可信 Broker 承担。
+  完成 M4.3 仍需 rootless Linux 组合环境、OS-level egress defense in depth、DNS rebinding/宿主
+  网关端到端测试，以及将 Broker 调用接入完整 Validation Run 编排。
 
 ## Phase 3：报告闭环
 

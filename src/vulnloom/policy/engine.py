@@ -6,14 +6,13 @@ resolved IPs and re-evaluate every redirect at connection time.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from enum import StrEnum
 from urllib.parse import urlsplit
 from uuid import UUID
 
 from pydantic import AwareDatetime
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     ApprovalAction,
     ApprovalRequest,
@@ -45,9 +44,8 @@ class ActionRequest(DomainModel):
     runs_untrusted_build: bool = False
 
     def digest(self) -> str:
-        payload = self.model_dump(mode="json", exclude={"requested_at"})
-        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-        return hashlib.sha256(encoded).hexdigest()
+        payload = self.model_dump(mode="python", exclude={"requested_at"})
+        return canonical_digest(payload)
 
 
 class Decision(DomainModel):
@@ -60,8 +58,7 @@ class Decision(DomainModel):
 class PolicyEngine:
     def __init__(self, scope: Scope):
         self.scope = scope
-        encoded = scope.model_dump_json(exclude_none=False).encode()
-        self.policy_digest = hashlib.sha256(encoded).hexdigest()
+        self.policy_digest = canonical_digest(scope.model_dump(mode="python", exclude_none=False))
 
     def decide(
         self,

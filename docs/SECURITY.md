@@ -57,10 +57,12 @@ egress 尚未实现，Runner 会 fail-closed 拒绝该模式。
 
 OAST、Webhook 或外部回连使用一次性 Approval 和一次性 callback 标识，不能开放通用互联网出口。
 
-M4.2 的 Broker 已实现逐跳 Scope/Profile 判定、离线 DNS pin 语义、peer IP 一致性、危险地址
-拒绝和 redirect 重新授权。当前 `StaticResolver`/`OfflineHttpTransport` 不创建真实连接；因此
-这些测试不能替代真实 socket、target-only egress、DNS rebinding 和宿主网关集成测试。M4.3
-已证明 network-none 容器没有默认路由；更细粒度的目标地址 allowlist 仍未完成。
+M4.2 的 Broker 已实现逐跳 Scope/Profile 判定、DNS pin、peer IP 一致性、危险地址拒绝和
+redirect 重新授权。M4.3 新增 Broker-owned live HTTP/HTTPS adapter：只连接策略选择的数字 IP，
+不读取代理环境，TLS 仍校验授权 hostname，实际 peer 回传 Broker 复核，响应经过大小限制和脱敏
+后才进入 Evidence Store。真实 loopback socket 测试已证明 Host 与 pinned peer 分离以及单向脱敏
+Evidence 数据流。Worker 容器仍保持 network-none；rootless Linux 组合测试与 OS-level egress
+防御纵深尚未完成。
 
 ## 4. 凭据策略
 

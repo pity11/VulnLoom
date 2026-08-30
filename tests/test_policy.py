@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from vulnloom.domain.models import ApprovalAction, ApprovalRequest, ApprovalStatus
+from vulnloom.domain.models import ApprovalAction, ApprovalRequest, ApprovalStatus, Scope
 from vulnloom.policy.engine import ActionRequest, DecisionEffect, PolicyEngine
 
 
@@ -23,6 +23,11 @@ def test_allows_exact_scoped_network_target(approved_scope, now):
     decision = PolicyEngine(approved_scope).decide(_request(approved_scope, now))
     assert decision.effect is DecisionEffect.ALLOW
     assert "resolve_and_pin_ip" in decision.obligations
+
+
+def test_policy_digest_survives_scope_boundary_reparse(approved_scope):
+    reparsed = Scope.model_validate(approved_scope.model_dump(mode="python"))
+    assert PolicyEngine(reparsed).policy_digest == PolicyEngine(approved_scope).policy_digest
 
 
 def test_fails_closed_for_unknown_host(approved_scope, now):

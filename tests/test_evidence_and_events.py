@@ -32,6 +32,22 @@ def test_evidence_is_redacted_content_addressed_and_integrity_checked(tmp_path):
         store.read_text(evidence)
 
 
+def test_evidence_redaction_covers_json_shaped_secrets(tmp_path):
+    store = EvidenceStore(tmp_path / "evidence")
+    evidence = store.capture_text(
+        '{"api_key":"json-secret","nested":{"password":"also-secret"}}',
+        kind=EvidenceKind.HTTP,
+        source_ref="fixture:json",
+        producer="test",
+        target_version="v1",
+        summary="JSON response",
+    )
+    content = store.read_text(evidence)
+    assert "json-secret" not in content
+    assert "also-secret" not in content
+    assert content.count("[REDACTED]") == 2
+
+
 def test_event_store_is_idempotent_and_redacts_secrets(tmp_path, engagement_id):
     event = Event(
         engagement_id=engagement_id,

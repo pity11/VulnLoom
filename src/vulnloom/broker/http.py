@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import ipaddress
 from collections.abc import Mapping
-from typing import Protocol, runtime_checkable
+from typing import Annotated, Protocol, Self, runtime_checkable
 
 from pydantic import Field, model_validator
 
 from vulnloom.domain.models import DomainModel
 from vulnloom.runners.models import Digest
 
+from .implementation import OFFLINE_HTTP_IMPLEMENTATION_DIGEST
 from .models import HttpHeader, HttpMethod
 
 
@@ -18,13 +19,24 @@ class HttpWireRequest(DomainModel):
     method: HttpMethod
     url: str
     pinned_ip: str
-    headers: tuple[HttpHeader, ...]
+    headers: Annotated[tuple[HttpHeader, ...], Field(max_length=64)]
     credential_ref: Digest | None = None
     body_ref: Digest | None = None
-    body_bytes: int = Field(ge=0)
-    connect_seconds: float = Field(gt=0)
-    read_seconds: float = Field(gt=0)
-    max_response_bytes: int = Field(gt=0)
+    body_bytes: int = Field(ge=0, le=20 * 1024 * 1024)
+    connect_seconds: float = Field(gt=0, le=30)
+    read_seconds: float = Field(gt=0, le=60)
+    max_response_bytes: int = Field(gt=0, le=20 * 1024 * 1024)
+
+    @model_validator(mode="after")
+    def coherent_wire_shape(self) -> Self:
+        if (self.body_ref is None) != (self.body_bytes == 0):
+            raise ValueError("HTTP wire body reference and size must be supplied together")
+        if self.method in {HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS} and self.body_ref:
+            raise ValueError("read-only HTTP wire methods cannot carry a body")
+        names = [header.name for header in self.headers]
+        if len(names) != len(set(names)):
+            raise ValueError("duplicate HTTP wire headers are not allowed")
+        return self
 
 
 class OfflineHttpHop(DomainModel):
@@ -54,6 +66,8 @@ class HttpTransport(Protocol):
 
 
 class StaticResolver:
+    implementation_digest = OFFLINE_HTTP_IMPLEMENTATION_DIGEST
+
     def __init__(self, records: Mapping[str, tuple[str, ...]]):
         self.records = {host.lower(): addresses for host, addresses in records.items()}
         self.calls: list[str] = []
@@ -69,6 +83,8 @@ class StaticResolver:
 
 class OfflineHttpTransport:
     """Returns predeclared hops and never opens a socket."""
+
+    implementation_digest = OFFLINE_HTTP_IMPLEMENTATION_DIGEST
 
     def __init__(self, hops: Mapping[str, OfflineHttpHop]):
         self.hops = dict(hops)

@@ -149,6 +149,15 @@ inspects the resulting Docker configuration, and only then starts the registered
 and seccomp are engine preconditions by default. A terminal result is returned only after the
 container is removed and an inspection confirms absence.
 
-`TARGET_ONLY` is deliberately rejected. A Docker bridge alone is not a destination egress policy,
-and the typed HTTP adapters remain offline. M4.3 is therefore still in progress until a rootless
-Linux engine and destination-enforcing network adapter pass the integration suite.
+Direct Worker `TARGET_ONLY` networking is deliberately rejected. A Docker bridge alone is not a
+destination egress policy. Instead, the trusted Broker now owns a live HTTP/HTTPS adapter: policy
+resolves and selects an IP, the transport connects to that numeric address without proxy discovery,
+retains the authorized hostname for Host/TLS verification, records the actual peer, applies response
+budgets, and writes only a redacted transcript to Evidence Store.
+
+Offline (`StaticResolver` + `OfflineHttpTransport`) and live (`SystemResolver` +
+`PinnedHttpTransport`) adapter pairs have distinct implementation digests. Broker preflight requires
+both adapters to match the Tool Registry bound into the queued Task.
+
+M4.3 is still in progress until this composition passes on a rootless Linux deployment and receives
+OS-level egress defense in depth. Worker containers remain `--network none` throughout this slice.

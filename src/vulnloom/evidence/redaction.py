@@ -8,7 +8,7 @@ from typing import Any
 
 
 class Redactor:
-    policy_name = "builtin-v1"
+    policy_name = "builtin-v2"
     placeholder = "[REDACTED]"
     _secret_keys = re.compile(
         r"^(authorization|proxy-authorization|cookie|set-cookie|token|access_token|"
@@ -16,6 +16,10 @@ class Redactor:
         re.IGNORECASE,
     )
     _patterns = (
+        re.compile(
+            r'''(?i)(["'](?:authorization|cookie|token|access[_-]?token|api[_-]?key|secret|'''
+            r'''password|passwd|private[_-]?key)["']\s*:\s*["'])[^"']+'''
+        ),
         re.compile(r"(?i)(authorization\s*:\s*(?:bearer|basic)\s+)[^\s,;]+"),
         re.compile(r"(?i)((?:api[_-]?key|access[_-]?token|password)\s*[=:]\s*)[^\s,;&]+"),
         re.compile(r"\bsk-[A-Za-z0-9_-]{12,}\b"),

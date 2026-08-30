@@ -14,6 +14,7 @@ from vulnloom.policy.engine import ActionRequest, DecisionEffect, PolicyEngine
 from vulnloom.runners.models import NetworkMode, SandboxProfileKind, sandbox_profile_digest
 
 from .http import HostResolver, HttpTransport, HttpWireRequest
+from .live_http import HttpPeerMismatch, HttpResponseLimitExceeded
 from .models import (
     BrokerCall,
     BrokerResult,
@@ -126,6 +127,13 @@ class ToolBroker:
             raise BrokerRejected("tool registration does not allow this SandboxProfile kind")
         if registration.capability.value != "http_request":
             raise BrokerRejected("typed HTTP call requires an HTTP tool registration")
+        if (
+            getattr(self.http_transport, "implementation_digest", None)
+            != registration.implementation_digest
+            or getattr(self.resolver, "implementation_digest", None)
+            != registration.implementation_digest
+        ):
+            raise BrokerRejected("HTTP adapters do not match the bound Tool Registry")
         if call.task.worker_role is not WorkerRole.VALIDATOR:
             raise BrokerRejected("typed HTTP calls are restricted to Validator Workers")
         if registration.requires_network and (
@@ -237,6 +245,26 @@ class ToolBroker:
                         read_seconds=call.http.limits.read_seconds,
                         max_response_bytes=call.http.limits.max_response_bytes,
                     )
+                )
+            except HttpPeerMismatch:
+                return self._store(
+                    call,
+                    digest,
+                    BrokerStatus.DENIED,
+                    now,
+                    policy_records=tuple(records),
+                    tool_calls_used=requests,
+                    error_codes=("http_peer_ip_mismatch",),
+                )
+            except HttpResponseLimitExceeded:
+                return self._store(
+                    call,
+                    digest,
+                    BrokerStatus.FAILED,
+                    now,
+                    policy_records=tuple(records),
+                    tool_calls_used=requests,
+                    error_codes=("http_response_size_exceeded",),
                 )
             except (OSError, TimeoutError, RuntimeError):
                 return self._store(
