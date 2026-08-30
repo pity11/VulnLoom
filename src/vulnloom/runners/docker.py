@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import shutil
@@ -43,6 +44,8 @@ class DockerEnginePolicy:
 
     require_rootless: bool = True
     require_seccomp: bool = True
+    require_cgroup_v2: bool = True
+    require_resource_controls: bool = True
 
 
 @dataclass(frozen=True)
@@ -108,6 +111,19 @@ class DockerCliBackend:
         if not isinstance(values, list) or len(values) != 1:
             raise DockerBackendError("Docker returned an invalid container inspection")
         return values[0]
+
+    def network_gateway_ips(self) -> frozenset[str]:
+        """Return every daemon-managed network gateway for Broker denylisting."""
+        networks = self._run(("network", "ls", "--quiet", "--no-trunc")).stdout.split()
+        if not networks:
+            raise DockerBackendError("Docker returned no networks to inspect")
+        values = self._json(("network", "inspect", *networks))
+        if not isinstance(values, list):
+            raise DockerBackendError("Docker returned an invalid network inspection")
+        gateways = _network_gateway_ips(values)
+        if not gateways:
+            raise DockerBackendError("Docker reported no network gateway addresses")
+        return gateways
 
     def start(self, container: str, timeout: float) -> int:
         try:
@@ -276,7 +292,8 @@ class DockerSandboxRunner:
         return result
 
     def _validate_engine(self) -> None:
-        security = self.backend.engine_info().get("SecurityOptions", [])
+        info = self.backend.engine_info()
+        security = info.get("SecurityOptions", [])
         normalized = {str(item).lower() for item in security}
         if self.engine_policy.require_rootless and not any(
             "rootless" in item for item in normalized
@@ -284,6 +301,12 @@ class DockerSandboxRunner:
             raise RunnerRejected("Docker engine is not running in rootless mode")
         if self.engine_policy.require_seccomp and not any("seccomp" in item for item in normalized):
             raise RunnerRejected("Docker engine does not report seccomp enforcement")
+        if self.engine_policy.require_cgroup_v2 and str(info.get("CgroupVersion")) != "2":
+            raise RunnerRejected("Docker engine does not report cgroup v2 enforcement")
+        if self.engine_policy.require_resource_controls and not all(
+            info.get(field) is True for field in ("MemoryLimit", "CpuCfsQuota", "PidsLimit")
+        ):
+            raise RunnerRejected("Docker engine cannot enforce required resource controls")
 
     def _create_arguments(self, request: SandboxRunRequest) -> tuple[str, ...]:
         profile = request.profile
@@ -479,3 +502,17 @@ def _docker_worker_environment(explicit: Mapping[str, str]) -> dict[str, str]:
     # Override image-provided PATH with a fixed non-host-derived value.
     environment["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     return environment
+
+
+def _network_gateway_ips(inspections: Sequence[Mapping[str, Any]]) -> frozenset[str]:
+    gateways: set[str] = set()
+    try:
+        for network in inspections:
+            configurations = network.get("IPAM", {}).get("Config") or ()
+            for configuration in configurations:
+                gateway = configuration.get("Gateway")
+                if gateway:
+                    gateways.add(str(ipaddress.ip_address(gateway)))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise DockerBackendError("Docker network gateway inspection is malformed") from exc
+    return frozenset(gateways)

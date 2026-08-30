@@ -1,27 +1,84 @@
 from __future__ import annotations
 
+import json
 import os
+import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
+from vulnloom.broker import (
+    BrokerCall,
+    BrokerStatus,
+    HttpRequestPlan,
+    PinnedHttpTransport,
+    ToolBroker,
+    pinned_http_tool_registry,
+)
+from vulnloom.domain.models import NetworkTargetScope, Scope, ScopeState
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
+from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     DockerCliBackend,
     DockerEnginePolicy,
     DockerSandboxRunner,
     DockerTool,
+    NetworkGrant,
     RegisteredObjectStore,
     SandboxRunRequest,
     SandboxRunStatus,
     ToolInvocation,
     sandbox_profile_digest,
     static_profile,
+    validation_profile,
 )
 
 SNAPSHOT = "a" * 64
+
+
+def _engine_policy() -> DockerEnginePolicy:
+    if os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1":
+        return DockerEnginePolicy()
+    # Local Docker Desktop can exercise the container boundary, but cannot qualify production.
+    return DockerEnginePolicy(require_rootless=False)
+
+
+def _docker(backend: DockerCliBackend, *arguments: str) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        (backend.executable, *arguments),
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        env=backend.environment,
+    )
+    if result.returncode != 0:
+        raise AssertionError(f"Docker fixture command failed: {result.stderr.strip()[:500]}")
+    return result
+
+
+class _PinnedGatewayResolver:
+    implementation_digest = PinnedHttpTransport.implementation_digest
+
+    def __init__(self, gateway: str):
+        self.gateway = gateway
+
+    def resolve(self, host: str) -> tuple[str, ...]:
+        return (self.gateway,)
+
+
+class _NoSocketTransport:
+    implementation_digest = PinnedHttpTransport.implementation_digest
+
+    def __init__(self):
+        self.calls = []
+
+    def send(self, request):
+        self.calls.append(request)
+        raise AssertionError("host gateway denial must happen before opening a socket")
 
 
 def _request(profile, now, *, wall_seconds=20, arguments=()):
@@ -93,9 +150,7 @@ touch /tmp/temp-is-writable
                 argv_prefix=("/bin/sh", "-c", probe, "vulnloom-isolation-probe"),
             ),
         ),
-        # Docker Desktop is rootful. This exception exists only in the integration test;
-        # the production default remains fail-closed and requires a rootless daemon.
-        engine_policy=DockerEnginePolicy(require_rootless=False),
+        engine_policy=_engine_policy(),
     )
 
     result = runner.execute(request, now=now)
@@ -127,7 +182,7 @@ def test_real_timeout_kills_and_removes_container(tmp_path: Path):
         backend,
         RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
         (DockerTool(tool_id="source.read", argv_prefix=("/bin/sleep",)),),
-        engine_policy=DockerEnginePolicy(require_rootless=False),
+        engine_policy=_engine_policy(),
     )
 
     result = runner.execute(request, now=now)
@@ -136,3 +191,158 @@ def test_real_timeout_kills_and_removes_container(tmp_path: Path):
     assert result.cleanup.complete
     assert runner.last_inspection is not None
     assert not backend.exists(runner.last_inspection["Id"])
+
+
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_ROOTLESS_QUALIFICATION=1 on a rootless Linux daemon",
+)
+def test_rootless_worker_cannot_reach_bridge_gateway_or_sibling_container(tmp_path: Path):
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    peer_name = f"vulnloom-isolation-peer-{uuid4().hex}"
+    peer_id = _docker(
+        backend,
+        "run",
+        "--detach",
+        "--name",
+        peer_name,
+        "--network",
+        "bridge",
+        "--pull",
+        "never",
+        "alpine:3.22",
+        "/bin/busybox",
+        "httpd",
+        "-f",
+        "-p",
+        "8080",
+    ).stdout.strip()
+    try:
+        peer = json.loads(_docker(backend, "inspect", peer_id).stdout)[0]
+        bridge = peer["NetworkSettings"]["Networks"]["bridge"]
+        gateway_ip = bridge["Gateway"]
+        peer_ip = bridge["IPAddress"]
+        assert gateway_ip and peer_ip
+        assert gateway_ip in backend.network_gateway_ips()
+
+        source = tmp_path / "objects" / SNAPSHOT
+        source.mkdir(parents=True)
+        source.chmod(0o755)
+        profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+        now = datetime.now(UTC)
+        probe = """
+set -eu
+[ "$(wc -l < /proc/net/route)" = "1" ]
+for address in "$@"; do
+  ! wget -T 1 -q -O /dev/null "http://$address:8080/"
+done
+""".strip()
+        request = _request(profile, now, arguments=(gateway_ip, peer_ip))
+        runner = DockerSandboxRunner(
+            backend,
+            RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+            (
+                DockerTool(
+                    tool_id="source.read",
+                    argv_prefix=("/bin/sh", "-c", probe, "vulnloom-egress-probe"),
+                ),
+            ),
+        )
+
+        result = runner.execute(request, now=now)
+
+        assert result.status is SandboxRunStatus.COMPLETED
+        assert result.cleanup.complete
+        assert runner.last_inspection is not None
+        assert not backend.exists(runner.last_inspection["Id"])
+    finally:
+        backend.remove(peer_id)
+        assert not backend.exists(peer_id)
+
+
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_ROOTLESS_QUALIFICATION=1 on a rootless Linux daemon",
+)
+def test_live_broker_denies_actual_daemon_gateway_before_transport():
+    backend = DockerCliBackend()
+    gateways = backend.network_gateway_ips()
+    gateway = next((value for value in sorted(gateways) if ":" not in value), None)
+    if gateway is None:
+        pytest.skip("rootless daemon exposes no IPv4 network gateway")
+    now = datetime.now(UTC)
+    host = "docker-gateway.example.test"
+    scope = Scope(
+        engagement_id=uuid4(),
+        authority_reference="rootless-gateway-denial",
+        valid_from=now - timedelta(minutes=1),
+        valid_until=now + timedelta(minutes=2),
+        network_targets=(
+            NetworkTargetScope(
+                host=host,
+                ports=frozenset({80}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+        allowed_test_classes=frozenset({"read_only"}),
+        state=ScopeState.APPROVED,
+        approved_by="rootless-integration",
+        approved_at=now,
+    )
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    profile = validation_profile(
+        image_digest=image,
+        snapshot_id=SNAPSHOT,
+        network_grants=(
+            NetworkGrant(
+                host=host,
+                ports=frozenset({80}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+    )
+    registry = pinned_http_tool_registry()
+    task = TaskEnvelope(
+        engagement_id=scope.engagement_id,
+        target_id=uuid4(),
+        target_version="b" * 40,
+        scope_id=scope.scope_id,
+        worker_role=WorkerRole.VALIDATOR,
+        scope_version=scope.version,
+        policy_digest=PolicyEngine(scope).policy_digest,
+        sandbox_profile_digest=sandbox_profile_digest(profile),
+        tool_registry_digest=registry.digest,
+        input_refs=("candidate:" + "c" * 64,),
+        allowed_tools=frozenset({"http.request"}),
+        budget=TaskBudget(wall_seconds=10, model_tokens=0, tool_calls=1),
+        deadline=now + timedelta(seconds=20),
+        idempotency_key="rootless:gateway-task",
+    )
+    call = BrokerCall(
+        task=task,
+        profile=profile,
+        tool_id="http.request",
+        http=HttpRequestPlan(
+            method="GET",
+            url=f"http://{host}/",
+            test_class="read_only",
+        ),
+        idempotency_key="rootless:gateway-call",
+    )
+    transport = _NoSocketTransport()
+    broker = ToolBroker(
+        scope=scope,
+        registry=registry,
+        resolver=_PinnedGatewayResolver(gateway),
+        http_transport=transport,
+        blocked_ips=gateways,
+    )
+
+    result = broker.execute(call, now=now)
+
+    assert result.status is BrokerStatus.DENIED
+    assert result.error_codes == ("resolved_address_forbidden",)
+    assert transport.calls == []

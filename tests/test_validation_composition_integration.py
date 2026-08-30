@@ -14,7 +14,9 @@ import pytest
 
 from vulnloom.broker import (
     BrokerCall,
+    BrokerStatus,
     EvidenceStoreHttpSink,
+    HttpLimits,
     HttpRequestPlan,
     PinnedHttpTransport,
     ToolBroker,
@@ -58,6 +60,13 @@ BODY = b'{"fixture":"authorized","object_id":7}'
 HOST = "authorized.example.test"
 
 
+def _engine_policy() -> DockerEnginePolicy:
+    if os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1":
+        return DockerEnginePolicy()
+    # Local Docker Desktop can exercise composition, but cannot qualify production.
+    return DockerEnginePolicy(require_rootless=False)
+
+
 class _Handler(BaseHTTPRequestHandler):
     observed_host = None
 
@@ -73,6 +82,27 @@ class _Handler(BaseHTTPRequestHandler):
         return
 
 
+class _RedirectHandler(BaseHTTPRequestHandler):
+    first_requests = 0
+    second_requests = 0
+
+    def do_GET(self):
+        if self.path == "/first":
+            type(self).first_requests += 1
+            self.send_response(302)
+            self.send_header("Location", f"http://{HOST}:{self.server.server_port}/second")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        type(self).second_requests += 1
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        return
+
+
 class _PinnedFixtureResolver:
     implementation_digest = PinnedHttpTransport.implementation_digest
 
@@ -81,6 +111,22 @@ class _PinnedFixtureResolver:
 
     def resolve(self, host: str) -> tuple[str, ...]:
         return (self.address,) if host == HOST else ()
+
+
+class _RebindingFixtureResolver:
+    implementation_digest = PinnedHttpTransport.implementation_digest
+
+    def __init__(self, address: str):
+        self.address = address
+        self.calls = 0
+
+    def resolve(self, host: str) -> tuple[str, ...]:
+        if host != HOST:
+            return ()
+        self.calls += 1
+        if self.calls == 1:
+            return (self.address,)
+        return ("169.254.169.254",)
 
 
 def _safe_local_ipv4() -> str | None:
@@ -212,8 +258,7 @@ def test_docker_runner_live_broker_and_deterministic_judge_compose(
         backend,
         RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
         (DockerTool(tool_id="sandbox.test", argv_prefix=("/bin/true",)),),
-        # Docker Desktop is rootful. Production continues to require rootless.
-        engine_policy=DockerEnginePolicy(require_rootless=False),
+        engine_policy=_engine_policy(),
     )
 
     broker_profile = validation_profile(
@@ -272,6 +317,7 @@ def test_docker_runner_live_broker_and_deterministic_judge_compose(
         registry=registry,
         resolver=_PinnedFixtureResolver(address),
         http_transport=PinnedHttpTransport(sink),
+        blocked_ips=backend.network_gateway_ips(),
     )
 
     with ValidationStore(tmp_path / "validation.db") as validation_store:
@@ -292,3 +338,100 @@ def test_docker_runner_live_broker_and_deterministic_judge_compose(
     assert _Handler.observed_host == f"{HOST}:{port}"
     assert runner.last_inspection is not None
     assert not backend.exists(runner.last_inspection["Id"])
+
+
+@pytest.mark.composition_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
+    reason="set VULNLOOM_COMPOSITION_INTEGRATION=1 to run the full local composition probe",
+)
+def test_live_redirect_rechecks_dns_and_stops_rebinding_before_second_socket(
+    tmp_path: Path, request: pytest.FixtureRequest
+):
+    address = _safe_local_ipv4()
+    if address is None:
+        pytest.skip("no non-loopback local IPv4 address is available for the Broker policy probe")
+    _RedirectHandler.first_requests = 0
+    _RedirectHandler.second_requests = 0
+    server = ThreadingHTTPServer((address, 0), _RedirectHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    def stop_server() -> None:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    request.addfinalizer(stop_server)
+    port = server.server_address[1]
+    now = datetime.now(UTC)
+    scope = Scope(
+        engagement_id=uuid4(),
+        authority_reference="local-rebinding-fixture",
+        valid_from=now - timedelta(minutes=1),
+        valid_until=now + timedelta(minutes=2),
+        network_targets=(
+            NetworkTargetScope(
+                host=HOST,
+                ports=frozenset({port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+        allowed_test_classes=frozenset({"read_only"}),
+        state=ScopeState.APPROVED,
+        approved_by="integration-test",
+        approved_at=now,
+    )
+    candidate = _candidate(scope)
+    registry = pinned_http_tool_registry()
+    profile = validation_profile(
+        image_digest="sha256:" + "f" * 64,
+        snapshot_id=SNAPSHOT,
+        network_grants=(
+            NetworkGrant(
+                host=HOST,
+                ports=frozenset({port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+    )
+    task = _task(
+        now,
+        scope,
+        candidate,
+        profile,
+        registry.digest,
+        key="composition:rebinding-task",
+        allowed_tools=frozenset({"http.request"}),
+    )
+    call = BrokerCall(
+        task=task,
+        profile=profile,
+        tool_id="http.request",
+        http=HttpRequestPlan(
+            method="GET",
+            url=f"http://{HOST}:{port}/first",
+            test_class="read_only",
+            follow_redirects=True,
+            limits=HttpLimits(max_redirects=1, max_requests=2),
+        ),
+        idempotency_key="composition:rebinding",
+    )
+    evidence_store = EvidenceStore(tmp_path / "evidence")
+    resolver = _RebindingFixtureResolver(address)
+    broker = ToolBroker(
+        scope=scope,
+        registry=registry,
+        resolver=resolver,
+        http_transport=PinnedHttpTransport(
+            EvidenceStoreHttpSink(evidence_store, target_version=candidate.target_version)
+        ),
+    )
+
+    result = broker.execute(call, now=now)
+
+    assert result.status is BrokerStatus.DENIED
+    assert result.error_codes == ("resolved_address_forbidden",)
+    assert resolver.calls == 2
+    assert _RedirectHandler.first_requests == 1
+    assert _RedirectHandler.second_requests == 0

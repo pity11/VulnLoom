@@ -21,6 +21,7 @@ from vulnloom.runners import (
     static_profile,
     validation_profile,
 )
+from vulnloom.runners.docker import DockerBackendError, _network_gateway_ips
 
 IMAGE = "sha256:" + "1" * 64
 SNAPSHOT = "2" * 64
@@ -39,7 +40,13 @@ class FakeDockerBackend:
         self.cleanup_leaks = False
 
     def engine_info(self):
-        return {"SecurityOptions": self.security_options}
+        return {
+            "SecurityOptions": self.security_options,
+            "CgroupVersion": "2",
+            "MemoryLimit": True,
+            "CpuCfsQuota": True,
+            "PidsLimit": True,
+        }
 
     def inspect_image(self, image):
         return {"Id": image}
@@ -162,6 +169,28 @@ def test_docker_runner_rejects_non_rootless_engine_before_create(tmp_path, now):
     runner, backend, profile = _runner(tmp_path, now, rootless=False)
     with pytest.raises(RunnerRejected, match="rootless"):
         runner.execute(_request(now, profile), now=now)
+    assert backend.created_arguments is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("CgroupVersion", "1", "cgroup v2"),
+        ("MemoryLimit", False, "resource controls"),
+        ("CpuCfsQuota", False, "resource controls"),
+        ("PidsLimit", False, "resource controls"),
+    ],
+)
+def test_docker_runner_rejects_engines_without_enforced_resource_controls(
+    tmp_path, now, field, value, message
+):
+    runner, backend, profile = _runner(tmp_path, now)
+    original = backend.engine_info
+    backend.engine_info = lambda: {**original(), field: value}
+
+    with pytest.raises(RunnerRejected, match=message):
+        runner.execute(_request(now, profile), now=now)
+
     assert backend.created_arguments is None
 
 
@@ -320,3 +349,14 @@ def test_registered_object_store_rejects_post_registration_symlink_swap(tmp_path
 
     with pytest.raises(RunnerRejected, match="no longer safe"):
         store.resolve(SNAPSHOT)
+
+
+def test_docker_network_gateway_parser_normalizes_and_fails_closed():
+    inspections = (
+        {"IPAM": {"Config": [{"Gateway": "172.17.0.1"}, {"Gateway": "2001:db8::1"}]}},
+        {"IPAM": {"Config": None}},
+    )
+    assert _network_gateway_ips(inspections) == frozenset({"172.17.0.1", "2001:db8::1"})
+
+    with pytest.raises(DockerBackendError, match="malformed"):
+        _network_gateway_ips(({"IPAM": {"Config": [{"Gateway": "not-an-ip"}]}},))

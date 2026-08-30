@@ -34,6 +34,7 @@ markers = [
     "semgrep_integration: optional integration test requiring a local Semgrep binary",
     "socket_integration: optional integration test using a local loopback socket",
     "composition_integration: optional full local Docker, live Broker, and verdict probe",
+    "rootless_integration: production admission probe requiring a rootless Linux Docker engine",
 ]
 
 [tool.coverage.run]
