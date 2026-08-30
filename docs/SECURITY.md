@@ -40,10 +40,10 @@ VulnLoom 假定以下内容都可能恶意：
 - 输出只能写到该 Report 的临时目录。
 
 M4.1 已将这些要求编码为类型化 Profile 与 Runner preflight。M4.3 的 Docker adapter 已在真实
-容器中证明 network-none Profile 的非 root、只读根、只读源码、cap-drop、NoNewPrivs、限额
-tmpfs、无默认路由、无 Docker socket、超时终止与容器清理。当前 Docker Desktop daemon 不是
-rootless，测试使用显式的 test-only 例外；生产默认门禁仍拒绝非 rootless daemon。Target-only
-egress 尚未实现，Runner 会 fail-closed 拒绝该模式。
+rootless Linux 容器中证明 network-none Profile 的非 root、只读根、只读源码、cap-drop、
+NoNewPrivs、限额 tmpfs、无默认路由、无 Docker socket、超时终止与容器清理。生产门禁同时
+要求 seccomp、cgroup v2 与可执行的内存、CPU quota、PID 控制。Target-only egress 不在 Worker
+中实现，Runner 会 fail-closed 拒绝该模式。
 
 ## 3. 网络策略
 
@@ -60,9 +60,9 @@ OAST、Webhook 或外部回连使用一次性 Approval 和一次性 callback 标
 M4.2 的 Broker 已实现逐跳 Scope/Profile 判定、DNS pin、peer IP 一致性、危险地址拒绝和
 redirect 重新授权。M4.3 新增 Broker-owned live HTTP/HTTPS adapter：只连接策略选择的数字 IP，
 不读取代理环境，TLS 仍校验授权 hostname，实际 peer 回传 Broker 复核，响应经过大小限制和脱敏
-后才进入 Evidence Store。真实 loopback socket 测试已证明 Host 与 pinned peer 分离以及单向脱敏
-Evidence 数据流。Worker 容器仍保持 network-none；rootless Linux 组合测试与 OS-level egress
-防御纵深尚未完成。
+后才进入 Evidence Store。真实 socket 测试已证明 Host 与 pinned peer 分离以及单向脱敏 Evidence
+数据流。专用 rootless Linux 准入测试进一步证明 Worker 无法访问 live sibling container 或 daemon
+gateway，Broker 在 transport 前拒绝实际 gateway，并在 redirect 第二跳阻止 DNS 漂移到 metadata。
 
 M4.4 将 Runner 与 Broker 接入事务性 Validation Orchestrator。所有绑定在 `STARTED` checkpoint
 之前重新验证；Runner 未完成时不会继续 Broker，Broker 的拒绝、缺审批和超时不能被 judge

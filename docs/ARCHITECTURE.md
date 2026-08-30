@@ -159,8 +159,11 @@ Offline (`StaticResolver` + `OfflineHttpTransport`) and live (`SystemResolver` +
 `PinnedHttpTransport`) adapter pairs have distinct implementation digests. Broker preflight requires
 both adapters to match the Tool Registry bound into the queued Task.
 
-M4.3 is still in progress until this composition passes on a rootless Linux deployment and receives
-OS-level egress defense in depth. Worker containers remain `--network none` throughout this slice.
+M4.3 is qualified by a dedicated Ubuntu 24.04 workflow that runs Docker Engine 29.7.2 as a delegated
+rootless systemd user service. It requires seccomp, cgroup v2, and enforceable memory, CPU-quota, and
+PID controls; proves that a `--network none` Worker cannot reach a live sibling container or the
+daemon gateway; denies the discovered gateway before Broker transport; and stops redirect-time DNS
+rebinding before a second socket is opened.
 
 ## 11. M4.4 transactional Validation Orchestrator
 
@@ -187,7 +190,7 @@ registries, missing calls, incomplete calls, and mismatches are `INCONCLUSIVE`.
 Before invoking any judge, the Orchestrator opens every referenced Evidence object with no-follow,
 checks its size, and recomputes its content digest.
 
-An opt-in local composition probe now runs a network-disabled ephemeral Docker Validator, then lets
+An opt-in composition probe runs a network-disabled ephemeral Docker Validator, then lets
 the Broker contact a temporary authorized fixture, captures Evidence, evaluates the exact assertion,
-updates Candidate state, and verifies container cleanup. It does not prove the outstanding rootless
-Linux or OS-level egress requirements.
+updates Candidate state, and verifies container cleanup. It passes both with the local Docker Desktop
+test exception and under the production-default rootless Linux admission policy.

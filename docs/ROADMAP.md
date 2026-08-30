@@ -110,9 +110,9 @@ M4.1 证明的是协议、状态与 fail-closed 门禁，不声称已经实现�
 - `StaticResolver` 与 `OfflineHttpTransport` 覆盖成功、拒绝、Approval、DNS rebinding、redirect、超时、大小、预算、幂等和 adapter 失败路径，全程不联网。
 
 M4.2 证明的是 Broker 决策、typed HTTP 数据流和离线网络策略。真实 socket pinning、容器
-egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Docker/HTTP adapter 集成测试证明。
+egress、防宿主网关访问和资源清理由后续 M4.3 rootless Docker/HTTP 准入测试证明。
 
-### M4.3：临时 Docker Runner（进行中）
+### M4.3：临时 Docker Runner（已完成首版）
 
 - 已实现可信 Docker CLI adapter；Worker 不获得 Docker socket、宿主环境、镜像 tag 或宿主路径。
 - 镜像绑定 exact image ID 且禁止 pull；内容挂载只由可信 object registry 解析并强制只读。
@@ -128,11 +128,14 @@ egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Dock
   不进入 Broker result。响应预算、redirect shape、超时/失败和脱敏 Evidence 路径已有离线测试。
 - 已用真实 loopback socket 验证固定 IP 连接、Host 保留，以及敏感 header、JSON secret、邮箱和
   raw URL 不进入普通 Evidence 内容。
-- 生产默认要求 rootless daemon；当前 Docker Desktop 仅有 seccomp/cgroup namespace，没有
-  rootless 标志，因此本机测试例外不能满足 rootless 验收条件。
+- 生产默认同时要求 rootless、seccomp、cgroup v2 和可执行的内存、CPU quota、PID 控制；仅报告
+  部分 capability、但无法真实启动受限容器的 daemon 会 fail-closed。
 - Docker Worker 的直接 `TARGET_ONLY` 仍 fail-closed 拒绝，授权网络访问由可信 Broker 承担。
-  完成 M4.3 仍需 rootless Linux 组合环境、OS-level egress defense in depth、DNS rebinding/宿主
-  网关端到端测试。
+- Ubuntu 24.04 准入工作流以 systemd 用户服务运行固定 Docker Engine 29.7.2，真实验证 Worker
+  无默认路由且无法访问 live sibling container 与 daemon gateway；Broker 使用实际 gateway denylist
+  并在 socket 前拒绝，redirect 第二跳 DNS 漂移到 metadata 地址同样在第二次连接前拒绝。
+- 同一准入工作流覆盖正常执行、超时 kill、容器与匿名存储清理，以及 Docker Runner、pinned
+  Broker、Evidence、确定性裁决和 Candidate 状态转换的完整组合。M4.3 已满足进入 Phase 3 的门禁。
 
 ### M4.4：事务性 Validation Orchestrator（已完成首版）
 
@@ -152,7 +155,7 @@ egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Dock
 - `DeterministicHttpJudge` 默认只信任 live pinned HTTP Registry；精确匹配时返回预先选择的 `REPRODUCED`/`NOT_REPRODUCED`，离线 Registry 或不匹配时固定为 `INCONCLUSIVE`。
 - 编排层在裁决和封装 Evidence Bundle 前，以 no-follow、大小上限和内容摘要校验每个 Evidence 对象。
 - opt-in 组合测试已串通真实临时 Docker Validator、Broker-owned pinned HTTP、本机授权夹具、Evidence、裁决、状态转换和清理。
-- 本机 Docker Desktop 组合测试仍使用 rootful 测试例外；M4.3 的 rootless Linux 和 OS-level egress 生产验收没有因此完成。
+- 本机 Docker Desktop 组合测试仍使用 rootful 测试例外，不能单独提供生产准入；同一组合已在专用 rootless Linux 准入工作流中通过。
 
 ## Phase 3：报告闭环
 

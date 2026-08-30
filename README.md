@@ -30,6 +30,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/SECURITY.md](./docs/SECURITY.md): sandbox, network, credential, attachment, and evidence security.
 - [docs/DATA-MODEL.md](./docs/DATA-MODEL.md): core entities and domain events.
 - [docs/ROADMAP.md](./docs/ROADMAP.md): milestones and acceptance criteria.
+- [docs/PHASE3-ADMISSION.md](./docs/PHASE3-ADMISSION.md): reproducible M4.3 production-isolation admission evidence.
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
 
 ## Project layout
@@ -141,7 +142,7 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Returns only policy records, URL digests, peer metadata, Evidence IDs, final response-body SHA-256 digests, and budget usage; raw response bodies and sensitive headers stay outside the normal result path.
 - Uses deterministic offline resolver and transport adapters. No real HTTP request or network isolation claim is introduced in M4.2.
 
-### M4.3: ephemeral Docker Runner (in progress)
+### M4.3: ephemeral Docker Runner
 
 - Adds a trusted Docker CLI adapter that uses argument arrays only; Workers never receive the Docker socket or the host process environment.
 - Resolves content mounts through a Control Plane-owned registry, pins exact image IDs, disables pulls, and replaces image entrypoints with registered absolute tool executables.
@@ -152,8 +153,9 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Binds the selected resolver and transport implementation digest into the Tool Registry; queued work is rejected if offline and live adapters are swapped.
 - Resolves request bodies by content digest and credentials through separate opaque providers; neither raw material is copied into Broker results or HTTP Evidence metadata.
 - Stores only redacted response transcripts in the Evidence Store. Sensitive response headers, raw URLs, credential material, binary bodies, email addresses, and JSON-shaped secrets are excluded or redacted.
-- Requires a rootless daemon by default. The current Docker Desktop engine is rootful, so its integration tests use an explicit test-only exception and do not satisfy the production rootless criterion.
-- Docker Workers still reject direct `target_only` networking and remain network-disabled. Authorized target access now belongs to the trusted Broker; rootless Linux end-to-end deployment and OS-level egress defense in depth remain unfinished.
+- Requires rootless mode, seccomp, cgroup v2, and enforceable memory, CPU-quota, and PID controls by default. Engines that only advertise partial isolation fail closed before container creation.
+- Discovers daemon-managed network gateways for the Broker denylist. Docker Workers reject direct `target_only` networking and remain network-disabled; authorized target access belongs to the trusted Broker.
+- A dedicated Ubuntu 24.04 admission workflow runs Docker Engine 29.7.2 as a delegated rootless user service and proves Worker isolation from a live sibling container and daemon gateway, host-gateway denial before Broker transport, redirect-time DNS rebinding rejection, deterministic validation, timeout handling, and cleanup.
 
 ### M4.4: transactional Validation Orchestrator
 
@@ -173,7 +175,7 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Adds `DeterministicHttpJudge`: by default it trusts only the live pinned HTTP Registry; an exact match returns the precommitted `REPRODUCED` or `NOT_REPRODUCED` result, while an offline Registry or any mismatch remains `INCONCLUSIVE`.
 - Verifies every Evidence object through a no-follow, size-bounded, content-integrity read before judging or sealing an `EvidenceBundle`.
 - Adds an opt-in composition probe covering a real ephemeral Docker Validator, a Broker-owned pinned HTTP connection to a temporary authorized fixture, Evidence capture, exact verdict, state transition, and cleanup.
-- The composition probe uses an explicit rootful Docker Desktop test exception. Production still requires the unfinished rootless Linux and OS-level egress gates from M4.3.
+- The composition probe also passes in the dedicated rootless Linux admission workflow. Local Docker Desktop runs retain an explicit rootful test-only exception and cannot independently qualify production.
 
 ## Local development
 
@@ -247,6 +249,6 @@ vulnloom --db .vulnloom/events.db \
 
 VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
 
-Live Docker/Broker validation is currently exposed only through library and integration-test paths, not a production CLI or HTTP API. Production rootless Linux deployment and OS-level egress defense in depth remain incomplete. An independent Critic, report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation is currently exposed only through library and integration-test paths, not a production CLI or HTTP API. The rootless Linux and OS-level egress admission gate now passes, so the project is ready to begin Phase 3. An independent Critic, report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.
