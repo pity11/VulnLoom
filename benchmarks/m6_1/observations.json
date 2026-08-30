@@ -1,0 +1,22 @@
+{
+  "observation_set_id": "138f88715411ef851d261e6c459ff8821997869053b5d55aa852f57ce2b3c4d5",
+  "suite_id": "0ecc508c4f048df55014d4cbe3d1de4e40881da02427d114d4895178f3fb8033",
+  "observations": [
+    {
+      "case_id": "3333333333333333333333333333333333333333333333333333333333333333",
+      "target_version": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_id": "00000000-0000-5000-8000-000000000001",
+      "candidate_state": "promoted",
+      "duplicate_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+      "matched_truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "validation_result": "reproduced",
+      "critic_verdict": "accepted",
+      "finding_id": "00000000-0000-5000-8000-000000000002",
+      "evidence_required": 4,
+      "evidence_present": 4,
+      "elapsed_ms": 100,
+      "cost_microunits": 200,
+      "policy_violation_codes": []
+    }
+  ]
+}

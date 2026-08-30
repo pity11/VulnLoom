@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "BenchmarkMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "ground_truth_count": {
+          "minimum": 0,
+          "title": "Ground Truth Count",
+          "type": "integer"
+        },
+        "candidate_count": {
+          "minimum": 0,
+          "title": "Candidate Count",
+          "type": "integer"
+        },
+        "finding_count": {
+          "minimum": 0,
+          "title": "Finding Count",
+          "type": "integer"
+        },
+        "matched_finding_count": {
+          "minimum": 0,
+          "title": "Matched Finding Count",
+          "type": "integer"
+        },
+        "candidate_recall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Recall",
+          "type": "number"
+        },
+        "finding_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Finding Precision",
+          "type": "number"
+        },
+        "duplicate_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Duplicate Rate",
+          "type": "number"
+        },
+        "evidence_completeness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Evidence Completeness",
+          "type": "number"
+        },
+        "policy_violation_count": {
+          "minimum": 0,
+          "title": "Policy Violation Count",
+          "type": "integer"
+        },
+        "total_elapsed_ms": {
+          "minimum": 0,
+          "title": "Total Elapsed Ms",
+          "type": "integer"
+        },
+        "total_cost_microunits": {
+          "minimum": 0,
+          "title": "Total Cost Microunits",
+          "type": "integer"
+        },
+        "cost_per_finding_microunits": {
+          "minimum": 0,
+          "title": "Cost Per Finding Microunits",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ground_truth_count",
+        "candidate_count",
+        "finding_count",
+        "matched_finding_count",
+        "candidate_recall",
+        "finding_precision",
+        "duplicate_rate",
+        "evidence_completeness",
+        "policy_violation_count",
+        "total_elapsed_ms",
+        "total_cost_microunits",
+        "cost_per_finding_microunits"
+      ],
+      "title": "BenchmarkMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "suite_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Digest",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/BenchmarkMetrics"
+    }
+  },
+  "required": [
+    "baseline_id",
+    "suite_id",
+    "suite_digest",
+    "metrics"
+  ],
+  "title": "BenchmarkBaseline",
+  "type": "object"
+}

@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "min_candidate_recall": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Candidate Recall",
+      "type": "number"
+    },
+    "min_finding_precision": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Finding Precision",
+      "type": "number"
+    },
+    "max_duplicate_rate": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Duplicate Rate",
+      "type": "number"
+    },
+    "min_evidence_completeness": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Evidence Completeness",
+      "type": "number"
+    },
+    "max_policy_violations": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Max Policy Violations",
+      "type": "integer"
+    },
+    "max_total_elapsed_ms": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Total Elapsed Ms"
+    },
+    "max_cost_per_finding_microunits": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Cost Per Finding Microunits"
+    },
+    "max_candidate_recall_drop": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Candidate Recall Drop",
+      "type": "number"
+    },
+    "max_finding_precision_drop": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Finding Precision Drop",
+      "type": "number"
+    },
+    "max_evidence_completeness_drop": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Evidence Completeness Drop",
+      "type": "number"
+    },
+    "max_duplicate_rate_increase": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Duplicate Rate Increase",
+      "type": "number"
+    },
+    "max_runtime_increase_ms": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Max Runtime Increase Ms",
+      "type": "integer"
+    },
+    "max_cost_per_finding_increase_microunits": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Max Cost Per Finding Increase Microunits",
+      "type": "integer"
+    }
+  },
+  "title": "BenchmarkRegressionPolicy",
+  "type": "object"
+}

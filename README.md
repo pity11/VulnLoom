@@ -40,6 +40,7 @@ VulnLoom/
 ├── src/vulnloom/
 │   ├── adapters/           # Model-provider configuration boundary
 │   ├── analyzers/          # Python AST and optional Semgrep analysis
+│   ├── benchmark/          # Deterministic offline metrics and regression gates
 │   ├── broker/             # Typed tool mediation and HTTP policy enforcement
 │   ├── critic/             # Deterministic independent counterevidence review
 │   ├── domain/             # Domain objects, state machines, and protocols
@@ -52,13 +53,14 @@ VulnLoom/
 │   ├── storage/            # Event and validation persistence
 │   ├── validation/         # Plans, orchestration, and deterministic judging
 │   └── cli.py              # Current command-line entry point
+├── benchmarks/             # Sealed local ground-truth fixtures and baselines
 ├── docs/                   # Architecture, workflow, security, and roadmap
 ├── schemas/                # Exported JSON Schema contracts
 ├── scripts/                # Schema and development utilities
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, LLM-backed agent runtime, disclosure submission adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
+An HTTP API, LLM-backed agent runtime, disclosure submission adapters, and prompts are planned components; they are not present in the current tree. The current benchmark support is deliberately limited to sealed local fixtures and does not fetch external suites.
 
 ## First end-to-end path
 
@@ -76,7 +78,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, and approved local export. External disclosure remains a separate future stage.
+The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, and an offline benchmark regression gate. External disclosure remains a separate future stage.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -207,6 +209,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Allows local export only from `human_approved`, before approval expiry, with an exact ReviewRecord and artifact match. Local export writes a new immutable Markdown/JSON artifact with `exported` status.
 - Adds offline `report-review-diff`, `report-review-offline`, and `report-export-local` CLI paths. None has a network or Submission adapter.
 
+### M6.1: deterministic offline benchmark and regression gate
+
+- Seals local benchmark cases, ground-truth Findings, pipeline observations, policies, and baselines as typed content-addressed objects.
+- Rejects any observed Finding that did not pass reproduced Validation, accepted independent Critic review, Candidate promotion, and complete Evidence gates.
+- Computes Candidate recall, Finding precision, duplicate rate, Evidence completeness, policy violations, elapsed time, total cost, and cost per Finding with deterministic reducers.
+- Applies absolute thresholds and exact-suite baseline comparisons, emitting stable violation codes and a failing CLI exit status for CI.
+- Persists STARTED/COMPLETED SQLite checkpoints and immutable local JSON/Markdown results with bounded no-follow reads and temporary-output cleanup.
+- Includes a generated local microbenchmark and baseline in `benchmarks/m6_1`; ordinary CI verifies fixture drift and runs the offline regression gate.
+- Adds `benchmark-evaluate-offline`. It consumes only sealed local files and has no Runner, Broker, network, credential, or Submission dependency.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -216,6 +228,8 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest --cov=vulnloom --cov-report=term-missing
 .venv/bin/python scripts/export_schemas.py
+.venv/bin/python scripts/export_benchmark_fixtures.py
+.venv/bin/python scripts/run_m6_1_regression_gate.py
 
 # Optional; requires a local Alpine 3.22 image and Docker engine.
 VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integration.py
@@ -281,11 +295,17 @@ vulnloom --db .vulnloom/events.db report-review-offline \
 vulnloom --db .vulnloom/events.db report-export-local \
   --scope-file scope.json --artifact-file approved-artifact.json \
   --review-record-file review-record.json --export-plan-file export-plan.json
+
+# Evaluate a sealed local benchmark. Exit status 2 means the regression gate failed.
+vulnloom benchmark-evaluate-offline \
+  --suite-file suite.json --observations-file observations.json \
+  --plan-file benchmark-plan.json --benchmark-db .vulnloom/benchmarks.db \
+  --result-store .vulnloom/benchmark-results
 ```
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
-The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition.
+The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. The benchmark command evaluates precomputed typed observations; it does not run targets or fetch datasets.
 
 ## Model credential boundary
 
@@ -293,7 +313,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, an offline benchmark regression gate, and opt-in local probes for real containers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

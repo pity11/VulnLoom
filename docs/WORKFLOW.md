@@ -125,6 +125,22 @@ M5.2 只允许 `PROMOTED` Candidate 对应的 verified Finding 进入报告草�
 
 M5.3 的报告状态机是 `DRAFT → HUMAN_APPROVED | CHANGES_REQUESTED | REJECTED` 和 `HUMAN_APPROVED → EXPORTED`。修订版必须紧邻前一版并有确定性 Diff；审批绑定精确内容与 artifact digest，任何修改都要求新计划。`EXPORTED` 只表示本地输出，状态机没有 `SUBMITTED` 迁移。
 
+### M6.1 离线评测链
+
+```text
+Sealed local ground truth + sealed pipeline observations
+  → workflow-integrity validation
+  → deterministic metric reducer
+  → absolute and baseline regression checks
+  → immutable local result
+  → CI exit gate
+```
+
+评测 observation 只是已完成流水线状态的类型化投影，不能触发 Candidate 或 Finding 状态变化。
+Finding identity 必须同时绑定 reproduced Validation、accepted Critic、PROMOTED Candidate 和完整
+Evidence。语义引用、suite 摘要、baseline 摘要或 deadline 任一不匹配均 fail-closed；回归失败是
+正常的类型化结果，不会开启重试、网络或外部动作。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

@@ -8,6 +8,15 @@ from pathlib import Path
 from uuid import UUID
 
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
+from vulnloom.benchmark import (
+    BenchmarkArtifactStore,
+    BenchmarkGateStatus,
+    BenchmarkObservationSet,
+    BenchmarkPlan,
+    BenchmarkService,
+    BenchmarkStore,
+    BenchmarkSuite,
+)
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
     ArtifactKind,
@@ -441,6 +450,37 @@ def export_report_local(args: argparse.Namespace) -> int:
     return 0
 
 
+def evaluate_benchmark_offline(args: argparse.Namespace) -> int:
+    """Evaluate sealed local observations without running targets or opening sockets."""
+    suite = BenchmarkSuite.model_validate_json(
+        Path(args.suite_file).read_text(encoding="utf-8")
+    )
+    observations = BenchmarkObservationSet.model_validate_json(
+        Path(args.observations_file).read_text(encoding="utf-8")
+    )
+    plan = BenchmarkPlan.model_validate_json(
+        Path(args.plan_file).read_text(encoding="utf-8")
+    )
+    artifact_store = BenchmarkArtifactStore(Path(args.result_store))
+    with BenchmarkStore(Path(args.benchmark_db)) as benchmark_store:
+        outcome = BenchmarkService(
+            store=benchmark_store,
+            artifact_store=artifact_store,
+        ).evaluate(suite, observations, plan, now=utc_now())
+    summary = {
+        "mode": "offline_fixture_evaluation",
+        "plan_id": outcome.plan_id,
+        "suite_id": outcome.result.suite_id,
+        "result_id": str(outcome.result.result_id),
+        "gate_status": outcome.result.gate_status.value,
+        "metrics": outcome.result.metrics.model_dump(mode="json"),
+        "violations": [item.model_dump(mode="json") for item in outcome.result.violations],
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    print(json.dumps(summary, indent=2))
+    return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -552,6 +592,14 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--report-store", default=".vulnloom/reports")
     export.add_argument("--export-db", default=".vulnloom/report-exports.db")
     export.set_defaults(handler=export_report_local)
+
+    benchmark = sub.add_parser("benchmark-evaluate-offline")
+    benchmark.add_argument("--suite-file", required=True)
+    benchmark.add_argument("--observations-file", required=True)
+    benchmark.add_argument("--plan-file", required=True)
+    benchmark.add_argument("--benchmark-db", default=".vulnloom/benchmarks.db")
+    benchmark.add_argument("--result-store", default=".vulnloom/benchmark-results")
+    benchmark.set_defaults(handler=evaluate_benchmark_offline)
     return parser
 
 

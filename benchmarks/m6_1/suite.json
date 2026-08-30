@@ -1,0 +1,24 @@
+{
+  "suite_id": "0ecc508c4f048df55014d4cbe3d1de4e40881da02427d114d4895178f3fb8033",
+  "name": "vulnloom-m6.1-smoke",
+  "version": "1",
+  "source": "local_fixture",
+  "cases": [
+    {
+      "case_id": "3333333333333333333333333333333333333333333333333333333333333333",
+      "target_version": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ground_truth": [
+        {
+          "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "cwe": "CWE-639",
+          "duplicate_family": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "case_id": "4444444444444444444444444444444444444444444444444444444444444444",
+      "target_version": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ground_truth": []
+    }
+  ]
+}

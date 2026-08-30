@@ -210,6 +210,18 @@ M5.3 的 `EXPORTED` 仅表示批准后的本地 Markdown/JSON 产物。`SUBMITTE
 - 增加 Agent/MCP 安全和本地云原生配置分析。
 - 评估 CodeQL、Trivy、Checkov、Kubesec、Playwright。
 
+### M6.1：确定性离线评测基线与回归门禁（已完成首版）
+
+- `BenchmarkSuite`、ground truth、观察集、策略和 baseline 均为严格类型化、内容寻址的本地对象。
+- 观察到的 Finding 必须显式满足 reproduced Validation、accepted Critic、Candidate promotion 和完整 Evidence；否则 schema 直接拒绝，不能用评测数据绕过生产门禁。
+- 纯 reducer 计算 Candidate recall、Finding precision、重复率、Evidence 完整度、策略违规数、运行时间、总成本和单 Finding 成本。
+- 回归策略同时支持绝对阈值与绑定 exact suite 的 baseline 差值，输出稳定 violation code；失败 CLI 返回非零状态供 CI 使用。
+- SQLite 使用 STARTED/COMPLETED checkpoint，完成结果幂等返回，未完成任务拒绝自动重放；JSON/Markdown 结果内容寻址、只读、大小受限且 no-follow 校验。
+- 仓库内 `benchmarks/m6_1` 微型 ground truth 可重复生成；常规 CI 检查 fixture/schema 漂移并运行离线回归门禁。
+- M6.1 不获取 BountyBench/AutoPenBench，不启动 Runner，不调用 Broker，不联网，也没有 Submission 或凭据字段。
+
+M6.2 再通过独立 adapter 导入外部 benchmark 的本地快照；数据获取不属于评测器，也不得在普通 CI 中隐式联网。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -200,3 +200,17 @@ An opt-in composition probe runs a network-disabled ephemeral Docker Validator, 
 the Broker contact a temporary authorized fixture, captures Evidence, evaluates the exact assertion,
 updates Candidate state, and verifies container cleanup. It passes both with the local Docker Desktop
 test exception and under the production-default rootless Linux admission policy.
+
+## 13. M6.1 offline benchmark boundary
+
+The benchmark layer consumes two sealed local inputs: a suite containing ground-truth identities and
+an observation set describing already-completed pipeline states. It does not execute analyzers,
+Workers, Runner tasks, Broker calls, or report exports. Its workflow-integrity validator refuses to
+represent a Finding unless Validation, Critic, Candidate promotion, and Evidence completeness all
+passed.
+
+Metric calculation is a pure reducer. A transactional service binds the exact suite, observation
+set, regression policy, optional baseline, deadline, and idempotency key before producing immutable
+local JSON/Markdown artifacts. Baselines are themselves content-addressed and bound to the complete
+suite digest. Ordinary CI regenerates the local fixture, detects drift, and runs this same offline
+gate; importing future external suites remains an adapter concern.

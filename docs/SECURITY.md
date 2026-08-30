@@ -87,6 +87,13 @@ M5.3 的人工审批不是自由文本或模型结论，而是绑定 reviewer、
 和损坏 artifact 均 fail-closed。本地导出只在受控 Report Store 内生成新内容对象，不接受任意路径；
 CLI 不包含网络调用。`SUBMITTED` 仍不可达，平台 token 也未引入任何 Worker 或 Report 流程。
 
+M6.1 benchmark 服务只读取严格 schema 校验、内容寻址的本地 suite、observation、baseline 和
+policy，不拥有 Runner、Broker、Disclosure adapter 或任何 credential provider。评测协议再次编码
+Candidate→Finding 门禁，无法表示绕过 Validation、Critic、promotion 或 Evidence 完整性的 Finding。
+结果在受控 store 中经临时目录原子发布，读取使用 `O_NOFOLLOW`、常规文件与大小/摘要检查；写入失败
+清理临时目录，遗留 STARTED checkpoint 必须人工恢复。普通 CI 只重建本地 fixture 并离线计算指标，
+不下载外部 benchmark。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

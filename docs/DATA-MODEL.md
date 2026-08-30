@@ -257,6 +257,18 @@ M5.2 的 `ReportDraftPlan` 额外绑定 Finding/Candidate/EvidenceBundle 内容�
 
 M5.3 增加稳定的 `report_family_id`、连续 version/previous digest、`ReportDiff`、`ReportReviewPlan`、`ReportReviewCommand`、`ReportReviewRecord` 与 `ReportExportPlan`。批准记录同时绑定被审阅的 draft digest 和状态变化后的 digest，并设置明确过期时间；`EXPORTED` 只能由仍有效的 `HUMAN_APPROVED` 记录产生。不存在到 `SUBMITTED` 的领域转换。
 
+### Benchmark
+
+`BenchmarkSuite` 封存本地 case、Target version 与 ground-truth Finding identity；
+`BenchmarkObservationSet` 记录 Candidate/Finding 身份、duplicate fingerprint、Validation/Critic
+结果、Evidence 计数、策略违规、时间和成本。Observation 模型禁止未复现、未通过 Critic、未晋升或
+Evidence 不完整的 Candidate 携带 Finding identity。
+
+`BenchmarkPlan` 绑定 suite/observation 的完整摘要、回归策略、可选 `BenchmarkBaseline`、截止时间和
+幂等键。`BenchmarkResult` 保存确定性指标、`passed|failed` 门禁和稳定 violation code；
+`BenchmarkArtifact` 只引用本地内容寻址 JSON/Markdown。Baseline 自身内容寻址并绑定 exact suite，
+不能跨数据集比较。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

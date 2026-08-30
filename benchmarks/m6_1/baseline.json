@@ -1,0 +1,19 @@
+{
+  "baseline_id": "1dbe105a7eea04f76f0d1316022828ba356fa4a075170abb75a74aa82e22f6ad",
+  "suite_id": "0ecc508c4f048df55014d4cbe3d1de4e40881da02427d114d4895178f3fb8033",
+  "suite_digest": "e50a38e4eafa5fe611b2ccbac6269526b7a08694ac531862b18f72b732e2d08f",
+  "metrics": {
+    "ground_truth_count": 1,
+    "candidate_count": 1,
+    "finding_count": 1,
+    "matched_finding_count": 1,
+    "candidate_recall": 1.0,
+    "finding_precision": 1.0,
+    "duplicate_rate": 0.0,
+    "evidence_completeness": 1.0,
+    "policy_violation_count": 0,
+    "total_elapsed_ms": 100,
+    "total_cost_microunits": 200,
+    "cost_per_finding_microunits": 200
+  }
+}

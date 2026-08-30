@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Code",
+      "type": "string"
+    },
+    "metric": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Metric",
+      "type": "string"
+    },
+    "actual": {
+      "title": "Actual",
+      "type": "number"
+    },
+    "limit": {
+      "title": "Limit",
+      "type": "number"
+    }
+  },
+  "required": [
+    "code",
+    "metric",
+    "actual",
+    "limit"
+  ],
+  "title": "RegressionViolation",
+  "type": "object"
+}

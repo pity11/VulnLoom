@@ -6,6 +6,21 @@ import json
 from pathlib import Path
 
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
+from vulnloom.benchmark import (
+    BenchmarkArtifact,
+    BenchmarkBaseline,
+    BenchmarkCase,
+    BenchmarkMetrics,
+    BenchmarkObservation,
+    BenchmarkObservationSet,
+    BenchmarkOutcome,
+    BenchmarkPlan,
+    BenchmarkRegressionPolicy,
+    BenchmarkResult,
+    BenchmarkSuite,
+    GroundTruthFinding,
+    RegressionViolation,
+)
 from vulnloom.broker import (
     BrokerCall,
     BrokerResult,
@@ -114,6 +129,19 @@ MODELS = (
     CounterevidenceAssessment,
     CriticPlan,
     CriticOutcome,
+    GroundTruthFinding,
+    BenchmarkCase,
+    BenchmarkSuite,
+    BenchmarkObservation,
+    BenchmarkObservationSet,
+    BenchmarkMetrics,
+    BenchmarkBaseline,
+    BenchmarkRegressionPolicy,
+    BenchmarkPlan,
+    RegressionViolation,
+    BenchmarkResult,
+    BenchmarkArtifact,
+    BenchmarkOutcome,
 )
 
 

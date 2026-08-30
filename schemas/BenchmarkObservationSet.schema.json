@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "BenchmarkObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "target_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "candidate_state": {
+          "$ref": "#/$defs/CandidateState"
+        },
+        "duplicate_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Fingerprint",
+          "type": "string"
+        },
+        "matched_truth_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matched Truth Id"
+        },
+        "validation_result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "critic_verdict": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CriticVerdict"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "finding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Id"
+        },
+        "evidence_required": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Evidence Required",
+          "type": "integer"
+        },
+        "evidence_present": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Evidence Present",
+          "type": "integer"
+        },
+        "elapsed_ms": {
+          "maximum": 86400000,
+          "minimum": 0,
+          "title": "Elapsed Ms",
+          "type": "integer"
+        },
+        "cost_microunits": {
+          "maximum": 1000000000000000,
+          "minimum": 0,
+          "title": "Cost Microunits",
+          "type": "integer"
+        },
+        "policy_violation_codes": {
+          "default": [],
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Policy Violation Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "target_version",
+        "candidate_id",
+        "candidate_state",
+        "duplicate_fingerprint",
+        "validation_result",
+        "evidence_required",
+        "evidence_present",
+        "elapsed_ms",
+        "cost_microunits"
+      ],
+      "title": "BenchmarkObservation",
+      "type": "object"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "observations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/BenchmarkObservation"
+      },
+      "title": "Observations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "observation_set_id",
+    "suite_id"
+  ],
+  "title": "BenchmarkObservationSet",
+  "type": "object"
+}

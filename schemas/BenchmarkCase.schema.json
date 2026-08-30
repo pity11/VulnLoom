@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "GroundTruthFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "truth_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Id",
+          "type": "string"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "duplicate_family": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Family",
+          "type": "string"
+        }
+      },
+      "required": [
+        "truth_id",
+        "cwe",
+        "duplicate_family"
+      ],
+      "title": "GroundTruthFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "ground_truth": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/GroundTruthFinding"
+      },
+      "title": "Ground Truth",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "target_version"
+  ],
+  "title": "BenchmarkCase",
+  "type": "object"
+}
