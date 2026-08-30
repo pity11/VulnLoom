@@ -20,6 +20,14 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - name: Prepare delegated systemd user session
+        run: |
+          uid="$(id -u)"
+          sudo loginctl enable-linger "$USER"
+          sudo systemctl start "user@${uid}.service"
+          test -S "/run/user/${uid}/bus"
+          echo "XDG_RUNTIME_DIR=/run/user/${uid}" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${uid}/bus" >> "$GITHUB_ENV"
       - name: Set up pinned rootless Docker Engine
         uses: docker/setup-docker-action@v5
         with:
