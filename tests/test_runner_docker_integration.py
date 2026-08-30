@@ -222,10 +222,13 @@ def test_rootless_worker_cannot_reach_bridge_gateway_or_sibling_container(tmp_pa
     try:
         peer = json.loads(_docker(backend, "inspect", peer_id).stdout)[0]
         bridge = peer["NetworkSettings"]["Networks"]["bridge"]
-        gateway_ip = bridge["Gateway"]
-        peer_ip = bridge["IPAddress"]
+        gateways = backend.network_gateway_ips()
+        gateway_ip = next((value for value in sorted(gateways) if ":" not in value), None)
+        peer_ip = bridge["IPAddress"] or _docker(
+            backend, "exec", peer_id, "/bin/hostname", "-i"
+        ).stdout.split()[0]
         assert gateway_ip and peer_ip
-        assert gateway_ip in backend.network_gateway_ips()
+        assert gateway_ip in gateways
 
         source = tmp_path / "objects" / SNAPSHOT
         source.mkdir(parents=True)
