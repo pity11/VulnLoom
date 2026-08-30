@@ -13,7 +13,12 @@ from .models import (
 
 
 def analyzer_profile(
-    *, image_digest: str, snapshot_id: str, tool_id: str, limits: SandboxLimits
+    *,
+    image_digest: str,
+    snapshot_id: str,
+    tool_id: str,
+    limits: SandboxLimits,
+    analyzer_data_id: str | None = None,
 ) -> SandboxProfile:
     """Create a network-disabled profile for one exact registered analyzer."""
     return SandboxProfile(
@@ -27,6 +32,18 @@ def analyzer_profile(
                 destination="/workspace/source",
                 object_id=snapshot_id,
                 read_only=True,
+            ),
+            *(
+                (
+                    SandboxMount(
+                        kind="analyzer_data",
+                        destination="/workspace/analyzer-data",
+                        object_id=analyzer_data_id,
+                        read_only=True,
+                    ),
+                )
+                if analyzer_data_id is not None
+                else ()
             ),
             *_scratch_mounts(),
         ),

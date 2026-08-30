@@ -9,7 +9,7 @@ from vulnloom.domain.models import Scope, ScopeState, TargetSnapshot
 from vulnloom.domain.protocol import WorkerRole
 from vulnloom.ingestion import IngestionError, IngestionService
 from vulnloom.policy import PolicyEngine
-from vulnloom.runners import NetworkMode, SandboxProfileKind
+from vulnloom.runners import MountKind, NetworkMode, SandboxProfileKind
 from vulnloom.runners.models import sandbox_profile_digest
 
 from .analyzer_execution_models import AnalyzerExecutionPlan, AnalyzerToolRegistration
@@ -67,7 +67,6 @@ def validate_analyzer_execution(
         or task.deadline > plan.deadline
         or task.tool_registry_digest != registry.digest
         or plan.registry_digest != registry.digest
-        or task.input_refs != (f"snapshot:{target.manifest.manifest_id}",)
     ):
         raise AnalyzerExecutionRejected("analyzer task provenance or policy binding mismatch")
     try:
@@ -89,4 +88,25 @@ def validate_analyzer_execution(
         or request.environment != registration.environment
     ):
         raise AnalyzerExecutionRejected("analyzer registration or sandbox binding mismatch")
+    expected_refs = [f"snapshot:{target.manifest.manifest_id}"]
+    expected_data_id = None
+    if registration.trivy_database is not None:
+        expected_data_id = registration.trivy_database.snapshot_id
+        expected_refs.append(f"analyzer-data:{expected_data_id}")
+    data_mounts = tuple(
+        mount for mount in request.profile.mounts if mount.kind is MountKind.ANALYZER_DATA
+    )
+    if (
+        task.input_refs != tuple(expected_refs)
+        or (expected_data_id is None and data_mounts)
+        or (
+            expected_data_id is not None
+            and (
+                len(data_mounts) != 1
+                or data_mounts[0].object_id != expected_data_id
+                or not data_mounts[0].read_only
+            )
+        )
+    ):
+        raise AnalyzerExecutionRejected("analyzer data provenance or mount binding mismatch")
     return registration

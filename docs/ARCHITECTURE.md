@@ -298,3 +298,17 @@ the existing M6.3a snapshot/import transaction before the outer outcome can comp
 Image installation remains operator/CI provisioning, not a product capability. Runtime cannot pull,
 resolve tags, use the network, execute target builds, access Docker from inside the Worker, promote a
 Candidate, create a Finding, or submit a report.
+
+## 19. M6.4c sealed Trivy database boundary
+
+Trivy is admitted as one exact 0.73.0 factory. Its registration embeds a `TrivyDatabaseSnapshot`
+whose content address covers exactly the DB v2 metadata and Bolt database files. That digest is also
+the registration rules digest and an explicit Task input. The static analyzer profile adds one fixed
+`/workspace/analyzer-data` slot; it is read-only, resolved only through `RegisteredObjectStore`, and
+included in post-create Docker mount verification.
+
+The sealed argv enables only the vulnerability scanner and disables database/check/Java/VEX updates,
+version checks, telemetry, and dependency API lookups. The service verifies the DB before claiming
+its checkpoint and again after container cleanup, closing the normal scan/import drift window. A
+successful Runner output still has no workflow authority: it must become a M6.3a Trivy Observation
+artifact before the Docker execution transaction can complete.

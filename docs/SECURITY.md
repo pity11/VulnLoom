@@ -132,6 +132,12 @@ Broker 权限。attached stdout 先进入有界可信临时文件，再经 no-fo
 后外层 checkpoint 才完成。Phase 3 Admission 在 rootless Linux 上真实运行两种工具；本地 rootful
 Docker Desktop 结果只算功能回归。
 
+M6.4c 只增加固定 Trivy 0.73.0 vulnerability filesystem scan。离线 DB 必须先在执行边界之外获取，
+再密封为只含 `db/metadata.json` 与 `db/trivy.db` 的只读内容寻址对象；schema、路径、文件类型、权限、
+大小和摘要在 checkpoint 前及容器清理后各复核一次。Worker 只能看到只读 `/workspace/analyzer-data`，
+argv 固定 `--scanners vuln` 以及 offline/update/version/telemetry 禁用参数，因此 secret、misconfiguration
+和 license scanner 均不可启用。DB 下载、Target build、Broker、Docker socket 和 Submission 仍不在执行 API 中。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

@@ -1,4 +1,4 @@
-"""Real network-disabled Checkov/Kubesec execution followed by M6.3a import."""
+"""Real network-disabled analyzer execution followed by mandatory M6.3a import."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ from .analyzer_io import (
 )
 from .analyzer_models import AnalyzerImportPlan
 from .analyzer_service import AnalyzerImportService
+from .trivy_database import TrivyDatabaseRejected, verify_trivy_database
 
 
 class DockerAnalyzerExecutionService:
@@ -57,7 +58,8 @@ class DockerAnalyzerExecutionService:
         target: TargetSnapshot,
         plan: AnalyzerExecutionPlan,
         *,
-        cwe_map_path: Path,
+        cwe_map_path: Path | None = None,
+        analyzer_data_path: Path | None = None,
         now: datetime,
     ) -> DockerAnalyzerExecutionOutcome:
         registration = validate_analyzer_execution(
@@ -76,22 +78,39 @@ class DockerAnalyzerExecutionService:
             or self.import_service.adapter.kind is not registration.analyzer
             or self.import_service.adapter.adapter_id != registration.adapter_id
             or self.import_service.adapter.adapter_digest != registration.adapter_digest
-            or registration.cwe_map is None
         ):
             raise AnalyzerExecutionRejected("Docker output or Observation adapter binding mismatch")
-        cwe_map = inspect_result_file(
-            cwe_map_path,
-            logical_name="cwe-map.json",
-            max_bytes=plan.import_limits.max_cwe_map_bytes,
-            deadline=AnalyzerDeadline(
-                min(
-                    plan.import_limits.timeout_seconds,
-                    max(0.001, (plan.deadline - now).total_seconds()),
-                )
-            ),
-        )
+        cwe_map = None
+        if cwe_map_path is not None:
+            cwe_map = inspect_result_file(
+                cwe_map_path,
+                logical_name="cwe-map.json",
+                max_bytes=plan.import_limits.max_cwe_map_bytes,
+                deadline=AnalyzerDeadline(
+                    min(
+                        plan.import_limits.timeout_seconds,
+                        max(0.001, (plan.deadline - now).total_seconds()),
+                    )
+                ),
+            )
         if cwe_map != registration.cwe_map:
             raise AnalyzerExecutionRejected("analyzer CWE map does not match its registration")
+        database = registration.trivy_database
+        if (database is None) != (analyzer_data_path is None):
+            raise AnalyzerExecutionRejected("analyzer data path does not match its registration")
+        if database is not None and analyzer_data_path is not None:
+            try:
+                registered_path = self.runner.object_store.resolve(database.snapshot_id)
+                if (
+                    registered_path.name != database.snapshot_id
+                    or analyzer_data_path.resolve(strict=True) != registered_path
+                ):
+                    raise AnalyzerExecutionRejected(
+                        "Trivy database path is not the registered content object"
+                    )
+                verify_trivy_database(analyzer_data_path, database)
+            except (OSError, TrivyDatabaseRejected) as exc:
+                raise AnalyzerExecutionRejected("Trivy database verification failed") from exc
 
         claim = self.execution_store.claim(plan, now=now)
         if not claim.created:
@@ -113,6 +132,11 @@ class DockerAnalyzerExecutionService:
             return outcome
         if len(result.outputs) != 1:
             raise AnalyzerExecutionRejected("completed analyzer run did not publish one output")
+        if database is not None and analyzer_data_path is not None:
+            try:
+                verify_trivy_database(analyzer_data_path, database)
+            except TrivyDatabaseRejected as exc:
+                raise AnalyzerExecutionRejected("Trivy database changed during execution") from exc
         output_path = self.output_store.path(result.outputs[0])
         snapshot = create_analyzer_snapshot(
             output_path,

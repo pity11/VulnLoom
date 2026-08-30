@@ -219,6 +219,22 @@ Checkov 只接受 exit 0；Kubesec 的 0/2 成功语义固定在其注册项。�
 损坏或导入失败均 fail-closed。该链没有公开 CLI，也不负责安装镜像、执行 Target build、联网、产生
 Candidate/Finding 或触发 Submission。
 
+### M6.4c Trivy 密封 DB 执行链
+
+```text
+Verified Target + exact Trivy 0.73.0 image ID + sealed read-only DB v2
+  → verify exact DB tree/digests + Scope/Policy/Profile/Registry bindings
+  → Docker-execution STARTED checkpoint
+  → pull=never + network=none + read-only source/DB + scanners=vuln
+  → bounded attached JSON + container cleanup
+  → reverify unchanged DB snapshot
+  → mandatory M6.3a Trivy import
+  → completed typed outcome containing redacted Observations only
+```
+
+DB 和镜像只由 operator/CI 在执行路径之外预置。执行协议没有下载入口，也不能添加 secret scanner、
+misconfiguration/license scanner、运行时参数、目标 build、Broker、Candidate/Finding 或 Submission。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

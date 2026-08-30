@@ -53,6 +53,9 @@ from vulnloom.benchmark import (
     OfflineAnalyzerExecutionOutcome,
     RegressionViolation,
     SnapshotFile,
+    TrivyDatabaseFile,
+    TrivyDatabaseLimits,
+    TrivyDatabaseSnapshot,
 )
 from vulnloom.broker import (
     BrokerCall,
@@ -198,6 +201,9 @@ MODELS = (
     AnalyzerExecutionPlan,
     OfflineAnalyzerExecutionOutcome,
     DockerAnalyzerExecutionOutcome,
+    TrivyDatabaseFile,
+    TrivyDatabaseLimits,
+    TrivyDatabaseSnapshot,
     AnalyzerCaseBinding,
     AnalyzerTruthMatch,
     AnalyzerTruthAlignment,

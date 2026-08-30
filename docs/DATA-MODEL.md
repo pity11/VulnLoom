@@ -303,6 +303,11 @@ match、资源对象名称和规则文本不进入模型。
 清理证明，成功值是 `protocol_completed`，且 `analyzer_result_snapshot` 类型固定为 null；它不能冒充 M6.3a
 的预计算结果，也没有 Observation、Candidate、Validation、Critic、Finding 或 Report 字段。
 
+`TrivyDatabaseSnapshot` 内容寻址绑定 Trivy 0.73.0、DB schema v2、精确的
+`db/metadata.json`/`db/trivy.db` 文件清单、大小和 SHA-256。真实 Trivy Registration 必须引用该对象，
+并令 `rules_digest` 等于 DB snapshot ID；Task/Profile 还必须以同一 ID 绑定只读 `analyzer-data` 挂载。
+它不包含 URL、registry、下载命令、credential 或运行时追加参数。
+
 ### AnalyzerTruthAlignment 与 AnalyzerEvaluation
 
 `AnalyzerCaseBinding` 将 benchmark case 精确绑定到一个 analyzer 的 ObservationSet 完整摘要；同一

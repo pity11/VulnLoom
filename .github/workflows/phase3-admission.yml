@@ -71,6 +71,21 @@ jobs:
           docker pull alpine:3.22
           docker pull bridgecrew/checkov:3.3.15
           docker pull kubesec/kubesec:v2.14.2
+          docker pull aquasec/trivy:0.73.0
+      - name: Provision sealed Trivy database outside execution
+        run: |
+          cache_root="${RUNNER_TEMP}/trivy-provisioning-cache"
+          sealed_root="${RUNNER_TEMP}/trivy-sealed-database"
+          mkdir -p "${cache_root}" "${sealed_root}/db"
+          docker run --rm --pull never \
+            --mount "type=bind,src=${cache_root},dst=/cache" \
+            --entrypoint /usr/local/bin/trivy \
+            aquasec/trivy:0.73.0 \
+            filesystem --cache-dir /cache --download-db-only --no-progress
+          cp "${cache_root}/db/metadata.json" "${sealed_root}/db/metadata.json"
+          cp "${cache_root}/db/trivy.db" "${sealed_root}/db/trivy.db"
+          chmod -R a-w "${sealed_root}"
+          echo "VULNLOOM_TRIVY_DATABASE=${sealed_root}" >> "$GITHUB_ENV"
       - name: Run production admission probes
         env:
           VULNLOOM_DOCKER_INTEGRATION: "1"

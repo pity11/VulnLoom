@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -15,13 +17,18 @@ from vulnloom.benchmark import (
     AnalyzerImportStore,
     AnalyzerKind,
     AnalyzerObservationArtifactStore,
+    AnalyzerToolRegistration,
     AnalyzerToolRegistry,
     CheckovJsonAdapter,
     DockerAnalyzerExecutionService,
     DockerAnalyzerExecutionStatus,
     KubesecJsonAdapter,
+    TrivyJsonAdapter,
     checkov_registration,
+    inspect_trivy_database,
     kubesec_registration,
+    trivy_registration,
+    validate_admitted_registration,
 )
 from vulnloom.benchmark.analyzer_io import AnalyzerDeadline, inspect_result_file
 from vulnloom.domain.digests import canonical_digest
@@ -63,6 +70,7 @@ class FakeAnalyzerDockerBackend:
         self.killed = False
         self.removed = False
         self.start_error = None
+        self.on_start = None
         self.starts = 0
 
     def engine_info(self):
@@ -90,6 +98,8 @@ class FakeAnalyzerDockerBackend:
 
     def start_capture(self, container, timeout, destination, max_bytes):
         self.starts += 1
+        if self.on_start is not None:
+            self.on_start()
         if self.start_error:
             raise self.start_error
         if len(self.output) > max_bytes:
@@ -145,7 +155,7 @@ def _target(scope, now):
     return TargetSnapshot(target=target, artifact=artifact, manifest=manifest)
 
 
-def _inspection(profile, source, registration):
+def _inspection(profile, source, registration, analyzer_data=None):
     environment = {
         "LANG": "C.UTF-8",
         "LC_ALL": "C.UTF-8",
@@ -172,9 +182,7 @@ def _inspection(profile, source, registration):
             "MemorySwap": profile.limits.memory_bytes,
             "NanoCpus": 1_000_000_000,
             "Tmpfs": {
-                "/tmp": (
-                    "rw,noexec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"
-                ),
+                "/tmp": ("rw,noexec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"),
                 "/workspace/output": (
                     "rw,noexec,nosuid,nodev,size=16777216,uid=65532,gid=65532,mode=0700"
                 ),
@@ -184,9 +192,41 @@ def _inspection(profile, source, registration):
             "LogConfig": {"Type": "none"},
             "RestartPolicy": {"Name": "no"},
         },
-        "Mounts": [{"Source": str(source), "Destination": "/workspace/source", "RW": False}],
+        "Mounts": [
+            {"Source": str(source), "Destination": "/workspace/source", "RW": False},
+            *(
+                [
+                    {
+                        "Source": str(analyzer_data),
+                        "Destination": "/workspace/analyzer-data",
+                        "RW": False,
+                    }
+                ]
+                if analyzer_data is not None
+                else []
+            ),
+        ],
         "State": {"ExitCode": 0, "OOMKilled": False},
     }
+
+
+def _trivy_database(objects, source=None):
+    staging = objects / "trivy-database-staging"
+    if source is None:
+        database = staging / "db"
+        database.mkdir(parents=True)
+        (database / "metadata.json").write_text('{"Version":2,"UpdatedAt":"sealed"}')
+        (database / "trivy.db").write_bytes(b"sealed-trivy-database")
+    else:
+        shutil.copytree(source, staging)
+        database = staging / "db"
+    for path in sorted(staging.rglob("*"), reverse=True):
+        path.chmod(0o555 if path.is_dir() else 0o444)
+    staging.chmod(0o555)
+    snapshot = inspect_trivy_database(staging, tool_version="0.73.0")
+    destination = objects / snapshot.snapshot_id
+    staging.rename(destination)
+    return destination, snapshot
 
 
 def _setup(
@@ -198,25 +238,40 @@ def _setup(
     image=IMAGE,
     real_backend=None,
 ):
-    source = tmp_path / "targets" / MANIFEST
+    objects = tmp_path / "targets"
+    source = objects / MANIFEST
     source.mkdir(parents=True)
     (source / "deploy.yaml").write_text("apiVersion: v1\nkind: Pod\n")
-    cwe_path = tmp_path / f"{analyzer.value}-cwe.json"
-    cwe_path.write_text(
-        json.dumps(
-            {"CKV_K8S_20": "CWE-250"}
-            if analyzer is AnalyzerKind.CHECKOV
-            else {"Privileged": "CWE-250"}
+    cwe_path = None
+    cwe = None
+    analyzer_data_path = None
+    database = None
+    if analyzer is not AnalyzerKind.TRIVY:
+        cwe_path = tmp_path / f"{analyzer.value}-cwe.json"
+        cwe_path.write_text(
+            json.dumps(
+                {"CKV_K8S_20": "CWE-250"}
+                if analyzer is AnalyzerKind.CHECKOV
+                else {"Privileged": "CWE-250"}
+            )
         )
-    )
-    cwe = inspect_result_file(
-        cwe_path,
-        logical_name="cwe-map.json",
-        max_bytes=1024 * 1024,
-        deadline=AnalyzerDeadline(5),
-    )
+        cwe = inspect_result_file(
+            cwe_path,
+            logical_name="cwe-map.json",
+            max_bytes=1024 * 1024,
+            deadline=AnalyzerDeadline(5),
+        )
+    else:
+        provisioned = (
+            os.environ.get("VULNLOOM_TRIVY_DATABASE") if real_backend is not None else None
+        )
+        analyzer_data_path, database = _trivy_database(
+            objects,
+            Path(provisioned) if provisioned is not None else None,
+        )
     target = _target(scope, now)
     if analyzer is AnalyzerKind.CHECKOV:
+        assert cwe is not None
         registration = checkov_registration(
             tool_version="3.3.15",
             image_digest=image,
@@ -224,7 +279,8 @@ def _setup(
             cwe_map=cwe,
         )
         adapter = CheckovJsonAdapter()
-    else:
+    elif analyzer is AnalyzerKind.KUBESEC:
+        assert cwe is not None
         registration = kubesec_registration(
             target=target,
             input_paths=("deploy.yaml",),
@@ -234,6 +290,14 @@ def _setup(
             cwe_map=cwe,
         )
         adapter = KubesecJsonAdapter()
+    else:
+        assert database is not None
+        registration = trivy_registration(
+            tool_version="0.73.0",
+            image_digest=image,
+            database=database,
+        )
+        adapter = TrivyJsonAdapter()
     registry = AnalyzerToolRegistry((registration,))
     limits = SandboxLimits(
         wall_seconds=60,
@@ -249,6 +313,7 @@ def _setup(
         snapshot_id=MANIFEST,
         tool_id=registration.tool_id,
         limits=limits,
+        analyzer_data_id=(database.snapshot_id if database is not None else None),
     )
     task = TaskEnvelope(
         engagement_id=scope.engagement_id,
@@ -260,7 +325,10 @@ def _setup(
         policy_digest=PolicyEngine(scope).policy_digest,
         sandbox_profile_digest=sandbox_profile_digest(profile),
         tool_registry_digest=registry.digest,
-        input_refs=(f"snapshot:{MANIFEST}",),
+        input_refs=(
+            f"snapshot:{MANIFEST}",
+            *((f"analyzer-data:{database.snapshot_id}",) if database is not None else ()),
+        ),
         allowed_tools=frozenset({registration.tool_id}),
         budget=TaskBudget(wall_seconds=60, model_tokens=0, tool_calls=1),
         deadline=now + timedelta(seconds=45),
@@ -297,7 +365,7 @@ def _setup(
                 ]
             }
         }
-    else:
+    elif analyzer is AnalyzerKind.KUBESEC:
         document = [
             {
                 "fileName": "/workspace/source/deploy.yaml",
@@ -309,14 +377,42 @@ def _setup(
                 },
             }
         ]
+    else:
+        document = {
+            "Results": [
+                {
+                    "Target": "requirements.txt",
+                    "Class": "lang-pkgs",
+                    "Type": "pip",
+                    "Vulnerabilities": [
+                        {
+                            "VulnerabilityID": "CVE-2026-0001",
+                            "CweIDs": ["CWE-79"],
+                            "Severity": "HIGH",
+                            "Title": "private raw message",
+                        }
+                    ],
+                }
+            ]
+        }
     output = json.dumps(document).encode()
     backend = real_backend or FakeAnalyzerDockerBackend(
-        _inspection(profile, source, registration), output
+        _inspection(profile, source, registration, analyzer_data_path), output
     )
     output_store = RunnerOutputStore(tmp_path / "outputs", max_output_bytes=16 * 1024 * 1024)
     runner = DockerSandboxRunner(
         backend,
-        RegisteredObjectStore(tmp_path / "targets", {MANIFEST: source}),
+        RegisteredObjectStore(
+            objects,
+            {
+                MANIFEST: source,
+                **(
+                    {database.snapshot_id: analyzer_data_path}
+                    if database is not None and analyzer_data_path is not None
+                    else {}
+                ),
+            },
+        ),
         registry.docker_tools,
         engine_policy=(
             DockerEnginePolicy(
@@ -353,14 +449,15 @@ def _setup(
         execution_store,
         import_store,
         service,
+        analyzer_data_path,
     )
 
 
 def test_docker_execution_seals_output_and_only_publishes_observations(
     tmp_path, approved_scope, now
 ):
-    target, registration, plan, cwe_path, backend, outputs, store, imports, service = (
-        _setup(tmp_path, approved_scope, now)
+    target, registration, plan, cwe_path, backend, outputs, store, imports, service, _ = _setup(
+        tmp_path, approved_scope, now
     )
     first = service.execute(target, plan, cwe_map_path=cwe_path, now=now)
     second = service.execute(target, plan, cwe_map_path=cwe_path, now=now)
@@ -387,25 +484,24 @@ def test_docker_execution_seals_output_and_only_publishes_observations(
     imports.close()
 
 
-def test_cwe_drift_and_unadmitted_argv_fail_before_runner_checkpoint(
-    tmp_path, approved_scope, now
-):
-    target, _, plan, cwe_path, backend, _, store, imports, service = _setup(
+def test_cwe_drift_and_unadmitted_argv_fail_before_runner_checkpoint(tmp_path, approved_scope, now):
+    target, _, plan, cwe_path, backend, _, store, imports, service, _ = _setup(
         tmp_path, approved_scope, now
     )
     cwe_path.write_text(json.dumps({"CKV_K8S_20": "CWE-79"}))
     with pytest.raises(AnalyzerExecutionRejected, match="CWE map"):
         service.execute(target, plan, cwe_map_path=cwe_path, now=now)
     assert backend.created_arguments is None
-    assert store.connection.execute(
-        "SELECT COUNT(*) FROM analyzer_docker_executions"
-    ).fetchone()[0] == 0
+    assert (
+        store.connection.execute("SELECT COUNT(*) FROM analyzer_docker_executions").fetchone()[0]
+        == 0
+    )
     store.close()
     imports.close()
 
 
 def test_timeout_is_typed_and_container_is_cleaned(tmp_path, approved_scope, now):
-    target, _, plan, cwe_path, backend, _, store, imports, service = _setup(
+    target, _, plan, cwe_path, backend, _, store, imports, service, _ = _setup(
         tmp_path, approved_scope, now
     )
     backend.start_error = TimeoutError("fixture timeout")
@@ -420,7 +516,7 @@ def test_timeout_is_typed_and_container_is_cleaned(tmp_path, approved_scope, now
 
 
 def test_unfinished_docker_checkpoint_refuses_replay(tmp_path, approved_scope, now):
-    target, _, plan, cwe_path, backend, _, store, imports, service = _setup(
+    target, _, plan, cwe_path, backend, _, store, imports, service, _ = _setup(
         tmp_path, approved_scope, now
     )
     store.claim(plan, now=now)
@@ -431,9 +527,7 @@ def test_unfinished_docker_checkpoint_refuses_replay(tmp_path, approved_scope, n
     imports.close()
 
 
-def test_kubesec_registration_only_accepts_manifest_kubernetes_paths(
-    tmp_path, approved_scope, now
-):
+def test_kubesec_registration_only_accepts_manifest_kubernetes_paths(tmp_path, approved_scope, now):
     target = _target(approved_scope, now)
     cwe_path = tmp_path / "kubesec-cwe.json"
     cwe_path.write_text(json.dumps({"Privileged": "CWE-250"}))
@@ -463,6 +557,127 @@ def test_kubesec_registration_only_accepts_manifest_kubernetes_paths(
         )
 
 
+def test_trivy_uses_exact_offline_database_and_mandatory_observation_import(
+    tmp_path, approved_scope, now
+):
+    (
+        target,
+        registration,
+        plan,
+        cwe_path,
+        backend,
+        _,
+        store,
+        imports,
+        service,
+        data_path,
+    ) = _setup(tmp_path, approved_scope, now, analyzer=AnalyzerKind.TRIVY)
+
+    outcome = service.execute(
+        target,
+        plan,
+        cwe_map_path=cwe_path,
+        analyzer_data_path=data_path,
+        now=now,
+    )
+
+    assert outcome.status is DockerAnalyzerExecutionStatus.COMPLETED
+    assert outcome.import_outcome is not None
+    assert outcome.import_outcome.observation_set.analyzer is AnalyzerKind.TRIVY
+    assert registration.trivy_database is not None
+    assert registration.rules_digest == registration.trivy_database.snapshot_id
+    assert registration.argv[registration.argv.index("--scanners") + 1] == "vuln"
+    assert "secret" not in registration.argv
+    tampered_argv = tuple(
+        "vuln,secret" if item == "vuln" else item for item in registration.argv
+    )
+    tampered = AnalyzerToolRegistration.create(
+        tool_id=registration.tool_id,
+        analyzer=registration.analyzer,
+        tool_version=registration.tool_version,
+        image_digest=registration.image_digest,
+        rules_digest=registration.rules_digest,
+        adapter_id=registration.adapter_id,
+        adapter_digest=registration.adapter_digest,
+        argv=tampered_argv,
+        environment=registration.environment,
+        output_mode=registration.output_mode,
+        trivy_database=registration.trivy_database,
+    )
+    with pytest.raises(ValueError, match="exact argv"):
+        validate_admitted_registration(target, tampered)
+    with pytest.raises(ValueError, match="only Trivy 0.73.0"):
+        trivy_registration(
+            tool_version="0.74.0",
+            image_digest=registration.image_digest,
+            database=registration.trivy_database,
+        )
+    assert backend.created_arguments is not None
+    assert tuple(
+        backend.created_arguments[
+            backend.created_arguments.index("--pull") : backend.created_arguments.index("--pull")
+            + 2
+        ]
+    ) == ("--pull", "never")
+    assert "network=none" not in backend.created_arguments
+    assert backend.created_arguments[backend.created_arguments.index("--network") + 1] == "none"
+    assert any(
+        "dst=/workspace/analyzer-data,readonly" in item for item in backend.created_arguments
+    )
+    assert outcome.runner_result.cleanup.complete and backend.removed
+    store.close()
+    imports.close()
+
+
+def test_trivy_database_drift_fails_before_checkpoint_and_during_execution(
+    tmp_path, approved_scope, now
+):
+    target, _, plan, _, backend, _, store, imports, service, data_path = _setup(
+        tmp_path, approved_scope, now, analyzer=AnalyzerKind.TRIVY
+    )
+    assert data_path is not None
+    payload = data_path / "db" / "trivy.db"
+    database_dir = payload.parent
+    database_dir.chmod(0o755)
+    payload.chmod(0o644)
+    payload.write_bytes(b"preflight drift")
+    payload.chmod(0o444)
+    database_dir.chmod(0o555)
+    with pytest.raises(AnalyzerExecutionRejected, match="verification failed"):
+        service.execute(target, plan, analyzer_data_path=data_path, now=now)
+    assert backend.created_arguments is None
+    assert (
+        store.connection.execute("SELECT COUNT(*) FROM analyzer_docker_executions").fetchone()[0]
+        == 0
+    )
+    store.close()
+    imports.close()
+
+    target, _, plan, _, backend, _, store, imports, service, data_path = _setup(
+        tmp_path / "during", approved_scope, now, analyzer=AnalyzerKind.TRIVY
+    )
+    assert data_path is not None
+    payload = data_path / "db" / "trivy.db"
+
+    def mutate_database():
+        payload.parent.chmod(0o755)
+        payload.chmod(0o644)
+        payload.write_bytes(b"runtime drift")
+        payload.chmod(0o444)
+        payload.parent.chmod(0o555)
+
+    backend.on_start = mutate_database
+    with pytest.raises(AnalyzerExecutionRejected, match="changed during execution"):
+        service.execute(target, plan, analyzer_data_path=data_path, now=now)
+    assert backend.removed and not backend.container_exists
+    assert (
+        store.connection.execute("SELECT state FROM analyzer_docker_executions").fetchone()[0]
+        == "started"
+    )
+    store.close()
+    imports.close()
+
+
 @pytest.mark.docker_integration
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_ANALYZER_INTEGRATION") != "1",
@@ -481,6 +696,11 @@ def test_kubesec_registration_only_accepts_manifest_kubernetes_paths(
             os.environ.get("VULNLOOM_KUBESEC_IMAGE", "kubesec/kubesec:v2.14.2"),
             "Privileged",
         ),
+        (
+            AnalyzerKind.TRIVY,
+            os.environ.get("VULNLOOM_TRIVY_IMAGE", "aquasec/trivy:0.73.0"),
+            "CVE-2019-19844",
+        ),
     ),
 )
 def test_real_analyzer_executes_offline_and_imports_only_observations(
@@ -488,7 +708,7 @@ def test_real_analyzer_executes_offline_and_imports_only_observations(
 ):
     backend = DockerCliBackend()
     image = backend.inspect_image(image_ref)["Id"]
-    target, _, plan, cwe_path, _, outputs, store, imports, service = _setup(
+    target, _, plan, cwe_path, _, outputs, store, imports, service, data_path = _setup(
         tmp_path,
         approved_scope,
         now,
@@ -513,18 +733,25 @@ spec:
     )
     source.chmod(0o755)
     (source / "deploy.yaml").chmod(0o644)
+    if analyzer is AnalyzerKind.TRIVY:
+        (source / "requirements.txt").write_text("django==2.0.0\n")
+        (source / "requirements.txt").chmod(0o644)
 
-    outcome = service.execute(target, plan, cwe_map_path=cwe_path, now=now)
+    outcome = service.execute(
+        target,
+        plan,
+        cwe_map_path=cwe_path,
+        analyzer_data_path=data_path,
+        now=now,
+    )
 
     assert outcome.status is DockerAnalyzerExecutionStatus.COMPLETED, (
         outcome.runner_result.error_codes,
         (service.runner.last_terminal_inspection or {}).get("State"),
     )
     assert outcome.import_outcome is not None
-    assert {
+    assert canonical_digest(expected_rule) in {
         item.rule_id_digest for item in outcome.import_outcome.observation_set.observations
-    } == {
-        canonical_digest(expected_rule)
     }
     assert outcome.runner_result.cleanup.complete
     assert len(outcome.runner_result.outputs) == 1

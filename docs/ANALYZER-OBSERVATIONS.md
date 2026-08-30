@@ -6,7 +6,8 @@ download rules, vulnerability databases, images, or result files.
 
 Execution is a separate boundary described in
 [`ANALYZER-EXECUTION.md`](ANALYZER-EXECUTION.md). M6.4a only validates an offline protocol; M6.4b
-may pass a bounded, content-addressed Checkov/Kubesec stdout object into this same importer. The
+may pass a bounded, content-addressed Checkov/Kubesec stdout object into this same importer, and
+M6.4c does the same for Trivy after a sealed offline DB run. The
 importer itself still accepts only exact sealed local bytes and has no Docker or network authority.
 
 ## Trust boundary

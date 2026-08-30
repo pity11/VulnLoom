@@ -1,4 +1,4 @@
-"""Exact source-only registrations for admitted Checkov and Kubesec CLIs."""
+"""Exact source-only registrations for admitted Checkov, Kubesec, and Trivy CLIs."""
 
 from __future__ import annotations
 
@@ -9,12 +9,17 @@ from .analyzer_adapters import (
     CHECKOV_ADAPTER_ID,
     KUBESEC_ADAPTER_DIGEST,
     KUBESEC_ADAPTER_ID,
+    TRIVY_ADAPTER_DIGEST,
+    TRIVY_ADAPTER_ID,
 )
 from .analyzer_execution_models import (
     AnalyzerOutputMode,
     AnalyzerToolRegistration,
 )
 from .analyzer_models import AnalyzerKind, AnalyzerResultFile
+from .trivy_database import TrivyDatabaseSnapshot
+
+TRIVY_TOOL_VERSION = "0.73.0"
 
 
 def checkov_registration(
@@ -107,13 +112,63 @@ def kubesec_registration(
     )
 
 
+def trivy_registration(
+    *,
+    tool_version: str,
+    image_digest: str,
+    database: TrivyDatabaseSnapshot,
+) -> AnalyzerToolRegistration:
+    if tool_version != TRIVY_TOOL_VERSION or database.tool_version != TRIVY_TOOL_VERSION:
+        raise ValueError(f"only Trivy {TRIVY_TOOL_VERSION} is admitted")
+    return AnalyzerToolRegistration.create(
+        tool_id="analyzer.trivy",
+        analyzer=AnalyzerKind.TRIVY,
+        tool_version=tool_version,
+        image_digest=image_digest,
+        rules_digest=database.snapshot_id,
+        adapter_id=TRIVY_ADAPTER_ID,
+        adapter_digest=TRIVY_ADAPTER_DIGEST,
+        argv=(
+            "/usr/local/bin/trivy",
+            "filesystem",
+            "--cache-dir",
+            "/workspace/analyzer-data",
+            "--cache-backend",
+            "memory",
+            "--scanners",
+            "vuln",
+            "--pkg-types",
+            "library",
+            "--format",
+            "json",
+            "--quiet",
+            "--no-progress",
+            "--offline-scan",
+            "--skip-db-update",
+            "--skip-java-db-update",
+            "--skip-check-update",
+            "--skip-vex-repo-update",
+            "--skip-version-check",
+            "--disable-telemetry",
+            "--exit-code",
+            "0",
+            "/workspace/source",
+        ),
+        environment={"HOME": "/tmp", "TMPDIR": "/tmp"},
+        output_mode=AnalyzerOutputMode.STDOUT,
+        trivy_database=database,
+    )
+
+
 def validate_admitted_registration(
     target: TargetSnapshot,
     registration: AnalyzerToolRegistration,
 ) -> None:
-    if registration.cwe_map is None or registration.output_mode is not AnalyzerOutputMode.STDOUT:
-        raise ValueError("real Checkov/Kubesec execution requires sealed CWE map and stdout")
+    if registration.output_mode is not AnalyzerOutputMode.STDOUT:
+        raise ValueError("real analyzer execution requires bounded stdout")
     if registration.analyzer is AnalyzerKind.CHECKOV:
+        if registration.cwe_map is None or registration.trivy_database is not None:
+            raise ValueError("real Checkov execution requires one sealed CWE map")
         expected = checkov_registration(
             tool_version=registration.tool_version,
             image_digest=registration.image_digest,
@@ -121,6 +176,8 @@ def validate_admitted_registration(
             cwe_map=registration.cwe_map,
         )
     elif registration.analyzer is AnalyzerKind.KUBESEC:
+        if registration.cwe_map is None or registration.trivy_database is not None:
+            raise ValueError("real Kubesec execution requires one sealed CWE map")
         expected = kubesec_registration(
             target=target,
             input_paths=registration.input_paths,
@@ -129,7 +186,15 @@ def validate_admitted_registration(
             rules_digest=registration.rules_digest,
             cwe_map=registration.cwe_map,
         )
+    elif registration.analyzer is AnalyzerKind.TRIVY:
+        if registration.cwe_map is not None or registration.trivy_database is None:
+            raise ValueError("real Trivy execution requires one sealed offline database")
+        expected = trivy_registration(
+            tool_version=registration.tool_version,
+            image_digest=registration.image_digest,
+            database=registration.trivy_database,
+        )
     else:
-        raise ValueError("only Checkov and Kubesec are admitted for real execution")
+        raise ValueError("only Checkov, Kubesec, and Trivy are admitted for real execution")
     if expected != registration:
         raise ValueError("analyzer registration does not match the admitted exact argv")

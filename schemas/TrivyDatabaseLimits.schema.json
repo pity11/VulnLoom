@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_database_bytes": {
+      "default": 2147483648,
+      "exclusiveMinimum": 0,
+      "maximum": 10737418240,
+      "title": "Max Database Bytes",
+      "type": "integer"
+    },
+    "max_metadata_bytes": {
+      "default": 65536,
+      "exclusiveMinimum": 0,
+      "maximum": 1048576,
+      "title": "Max Metadata Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 30.0,
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "TrivyDatabaseLimits",
+  "type": "object"
+}

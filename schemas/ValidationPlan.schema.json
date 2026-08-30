@@ -240,6 +240,7 @@
     "MountKind": {
       "enum": [
         "snapshot",
+        "analyzer_data",
         "evidence",
         "output",
         "temp"

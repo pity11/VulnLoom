@@ -531,7 +531,7 @@ class DockerSandboxRunner:
         expected_mounts = {
             (mount.destination, str(self.object_store.resolve(mount.object_id)))
             for mount in profile.mounts
-            if mount.kind in {MountKind.SNAPSHOT, MountKind.EVIDENCE}
+            if mount.kind in {MountKind.SNAPSHOT, MountKind.ANALYZER_DATA, MountKind.EVIDENCE}
         }
         actual_mounts = {
             (mount.get("Destination"), mount.get("Source"))

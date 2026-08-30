@@ -52,8 +52,10 @@ from .analyzer_evaluator import (
     evaluate_analyzer_regressions,
 )
 from .analyzer_execution_adapters import (
+    TRIVY_TOOL_VERSION,
     checkov_registration,
     kubesec_registration,
+    trivy_registration,
     validate_admitted_registration,
 )
 from .analyzer_execution_models import (
@@ -154,6 +156,14 @@ from .store import (
     BenchmarkIdempotencyConflict,
     BenchmarkRecoveryRequired,
     BenchmarkStore,
+)
+from .trivy_database import (
+    TrivyDatabaseFile,
+    TrivyDatabaseLimits,
+    TrivyDatabaseRejected,
+    TrivyDatabaseSnapshot,
+    inspect_trivy_database,
+    verify_trivy_database,
 )
 
 __all__ = [
@@ -268,6 +278,11 @@ __all__ = [
     "SnapshotFile",
     "TRIVY_ADAPTER_DIGEST",
     "TRIVY_ADAPTER_ID",
+    "TRIVY_TOOL_VERSION",
+    "TrivyDatabaseFile",
+    "TrivyDatabaseLimits",
+    "TrivyDatabaseRejected",
+    "TrivyDatabaseSnapshot",
     "TrivyJsonAdapter",
     "create_analyzer_snapshot",
     "checkov_registration",
@@ -278,7 +293,10 @@ __all__ = [
     "evaluate_analyzer_regressions",
     "evaluate_regressions",
     "inspect_snapshot_directory",
+    "inspect_trivy_database",
     "kubesec_registration",
+    "trivy_registration",
     "validate_admitted_registration",
     "verify_snapshot_directory",
+    "verify_trivy_database",
 ]

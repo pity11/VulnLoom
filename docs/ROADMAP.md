@@ -278,7 +278,19 @@ M6.4a 只证明类型化协议和离线编排。
 - `DockerAnalyzerExecutionService` 完成 Scope/Target/Policy/Profile/Registry/CWE 预检和独立 SQLite checkpoint 后执行容器；只有成功输出通过既有 M6.3a 导入并生成脱敏 ObservationSet，外层状态才可为 `COMPLETED`。
 - 常规测试覆盖成功、拒绝、超时、捕获失败、清理、幂等冲突与遗留 checkpoint；Phase 3 Admission 在 rootless Linux 上预置版本化官方镜像并真实运行两条禁网执行/导入链。
 
-M6.4b 不新增 CLI、镜像拉取器、网络能力、Target build、Candidate/Finding promotion 或 Submission。Trivy 仍需密封离线数据库；CodeQL database build 等会执行目标构建脚本的模式必须使用独立 `RUN_UNTRUSTED_BUILD` Approval，二者留待后续里程碑。
+M6.4b 不新增 CLI、镜像拉取器、网络能力、Target build、Candidate/Finding promotion 或 Submission。Trivy 的密封离线数据库执行由 M6.4c 独立增加；CodeQL database build 等会执行目标构建脚本的模式必须使用独立 `RUN_UNTRUSTED_BUILD` Approval。
+
+### M6.4c：Trivy 密封离线数据库执行（已完成首版）
+
+- 仅准入 Trivy 0.73.0 的精确 factory；Registration 固定 exact image ID、完整 argv、空白名单环境、M6.3a Trivy adapter 和密封 DB 摘要。
+- `TrivyDatabaseSnapshot` 只接受只读 `db/metadata.json` 与 `db/trivy.db`，要求 DB schema v2，并对路径、符号链接、特殊文件、单文件大小、总内容摘要、重复 JSON key、超时和内容漂移 fail-closed。
+- DB snapshot ID 同时作为 Registration 的 `rules_digest` 和 Task 的 `analyzer-data` 输入；专用 `/workspace/analyzer-data` 内容挂载只读，并由 Docker inspect 与可信 Object Store 复核。
+- 固定 argv 只启用 `--scanners vuln`，显式关闭 DB/Java/check/VEX 更新、version check 和 telemetry，并使用 `--offline-scan`；secret、misconfiguration 与 license scanner 均不可表示。
+- Docker 运行继续使用 exact image ID、`--pull never`、`network=none`、只读根/源码/DB、非 root、无 capability、no-new-privileges 和有界 attached stdout。
+- 执行前及容器清理后再次全量复核 DB；只有输出通过 M6.3a 导入并生成脱敏 `AnalyzerObservationSet` 后外层 checkpoint 才能完成。
+- 常规测试覆盖成功、非准入参数、可写/链接/额外文件、大小与 schema 拒绝、执行前/中漂移、超时、输出捕获和清理；Phase 3 Admission 在 rootless Linux 上于执行外预置 DB 后运行真实禁网链。
+
+M6.4c 不包含 DB/镜像下载 API、secret scanner、Target build、Broker、Candidate/Finding promotion 或 Submission。CodeQL database construction 仍留待独立且要求 `RUN_UNTRUSTED_BUILD` Approval 的里程碑。
 
 ## 延后事项
 

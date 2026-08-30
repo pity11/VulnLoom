@@ -23,6 +23,8 @@ from vulnloom.runners import SandboxRunRequest, SandboxRunResult, SandboxRunStat
 from vulnloom.runners.environment import build_worker_environment
 from vulnloom.runners.models import Digest, ImageDigest, ToolId
 
+from .trivy_database import TrivyDatabaseSnapshot
+
 
 class AnalyzerExecutionMode(StrEnum):
     SOURCE_ONLY = "source_only"
@@ -48,6 +50,7 @@ class AnalyzerToolRegistration(DomainModel):
     output_mode: AnalyzerOutputMode = AnalyzerOutputMode.FILE
     output_path: str | None = "/workspace/output/output.json"
     cwe_map: AnalyzerResultFile | None = None
+    trivy_database: TrivyDatabaseSnapshot | None = None
     mode: AnalyzerExecutionMode = AnalyzerExecutionMode.SOURCE_ONLY
 
     @field_validator("argv")
@@ -114,6 +117,13 @@ class AnalyzerToolRegistration(DomainModel):
             raise ValueError("stdout-mode analyzer cannot declare a filesystem output")
         if any("://" in item for item in self.argv):
             raise ValueError("analyzer argv cannot contain a network location")
+        if self.trivy_database is not None and (
+            self.analyzer is not AnalyzerKind.TRIVY
+            or self.trivy_database.tool_version != self.tool_version
+            or self.rules_digest != self.trivy_database.snapshot_id
+            or self.cwe_map is not None
+        ):
+            raise ValueError("Trivy registration database or rules binding mismatch")
         if self.registration_id != analyzer_tool_registration_digest(self):
             raise ValueError("analyzer tool registration content digest mismatch")
         return self
@@ -134,6 +144,7 @@ class AnalyzerToolRegistration(DomainModel):
         environment: dict[str, str] | None = None,
         output_mode: AnalyzerOutputMode = AnalyzerOutputMode.FILE,
         cwe_map: AnalyzerResultFile | None = None,
+        trivy_database: TrivyDatabaseSnapshot | None = None,
     ) -> AnalyzerToolRegistration:
         values = {
             "tool_id": tool_id,
@@ -153,11 +164,15 @@ class AnalyzerToolRegistration(DomainModel):
                 else None
             ),
             "cwe_map": cwe_map,
+            "trivy_database": trivy_database,
             "mode": AnalyzerExecutionMode.SOURCE_ONLY,
         }
         digest_values = {
             **values,
             "cwe_map": cwe_map.model_dump(mode="python") if cwe_map is not None else None,
+            "trivy_database": (
+                trivy_database.model_dump(mode="python") if trivy_database is not None else None
+            ),
         }
         return cls(registration_id=canonical_digest(digest_values), **values)
 

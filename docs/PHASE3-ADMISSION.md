@@ -23,7 +23,8 @@ successfully on 2026-08-30.
 | DNS rebinding | Redirect hop is re-resolved; metadata-address drift is denied before a second socket | PASS |
 | Timeout and cleanup | Timed-out Worker is killed; container and anonymous storage absence is verified | PASS |
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
-| Analyzer execution | Versioned Checkov/Kubesec resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | Enforced for M6.4b runs |
+| Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | Enforced for M6.4b/M6.4c runs |
+| Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | Enforced for M6.4c runs |
 
 ## Reproduction
 
@@ -36,7 +37,8 @@ Local Docker Desktop probes remain useful regression checks, but their explicit 
 exception cannot replace this admission workflow.
 
 Beginning with M6.4b, the same workflow provisions Checkov 3.3.15 and Kubesec 2.14.2 before the
-test phase, then runs both through `DockerAnalyzerExecutionService`. Provisioning may access the
-registry; the tested runtime path uses the inspected image ID, `--pull never`, and `network=none`.
-The historical M4.3 PASS above remains unchanged; the new row is considered PASS only after the
-updated workflow succeeds for the M6.4b commit.
+test phase. M6.4c additionally provisions Trivy 0.73.0 and its DB v2 outside execution, copies only
+`db/metadata.json` and `db/trivy.db` into a read-only sealed directory, then runs all three through
+`DockerAnalyzerExecutionService`. Provisioning may access registries; every tested runtime path
+uses the inspected image ID, `--pull never`, and `network=none`. The historical M4.3 PASS above
+remains unchanged; each analyzer row is PASS only after the updated workflow succeeds.

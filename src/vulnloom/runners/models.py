@@ -32,6 +32,7 @@ class NetworkMode(StrEnum):
 
 class MountKind(StrEnum):
     SNAPSHOT = "snapshot"
+    ANALYZER_DATA = "analyzer_data"
     EVIDENCE = "evidence"
     OUTPUT = "output"
     TEMP = "temp"
@@ -39,6 +40,7 @@ class MountKind(StrEnum):
 
 _MOUNT_DESTINATIONS = {
     MountKind.SNAPSHOT: "/workspace/source",
+    MountKind.ANALYZER_DATA: "/workspace/analyzer-data",
     MountKind.EVIDENCE: "/workspace/evidence",
     MountKind.OUTPUT: "/workspace/output",
     MountKind.TEMP: "/tmp",
@@ -55,7 +57,11 @@ class SandboxMount(DomainModel):
     def enforce_fixed_slot(self) -> Self:
         if self.destination != _MOUNT_DESTINATIONS[self.kind]:
             raise ValueError("sandbox mount destination is not a registered slot")
-        content_mount = self.kind in {MountKind.SNAPSHOT, MountKind.EVIDENCE}
+        content_mount = self.kind in {
+            MountKind.SNAPSHOT,
+            MountKind.ANALYZER_DATA,
+            MountKind.EVIDENCE,
+        }
         if content_mount and (self.object_id is None or not self.read_only):
             raise ValueError("content mounts require an immutable object id and read-only mode")
         if not content_mount and (self.object_id is not None or self.read_only):
@@ -133,9 +139,21 @@ class SandboxProfile(DomainModel):
         } and (self.network_mode is not NetworkMode.NONE or self.execute_target_code):
             raise ValueError("static and report profiles cannot execute targets or use network")
         source_kinds = {MountKind.SNAPSHOT, MountKind.OUTPUT, MountKind.TEMP}
+        analyzer_kinds = source_kinds | {MountKind.ANALYZER_DATA}
         report_kinds = {MountKind.EVIDENCE, MountKind.OUTPUT, MountKind.TEMP}
-        if self.kind is SandboxProfileKind.STATIC and kinds != source_kinds:
-            raise ValueError("static profile requires only source and scratch mounts")
+        if (
+            self.kind is SandboxProfileKind.STATIC
+            and kinds != source_kinds
+            and kinds != analyzer_kinds
+        ):
+            raise ValueError(
+                "static profile requires only source, analyzer data, and scratch mounts"
+            )
+        if MountKind.ANALYZER_DATA in kinds and (
+            len(self.allowed_tools) != 1
+            or not next(iter(self.allowed_tools)).startswith("analyzer.")
+        ):
+            raise ValueError("analyzer data may only be mounted for one analyzer tool")
         if self.kind is SandboxProfileKind.VALIDATION and (
             kinds != source_kinds or not self.execute_target_code
         ):
