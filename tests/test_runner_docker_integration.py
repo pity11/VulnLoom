@@ -213,13 +213,26 @@ def test_rootless_worker_cannot_reach_bridge_gateway_or_sibling_container(tmp_pa
         "--pull",
         "never",
         "alpine:3.22",
-        "/bin/busybox",
-        "httpd",
-        "-f",
-        "-p",
-        "8080",
+        "/bin/sh",
+        "-c",
+        (
+            "mkdir -p /tmp/vulnloom-fixture && "
+            "printf authorized > /tmp/vulnloom-fixture/index.html && "
+            "exec /bin/busybox httpd -f -p 8080 -h /tmp/vulnloom-fixture"
+        ),
     ).stdout.strip()
     try:
+        assert _docker(
+            backend,
+            "exec",
+            peer_id,
+            "/bin/busybox",
+            "wget",
+            "-q",
+            "-O",
+            "-",
+            "http://127.0.0.1:8080/",
+        ).stdout == "authorized"
         peer = json.loads(_docker(backend, "inspect", peer_id).stdout)[0]
         bridge = peer["NetworkSettings"]["Networks"]["bridge"]
         gateways = backend.network_gateway_ips()
