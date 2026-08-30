@@ -170,7 +170,21 @@ Precomputed local SARIF/JSON + optional sealed CWE map
 
 该链不启动 CodeQL、Trivy、Checkov 或 Kubesec，也不下载规则/数据库/镜像。Analyzer Observation 只是一条
 静态工具观察；它不能进入 Finding 状态机，也不能冒充 M6.1 中已经通过 Validation/Critic/Evidence 门禁的
-pipeline observation。未来 M6.3b 的 ground-truth 对齐只计算指标，不改变这一领域边界。
+pipeline observation。M6.3b 的 ground-truth 对齐只计算指标，不改变这一领域边界。
+
+### M6.3b 显式跨工具评测链
+
+```text
+BenchmarkSuite + exact AnalyzerObservationSets
+  + explicit reviewed Observation→truth alignment
+  → case / Target / digest / truth / CWE validation
+  → aggregate and per-analyzer deterministic reducer
+  → threshold + required matrix + exact-suite baseline checks
+  → immutable local result + CI exit gate
+```
+
+alignment 中没有列出的 Observation 即使 CWE 相同也不算命中。评测 gate 失败返回类型化 violation 和非零
+CLI 状态，但不重试工具、不生成 Candidate/Finding、不改变报告状态，也不产生网络或外部副作用。
 
 ## 5. 重试与恢复
 

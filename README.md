@@ -236,6 +236,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Persists only rule/message digests, normalized CWEs, severity, and safe relative locations; it discards raw messages, secret matches, and Kubernetes object identities.
 - Keeps analyzer observations structurally separate from pipeline `BenchmarkObservation`: they cannot carry Candidate, Validation, Critic, or Finding state.
 - Adds `analyzer-result-manifest-local` and `analyzer-observations-import-offline`; neither command accepts a URL or executes a binary.
+
+### M6.3b: explicit cross-analyzer evaluation
+
+- Requires a sealed, explicit Observation-to-ground-truth alignment; matching CWE labels alone never count as a detection.
+- Revalidates case, Target version, ObservationSet digest, truth ownership, and CWE compatibility before creating a checkpoint.
+- Computes overall and per-analyzer truth recall, observation precision, duplicate rate, and exclusion rate for CodeQL, Trivy, Checkov, and Kubesec.
+- Supports required-analyzer and full case-matrix gates plus exact-suite baseline regressions; per-analyzer checks prevent aggregate results from hiding one tool's regression.
+- Includes `benchmarks/m6_3`, fixture-drift checks, and `run_m6_3_regression_gate.py` in ordinary CI.
+- Adds `analyzer-evaluate-offline`, which creates only local immutable JSON/Markdown results and cannot alter Candidate or Finding state.
 - Accepts directories only. ZIP/TAR acquisition and extraction remain outside this adapter; callers must use an independently hardened quarantine path before presenting a directory.
 
 ## Local development
@@ -249,6 +258,8 @@ python3 -m venv .venv
 .venv/bin/python scripts/export_schemas.py
 .venv/bin/python scripts/export_benchmark_fixtures.py
 .venv/bin/python scripts/run_m6_1_regression_gate.py
+.venv/bin/python scripts/export_analyzer_evaluation_fixtures.py
+.venv/bin/python scripts/run_m6_3_regression_gate.py
 
 # Optional; requires a local Alpine 3.22 image and Docker engine.
 VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integration.py
@@ -342,6 +353,13 @@ vulnloom analyzer-result-manifest-local \
 vulnloom analyzer-observations-import-offline \
   --output codeql.sarif --cwe-map analyzer-cwe.json \
   --snapshot-file analyzer-snapshot.json --plan-file analyzer-plan.json
+
+# Evaluate sealed analyzer observations against an explicit reviewed alignment.
+vulnloom analyzer-evaluate-offline \
+  --suite-file suite.json --alignment-file alignment.json \
+  --observation-set-file codeql-observations.json \
+  --observation-set-file trivy-observations.json \
+  --plan-file analyzer-evaluation-plan.json
 ```
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.

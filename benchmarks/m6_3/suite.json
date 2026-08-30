@@ -1,0 +1,30 @@
+{
+  "suite_id": "53b17de904e62a153ecc7c5bcaf7b786edfe76b5f5a312813bc73a24c11b18b2",
+  "name": "vulnloom-m6.3-cross-analyzer",
+  "version": "1",
+  "source": "local_fixture",
+  "cases": [
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target_version": "commit-a",
+      "ground_truth": [
+        {
+          "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "cwe": "CWE-79",
+          "duplicate_family": "469b32a97f2700a8b2836d495a135d110c73b875e977e172abfde338d320c5e6"
+        }
+      ]
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_version": "commit-b",
+      "ground_truth": [
+        {
+          "truth_id": "2222222222222222222222222222222222222222222222222222222222222222",
+          "cwe": "CWE-89",
+          "duplicate_family": "cb5dd84cf54786fcc7e39badf3d3711151be4fe432b84ab03400c46001c123e0"
+        }
+      ]
+    }
+  ]
+}

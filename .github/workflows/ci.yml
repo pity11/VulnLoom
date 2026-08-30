@@ -34,8 +34,11 @@ jobs:
       - name: Verify benchmark fixtures
         run: |
           python scripts/export_benchmark_fixtures.py
+          python scripts/export_analyzer_evaluation_fixtures.py
           git diff --exit-code -- benchmarks
       - name: M6.1 offline regression gate
         run: python scripts/run_m6_1_regression_gate.py
+      - name: M6.3 offline analyzer regression gate
+        run: python scripts/run_m6_3_regression_gate.py
       - name: Test
         run: pytest --cov=vulnloom --cov-report=term-missing

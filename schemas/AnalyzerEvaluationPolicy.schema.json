@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "min_truth_recall": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Truth Recall",
+      "type": "number"
+    },
+    "min_observation_precision": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Observation Precision",
+      "type": "number"
+    },
+    "max_duplicate_rate": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Duplicate Rate",
+      "type": "number"
+    },
+    "max_exclusion_rate": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Exclusion Rate",
+      "type": "number"
+    },
+    "required_analyzers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AnalyzerKind"
+      },
+      "title": "Required Analyzers",
+      "type": "array"
+    },
+    "require_full_case_matrix": {
+      "default": true,
+      "title": "Require Full Case Matrix",
+      "type": "boolean"
+    },
+    "apply_thresholds_per_analyzer": {
+      "default": true,
+      "title": "Apply Thresholds Per Analyzer",
+      "type": "boolean"
+    },
+    "max_truth_recall_drop": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Truth Recall Drop",
+      "type": "number"
+    },
+    "max_observation_precision_drop": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Observation Precision Drop",
+      "type": "number"
+    },
+    "max_duplicate_rate_increase": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Duplicate Rate Increase",
+      "type": "number"
+    },
+    "max_exclusion_rate_increase": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Max Exclusion Rate Increase",
+      "type": "number"
+    }
+  },
+  "title": "AnalyzerEvaluationPolicy",
+  "type": "object"
+}

@@ -16,6 +16,35 @@ from .analyzer_adapters import (
     TrivyJsonAdapter,
     default_analyzer_adapters,
 )
+from .analyzer_evaluation_models import (
+    ANALYZER_ALIGNMENT_RULESET_DIGEST,
+    AlignmentProvenance,
+    AnalyzerCaseBinding,
+    AnalyzerEvaluationArtifact,
+    AnalyzerEvaluationBaseline,
+    AnalyzerEvaluationLimits,
+    AnalyzerEvaluationMetrics,
+    AnalyzerEvaluationOutcome,
+    AnalyzerEvaluationPlan,
+    AnalyzerEvaluationPolicy,
+    AnalyzerEvaluationResult,
+    AnalyzerMetricSlice,
+    AnalyzerTruthAlignment,
+    AnalyzerTruthMatch,
+)
+from .analyzer_evaluation_service import AnalyzerEvaluationService
+from .analyzer_evaluation_store import (
+    AnalyzerEvaluationArtifactStore,
+    AnalyzerEvaluationIdempotencyConflict,
+    AnalyzerEvaluationRecoveryRequired,
+    AnalyzerEvaluationStore,
+)
+from .analyzer_evaluator import (
+    AnalyzerEvaluationRejected,
+    EvaluationDeadline,
+    evaluate_analyzer_metrics,
+    evaluate_analyzer_regressions,
+)
 from .analyzer_io import AnalyzerImportRejected, create_analyzer_snapshot
 from .analyzer_models import (
     AnalyzerExclusion,
@@ -97,11 +126,28 @@ from .store import (
 )
 
 __all__ = [
+    "ANALYZER_ALIGNMENT_RULESET_DIGEST",
     "AUTOPENBENCH_ADAPTER_DIGEST",
     "AUTOPENBENCH_ADAPTER_ID",
     "BOUNTYBENCH_ADAPTER_DIGEST",
     "BOUNTYBENCH_ADAPTER_ID",
     "AutoPenBenchSnapshotAdapter",
+    "AlignmentProvenance",
+    "AnalyzerCaseBinding",
+    "AnalyzerEvaluationArtifact",
+    "AnalyzerEvaluationArtifactStore",
+    "AnalyzerEvaluationBaseline",
+    "AnalyzerEvaluationIdempotencyConflict",
+    "AnalyzerEvaluationLimits",
+    "AnalyzerEvaluationMetrics",
+    "AnalyzerEvaluationOutcome",
+    "AnalyzerEvaluationPlan",
+    "AnalyzerEvaluationPolicy",
+    "AnalyzerEvaluationRecoveryRequired",
+    "AnalyzerEvaluationRejected",
+    "AnalyzerEvaluationResult",
+    "AnalyzerEvaluationService",
+    "AnalyzerEvaluationStore",
     "AnalyzerExclusion",
     "AnalyzerImportIdempotencyConflict",
     "AnalyzerImportLimits",
@@ -113,6 +159,7 @@ __all__ = [
     "AnalyzerImportStore",
     "AnalyzerKind",
     "AnalyzerLocation",
+    "AnalyzerMetricSlice",
     "AnalyzerObservation",
     "AnalyzerObservationAdapter",
     "AnalyzerObservationArtifact",
@@ -121,6 +168,8 @@ __all__ = [
     "AnalyzerResultFile",
     "AnalyzerResultSnapshot",
     "AnalyzerSeverity",
+    "AnalyzerTruthAlignment",
+    "AnalyzerTruthMatch",
     "BenchmarkArtifact",
     "BenchmarkArtifactStore",
     "BenchmarkBaseline",
@@ -161,6 +210,7 @@ __all__ = [
     "ExternalImportIdempotencyConflict",
     "ExternalImportLimits",
     "ExternalImportRecoveryRequired",
+    "EvaluationDeadline",
     "GroundTruthFinding",
     "KUBESEC_ADAPTER_DIGEST",
     "KUBESEC_ADAPTER_ID",
@@ -174,6 +224,8 @@ __all__ = [
     "create_external_snapshot",
     "default_analyzer_adapters",
     "evaluate_metrics",
+    "evaluate_analyzer_metrics",
+    "evaluate_analyzer_regressions",
     "evaluate_regressions",
     "inspect_snapshot_directory",
     "verify_snapshot_directory",

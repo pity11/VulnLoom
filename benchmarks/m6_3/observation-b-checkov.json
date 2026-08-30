@@ -1,0 +1,27 @@
+{
+  "observation_set_id": "3d0160ea7d66fbad7ce13dcfeee5462f74abef5bd1365b960bd00cacf284e442",
+  "snapshot_id": "d9e8ac4532eebb800a3bb32002fa3288f38c822529eb89b0be5a4311fe1a9ce3",
+  "snapshot_digest": "b849efc3ca2a3a769cc6731bebe08992c1b195c019e3a079072ce3faddd27c29",
+  "adapter_id": "checkov.fixture.v1",
+  "adapter_digest": "cced28da8acfd5590a667016d99ad2c6c66e1eb009fbafec4d3673cf647241fb",
+  "analyzer": "checkov",
+  "target_id": "77ef4a6a-c275-506b-a4b6-874ded3db512",
+  "target_version": "commit-b",
+  "observations": [
+    {
+      "observation_id": "523ce5eafe2f9dd21ed7fe5f42730937f71b5fb83f71d9951d31bc4d01aaef8f",
+      "analyzer": "checkov",
+      "target_id": "77ef4a6a-c275-506b-a4b6-874ded3db512",
+      "target_version": "commit-b",
+      "rule_id_digest": "f2d7aa37859002a15e660e7441e00d4b07253746ffe72d9530cf39172e036090",
+      "rule_fingerprint": "d80dd95d73d5a8b05976923fe6231e6a95c05bf0ac137ae06d0366c3abb09d13",
+      "cwes": [
+        "CWE-89"
+      ],
+      "severity": "high",
+      "message_digest": "9311c7b0fc214170efcf25e90fc15f20974824153f9ba9e144fe412830f87ddf",
+      "locations": []
+    }
+  ],
+  "exclusions": []
+}

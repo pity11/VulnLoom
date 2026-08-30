@@ -31,6 +31,18 @@ result, Critic verdict, Evidence count, or Finding identity. A tool result is th
 creating a Finding. Any future production use must first enter deterministic Candidate generation
 and then pass the existing Approval, Validation, independent Critic, Evidence, and duplicate gates.
 
+## Explicit benchmark alignment
+
+M6.3b evaluates normalized observations only through a sealed `AnalyzerTruthAlignment`. Each binding
+pins a case to one exact ObservationSet digest for an analyzer. Each match names the case,
+ObservationSet, Observation, ground-truth identity, and a CWE present on both sides. Equal CWE labels
+without an explicit match are false positives, not detections.
+
+The reducer emits aggregate and per-analyzer recall, precision, duplicate, and exclusion metrics.
+Policies can require a complete case×analyzer matrix and compare an exact-suite baseline. Evaluation
+is checkpointed and produces immutable local JSON/Markdown, but it never changes production domain
+state or executes an analyzer.
+
 ## Deliberately absent
 
 - analyzer execution or arbitrary commands;

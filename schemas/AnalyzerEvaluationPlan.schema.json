@@ -1,0 +1,424 @@
+{
+  "$defs": {
+    "AnalyzerEvaluationBaseline": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Baseline Id",
+          "type": "string"
+        },
+        "suite_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Suite Id",
+          "type": "string"
+        },
+        "suite_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Suite Digest",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/AnalyzerEvaluationMetrics"
+        }
+      },
+      "required": [
+        "baseline_id",
+        "suite_id",
+        "suite_digest",
+        "metrics"
+      ],
+      "title": "AnalyzerEvaluationBaseline",
+      "type": "object"
+    },
+    "AnalyzerEvaluationLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_observation_sets": {
+          "default": 10000,
+          "exclusiveMinimum": 0,
+          "maximum": 100000,
+          "title": "Max Observation Sets",
+          "type": "integer"
+        },
+        "max_observations": {
+          "default": 1000000,
+          "exclusiveMinimum": 0,
+          "maximum": 10000000,
+          "title": "Max Observations",
+          "type": "integer"
+        },
+        "max_matches": {
+          "default": 1000000,
+          "maximum": 10000000,
+          "minimum": 0,
+          "title": "Max Matches",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AnalyzerEvaluationLimits",
+      "type": "object"
+    },
+    "AnalyzerEvaluationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "case_count": {
+          "minimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "analyzer_count": {
+          "minimum": 0,
+          "title": "Analyzer Count",
+          "type": "integer"
+        },
+        "ground_truth_count": {
+          "minimum": 0,
+          "title": "Ground Truth Count",
+          "type": "integer"
+        },
+        "observation_count": {
+          "minimum": 0,
+          "title": "Observation Count",
+          "type": "integer"
+        },
+        "matched_truth_count": {
+          "minimum": 0,
+          "title": "Matched Truth Count",
+          "type": "integer"
+        },
+        "matched_observation_count": {
+          "minimum": 0,
+          "title": "Matched Observation Count",
+          "type": "integer"
+        },
+        "false_positive_count": {
+          "minimum": 0,
+          "title": "False Positive Count",
+          "type": "integer"
+        },
+        "duplicate_match_count": {
+          "minimum": 0,
+          "title": "Duplicate Match Count",
+          "type": "integer"
+        },
+        "exclusion_count": {
+          "minimum": 0,
+          "title": "Exclusion Count",
+          "type": "integer"
+        },
+        "truth_recall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Truth Recall",
+          "type": "number"
+        },
+        "observation_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Observation Precision",
+          "type": "number"
+        },
+        "duplicate_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Duplicate Rate",
+          "type": "number"
+        },
+        "exclusion_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Exclusion Rate",
+          "type": "number"
+        },
+        "by_analyzer": {
+          "items": {
+            "$ref": "#/$defs/AnalyzerMetricSlice"
+          },
+          "title": "By Analyzer",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_count",
+        "analyzer_count",
+        "ground_truth_count",
+        "observation_count",
+        "matched_truth_count",
+        "matched_observation_count",
+        "false_positive_count",
+        "duplicate_match_count",
+        "exclusion_count",
+        "truth_recall",
+        "observation_precision",
+        "duplicate_rate",
+        "exclusion_rate",
+        "by_analyzer"
+      ],
+      "title": "AnalyzerEvaluationMetrics",
+      "type": "object"
+    },
+    "AnalyzerEvaluationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "min_truth_recall": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min Truth Recall",
+          "type": "number"
+        },
+        "min_observation_precision": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min Observation Precision",
+          "type": "number"
+        },
+        "max_duplicate_rate": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Duplicate Rate",
+          "type": "number"
+        },
+        "max_exclusion_rate": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Exclusion Rate",
+          "type": "number"
+        },
+        "required_analyzers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AnalyzerKind"
+          },
+          "title": "Required Analyzers",
+          "type": "array"
+        },
+        "require_full_case_matrix": {
+          "default": true,
+          "title": "Require Full Case Matrix",
+          "type": "boolean"
+        },
+        "apply_thresholds_per_analyzer": {
+          "default": true,
+          "title": "Apply Thresholds Per Analyzer",
+          "type": "boolean"
+        },
+        "max_truth_recall_drop": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Truth Recall Drop",
+          "type": "number"
+        },
+        "max_observation_precision_drop": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Observation Precision Drop",
+          "type": "number"
+        },
+        "max_duplicate_rate_increase": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Duplicate Rate Increase",
+          "type": "number"
+        },
+        "max_exclusion_rate_increase": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Exclusion Rate Increase",
+          "type": "number"
+        }
+      },
+      "title": "AnalyzerEvaluationPolicy",
+      "type": "object"
+    },
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    },
+    "AnalyzerMetricSlice": {
+      "additionalProperties": false,
+      "properties": {
+        "analyzer": {
+          "$ref": "#/$defs/AnalyzerKind"
+        },
+        "case_count": {
+          "minimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "ground_truth_count": {
+          "minimum": 0,
+          "title": "Ground Truth Count",
+          "type": "integer"
+        },
+        "observation_count": {
+          "minimum": 0,
+          "title": "Observation Count",
+          "type": "integer"
+        },
+        "matched_truth_count": {
+          "minimum": 0,
+          "title": "Matched Truth Count",
+          "type": "integer"
+        },
+        "matched_observation_count": {
+          "minimum": 0,
+          "title": "Matched Observation Count",
+          "type": "integer"
+        },
+        "false_positive_count": {
+          "minimum": 0,
+          "title": "False Positive Count",
+          "type": "integer"
+        },
+        "duplicate_match_count": {
+          "minimum": 0,
+          "title": "Duplicate Match Count",
+          "type": "integer"
+        },
+        "exclusion_count": {
+          "minimum": 0,
+          "title": "Exclusion Count",
+          "type": "integer"
+        },
+        "truth_recall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Truth Recall",
+          "type": "number"
+        },
+        "observation_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Observation Precision",
+          "type": "number"
+        },
+        "duplicate_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Duplicate Rate",
+          "type": "number"
+        },
+        "exclusion_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Exclusion Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "analyzer",
+        "case_count",
+        "ground_truth_count",
+        "observation_count",
+        "matched_truth_count",
+        "matched_observation_count",
+        "false_positive_count",
+        "duplicate_match_count",
+        "exclusion_count",
+        "truth_recall",
+        "observation_precision",
+        "duplicate_rate",
+        "exclusion_rate"
+      ],
+      "title": "AnalyzerMetricSlice",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "suite_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Digest",
+      "type": "string"
+    },
+    "alignment_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Alignment Id",
+      "type": "string"
+    },
+    "alignment_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Alignment Digest",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/AnalyzerEvaluationPolicy"
+    },
+    "limits": {
+      "$ref": "#/$defs/AnalyzerEvaluationLimits"
+    },
+    "baseline": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalyzerEvaluationBaseline"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "suite_id",
+    "suite_digest",
+    "alignment_id",
+    "alignment_digest",
+    "policy",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AnalyzerEvaluationPlan",
+  "type": "object"
+}

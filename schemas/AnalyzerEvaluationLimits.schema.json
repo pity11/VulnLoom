@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_observation_sets": {
+      "default": 10000,
+      "exclusiveMinimum": 0,
+      "maximum": 100000,
+      "title": "Max Observation Sets",
+      "type": "integer"
+    },
+    "max_observations": {
+      "default": 1000000,
+      "exclusiveMinimum": 0,
+      "maximum": 10000000,
+      "title": "Max Observations",
+      "type": "integer"
+    },
+    "max_matches": {
+      "default": 1000000,
+      "maximum": 10000000,
+      "minimum": 0,
+      "title": "Max Matches",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 3600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AnalyzerEvaluationLimits",
+  "type": "object"
+}

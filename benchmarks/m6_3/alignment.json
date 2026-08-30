@@ -1,0 +1,124 @@
+{
+  "alignment_id": "8a5357d7c26b37eed324d8a17ae1654066b3b65b49971221b32dd8966950bd7a",
+  "suite_id": "53b17de904e62a153ecc7c5bcaf7b786edfe76b5f5a312813bc73a24c11b18b2",
+  "suite_digest": "da4e6d2e67d360c63787c1918f34187ec56ea31832da3c22b48a503686f88d5c",
+  "ruleset_digest": "f98df1ad893bd947b6416aef70a1872d86338dc5b4311476a1d171933507cf4f",
+  "provenance": "fixture",
+  "producer_id": "vulnloom.m6.3.fixture.v1",
+  "bindings": [
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "15922768d2708e6fd31bcece3a5abf6d1ed512676abeb7a569a58798a58cf731",
+      "observation_set_digest": "d472f3040a1ff8f50793adf148abd9eeaf0316bfd000eab38a9377cf75efabce",
+      "analyzer": "checkov",
+      "target_version": "commit-a"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "0bddcd820feb4ec920811be7509c48b0322b0a8ca451de1a8d649dafdf3602cd",
+      "observation_set_digest": "8f53004ca92292dd2faf7cf2aa928bab171f6a3ca35e0b45b63d693ffbb6f5de",
+      "analyzer": "codeql",
+      "target_version": "commit-a"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "3e1723e3b8b6a1cc11da8cf373bda213a2f8274c3ffc3d897b44464451381acc",
+      "observation_set_digest": "d0196fbc34de1572261961f677715315af1c63cf4f48155ed7859e3154dd33e8",
+      "analyzer": "kubesec",
+      "target_version": "commit-a"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "3c19048a1928ef092df5d92124b3dda6832a50f165ae6dd48f3c07423070d47a",
+      "observation_set_digest": "f9d187fc3bb25dd920c9b520a1f69369f205c518790efd39f11ee7df4cfe46af",
+      "analyzer": "trivy",
+      "target_version": "commit-a"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "3d0160ea7d66fbad7ce13dcfeee5462f74abef5bd1365b960bd00cacf284e442",
+      "observation_set_digest": "487ab6330c0abebf937a4ff6c4bd3d3bd83b38a0d71fe2265fdd75f1ae8082b5",
+      "analyzer": "checkov",
+      "target_version": "commit-b"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "3029757637cd72c8d353e03bd5e749455462d137512c9f4d19ca68029feefa86",
+      "observation_set_digest": "054cbb088c7a485774f604d4d5087c38cdac20b0cc405c7ba5eae9397691af17",
+      "analyzer": "codeql",
+      "target_version": "commit-b"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "69232b1a7f3791208c4a456b3e6f858086108388f3001838c12b148ead0c4da7",
+      "observation_set_digest": "52398181b28871909b817680bae3b1f329a5641c74fd078171cb7ab0a4c8fe81",
+      "analyzer": "kubesec",
+      "target_version": "commit-b"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "f9aa45b5e386672b83190258471b4144238143ed1387c41e567bfa0d7c25f698",
+      "observation_set_digest": "09eaac7f2604e2a05722dc4b9a733d31745f756b5c3492cf191e75d7abd00675",
+      "analyzer": "trivy",
+      "target_version": "commit-b"
+    }
+  ],
+  "matches": [
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "0bddcd820feb4ec920811be7509c48b0322b0a8ca451de1a8d649dafdf3602cd",
+      "observation_id": "4fd27bbc7dddd23d0e1ad08f1a3b351f81d8c4c36ed6f573a76d34916eadf20b",
+      "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "matched_cwe": "CWE-79"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "15922768d2708e6fd31bcece3a5abf6d1ed512676abeb7a569a58798a58cf731",
+      "observation_id": "c55fd971471c663841e6416d901cd7af790cacbc70214d424fd5ddbde0fe7791",
+      "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "matched_cwe": "CWE-79"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "3c19048a1928ef092df5d92124b3dda6832a50f165ae6dd48f3c07423070d47a",
+      "observation_id": "77cb7e4d1c41310432ad69e6931bae8488f08aa964d424cbe25a6c3d6b2abbd4",
+      "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "matched_cwe": "CWE-79"
+    },
+    {
+      "case_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_set_id": "3e1723e3b8b6a1cc11da8cf373bda213a2f8274c3ffc3d897b44464451381acc",
+      "observation_id": "2450231542aa84d7ed43196e3b5fe46fdad44fbe50986810c1d520c4b7d12463",
+      "truth_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "matched_cwe": "CWE-79"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "3029757637cd72c8d353e03bd5e749455462d137512c9f4d19ca68029feefa86",
+      "observation_id": "72dc6f17fd4bcb060fe6f3d57aa499cafee35a7b73eab1a78f2f7062abdf2df6",
+      "truth_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "matched_cwe": "CWE-89"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "3d0160ea7d66fbad7ce13dcfeee5462f74abef5bd1365b960bd00cacf284e442",
+      "observation_id": "523ce5eafe2f9dd21ed7fe5f42730937f71b5fb83f71d9951d31bc4d01aaef8f",
+      "truth_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "matched_cwe": "CWE-89"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "69232b1a7f3791208c4a456b3e6f858086108388f3001838c12b148ead0c4da7",
+      "observation_id": "556ff41ad911934626f6e78f28583609819fedf899b238644e165a7d4da4e55b",
+      "truth_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "matched_cwe": "CWE-89"
+    },
+    {
+      "case_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "observation_set_id": "f9aa45b5e386672b83190258471b4144238143ed1387c41e567bfa0d7c25f698",
+      "observation_id": "c873f3675db7536145026f8f39ef411f55a7c8e6326caa79c6544bb50c37ac84",
+      "truth_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "matched_cwe": "CWE-89"
+    }
+  ]
+}

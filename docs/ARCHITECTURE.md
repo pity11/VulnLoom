@@ -246,3 +246,20 @@ normalization. It then claims a transactional checkpoint and publishes a read-on
 content-addressed artifact. Analyzer observations are deliberately not pipeline observations: their
 schema cannot represent Candidate state, Validation, Critic approval, Evidence completeness, or a
 Finding identity. Later correlation must cross the ordinary Candidate→Finding gates.
+
+## 16. M6.3b explicit analyzer evaluation boundary
+
+Evaluation consumes one sealed BenchmarkSuite, an exact collection of AnalyzerObservationSets, and
+an `AnalyzerTruthAlignment`. Alignment entries are explicit reviewed labels, not inferred matches:
+equal CWE values alone do not increase recall. The reducer verifies each match remains inside its
+case, Target version, ObservationSet digest, and truth identity, and that the declared CWE is present
+on both sides.
+
+Metrics are deterministic at two levels: aggregate coverage across tools and a separate slice per
+analyzer. Policy applies thresholds to both, requires named analyzers and a complete case×analyzer
+matrix, and compares exact-suite baselines. This prevents another tool's match from hiding a
+regression in one adapter.
+
+All semantic and resource checks precede the SQLite STARTED checkpoint. Results are local immutable
+JSON/Markdown objects. The evaluator has no analyzer execution, filesystem target access, Runner,
+Broker, network, credential, Candidate transition, Finding promotion, or Submission capability.

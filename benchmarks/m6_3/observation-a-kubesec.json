@@ -1,0 +1,27 @@
+{
+  "observation_set_id": "3e1723e3b8b6a1cc11da8cf373bda213a2f8274c3ffc3d897b44464451381acc",
+  "snapshot_id": "5c2b8296d20cf1c728875e2b2124e9d2b9d02c03d8a29cbd15c26dfee77e47b8",
+  "snapshot_digest": "5684e40ec5ea2b261816ddb219129d79ffbd45568badd077a66f960063e31800",
+  "adapter_id": "kubesec.fixture.v1",
+  "adapter_digest": "120e5aae67468ffba2afd9396b01e129c724ffe104d378658b4f174bd8dbf799",
+  "analyzer": "kubesec",
+  "target_id": "8d24062a-5a78-5454-a5bd-916cd28db1e4",
+  "target_version": "commit-a",
+  "observations": [
+    {
+      "observation_id": "2450231542aa84d7ed43196e3b5fe46fdad44fbe50986810c1d520c4b7d12463",
+      "analyzer": "kubesec",
+      "target_id": "8d24062a-5a78-5454-a5bd-916cd28db1e4",
+      "target_version": "commit-a",
+      "rule_id_digest": "0341c660563c40262fc3ecb2a6df7ad8795798f5695adf8d0cd46d4721df6a19",
+      "rule_fingerprint": "893f25cfdb68e6ad3b876ebce0edf21c9ef8e492ef62092a890770c5c6d27acf",
+      "cwes": [
+        "CWE-79"
+      ],
+      "severity": "high",
+      "message_digest": "3583c6eded8bcf23533923f4d63def53a8c0a4ea7d05b5a6579ea3dcae529054",
+      "locations": []
+    }
+  ],
+  "exclusions": []
+}

@@ -9,13 +9,19 @@ from uuid import UUID
 
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
 from vulnloom.benchmark import (
+    AnalyzerEvaluationArtifactStore,
+    AnalyzerEvaluationPlan,
+    AnalyzerEvaluationService,
+    AnalyzerEvaluationStore,
     AnalyzerImportLimits,
     AnalyzerImportPlan,
     AnalyzerImportService,
     AnalyzerImportStore,
     AnalyzerKind,
     AnalyzerObservationArtifactStore,
+    AnalyzerObservationSet,
     AnalyzerResultSnapshot,
+    AnalyzerTruthAlignment,
     AutoPenBenchSnapshotAdapter,
     BenchmarkArtifactStore,
     BenchmarkGateStatus,
@@ -609,6 +615,41 @@ def import_analyzer_observations_offline(args: argparse.Namespace) -> int:
     return 0
 
 
+def evaluate_analyzers_offline(args: argparse.Namespace) -> int:
+    suite = BenchmarkSuite.model_validate_json(
+        Path(args.suite_file).read_text(encoding="utf-8")
+    )
+    observation_sets = tuple(
+        AnalyzerObservationSet.model_validate_json(Path(path).read_text(encoding="utf-8"))
+        for path in args.observation_set_file
+    )
+    alignment = AnalyzerTruthAlignment.model_validate_json(
+        Path(args.alignment_file).read_text(encoding="utf-8")
+    )
+    plan = AnalyzerEvaluationPlan.model_validate_json(
+        Path(args.plan_file).read_text(encoding="utf-8")
+    )
+    artifact_store = AnalyzerEvaluationArtifactStore(Path(args.result_store))
+    with AnalyzerEvaluationStore(Path(args.evaluation_db)) as evaluation_store:
+        outcome = AnalyzerEvaluationService(
+            store=evaluation_store,
+            artifact_store=artifact_store,
+        ).evaluate(suite, observation_sets, alignment, plan, now=utc_now())
+    summary = {
+        "mode": "offline_explicit_analyzer_evaluation",
+        "plan_id": outcome.plan_id,
+        "suite_id": outcome.result.suite_id,
+        "alignment_id": outcome.result.alignment_id,
+        "result_id": str(outcome.result.result_id),
+        "gate_status": outcome.result.gate_status.value,
+        "metrics": outcome.result.metrics.model_dump(mode="json"),
+        "violations": [item.model_dump(mode="json") for item in outcome.result.violations],
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    print(json.dumps(summary, indent=2))
+    return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -775,6 +816,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--observation-store", default=".vulnloom/analyzer-observations"
     )
     analyzer_import.set_defaults(handler=import_analyzer_observations_offline)
+
+    analyzer_evaluation = sub.add_parser("analyzer-evaluate-offline")
+    analyzer_evaluation.add_argument("--suite-file", required=True)
+    analyzer_evaluation.add_argument(
+        "--observation-set-file", action="append", required=True
+    )
+    analyzer_evaluation.add_argument("--alignment-file", required=True)
+    analyzer_evaluation.add_argument("--plan-file", required=True)
+    analyzer_evaluation.add_argument(
+        "--evaluation-db", default=".vulnloom/analyzer-evaluations.db"
+    )
+    analyzer_evaluation.add_argument(
+        "--result-store", default=".vulnloom/analyzer-evaluation-results"
+    )
+    analyzer_evaluation.set_defaults(handler=evaluate_analyzers_offline)
     return parser
 
 

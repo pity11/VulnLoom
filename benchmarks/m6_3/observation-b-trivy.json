@@ -1,0 +1,27 @@
+{
+  "observation_set_id": "f9aa45b5e386672b83190258471b4144238143ed1387c41e567bfa0d7c25f698",
+  "snapshot_id": "f3bf4eb8d1827183c2bb6ea11d1ae2ee786d84c7dbe947240da030d4dfaa9ec2",
+  "snapshot_digest": "e5a5477a73d550251c44bc6e6d847a30080f3b7c3af97345a46f7eb7a436bea9",
+  "adapter_id": "trivy.fixture.v1",
+  "adapter_digest": "3b2d7fe8624acc7d14c0ee33ffeb0277126d1445806456fcb54382780d3010a0",
+  "analyzer": "trivy",
+  "target_id": "50282c2f-2304-5803-ac8c-138594591076",
+  "target_version": "commit-b",
+  "observations": [
+    {
+      "observation_id": "c873f3675db7536145026f8f39ef411f55a7c8e6326caa79c6544bb50c37ac84",
+      "analyzer": "trivy",
+      "target_id": "50282c2f-2304-5803-ac8c-138594591076",
+      "target_version": "commit-b",
+      "rule_id_digest": "eb1433e8489073778b798ecccc5579b99088d6f6ac448e510e549b4dcf9e3c9f",
+      "rule_fingerprint": "07e2dffad8639dbe8c86728488a04a8fbc6acb00d5db698d0b0926e2366b9b79",
+      "cwes": [
+        "CWE-89"
+      ],
+      "severity": "high",
+      "message_digest": "7e3bd74a87ef378450175c50d124aa35b883779c93b67db24755f64bd42f1dd7",
+      "locations": []
+    }
+  ],
+  "exclusions": []
+}

@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "truth_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Truth Id",
+      "type": "string"
+    },
+    "matched_cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Matched Cwe",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "observation_set_id",
+    "observation_id",
+    "truth_id",
+    "matched_cwe"
+  ],
+  "title": "AnalyzerTruthMatch",
+  "type": "object"
+}

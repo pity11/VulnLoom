@@ -293,6 +293,18 @@ match、资源对象名称和规则文本不进入模型。
 `AnalyzerObservationSet` 与 `BenchmarkObservationSet` 是不同协议：前者只是静态工具命中的规范化投影，
 没有 Candidate/Finding/Validation/Critic/Evidence 字段，不能表示或触发领域状态变化。
 
+### AnalyzerTruthAlignment 与 AnalyzerEvaluation
+
+`AnalyzerCaseBinding` 将 benchmark case 精确绑定到一个 analyzer 的 ObservationSet 完整摘要；同一
+case/analyzer 只能绑定一个 set。`AnalyzerTruthMatch` 显式列出 Observation、truth 和双方共有的 CWE。
+`AnalyzerTruthAlignment` 封存 suite 摘要、固定 ruleset、provenance、producer、全部 binding/match，且禁止
+一个 Observation 匹配多个 truth。
+
+`AnalyzerEvaluationMetrics` 保存总体计数与比率，并包含按 analyzer 排序的 `AnalyzerMetricSlice`。
+`AnalyzerEvaluationBaseline` 绑定 exact suite；`AnalyzerEvaluationPlan` 再绑定 alignment、policy、limits、
+baseline、deadline 和幂等键。`AnalyzerEvaluationResult` 使用 plan 派生的稳定 UUID，gate 状态必须与
+violation 列表一致；artifact 只引用本地内容寻址 JSON/Markdown。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

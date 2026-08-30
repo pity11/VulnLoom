@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "observation_set_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Digest",
+      "type": "string"
+    },
+    "analyzer": {
+      "$ref": "#/$defs/AnalyzerKind"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "observation_set_id",
+    "observation_set_digest",
+    "analyzer",
+    "target_version"
+  ],
+  "title": "AnalyzerCaseBinding",
+  "type": "object"
+}

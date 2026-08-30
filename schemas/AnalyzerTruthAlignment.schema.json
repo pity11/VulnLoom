@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "AlignmentProvenance": {
+      "enum": [
+        "fixture",
+        "human_review"
+      ],
+      "title": "AlignmentProvenance",
+      "type": "string"
+    },
+    "AnalyzerCaseBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_set_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Set Id",
+          "type": "string"
+        },
+        "observation_set_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Set Digest",
+          "type": "string"
+        },
+        "analyzer": {
+          "$ref": "#/$defs/AnalyzerKind"
+        },
+        "target_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "observation_set_id",
+        "observation_set_digest",
+        "analyzer",
+        "target_version"
+      ],
+      "title": "AnalyzerCaseBinding",
+      "type": "object"
+    },
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    },
+    "AnalyzerTruthMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_set_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Set Id",
+          "type": "string"
+        },
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "truth_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Id",
+          "type": "string"
+        },
+        "matched_cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Matched Cwe",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "observation_set_id",
+        "observation_id",
+        "truth_id",
+        "matched_cwe"
+      ],
+      "title": "AnalyzerTruthMatch",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alignment_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Alignment Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "suite_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Digest",
+      "type": "string"
+    },
+    "ruleset_digest": {
+      "default": "f98df1ad893bd947b6416aef70a1872d86338dc5b4311476a1d171933507cf4f",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ruleset Digest",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AlignmentProvenance"
+    },
+    "producer_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Producer Id",
+      "type": "string"
+    },
+    "bindings": {
+      "items": {
+        "$ref": "#/$defs/AnalyzerCaseBinding"
+      },
+      "maxItems": 100000,
+      "minItems": 1,
+      "title": "Bindings",
+      "type": "array"
+    },
+    "matches": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AnalyzerTruthMatch"
+      },
+      "title": "Matches",
+      "type": "array"
+    }
+  },
+  "required": [
+    "alignment_id",
+    "suite_id",
+    "suite_digest",
+    "provenance",
+    "producer_id",
+    "bindings"
+  ],
+  "title": "AnalyzerTruthAlignment",
+  "type": "object"
+}

@@ -243,7 +243,19 @@ M6.2 不声称执行或复现外部 benchmark。M6.3 再以统一 Observation �
 - SQLite STARTED/COMPLETED checkpoint 与只读内容寻址 artifact 支持幂等 replay、冲突拒绝、显式恢复和失败清理。
 - Analyzer Observation 没有 Candidate/Finding/Validation/Critic 字段，不能成为 Finding，也不能替代 M6.1 的完整工作流 Observation。
 
-M6.3b 将为这些 Observation 增加显式 ground-truth 对齐与跨工具指标；受控执行分析器是更后的独立边界，必须复用 Runner/Tool Broker 并固定本地工具或镜像摘要。
+### M6.3b：显式 Ground Truth 对齐与跨工具回归门禁（已完成首版）
+
+- `AnalyzerTruthAlignment` 绑定 exact BenchmarkSuite、case、ObservationSet 摘要和逐条 Observation→truth match；alignment provenance 只允许固定 fixture 或人工审查。
+- CWE 相同不会自动形成 match。显式 match 仍须满足同 case、同 Target version、truth 属于该 case，且 matched CWE 同时存在于 truth 与 Observation。
+- 同一 Observation 不得匹配多个 truth；同一 truth 的多条 match 作为重复命中统计，不隐式丢弃。
+- reducer 同时计算总体与逐 analyzer 的 truth recall、observation precision、duplicate rate、exclusion rate，以及原始计数。
+- policy 支持总体与逐 analyzer 阈值、必需 analyzer、完整 case×analyzer 矩阵，以及 exact suite baseline 的 recall/precision/duplicate/exclusion 回归限制。
+- `AnalyzerEvaluationPlan` 绑定 suite/alignment/policy/limits/baseline/deadline/幂等键；语义或资源校验在 STARTED checkpoint 前完成。
+- SQLite checkpoint、只读内容寻址 JSON/Markdown artifact、幂等 replay、冲突/遗留恢复和失败清理均为离线路径。
+- 仓库内 `benchmarks/m6_3` 固定覆盖 CodeQL、Trivy、Checkov、Kubesec；常规 CI 检查 fixture/schema 漂移并运行 M6.3 gate。
+- `analyzer-evaluate-offline` 只读取 sealed suite、ObservationSet、alignment 和 plan，不执行 analyzer，不改变 Candidate/Finding，不调用 Runner/Broker，也不联网。
+
+M6.3 至此完成离线导入与跨工具评测首版。受控执行分析器属于后续独立里程碑，必须复用 Runner/Tool Broker 并固定本地工具、规则数据库或镜像摘要。
 
 ## 延后事项
 

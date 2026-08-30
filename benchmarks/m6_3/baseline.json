@@ -1,0 +1,82 @@
+{
+  "baseline_id": "01c12d5b20a7c1d6df7829b583524ff2f96d722d2cef60a130dd14b94d61669d",
+  "suite_id": "53b17de904e62a153ecc7c5bcaf7b786edfe76b5f5a312813bc73a24c11b18b2",
+  "suite_digest": "da4e6d2e67d360c63787c1918f34187ec56ea31832da3c22b48a503686f88d5c",
+  "metrics": {
+    "case_count": 2,
+    "analyzer_count": 4,
+    "ground_truth_count": 2,
+    "observation_count": 8,
+    "matched_truth_count": 2,
+    "matched_observation_count": 8,
+    "false_positive_count": 0,
+    "duplicate_match_count": 6,
+    "exclusion_count": 0,
+    "truth_recall": 1.0,
+    "observation_precision": 1.0,
+    "duplicate_rate": 0.75,
+    "exclusion_rate": 0.0,
+    "by_analyzer": [
+      {
+        "analyzer": "checkov",
+        "case_count": 2,
+        "ground_truth_count": 2,
+        "observation_count": 2,
+        "matched_truth_count": 2,
+        "matched_observation_count": 2,
+        "false_positive_count": 0,
+        "duplicate_match_count": 0,
+        "exclusion_count": 0,
+        "truth_recall": 1.0,
+        "observation_precision": 1.0,
+        "duplicate_rate": 0.0,
+        "exclusion_rate": 0.0
+      },
+      {
+        "analyzer": "codeql",
+        "case_count": 2,
+        "ground_truth_count": 2,
+        "observation_count": 2,
+        "matched_truth_count": 2,
+        "matched_observation_count": 2,
+        "false_positive_count": 0,
+        "duplicate_match_count": 0,
+        "exclusion_count": 0,
+        "truth_recall": 1.0,
+        "observation_precision": 1.0,
+        "duplicate_rate": 0.0,
+        "exclusion_rate": 0.0
+      },
+      {
+        "analyzer": "kubesec",
+        "case_count": 2,
+        "ground_truth_count": 2,
+        "observation_count": 2,
+        "matched_truth_count": 2,
+        "matched_observation_count": 2,
+        "false_positive_count": 0,
+        "duplicate_match_count": 0,
+        "exclusion_count": 0,
+        "truth_recall": 1.0,
+        "observation_precision": 1.0,
+        "duplicate_rate": 0.0,
+        "exclusion_rate": 0.0
+      },
+      {
+        "analyzer": "trivy",
+        "case_count": 2,
+        "ground_truth_count": 2,
+        "observation_count": 2,
+        "matched_truth_count": 2,
+        "matched_observation_count": 2,
+        "false_positive_count": 0,
+        "duplicate_match_count": 0,
+        "exclusion_count": 0,
+        "truth_recall": 1.0,
+        "observation_precision": 1.0,
+        "duplicate_rate": 0.0,
+        "exclusion_rate": 0.0
+      }
+    ]
+  }
+}
