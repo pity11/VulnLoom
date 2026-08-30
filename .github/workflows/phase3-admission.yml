@@ -12,7 +12,7 @@ jobs:
   rootless-isolation:
     name: Rootless Linux isolation and Broker boundary
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -66,15 +66,20 @@ jobs:
           echo "DOCKER_HOST=unix://${XDG_RUNTIME_DIR}/docker.sock" >> "$GITHUB_ENV"
       - name: Install
         run: python -m pip install -e '.[dev]'
-      - name: Prepare immutable test image
-        run: docker pull alpine:3.22
+      - name: Provision versioned admission images
+        run: |
+          docker pull alpine:3.22
+          docker pull bridgecrew/checkov:3.3.15
+          docker pull kubesec/kubesec:v2.14.2
       - name: Run production admission probes
         env:
           VULNLOOM_DOCKER_INTEGRATION: "1"
           VULNLOOM_COMPOSITION_INTEGRATION: "1"
           VULNLOOM_ROOTLESS_QUALIFICATION: "1"
+          VULNLOOM_ANALYZER_INTEGRATION: "1"
         run: |
           docker info
           pytest \
             tests/test_runner_docker_integration.py \
             tests/test_validation_composition_integration.py
+          pytest -m docker_integration tests/test_analyzer_docker_execution.py

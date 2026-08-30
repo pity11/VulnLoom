@@ -282,3 +282,19 @@ This boundary has no Candidate/Finding transition or Broker/Submission path. Fut
 must capture and seal output before scratch cleanup, then pass it through the existing M6.3a adapter.
 Target-build modes remain outside this source-only protocol and require an exact untrusted-build
 Approval before any runner allocation.
+
+## 18. M6.4b admitted analyzer execution boundary
+
+The real execution service is deliberately narrower than the protocol: it reconstructs and compares
+one exact Checkov or Kubesec registration, verifies the sealed CWE sidecar, then claims a separate
+Docker-execution checkpoint. The Docker registry derives both argv and tool-specific successful
+exit codes; callers cannot append flags or reinterpret another tool's failure code.
+
+Attached stdout is bounded by the trusted host adapter and published as an immutable object only
+after regular-file, no-follow, size, and digest checks. The container is always removed and absence
+verified. A completed Runner result must contain exactly one output, and that output must complete
+the existing M6.3a snapshot/import transaction before the outer outcome can complete.
+
+Image installation remains operator/CI provisioning, not a product capability. Runtime cannot pull,
+resolve tags, use the network, execute target builds, access Docker from inside the Worker, promote a
+Candidate, create a Finding, or submit a report.

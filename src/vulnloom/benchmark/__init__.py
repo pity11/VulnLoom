@@ -16,6 +16,12 @@ from .analyzer_adapters import (
     TrivyJsonAdapter,
     default_analyzer_adapters,
 )
+from .analyzer_docker_execution_service import DockerAnalyzerExecutionService
+from .analyzer_docker_execution_store import (
+    AnalyzerDockerExecutionIdempotencyConflict,
+    AnalyzerDockerExecutionRecoveryRequired,
+    AnalyzerDockerExecutionStore,
+)
 from .analyzer_evaluation_models import (
     ANALYZER_ALIGNMENT_RULESET_DIGEST,
     AlignmentProvenance,
@@ -45,10 +51,18 @@ from .analyzer_evaluator import (
     evaluate_analyzer_metrics,
     evaluate_analyzer_regressions,
 )
+from .analyzer_execution_adapters import (
+    checkov_registration,
+    kubesec_registration,
+    validate_admitted_registration,
+)
 from .analyzer_execution_models import (
     AnalyzerExecutionMode,
     AnalyzerExecutionPlan,
+    AnalyzerOutputMode,
     AnalyzerToolRegistration,
+    DockerAnalyzerExecutionOutcome,
+    DockerAnalyzerExecutionStatus,
     OfflineAnalyzerExecutionOutcome,
     OfflineAnalyzerExecutionStatus,
 )
@@ -172,6 +186,9 @@ __all__ = [
     "AnalyzerExecutionRecoveryRequired",
     "AnalyzerExecutionRejected",
     "AnalyzerExecutionStore",
+    "AnalyzerDockerExecutionIdempotencyConflict",
+    "AnalyzerDockerExecutionRecoveryRequired",
+    "AnalyzerDockerExecutionStore",
     "AnalyzerImportIdempotencyConflict",
     "AnalyzerImportLimits",
     "AnalyzerImportOutcome",
@@ -183,6 +200,7 @@ __all__ = [
     "AnalyzerKind",
     "AnalyzerLocation",
     "AnalyzerMetricSlice",
+    "AnalyzerOutputMode",
     "AnalyzerObservation",
     "AnalyzerObservationAdapter",
     "AnalyzerObservationArtifact",
@@ -220,6 +238,9 @@ __all__ = [
     "CODEQL_ADAPTER_DIGEST",
     "CODEQL_ADAPTER_ID",
     "CheckovJsonAdapter",
+    "DockerAnalyzerExecutionOutcome",
+    "DockerAnalyzerExecutionService",
+    "DockerAnalyzerExecutionStatus",
     "CodeQLSarifAdapter",
     "ExternalBenchmarkAdapter",
     "ExternalBenchmarkArtifact",
@@ -249,6 +270,7 @@ __all__ = [
     "TRIVY_ADAPTER_ID",
     "TrivyJsonAdapter",
     "create_analyzer_snapshot",
+    "checkov_registration",
     "create_external_snapshot",
     "default_analyzer_adapters",
     "evaluate_metrics",
@@ -256,5 +278,7 @@ __all__ = [
     "evaluate_analyzer_regressions",
     "evaluate_regressions",
     "inspect_snapshot_directory",
+    "kubesec_registration",
+    "validate_admitted_registration",
     "verify_snapshot_directory",
 ]

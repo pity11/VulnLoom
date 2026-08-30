@@ -109,6 +109,45 @@
       "title": "RunnerCheckpoint",
       "type": "object"
     },
+    "SandboxOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "object_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "logical_name": {
+          "pattern": "^output\\.json$",
+          "title": "Logical Name",
+          "type": "string"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "content_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/output\\.json$",
+          "title": "Content Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "logical_name",
+        "size",
+        "sha256",
+        "content_ref"
+      ],
+      "title": "SandboxOutput",
+      "type": "object"
+    },
     "SandboxRunResult": {
       "additionalProperties": false,
       "properties": {
@@ -148,6 +187,14 @@
             "type": "string"
           },
           "title": "Evidence Refs",
+          "type": "array"
+        },
+        "outputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SandboxOutput"
+          },
+          "title": "Outputs",
           "type": "array"
         },
         "checkpoint": {

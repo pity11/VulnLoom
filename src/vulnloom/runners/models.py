@@ -229,6 +229,22 @@ class SandboxUsage(DomainModel):
     temporary_bytes: int = Field(ge=0)
 
 
+class SandboxOutput(DomainModel):
+    object_id: Digest
+    logical_name: str = Field(pattern=r"^output\.json$")
+    size: int = Field(gt=0)
+    sha256: Digest
+    content_ref: str = Field(pattern=r"^objects/[0-9a-f]{64}/output\.json$")
+
+    @model_validator(mode="after")
+    def content_address_matches(self) -> Self:
+        if self.object_id != self.sha256 or self.content_ref != (
+            f"objects/{self.object_id}/output.json"
+        ):
+            raise ValueError("sandbox output content address mismatch")
+        return self
+
+
 class CleanupReport(DomainModel):
     processes_terminated: bool
     network_released: bool
@@ -256,6 +272,7 @@ class SandboxRunResult(DomainModel):
     budget_used: TaskBudget
     usage: SandboxUsage
     evidence_refs: tuple[Digest, ...] = ()
+    outputs: tuple[SandboxOutput, ...] = ()
     checkpoint: RunnerCheckpoint | None = None
     error_codes: tuple[str, ...] = ()
     cleanup: CleanupReport
@@ -268,4 +285,6 @@ class SandboxRunResult(DomainModel):
             raise ValueError("checkpointed result requires a checkpoint")
         if self.status is not SandboxRunStatus.CHECKPOINTED and self.checkpoint is not None:
             raise ValueError("only checkpointed results may include a checkpoint")
+        if self.status is not SandboxRunStatus.COMPLETED and self.outputs:
+            raise ValueError("only a completed sandbox run may publish outputs")
         return self

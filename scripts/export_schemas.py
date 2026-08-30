@@ -42,6 +42,7 @@ from vulnloom.benchmark import (
     BenchmarkRegressionPolicy,
     BenchmarkResult,
     BenchmarkSuite,
+    DockerAnalyzerExecutionOutcome,
     ExternalBenchmarkArtifact,
     ExternalBenchmarkImportOutcome,
     ExternalBenchmarkImportPlan,
@@ -99,6 +100,7 @@ from vulnloom.reporting import (
 )
 from vulnloom.runners import (
     RunnerCheckpoint,
+    SandboxOutput,
     SandboxProfile,
     SandboxRunRequest,
     SandboxRunResult,
@@ -148,6 +150,7 @@ MODELS = (
     RunnerCheckpoint,
     SandboxRunRequest,
     SandboxRunResult,
+    SandboxOutput,
     ToolRegistration,
     HttpRequestPlan,
     BrokerCall,
@@ -194,6 +197,7 @@ MODELS = (
     AnalyzerToolRegistration,
     AnalyzerExecutionPlan,
     OfflineAnalyzerExecutionOutcome,
+    DockerAnalyzerExecutionOutcome,
     AnalyzerCaseBinding,
     AnalyzerTruthMatch,
     AnalyzerTruthAlignment,

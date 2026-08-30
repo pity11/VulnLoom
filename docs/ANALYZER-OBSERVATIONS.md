@@ -4,10 +4,10 @@ M6.3a normalizes already-generated local outputs from CodeQL SARIF 2.1.0, Trivy 
 and Kubesec JSON. VulnLoom does not install or execute these analyzers in this milestone and does not
 download rules, vulnerability databases, images, or result files.
 
-Execution planning is a separate boundary described in
-[`ANALYZER-EXECUTION.md`](ANALYZER-EXECUTION.md). M6.4a only validates an offline execution
-protocol and intentionally produces no result snapshot; this importer still accepts only an exact,
-already sealed local output file.
+Execution is a separate boundary described in
+[`ANALYZER-EXECUTION.md`](ANALYZER-EXECUTION.md). M6.4a only validates an offline protocol; M6.4b
+may pass a bounded, content-addressed Checkov/Kubesec stdout object into this same importer. The
+importer itself still accepts only exact sealed local bytes and has no Docker or network authority.
 
 ## Trust boundary
 

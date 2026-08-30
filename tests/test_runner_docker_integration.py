@@ -27,6 +27,7 @@ from vulnloom.runners import (
     DockerTool,
     NetworkGrant,
     RegisteredObjectStore,
+    RunnerOutputStore,
     SandboxRunRequest,
     SandboxRunStatus,
     ToolInvocation,
@@ -188,6 +189,48 @@ def test_real_timeout_kills_and_removes_container(tmp_path: Path):
     result = runner.execute(request, now=now)
 
     assert result.status is SandboxRunStatus.TIMED_OUT
+    assert result.cleanup.complete
+    assert runner.last_inspection is not None
+    assert not backend.exists(runner.last_inspection["Id"])
+
+
+@pytest.mark.docker_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_DOCKER_INTEGRATION") != "1",
+    reason="set VULNLOOM_DOCKER_INTEGRATION=1 to run real Docker isolation probes",
+)
+def test_real_output_is_captured_before_container_cleanup(tmp_path: Path):
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    source.chmod(0o755)
+    profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+    now = datetime.now(UTC)
+    request = _request(profile, now)
+    outputs = RunnerOutputStore(tmp_path / "outputs")
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (
+            DockerTool(
+                tool_id="source.read",
+                argv_prefix=(
+                    "/bin/sh",
+                    "-c",
+                    "printf '%s' '{\"results\":[]}'",
+                ),
+            ),
+        ),
+        engine_policy=_engine_policy(),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.COMPLETED
+    assert outputs.read(result.outputs[0]) == b'{"results":[]}'
     assert result.cleanup.complete
     assert runner.last_inspection is not None
     assert not backend.exists(runner.last_inspection["Id"])

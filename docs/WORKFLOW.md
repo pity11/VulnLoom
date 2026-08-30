@@ -203,6 +203,22 @@ Verified Target Snapshot + active Scope
 M6.3a 输入，再规范化成 Observation；Observation 后续仍须经过单独的确定性 Candidate 投影以及既有
 Validation/Critic/Finding 门禁。当前链没有网络、Broker、credential、目标 build、Approval 消费或 Submission。
 
+### M6.4b 固定 Checkov/Kubesec 执行链
+
+```text
+Verified Target + exact admitted registration + sealed CWE map
+  → pre-check Scope/Policy/Profile/Registry/adapter bindings
+  → Docker-execution STARTED checkpoint
+  → exact image ID + pull=never + network=none source-only Worker
+  → bounded attached stdout + immutable digest object + container cleanup
+  → M6.3a snapshot/import transaction
+  → completed typed outcome containing redacted Observations only
+```
+
+Checkov 只接受 exit 0；Kubesec 的 0/2 成功语义固定在其注册项。其他退出码、超时、OOM、输出超限、
+损坏或导入失败均 fail-closed。该链没有公开 CLI，也不负责安装镜像、执行 Target build、联网、产生
+Candidate/Finding 或触发 Submission。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

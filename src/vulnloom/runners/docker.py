@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from .models import (
     CleanupReport,
     MountKind,
     NetworkMode,
+    SandboxOutput,
     SandboxRunRequest,
     SandboxRunResult,
     SandboxRunStatus,
@@ -27,11 +29,16 @@ from .models import (
     run_request_digest,
     sandbox_profile_digest,
 )
+from .output import RunnerOutputCaptureFailed, RunnerOutputStore
 from .preflight import RunnerIdempotencyConflict, RunnerRejected, validate_run_request
 
 
 class DockerBackendError(RuntimeError):
     """The trusted Docker control adapter failed."""
+
+
+class DockerOutputLimitError(DockerBackendError):
+    """Attached Worker output exceeded its trusted capture budget."""
 
 
 class RunnerCleanupFailed(RuntimeError):
@@ -54,12 +61,18 @@ class DockerTool:
 
     tool_id: str
     argv_prefix: tuple[str, ...]
+    successful_exit_codes: frozenset[int] = frozenset({0})
 
     def __post_init__(self) -> None:
         if not self.argv_prefix or not self.argv_prefix[0].startswith("/"):
             raise ValueError("Docker tool entrypoint must be an absolute in-image path")
         if any(not item or "\x00" in item for item in self.argv_prefix):
             raise ValueError("Docker tool entrypoint contains an empty or invalid argument")
+        if (
+            not self.successful_exit_codes
+            or any(code < 0 or code > 255 for code in self.successful_exit_codes)
+        ):
+            raise ValueError("Docker tool successful exit codes must be bounded")
 
 
 class DockerBackend(Protocol):
@@ -72,6 +85,14 @@ class DockerBackend(Protocol):
     def inspect_container(self, container: str) -> Mapping[str, Any]: ...
 
     def start(self, container: str, timeout: float) -> int: ...
+
+    def start_capture(
+        self,
+        container: str,
+        timeout: float,
+        destination: Path,
+        max_bytes: int,
+    ) -> int: ...
 
     def kill(self, container: str) -> None: ...
 
@@ -144,6 +165,60 @@ class DockerCliBackend:
     def kill(self, container: str) -> None:
         self._run(("kill", container), check=False)
 
+    def start_capture(
+        self,
+        container: str,
+        timeout: float,
+        destination: Path,
+        max_bytes: int,
+    ) -> int:
+        if destination.exists() or max_bytes <= 0:
+            raise DockerBackendError("Docker output capture target is invalid")
+        process = subprocess.Popen(
+            (self.executable, "start", "--attach", container),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env=self.environment,
+        )
+        exceeded = threading.Event()
+        reader_error: list[BaseException] = []
+
+        def copy_bounded() -> None:
+            assert process.stdout is not None
+            total = 0
+            try:
+                with destination.open("xb") as output:
+                    while chunk := process.stdout.read(64 * 1024):
+                        if total + len(chunk) > max_bytes:
+                            exceeded.set()
+                            process.kill()
+                            return
+                        output.write(chunk)
+                        total += len(chunk)
+            except BaseException as exc:
+                reader_error.append(exc)
+                process.kill()
+
+        reader = threading.Thread(target=copy_bounded, name="docker-output-capture", daemon=True)
+        reader.start()
+        try:
+            return_code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            process.kill()
+            process.wait(timeout=5)
+            reader.join(timeout=5)
+            raise TimeoutError("Docker Worker exceeded its wall-clock limit") from exc
+        reader.join(timeout=5)
+        if reader.is_alive():
+            process.kill()
+            raise DockerBackendError("Docker output reader did not terminate")
+        if reader_error:
+            raise DockerBackendError("Docker output capture failed") from reader_error[0]
+        if exceeded.is_set():
+            raise DockerOutputLimitError("Docker Worker output exceeded its size limit")
+        return return_code
+
     def remove(self, container: str) -> None:
         self._run(("rm", "--force", "--volumes", container))
 
@@ -214,6 +289,8 @@ class DockerSandboxRunner:
         tools: Sequence[DockerTool],
         *,
         engine_policy: DockerEnginePolicy | None = None,
+        output_store: RunnerOutputStore | None = None,
+        captured_output_tools: frozenset[str] = frozenset(),
     ):
         self.backend = backend
         self.object_store = object_store
@@ -221,8 +298,15 @@ class DockerSandboxRunner:
         self._tools = {tool.tool_id: tool for tool in tools}
         if len(self._tools) != len(tools):
             raise ValueError("Docker tool ids must be unique")
+        if captured_output_tools - frozenset(self._tools) or bool(captured_output_tools) != bool(
+            output_store
+        ):
+            raise ValueError("captured output tools require one registered output store")
+        self.output_store = output_store
+        self.captured_output_tools = captured_output_tools
         self._results: dict[str, tuple[str, SandboxRunResult]] = {}
         self.last_inspection: Mapping[str, Any] | None = None
+        self.last_terminal_inspection: Mapping[str, Any] | None = None
 
     def execute(self, request: SandboxRunRequest, *, now: datetime) -> SandboxRunResult:
         request = validate_run_request(request, frozenset(self._tools))
@@ -257,6 +341,7 @@ class DockerSandboxRunner:
         started = time.monotonic()
         status = SandboxRunStatus.FAILED
         errors: tuple[str, ...] = ("worker_failed",)
+        outputs: tuple[SandboxOutput, ...] = ()
         tool_calls = 1
         try:
             container = self.backend.create(create_args)
@@ -264,18 +349,39 @@ class DockerSandboxRunner:
             self._validate_created_container(request, inspection)
             self.last_inspection = inspection
             try:
-                exit_code = self.backend.start(container, wall_limit)
+                if request.invocation.tool_id in self.captured_output_tools:
+                    assert self.output_store is not None
+                    exit_code, output = self.output_store.capture_attached(
+                        self.backend,
+                        container,
+                        timeout=wall_limit,
+                    )
+                    outputs = (output,)
+                else:
+                    exit_code = self.backend.start(container, wall_limit)
             except TimeoutError:
                 status = SandboxRunStatus.TIMED_OUT
                 errors = ("wall_time_budget_exceeded",)
                 self.backend.kill(container)
+            except RunnerOutputCaptureFailed:
+                errors = ("output_capture_failed",)
+                self.backend.kill(container)
             else:
                 stopped = self.backend.inspect_container(container)
+                self.last_terminal_inspection = stopped
                 if stopped.get("State", {}).get("OOMKilled"):
                     errors = ("memory_limit_exceeded",)
-                elif exit_code == 0 and stopped.get("State", {}).get("ExitCode") == 0:
+                elif (
+                    exit_code in self._tools[request.invocation.tool_id].successful_exit_codes
+                    and stopped.get("State", {}).get("ExitCode")
+                    in self._tools[request.invocation.tool_id].successful_exit_codes
+                ):
                     status = SandboxRunStatus.COMPLETED
                     errors = ()
+                if status is not SandboxRunStatus.COMPLETED:
+                    # A failed Worker may have emitted partial or misleading bytes. Keep
+                    # the immutable object quarantined, but never publish its reference.
+                    outputs = ()
         finally:
             if container is not None:
                 try:
@@ -287,7 +393,7 @@ class DockerSandboxRunner:
                     raise RunnerCleanupFailed("Docker container still exists after cleanup")
 
         wall_seconds = time.monotonic() - started
-        result = self._result(request, status, wall_seconds, errors, tool_calls)
+        result = self._result(request, status, wall_seconds, errors, tool_calls, outputs)
         self._results[request.idempotency_key] = (digest, result)
         return result
 
@@ -442,6 +548,7 @@ class DockerSandboxRunner:
         wall_seconds: float,
         errors: tuple[str, ...],
         tool_calls: int,
+        outputs: tuple[SandboxOutput, ...] = (),
     ) -> SandboxRunResult:
         from vulnloom.domain.protocol import TaskBudget
 
@@ -462,10 +569,11 @@ class DockerSandboxRunner:
                 peak_memory_bytes=0,
                 pids_peak=0,
                 open_files_peak=0,
-                output_bytes=0,
+                output_bytes=sum(item.size for item in outputs),
                 temporary_bytes=0,
             ),
             error_codes=errors,
+            outputs=outputs,
             cleanup=CleanupReport(
                 processes_terminated=True,
                 network_released=True,

@@ -16,6 +16,41 @@
       ],
       "title": "AnalyzerKind",
       "type": "string"
+    },
+    "AnalyzerOutputMode": {
+      "enum": [
+        "file",
+        "stdout"
+      ],
+      "title": "AnalyzerOutputMode",
+      "type": "string"
+    },
+    "AnalyzerResultFile": {
+      "additionalProperties": false,
+      "properties": {
+        "logical_name": {
+          "pattern": "^(output|cwe-map)\\.json$",
+          "title": "Logical Name",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "logical_name",
+        "size",
+        "sha256"
+      ],
+      "title": "AnalyzerResultFile",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -67,6 +102,15 @@
       "title": "Argv",
       "type": "array"
     },
+    "input_paths": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Input Paths",
+      "type": "array"
+    },
     "environment": {
       "additionalProperties": {
         "type": "string"
@@ -74,10 +118,32 @@
       "title": "Environment",
       "type": "object"
     },
+    "output_mode": {
+      "$ref": "#/$defs/AnalyzerOutputMode",
+      "default": "file"
+    },
     "output_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": "/workspace/output/output.json",
-      "title": "Output Path",
-      "type": "string"
+      "title": "Output Path"
+    },
+    "cwe_map": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalyzerResultFile"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "mode": {
       "$ref": "#/$defs/AnalyzerExecutionMode",

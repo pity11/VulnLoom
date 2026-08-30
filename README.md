@@ -370,7 +370,7 @@ vulnloom --store .vulnloom/targets analyzer-execution-check-offline \
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
-The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. Benchmark evaluation consumes precomputed typed pipeline observations. External benchmark and analyzer imports only normalize pre-obtained local data. `analyzer-execution-check-offline` validates the sealed M6.4a control-plane contract but deliberately produces no analyzer output; none of these CLI paths runs tools, targets, or dataset acquisition.
+The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. Benchmark evaluation consumes precomputed typed pipeline observations. External benchmark and analyzer imports only normalize pre-obtained local data. `analyzer-execution-check-offline` validates the sealed M6.4a control-plane contract but deliberately produces no analyzer output. M6.4b adds a library-only, exact-image, network-disabled Checkov/Kubesec path whose output must pass the same M6.3a import boundary; no CLI path installs or runs analyzers.
 
 ## Model credential boundary
 
@@ -378,7 +378,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, a sealed source-only analyzer execution protocol, and opt-in local probes for real containers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, a sealed source-only analyzer execution protocol, narrowly admitted real Checkov/Kubesec execution, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

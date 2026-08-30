@@ -13,6 +13,7 @@ from vulnloom.runners import (
     NetworkGrant,
     RegisteredObjectStore,
     RunnerCleanupFailed,
+    RunnerOutputStore,
     RunnerRejected,
     SandboxRunRequest,
     SandboxRunStatus,
@@ -38,6 +39,9 @@ class FakeDockerBackend:
         self.killed = False
         self.removed = False
         self.cleanup_leaks = False
+        self.output_bytes = b'{"results": []}'
+        self.copy_error = None
+        self.output_symlink = None
 
     def engine_info(self):
         return {
@@ -66,6 +70,19 @@ class FakeDockerBackend:
 
     def kill(self, container):
         self.killed = True
+
+    def start_capture(self, container, timeout, destination, max_bytes):
+        if self.start_error:
+            raise self.start_error
+        if self.copy_error:
+            raise self.copy_error
+        if self.output_symlink is not None:
+            destination.symlink_to(self.output_symlink)
+        elif len(self.output_bytes) > max_bytes:
+            raise ValueError("oversized")
+        else:
+            destination.write_bytes(self.output_bytes)
+        return self.exit_code
 
     def remove(self, container):
         self.removed = True
@@ -256,6 +273,121 @@ def test_docker_runner_timeout_kills_and_removes_container(tmp_path, now):
     result = runner.execute(request, now=now)
     assert result.status is SandboxRunStatus.TIMED_OUT
     assert backend.killed and backend.removed
+
+
+def test_docker_runner_captures_one_immutable_output_before_cleanup(tmp_path, now):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    backend = FakeDockerBackend(inspection)
+    outputs = RunnerOutputStore(tmp_path / "runner-outputs")
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.COMPLETED
+    assert result.cleanup.complete
+    assert len(result.outputs) == 1
+    assert outputs.read(result.outputs[0]) == backend.output_bytes
+    assert result.usage.output_bytes == len(backend.output_bytes)
+    assert backend.removed and not backend.container_exists
+
+
+@pytest.mark.parametrize(
+    ("success_codes", "expected_status", "expected_outputs"),
+    (
+        (frozenset({0, 2}), SandboxRunStatus.COMPLETED, 1),
+        (frozenset({0}), SandboxRunStatus.FAILED, 0),
+    ),
+)
+def test_tool_specific_exit_codes_do_not_publish_failed_output(
+    tmp_path, now, success_codes, expected_status, expected_outputs
+):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    inspection["State"]["ExitCode"] = 2
+    backend = FakeDockerBackend(inspection)
+    backend.exit_code = 2
+    outputs = RunnerOutputStore(tmp_path / "runner-outputs")
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (
+            DockerTool(
+                tool_id="source.read",
+                argv_prefix=("/usr/bin/tool",),
+                successful_exit_codes=success_codes,
+            ),
+        ),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is expected_status
+    assert len(result.outputs) == expected_outputs
+    assert result.cleanup.complete
+
+
+def test_docker_tool_rejects_unbounded_success_exit_codes():
+    with pytest.raises(ValueError, match="exit codes"):
+        DockerTool(
+            tool_id="source.read",
+            argv_prefix=("/usr/bin/tool",),
+            successful_exit_codes=frozenset({256}),
+        )
+
+
+@pytest.mark.parametrize("failure", ("missing", "oversized", "symlink"))
+def test_output_capture_failure_is_typed_and_still_cleans_container(
+    tmp_path, now, failure
+):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    backend = FakeDockerBackend(inspection)
+    if failure == "missing":
+        backend.copy_error = FileNotFoundError("missing")
+    elif failure == "oversized":
+        backend.output_bytes = b"x" * 17
+    else:
+        outside = tmp_path / "outside.json"
+        outside.write_text("{}")
+        backend.output_symlink = outside
+    outputs = RunnerOutputStore(tmp_path / "runner-outputs", max_output_bytes=16)
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.FAILED
+    assert result.error_codes == ("output_capture_failed",)
+    assert result.outputs == ()
+    assert result.cleanup.complete
+    assert backend.removed and not backend.container_exists
+    assert tuple(outputs.temporary.iterdir()) == ()
 
 
 def test_post_create_hardening_refusal_still_removes_container(tmp_path, now):

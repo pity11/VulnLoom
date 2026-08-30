@@ -1,5 +1,45 @@
 {
   "$defs": {
+    "AnalyzerImportLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_output_bytes": {
+          "default": 33554432,
+          "exclusiveMinimum": 0,
+          "title": "Max Output Bytes",
+          "type": "integer"
+        },
+        "max_cwe_map_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "title": "Max Cwe Map Bytes",
+          "type": "integer"
+        },
+        "max_observations": {
+          "default": 100000,
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "title": "Max Observations",
+          "type": "integer"
+        },
+        "max_locations_per_observation": {
+          "default": 32,
+          "exclusiveMinimum": 0,
+          "maximum": 1024,
+          "title": "Max Locations Per Observation",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AnalyzerImportLimits",
+      "type": "object"
+    },
     "MountKind": {
       "enum": [
         "snapshot",
@@ -631,6 +671,15 @@
     "runner_request": {
       "$ref": "#/$defs/SandboxRunRequest"
     },
+    "import_limits": {
+      "$ref": "#/$defs/AnalyzerImportLimits"
+    },
+    "import_idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Import Idempotency Key",
+      "type": "string"
+    },
     "created_at": {
       "format": "date-time",
       "title": "Created At",
@@ -660,6 +709,8 @@
     "registration_digest",
     "registry_digest",
     "runner_request",
+    "import_limits",
+    "import_idempotency_key",
     "created_at",
     "deadline",
     "idempotency_key"

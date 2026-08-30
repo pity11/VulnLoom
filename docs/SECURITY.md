@@ -121,9 +121,16 @@ argv、exact image ID、规则和 adapter 摘要；argv 禁止占位符、URL �
 只读源码、无网络、非 root、无 capability、只读根和显式空基线环境，Profile/Registry/Policy/Target 任一
 摘要漂移都会在 checkpoint 前拒绝。
 
-当前 concrete service 只接受 Offline Runner，因此不会启动进程、容器、Docker 或 socket，也不会生成
+M6.4a concrete service 只接受 Offline Runner，因此不会启动进程、容器、Docker 或 socket，也不会生成
 分析器输出。未来真实执行必须复用 M4.3 rootless 准入并证明输出提取与清理；任何目标 build script 都不
 属于 source-only 模式，必须新增精确 `RUN_UNTRUSTED_BUILD` Approval 校验后才能分配 Runner 资源。
+
+M6.4b 的真实执行只准入固定 Checkov/Kubesec factory，并复用 M4.3 Docker 强制边界。镜像必须由控制面
+预先解析为 exact ID；运行期固定 `--pull never` 和 `network=none`，不持有 Docker socket、宿主凭据或
+Broker 权限。attached stdout 先进入有界可信临时文件，再经 no-follow、常规文件、大小/摘要复核和原子
+只读发布；失败、超时、OOM、超限或非准入退出码都不返回输出引用。只有 M6.3a 导入和脱敏 artifact 完成
+后外层 checkpoint 才完成。Phase 3 Admission 在 rootless Linux 上真实运行两种工具；本地 rootful
+Docker Desktop 结果只算功能回归。
 
 ## 4. 凭据策略
 

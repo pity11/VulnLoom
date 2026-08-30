@@ -10,16 +10,27 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 
-from vulnloom.benchmark.analyzer_models import AnalyzerKind
+from vulnloom.benchmark.analyzer_models import (
+    AnalyzerImportLimits,
+    AnalyzerImportOutcome,
+    AnalyzerKind,
+    AnalyzerResultFile,
+    AnalyzerResultSnapshot,
+)
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel, TargetSnapshot
-from vulnloom.runners import SandboxRunRequest, SandboxRunResult
+from vulnloom.runners import SandboxRunRequest, SandboxRunResult, SandboxRunStatus
 from vulnloom.runners.environment import build_worker_environment
 from vulnloom.runners.models import Digest, ImageDigest, ToolId
 
 
 class AnalyzerExecutionMode(StrEnum):
     SOURCE_ONLY = "source_only"
+
+
+class AnalyzerOutputMode(StrEnum):
+    FILE = "file"
+    STDOUT = "stdout"
 
 
 class AnalyzerToolRegistration(DomainModel):
@@ -32,8 +43,11 @@ class AnalyzerToolRegistration(DomainModel):
     adapter_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")
     adapter_digest: Digest
     argv: Annotated[tuple[str, ...], Field(min_length=2, max_length=128)]
+    input_paths: Annotated[tuple[str, ...], Field(max_length=4096)] = ()
     environment: dict[str, str] = Field(default_factory=dict)
-    output_path: str = "/workspace/output/output.json"
+    output_mode: AnalyzerOutputMode = AnalyzerOutputMode.FILE
+    output_path: str | None = "/workspace/output/output.json"
+    cwe_map: AnalyzerResultFile | None = None
     mode: AnalyzerExecutionMode = AnalyzerExecutionMode.SOURCE_ONLY
 
     @field_validator("argv")
@@ -71,14 +85,33 @@ class AnalyzerToolRegistration(DomainModel):
         build_worker_environment(value)
         return value
 
+    @field_validator("input_paths")
+    @classmethod
+    def safe_input_paths(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        for item in value:
+            path = PurePosixPath(item)
+            if (
+                not item
+                or "\\" in item
+                or path.is_absolute()
+                or any(part in {"", ".", ".."} for part in path.parts)
+            ):
+                raise ValueError("analyzer input path must be normalized and relative")
+        if value != tuple(sorted(set(value))):
+            raise ValueError("analyzer input paths must be unique and sorted")
+        return value
+
     @model_validator(mode="after")
     def sealed_source_only_registration(self) -> Self:
         if not self.tool_id.startswith("analyzer."):
             raise ValueError("analyzer tool id must use the analyzer namespace")
-        if self.output_path != "/workspace/output/output.json":
-            raise ValueError("analyzer output path is fixed")
-        if self.argv.count(self.output_path) != 1:
-            raise ValueError("analyzer argv must write exactly one sealed output.json")
+        if self.output_mode is AnalyzerOutputMode.FILE:
+            if self.output_path != "/workspace/output/output.json":
+                raise ValueError("file-mode analyzer output path is fixed")
+            if self.argv.count(self.output_path) != 1:
+                raise ValueError("file-mode analyzer must write exactly one sealed output.json")
+        elif self.output_path is not None:
+            raise ValueError("stdout-mode analyzer cannot declare a filesystem output")
         if any("://" in item for item in self.argv):
             raise ValueError("analyzer argv cannot contain a network location")
         if self.registration_id != analyzer_tool_registration_digest(self):
@@ -97,7 +130,10 @@ class AnalyzerToolRegistration(DomainModel):
         adapter_id: str,
         adapter_digest: str,
         argv: tuple[str, ...],
+        input_paths: tuple[str, ...] = (),
         environment: dict[str, str] | None = None,
+        output_mode: AnalyzerOutputMode = AnalyzerOutputMode.FILE,
+        cwe_map: AnalyzerResultFile | None = None,
     ) -> AnalyzerToolRegistration:
         values = {
             "tool_id": tool_id,
@@ -108,11 +144,22 @@ class AnalyzerToolRegistration(DomainModel):
             "adapter_id": adapter_id,
             "adapter_digest": adapter_digest,
             "argv": argv,
+            "input_paths": input_paths,
             "environment": environment or {},
-            "output_path": "/workspace/output/output.json",
+            "output_mode": output_mode,
+            "output_path": (
+                "/workspace/output/output.json"
+                if output_mode is AnalyzerOutputMode.FILE
+                else None
+            ),
+            "cwe_map": cwe_map,
             "mode": AnalyzerExecutionMode.SOURCE_ONLY,
         }
-        return cls(registration_id=canonical_digest(values), **values)
+        digest_values = {
+            **values,
+            "cwe_map": cwe_map.model_dump(mode="python") if cwe_map is not None else None,
+        }
+        return cls(registration_id=canonical_digest(digest_values), **values)
 
 
 def analyzer_tool_registration_digest(registration: AnalyzerToolRegistration) -> str:
@@ -131,6 +178,8 @@ class AnalyzerExecutionPlan(DomainModel):
     registration_digest: Digest
     registry_digest: Digest
     runner_request: SandboxRunRequest
+    import_limits: AnalyzerImportLimits
+    import_idempotency_key: str = Field(min_length=1, max_length=256)
     created_at: AwareDatetime
     deadline: AwareDatetime
     idempotency_key: str = Field(min_length=1, max_length=256)
@@ -156,6 +205,7 @@ class AnalyzerExecutionPlan(DomainModel):
         created_at: datetime,
         deadline: datetime,
         idempotency_key: str,
+        import_limits: AnalyzerImportLimits | None = None,
     ) -> AnalyzerExecutionPlan:
         values = {
             "target_id": target.target.target_id,
@@ -168,11 +218,17 @@ class AnalyzerExecutionPlan(DomainModel):
             "registration_digest": canonical_digest(registration.model_dump(mode="python")),
             "registry_digest": registry_digest,
             "runner_request": runner_request,
+            "import_limits": import_limits or AnalyzerImportLimits(),
+            "import_idempotency_key": f"{idempotency_key}:observations",
             "created_at": created_at,
             "deadline": deadline,
             "idempotency_key": idempotency_key,
         }
-        digest_values = {**values, "runner_request": runner_request.model_dump(mode="python")}
+        digest_values = {
+            **values,
+            "runner_request": runner_request.model_dump(mode="python"),
+            "import_limits": values["import_limits"].model_dump(mode="python"),
+        }
         return cls(plan_id=canonical_digest(digest_values), **values)
 
 
@@ -201,4 +257,61 @@ class OfflineAnalyzerExecutionOutcome(DomainModel):
     def does_not_claim_analyzer_output(self) -> Self:
         if not self.runner_result.cleanup.complete:
             raise ValueError("offline analyzer execution requires proven cleanup")
+        return self
+
+
+class DockerAnalyzerExecutionStatus(StrEnum):
+    COMPLETED = "completed"
+    FAILED = "failed"
+    TIMED_OUT = "timed_out"
+    CANCELLED = "cancelled"
+
+
+class DockerAnalyzerExecutionOutcome(DomainModel):
+    plan_id: Digest
+    registration_id: Digest
+    target_id: UUID
+    target_version: str
+    status: DockerAnalyzerExecutionStatus
+    runner_result: SandboxRunResult
+    analyzer_result_snapshot: AnalyzerResultSnapshot | None = None
+    import_outcome: AnalyzerImportOutcome | None = None
+    completed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def completed_execution_is_observation_bound(self) -> Self:
+        if not self.runner_result.cleanup.complete:
+            raise ValueError("Docker analyzer execution requires proven cleanup")
+        expected_status = {
+            SandboxRunStatus.COMPLETED: DockerAnalyzerExecutionStatus.COMPLETED,
+            SandboxRunStatus.FAILED: DockerAnalyzerExecutionStatus.FAILED,
+            SandboxRunStatus.TIMED_OUT: DockerAnalyzerExecutionStatus.TIMED_OUT,
+            SandboxRunStatus.CANCELLED: DockerAnalyzerExecutionStatus.CANCELLED,
+            SandboxRunStatus.CHECKPOINTED: DockerAnalyzerExecutionStatus.FAILED,
+        }[self.runner_result.status]
+        if self.status is not expected_status:
+            raise ValueError("Docker analyzer status does not match its Runner result")
+        completed = self.status is DockerAnalyzerExecutionStatus.COMPLETED
+        if completed != (self.analyzer_result_snapshot is not None):
+            raise ValueError("completed Docker analyzer execution requires a result snapshot")
+        if completed != (self.import_outcome is not None):
+            raise ValueError("completed Docker analyzer execution requires Observation import")
+        if completed:
+            assert self.analyzer_result_snapshot is not None
+            assert self.import_outcome is not None
+            if len(self.runner_result.outputs) != 1:
+                raise ValueError("completed Docker analyzer execution requires one output")
+            runner_output = self.runner_result.outputs[0]
+            if (
+                self.analyzer_result_snapshot.output.sha256 != runner_output.sha256
+                or self.analyzer_result_snapshot.output.size
+                != runner_output.size
+                or self.import_outcome.snapshot_id
+                != self.analyzer_result_snapshot.snapshot_id
+                or self.import_outcome.observation_set.target_id != self.target_id
+                or self.import_outcome.observation_set.target_version != self.target_version
+                or self.import_outcome.observation_set.analyzer
+                is not self.analyzer_result_snapshot.analyzer
+            ):
+                raise ValueError("Docker analyzer Observation import binding mismatch")
         return self

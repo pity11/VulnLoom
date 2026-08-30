@@ -267,7 +267,18 @@ M6.3 至此完成离线导入与跨工具评测首版。受控执行分析器属
 - SQLite STARTED/COMPLETED checkpoint 覆盖完成幂等返回、冲突拒绝和遗留任务显式恢复；测试覆盖成功、拒绝、超时、失败、取消与完整清理。
 - `analyzer-execution-check-offline` 只加载已验证本地 Target Snapshot 和密封 JSON，不安装/运行分析器、不连接 Docker/Broker/网络，也不产生 Observation、Candidate、Finding 或 Submission。
 
-M6.4a 只证明类型化协议和离线编排。真实 Checkov/Kubesec/Trivy/CodeQL 执行必须在后续里程碑使用 M4.3 已准入的 rootless Docker 边界，并分别证明输出提取、超时与容器/存储清理。CodeQL database build 等会执行目标构建脚本的模式必须使用独立 `RUN_UNTRUSTED_BUILD` Approval；当前协议只允许 source-only 模式。
+M6.4a 只证明类型化协议和离线编排。
+
+### M6.4b：真实 Checkov/Kubesec source-only 执行（已完成首版）
+
+- 仅准入两个精确 factory：Checkov 3.3.15 与 Kubesec 2.14.2；Registration 固定镜像 ID、绝对入口、完整 argv、镜像声明环境和 M6.3a adapter/CWE map 摘要。
+- Docker 运行期使用 exact image ID、`--pull never`、`network=none`、只读源码/根文件系统、非 root、无 capability、`no-new-privileges` 和有界资源；不执行 Target build script。
+- Runner 通过 attached stdout 有界捕获 JSON，在容器删除前做 no-follow、常规文件、大小和 SHA-256 校验，再原子发布只读内容寻址对象；超限、超时、非准入退出码和捕获错误均不发布输出引用。
+- 工具成功码属于密封注册项：Checkov 只接受 `0`；Kubesec 精确接受 `0/2`，其中 `2` 表示产生安全发现，而非放宽全局 Runner。
+- `DockerAnalyzerExecutionService` 完成 Scope/Target/Policy/Profile/Registry/CWE 预检和独立 SQLite checkpoint 后执行容器；只有成功输出通过既有 M6.3a 导入并生成脱敏 ObservationSet，外层状态才可为 `COMPLETED`。
+- 常规测试覆盖成功、拒绝、超时、捕获失败、清理、幂等冲突与遗留 checkpoint；Phase 3 Admission 在 rootless Linux 上预置版本化官方镜像并真实运行两条禁网执行/导入链。
+
+M6.4b 不新增 CLI、镜像拉取器、网络能力、Target build、Candidate/Finding promotion 或 Submission。Trivy 仍需密封离线数据库；CodeQL database build 等会执行目标构建脚本的模式必须使用独立 `RUN_UNTRUSTED_BUILD` Approval，二者留待后续里程碑。
 
 ## 延后事项
 

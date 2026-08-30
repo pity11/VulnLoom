@@ -43,6 +43,14 @@ class AnalyzerToolRegistry:
     def docker_tools(self) -> tuple[DockerTool, ...]:
         """Materialize Docker entries only from the sealed exact argv."""
         return tuple(
-            DockerTool(tool_id=item.tool_id, argv_prefix=item.argv)
+            DockerTool(
+                tool_id=item.tool_id,
+                argv_prefix=item.argv,
+                successful_exit_codes=(
+                    frozenset({0, 2})
+                    if item.analyzer.value == "kubesec"
+                    else frozenset({0})
+                ),
+            )
             for item in sorted(self._registrations.values(), key=lambda value: value.tool_id)
         )

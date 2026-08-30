@@ -5,6 +5,7 @@ from .docker import (
     DockerBackendError,
     DockerCliBackend,
     DockerEnginePolicy,
+    DockerOutputLimitError,
     DockerSandboxRunner,
     DockerTool,
     RegisteredObjectStore,
@@ -23,6 +24,7 @@ from .models import (
     RunnerCheckpoint,
     SandboxLimits,
     SandboxMount,
+    SandboxOutput,
     SandboxProfile,
     SandboxProfileKind,
     SandboxRunRequest,
@@ -37,6 +39,7 @@ from .offline import (
     OfflineSandboxRunner,
     OfflineScenario,
 )
+from .output import RunnerOutputCaptureFailed, RunnerOutputStore
 from .preflight import RunnerIdempotencyConflict, RunnerRejected
 from .profiles import analyzer_profile, report_profile, static_profile, validation_profile
 
@@ -45,6 +48,7 @@ __all__ = [
     "DockerBackendError",
     "DockerCliBackend",
     "DockerEnginePolicy",
+    "DockerOutputLimitError",
     "DockerSandboxRunner",
     "DockerTool",
     "MountKind",
@@ -56,9 +60,12 @@ __all__ = [
     "RunnerCheckpoint",
     "RunnerCleanupFailed",
     "RunnerIdempotencyConflict",
+    "RunnerOutputCaptureFailed",
+    "RunnerOutputStore",
     "RunnerRejected",
     "SandboxLimits",
     "SandboxMount",
+    "SandboxOutput",
     "SandboxProfile",
     "SandboxProfileKind",
     "SandboxRunRequest",
