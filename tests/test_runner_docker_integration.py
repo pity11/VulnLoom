@@ -213,26 +213,27 @@ def test_rootless_worker_cannot_reach_bridge_gateway_or_sibling_container(tmp_pa
         "--pull",
         "never",
         "alpine:3.22",
-        "/bin/sh",
-        "-c",
-        (
-            "mkdir -p /tmp/vulnloom-fixture && "
-            "printf authorized > /tmp/vulnloom-fixture/index.html && "
-            "exec /bin/busybox httpd -f -p 8080 -h /tmp/vulnloom-fixture"
-        ),
+        "/bin/busybox",
+        "nc",
+        "-lk",
+        "-p",
+        "8080",
+        "-e",
+        "/bin/echo",
     ).stdout.strip()
     try:
-        assert _docker(
+        _docker(
             backend,
             "exec",
             peer_id,
             "/bin/busybox",
-            "wget",
-            "-q",
-            "-O",
-            "-",
-            "http://127.0.0.1:8080/",
-        ).stdout == "authorized"
+            "nc",
+            "-z",
+            "-w",
+            "1",
+            "127.0.0.1",
+            "8080",
+        )
         peer = json.loads(_docker(backend, "inspect", peer_id).stdout)[0]
         bridge = peer["NetworkSettings"]["Networks"]["bridge"]
         gateways = backend.network_gateway_ips()
@@ -252,7 +253,7 @@ def test_rootless_worker_cannot_reach_bridge_gateway_or_sibling_container(tmp_pa
 set -eu
 [ "$(wc -l < /proc/net/route)" = "1" ]
 for address in "$@"; do
-  ! wget -T 1 -q -O /dev/null "http://$address:8080/"
+  ! nc -z -w 1 "$address" 8080
 done
 """.strip()
         request = _request(profile, now, arguments=(gateway_ip, peer_ip))
