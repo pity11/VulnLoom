@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "CounterevidenceAngle": {
+      "enum": [
+        "security_control",
+        "reachability",
+        "environment_parity",
+        "version_binding"
+      ],
+      "title": "CounterevidenceAngle",
+      "type": "string"
+    },
+    "CounterevidenceAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "angle": {
+          "$ref": "#/$defs/CounterevidenceAngle"
+        },
+        "disposition": {
+          "$ref": "#/$defs/CounterevidenceDisposition"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "rationale_code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Rationale Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "angle",
+        "disposition",
+        "rationale_code"
+      ],
+      "title": "CounterevidenceAssessment",
+      "type": "object"
+    },
+    "CounterevidenceDisposition": {
+      "enum": [
+        "ruled_out",
+        "confirmed",
+        "inconclusive"
+      ],
+      "title": "CounterevidenceDisposition",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "validation_run_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Run Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "validation_context_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Id",
+      "type": "string"
+    },
+    "review_context_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Context Id",
+      "type": "string"
+    },
+    "validation_producer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Validation Producer",
+      "type": "string"
+    },
+    "review_producer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Review Producer",
+      "type": "string"
+    },
+    "assessments": {
+      "items": {
+        "$ref": "#/$defs/CounterevidenceAssessment"
+      },
+      "title": "Assessments",
+      "type": "array"
+    },
+    "ruleset_digest": {
+      "default": "89818c9526464c4df3152e49bc33d8166245ebcb3ce589302b09fbf157f09c11",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ruleset Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "candidate_id",
+    "candidate_digest",
+    "validation_run_id",
+    "validation_run_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "scope_id",
+    "scope_version",
+    "validation_context_id",
+    "review_context_id",
+    "validation_producer",
+    "review_producer",
+    "assessments",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "CriticPlan",
+  "type": "object"
+}

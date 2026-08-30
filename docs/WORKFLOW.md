@@ -119,6 +119,8 @@ Candidate 转为 Finding 必须同时满足：
 - Duplicate Family 已完成检查。
 - 验证动作没有违反速率、网络或副作用策略。
 
+M5.1 中 Critic 使用固定优先级：任一反证角度 `confirmed` 即拒绝；否则任一角度 `inconclusive` 即保持 `VALIDATED`；只有四个角度均有 Evidence 支持地 `ruled_out` 才进入 `CRITIC_REVIEWED`。Critic 计划与验证计划必须使用不同上下文和 producer，普通 Worker 文本或 confidence 不能设置这些 disposition。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

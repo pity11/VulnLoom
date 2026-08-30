@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "validation_context_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Id",
+      "type": "string"
+    },
+    "review_context_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Context Id",
+      "type": "string"
+    },
+    "ruleset_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ruleset Digest",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/CriticVerdict"
+    },
+    "counterevidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Counterevidence Refs",
+      "type": "array"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "review_id",
+    "plan_id",
+    "candidate_id",
+    "validation_run_id",
+    "evidence_bundle_id",
+    "validation_context_id",
+    "review_context_id",
+    "ruleset_digest",
+    "verdict",
+    "rationale_code"
+  ],
+  "title": "CriticReview",
+  "type": "object"
+}

@@ -13,10 +13,16 @@ from vulnloom.broker import (
     HttpToolResult,
     ToolRegistration,
 )
+from vulnloom.critic import (
+    CounterevidenceAssessment,
+    CriticOutcome,
+    CriticPlan,
+)
 from vulnloom.domain.models import (
     ApprovalRequest,
     Artifact,
     Candidate,
+    CriticReview,
     DisclosureCase,
     Evidence,
     EvidenceBundle,
@@ -78,6 +84,10 @@ MODELS = (
     ValidationPlan,
     ValidationVerdict,
     ValidationOutcome,
+    CriticReview,
+    CounterevidenceAssessment,
+    CriticPlan,
+    CriticOutcome,
 )
 
 

@@ -41,6 +41,7 @@ VulnLoom/
 │   ├── adapters/           # Model-provider configuration boundary
 │   ├── analyzers/          # Python AST and optional Semgrep analysis
 │   ├── broker/             # Typed tool mediation and HTTP policy enforcement
+│   ├── critic/             # Deterministic independent counterevidence review
 │   ├── domain/             # Domain objects, state machines, and protocols
 │   ├── evidence/           # Redaction, hashing, and evidence storage
 │   ├── hypotheses/         # Deterministic Candidate generation
@@ -56,7 +57,7 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, LLM-backed agent runtime, Critic, report exporters, disclosure adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
+An HTTP API, LLM-backed agent runtime, report exporters, disclosure adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
 
 ## First end-to-end path
 
@@ -74,7 +75,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation and Evidence bundling. The independent Critic and report-draft stages remain planned work.
+The current implementation reaches deterministic validation, Evidence bundling, and independent counterevidence review. The report-draft stage remains planned work.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -138,6 +139,7 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Requires a tool to be present in the Registry, Task allowlist, and Sandbox Profile while also matching the current Scope, policy digest, and Worker role.
 - Accepts HTTP methods, normalized credential-free URLs, safe headers, opaque credential/body references, and explicit time/size/redirect budgets—never raw credentials or request bodies.
 - Derives state-changing behavior from the HTTP method in trusted code and requires exact, unexpired approvals for mutations and credential use.
+
 - Reauthorizes every redirect, resolves every hop, pins the selected IP, verifies the reported peer, and rejects loopback, link-local metadata, multicast, unspecified, mixed-dangerous, and configured host-gateway addresses.
 - Returns only policy records, URL digests, peer metadata, Evidence IDs, final response-body SHA-256 digests, and budget usage; raw response bodies and sensitive headers stay outside the normal result path.
 - Uses deterministic offline resolver and transport adapters. No real HTTP request or network isolation claim is introduced in M4.2.
@@ -176,6 +178,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Verifies every Evidence object through a no-follow, size-bounded, content-integrity read before judging or sealing an `EvidenceBundle`.
 - Adds an opt-in composition probe covering a real ephemeral Docker Validator, a Broker-owned pinned HTTP connection to a temporary authorized fixture, Evidence capture, exact verdict, state transition, and cleanup.
 - The composition probe also passes in the dedicated rootless Linux admission workflow. Local Docker Desktop runs retain an explicit rootful test-only exception and cannot independently qualify production.
+
+### M5.1: deterministic Critic and independent disproof review
+
+- Seals Candidate, reproduced ValidationRun, EvidenceBundle, Scope version, validation context, and a distinct review context into a content-addressed `CriticPlan`.
+- Requires separate validation and review producers and assesses security controls, reachability, environment parity, and version binding exactly once.
+- Uses a fixed reducer: confirmed counterevidence rejects; any inconclusive angle leaves the Candidate validated but unpromotable; only four evidence-backed ruled-out angles advance it to `CRITIC_REVIEWED`.
+- Rechecks every referenced Evidence object with no-follow, size, digest, and Target-version validation before changing state.
+- Persists STARTED/COMPLETED SQLite checkpoints, returns completed outcomes idempotently, and refuses unfinished automatic replay.
+- Performs no target execution, Broker call, network access, report submission, or Finding promotion. The final promotion gate separately rechecks current Scope, reproduced-run Evidence coverage, Critic binding, and duplicate review.
 
 ## Local development
 
@@ -249,6 +260,6 @@ vulnloom --db .vulnloom/events.db \
 
 VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
 
-Live Docker/Broker validation is currently exposed only through library and integration-test paths, not a production CLI or HTTP API. The rootless Linux and OS-level egress admission gate now passes, so the project is ready to begin Phase 3. An independent Critic, report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation and the deterministic Critic are currently exposed only through library and integration-test paths, not a production CLI or HTTP API. The rootless Linux and OS-level egress admission gate passes. Report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

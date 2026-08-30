@@ -230,6 +230,12 @@ duplicate_family_id: uuid
 state: verified | withdrawn | fixed
 ```
 
+### CriticPlan 与 CriticReview
+
+`CriticPlan` 以 SHA-256 绑定 Candidate、一个成功 Validation Run、Evidence Bundle、Scope 版本、验证上下文、独立审查上下文和固定 ruleset。四个必选反证角度分别是安全控制、路径可达性、环境一致性和版本绑定；确定结论必须引用完整性通过且 Target 版本一致的 Evidence。
+
+`CriticReview` 保存确定性 verdict、plan/run/bundle 身份、独立上下文、ruleset digest 和已确认的 counterevidence refs。它不携带工具权限，不能自行创建 Finding；`INCONCLUSIVE` 不推进 Candidate，`REJECTED` 关闭 Candidate，只有 `ACCEPTED` 才允许进入后续 Finding 门禁。
+
 ### Report
 
 ```yaml

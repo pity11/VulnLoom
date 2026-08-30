@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 
 from vulnloom.domain.models import (
+    DETERMINISTIC_CRITIC_RULESET_DIGEST,
     CandidateState,
     CriticReview,
+    CriticVerdict,
     EvidenceBundle,
     ScopeState,
     ValidationResult,
@@ -36,6 +39,24 @@ def _run(candidate, now, result=ValidationResult.REPRODUCED, evidence=("a" * 64,
     )
 
 
+def _critic(candidate, run, bundle, now, *, verdict=CriticVerdict.ACCEPTED):
+    plan_id = "1" * 64
+    return CriticReview(
+        review_id=uuid5(NAMESPACE_URL, f"vulnloom:critic-review:{plan_id}"),
+        plan_id=plan_id,
+        candidate_id=candidate.candidate_id,
+        validation_run_id=run.run_id,
+        evidence_bundle_id=bundle.bundle_id,
+        validation_context_id="2" * 64,
+        review_context_id="3" * 64,
+        ruleset_digest=DETERMINISTIC_CRITIC_RULESET_DIGEST,
+        verdict=verdict,
+        counterevidence_refs=(("5" * 64,) if verdict is CriticVerdict.REJECTED else ()),
+        rationale_code="independent_review",
+        reviewed_at=now,
+    )
+
+
 def test_candidate_happy_path_requires_validation_and_critic(candidate, approved_scope, now):
     candidate = queue_validation(candidate, approved_scope, now=now)
     candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
@@ -43,14 +64,12 @@ def test_candidate_happy_path_requires_validation_and_critic(candidate, approved
     candidate = complete_validation(candidate, run)
     candidate = transition_candidate(candidate, CandidateState.CRITIC_REVIEWED)
     bundle = EvidenceBundle(candidate_id=candidate.candidate_id, evidence_refs=("a" * 64,))
-    critic = CriticReview(
-        candidate_id=candidate.candidate_id,
-        accepted=True,
-        rationale="Ownership check is absent on the reachable path",
-    )
+    critic = _critic(candidate, run, bundle, now)
 
     promoted, finding = promote_candidate(
         candidate,
+        scope=approved_scope,
+        now=now,
         root_cause="Missing tenant predicate",
         affected_versions=("1.2.0",),
         impact="Cross-tenant invoice disclosure",
@@ -126,14 +145,18 @@ def test_finding_gate_rejects_missing_invariants(candidate, approved_scope, now,
         candidate_id=candidate.candidate_id,
         evidence_refs=("a" * 64,),
     )
-    critic = CriticReview(
-        candidate_id=candidate.candidate_id,
-        accepted=failure != "critic",
-        rationale="Independent review",
+    critic = _critic(
+        candidate,
+        run,
+        bundle,
+        now,
+        verdict=(CriticVerdict.REJECTED if failure == "critic" else CriticVerdict.ACCEPTED),
     )
     with pytest.raises(TransitionRejected):
         promote_candidate(
             candidate,
+            scope=approved_scope,
+            now=now,
             root_cause="Missing authorization predicate",
             affected_versions=("1.0",),
             impact="Cross-tenant read",

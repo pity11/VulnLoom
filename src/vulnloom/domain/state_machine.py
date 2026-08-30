@@ -72,6 +72,8 @@ def complete_validation(candidate: Candidate, run: ValidationRun) -> Candidate:
 def promote_candidate(
     candidate: Candidate,
     *,
+    scope: Scope,
+    now: datetime,
     root_cause: str,
     affected_versions: tuple[str, ...],
     impact: str,
@@ -84,6 +86,10 @@ def promote_candidate(
 ) -> tuple[Candidate, Finding]:
     if candidate.state is not CandidateState.CRITIC_REVIEWED:
         raise TransitionRejected("only a critic-reviewed Candidate can become a Finding")
+    if scope.state is not ScopeState.APPROVED or not scope.valid_from <= now < scope.valid_until:
+        raise TransitionRejected("Finding promotion requires a currently approved Scope")
+    if candidate.scope_id != scope.scope_id or candidate.scope_version != scope.version:
+        raise TransitionRejected("Finding promotion is bound to another Scope version")
     runs = tuple(validation_runs)
     reproduced = tuple(
         run
@@ -98,7 +104,17 @@ def promote_candidate(
         raise TransitionRejected("Finding requires a reproduced ValidationRun with evidence")
     if evidence_bundle.candidate_id != candidate.candidate_id or not evidence_bundle.evidence_refs:
         raise TransitionRejected("Finding requires a non-empty EvidenceBundle for this Candidate")
-    if critic_review.candidate_id != candidate.candidate_id or not critic_review.accepted:
+    if any(
+        not set(run.evidence_refs) <= set(evidence_bundle.evidence_refs) for run in reproduced
+    ):
+        raise TransitionRejected("Finding EvidenceBundle does not cover reproduced run Evidence")
+    if (
+        critic_review.candidate_id != candidate.candidate_id
+        or critic_review.validation_run_id not in {run.run_id for run in reproduced}
+        or critic_review.evidence_bundle_id != evidence_bundle.bundle_id
+        or critic_review.reviewed_at > now
+        or not critic_review.accepted
+    ):
         raise TransitionRejected("Critic rejected or did not review this Candidate")
     if not duplicate_checked:
         raise TransitionRejected("duplicate-family check is required")

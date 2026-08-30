@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "CounterevidenceAngle": {
+      "enum": [
+        "security_control",
+        "reachability",
+        "environment_parity",
+        "version_binding"
+      ],
+      "title": "CounterevidenceAngle",
+      "type": "string"
+    },
+    "CounterevidenceDisposition": {
+      "enum": [
+        "ruled_out",
+        "confirmed",
+        "inconclusive"
+      ],
+      "title": "CounterevidenceDisposition",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "angle": {
+      "$ref": "#/$defs/CounterevidenceAngle"
+    },
+    "disposition": {
+      "$ref": "#/$defs/CounterevidenceDisposition"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "angle",
+    "disposition",
+    "rationale_code"
+  ],
+  "title": "CounterevidenceAssessment",
+  "type": "object"
+}

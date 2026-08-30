@@ -82,6 +82,8 @@ M2 的首版 mapper 只读取 M1 已验证的文件系统 Snapshot，并在读�
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。
 
+M5.1 先实现不依赖 LLM 的可信确定性 reducer。封存的 `CriticPlan` 必须使用不同的验证/审查上下文与 producer，并完整覆盖安全控制、可达性、环境一致性和版本绑定。Critic 只读取已脱敏的本地 Evidence，不获得 Runner、Broker、网络或提交权限。反证成立时拒绝 Candidate，任一角度不确定时保持 `VALIDATED`，只有全部角度有 Evidence 支持地排除后才进入 `CRITIC_REVIEWED`。
+
 ### Reporter Worker
 
 只接收 Finding 和脱敏 Evidence Bundle，生成报告草稿；不连接目标，不持有提交凭据。

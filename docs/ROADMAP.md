@@ -169,6 +169,17 @@ egress、防宿主网关访问和资源清理由后续 M4.3 rootless Docker/HTTP
 
 验收：报告中的代码位置、请求响应和影响结论都能反向解析到 Evidence ID；凭据脱敏测试通过。
 
+### M5.1：确定性 Critic 与独立反证审查（已完成首版）
+
+- `CriticPlan` 内容寻址绑定 Candidate、成功 Validation Run、Evidence Bundle、Scope 版本、验证上下文与独立审查上下文。
+- 验证与审查 producer 必须不同；固定覆盖安全控制、路径可达性、环境一致性和版本绑定四个反证角度。
+- 固定裁决优先级为反证成立、信息不足、反证排除；信息不足保持 `VALIDATED`，不得进入 Finding 门禁。
+- 每个确定性角度必须引用 Evidence；状态变化前再次执行 no-follow、大小、摘要和 Target 版本完整性检查。
+- SQLite 保存 STARTED/COMPLETED checkpoint；完成结果幂等返回，未完成执行拒绝自动重放。
+- Critic 不执行目标、不调用 Broker、不联网、不生成 Finding 或提交报告；Finding promotion 仍要求当前有效 Scope、成功复现、完整 Evidence、绑定的 Critic 通过和 duplicate check。
+
+M5.1 的反证 disposition 是可信控制面封存的类型化观察，不从 Worker prose、模型置信度或普通日志推导。后续 M5.2 将实现脱敏且 Evidence 可追溯的报告草稿与一致性检查。
+
 ## Phase 4：评测与扩展
 
 - 接入 BountyBench、AutoPenBench 和自建 ground truth。

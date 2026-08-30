@@ -10,9 +10,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    field_validator,
+    model_validator,
+)
 
 
 def utc_now() -> datetime:
@@ -82,6 +90,18 @@ class ValidationResult(StrEnum):
     INCONCLUSIVE = "inconclusive"
     POLICY_STOPPED = "policy_stopped"
     TIMED_OUT = "timed_out"
+
+
+class CriticVerdict(StrEnum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    INCONCLUSIVE = "inconclusive"
+
+
+# Versioned digest of the M5.1 fixed-angle deterministic reducer contract.
+DETERMINISTIC_CRITIC_RULESET_DIGEST = (
+    "89818c9526464c4df3152e49bc33d8166245ebcb3ce589302b09fbf157f09c11"
+)
 
 
 class ApprovalStatus(StrEnum):
@@ -320,12 +340,39 @@ class EvidenceBundle(DomainModel):
 
 
 class CriticReview(DomainModel):
-    review_id: UUID = Field(default_factory=uuid4)
+    review_id: UUID
+    plan_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     candidate_id: UUID
-    accepted: bool
-    counterevidence_refs: tuple[str, ...] = ()
-    rationale: NonEmpty
+    validation_run_id: UUID
+    evidence_bundle_id: UUID
+    validation_context_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    review_context_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    ruleset_digest: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    verdict: CriticVerdict
+    counterevidence_refs: tuple[
+        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
+    ] = ()
+    rationale_code: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
     reviewed_at: AwareDatetime = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def independent_and_evidence_bound(self) -> CriticReview:
+        expected_id = uuid5(NAMESPACE_URL, f"vulnloom:critic-review:{self.plan_id}")
+        if self.review_id != expected_id:
+            raise ValueError("Critic review identity does not match its sealed plan")
+        if self.ruleset_digest != DETERMINISTIC_CRITIC_RULESET_DIGEST:
+            raise ValueError("Critic review uses an unknown deterministic ruleset")
+        if self.validation_context_id == self.review_context_id:
+            raise ValueError("Critic review context must be independent from validation")
+        if self.verdict is CriticVerdict.ACCEPTED and self.counterevidence_refs:
+            raise ValueError("an accepted Critic review cannot contain confirmed counterevidence")
+        if self.verdict is CriticVerdict.REJECTED and not self.counterevidence_refs:
+            raise ValueError("a rejected Critic review requires confirmed counterevidence")
+        return self
+
+    @property
+    def accepted(self) -> bool:
+        return self.verdict is CriticVerdict.ACCEPTED
 
 
 class Finding(DomainModel):
