@@ -61,6 +61,26 @@
       "title": "Target Id",
       "type": "string"
     },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
     "title": {
       "minLength": 1,
       "title": "Title",
@@ -81,6 +101,7 @@
       "items": {
         "$ref": "#/$defs/SourceLocation"
       },
+      "minItems": 1,
       "title": "Code Path",
       "type": "array"
     },
@@ -107,6 +128,7 @@
         "pattern": "^[0-9a-f]{64}$",
         "type": "string"
       },
+      "minItems": 1,
       "title": "Signal Ids",
       "type": "array"
     },
@@ -116,9 +138,15 @@
       "type": "string"
     },
     "duplicate_fingerprint": {
-      "minLength": 1,
+      "pattern": "^[0-9a-f]{64}$",
       "title": "Duplicate Fingerprint",
       "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
     },
     "state": {
       "$ref": "#/$defs/CandidateState",
@@ -127,6 +155,10 @@
   },
   "required": [
     "target_id",
+    "target_version",
+    "source_graph_id",
+    "scope_id",
+    "scope_version",
     "title",
     "cwe",
     "entry_point",
@@ -136,7 +168,8 @@
     "hypothesis",
     "signal_ids",
     "cheapest_disproof",
-    "duplicate_fingerprint"
+    "duplicate_fingerprint",
+    "confidence"
   ],
   "title": "Candidate",
   "type": "object"

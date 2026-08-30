@@ -1,0 +1,25 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_signals": {
+      "default": 10000,
+      "minimum": 1,
+      "title": "Max Signals",
+      "type": "integer"
+    },
+    "max_candidates": {
+      "default": 2000,
+      "minimum": 1,
+      "title": "Max Candidates",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 30.0,
+      "exclusiveMinimum": 0,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "CandidateGeneratorLimits",
+  "type": "object"
+}

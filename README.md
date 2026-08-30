@@ -111,6 +111,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Scope identity, version, and validity are rechecked before every source-mapping run.
 - CI runs lint, schema-drift checks, and the full test suite on Python 3.12, 3.13, and 3.14.
 
+### M3: deterministic Candidate generation
+
+- Converts integrity-checked `SourceGraph` objects into typed, human-reviewable Candidates.
+- Merges complementary signals for the same route and sink without treating analyzer output as a Finding.
+- Maps supported sink classes to CWE, preconditions, a security invariant, and the cheapest disproof task.
+- Binds every Candidate to the exact Target version, SourceGraph digest, Scope identity, and Scope version.
+- Uses stable Candidate UUIDs and SHA-256 duplicate fingerprints; repeated generation is byte-stable.
+- Excludes parse failures, visibly guarded object lookups, and external matches that cannot be classified safely.
+- Stores each `CandidateSet` as an immutable content-addressed object and records only a redacted summary event.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -147,6 +157,11 @@ vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
 vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
   source-map --snapshot-id <manifest-sha256> --scope-file scope.json \
   --analysis-store .vulnloom/analysis
+
+# Generate deterministic validation hypotheses. This does not execute or validate them.
+vulnloom --db .vulnloom/events.db \
+  candidate-generate --graph-id <graph-sha256> --scope-file scope.json \
+  --analysis-store .vulnloom/analysis --candidate-store .vulnloom/candidates
 ```
 
 ## Model credential boundary
@@ -155,6 +170,6 @@ The Control Plane resolves model API keys through `ModelProviderConfig.api_key_e
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, and offline static source mapping. Dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, and deterministic Candidate generation. Dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

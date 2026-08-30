@@ -17,6 +17,7 @@ from vulnloom.domain.models import (
     TargetSnapshot,
     utc_now,
 )
+from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
 from vulnloom.storage.events import Event, EventStore
 
@@ -193,6 +194,46 @@ def source_map(args: argparse.Namespace) -> int:
     return 0
 
 
+def generate_candidates(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
+    graph = SourceGraphStore(Path(args.analysis_store)).load(args.graph_id)
+    candidate_set = CandidateGenerator().generate(graph, scope=scope, now=utc_now())
+    set_path, set_created = CandidateSetStore(Path(args.candidate_store)).put(candidate_set)
+    summary = {
+        "candidate_set_id": candidate_set.candidate_set_id,
+        "source_graph_id": candidate_set.source_graph_id,
+        "scope_id": str(candidate_set.scope_id),
+        "scope_version": candidate_set.scope_version,
+        "generator_version": candidate_set.generator_version,
+        "candidate_set_ref": set_path.name,
+        "candidates": len(candidate_set.candidates),
+        "excluded_signals": len(candidate_set.excluded_signal_ids),
+    }
+    event = Event(
+        engagement_id=scope.engagement_id,
+        event_type="CandidatesGenerated",
+        aggregate_id=candidate_set.candidate_set_id,
+        payload=summary,
+        idempotency_key=args.idempotency_key
+        or f"candidate-generate:{candidate_set.candidate_set_id}",
+    )
+    with _store(args.db) as store:
+        stored, event_created = store.append(event)
+    print(
+        json.dumps(
+            {
+                "candidate_set_created": set_created,
+                "event_created": event_created,
+                "candidate_set": summary,
+                "candidate_set_path": str(set_path),
+                "event_id": str(stored.event_id),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -258,6 +299,14 @@ def build_parser() -> argparse.ArgumentParser:
     mapping.add_argument("--analysis-store", default=".vulnloom/analysis")
     mapping.add_argument("--idempotency-key")
     mapping.set_defaults(handler=source_map)
+
+    candidates = sub.add_parser("candidate-generate")
+    candidates.add_argument("--graph-id", required=True)
+    candidates.add_argument("--scope-file", required=True)
+    candidates.add_argument("--analysis-store", default=".vulnloom/analysis")
+    candidates.add_argument("--candidate-store", default=".vulnloom/candidates")
+    candidates.add_argument("--idempotency-key")
+    candidates.set_defaults(handler=generate_candidates)
     return parser
 
 

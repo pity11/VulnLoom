@@ -57,6 +57,21 @@ M2 的 guard 与 taint 是保守启发式线索，不声称完整的控制流支
 - Semgrep adapter 在解析前拒绝符号链接，输出落临时文件并限制读取大小。
 - GitHub Actions 覆盖 Python 3.12、3.13、3.14 的 lint、schema drift 和测试门禁。
 
+### M3：确定性 Candidate 生成（已完成首版）
+
+- 仅消费完整性通过、绑定当前已批准且仍有效 Scope 的 `SourceGraph`。
+- 将同一路由与 sink 的互补 `StaticSignal` 合并为一个 Candidate。
+- 为已支持 sink 映射 CWE、安全不变量、前置条件和最便宜反证任务。
+- Candidate 绑定 Target 版本、SourceGraph 摘要和 Scope 版本，不能脱离来源图流转。
+- 使用稳定 UUID 和 SHA-256 重复指纹，重复运行产生相同 `CandidateSet`。
+- 解析失败、受 guard 保护的对象查询和无法可靠归类的外部规则命中不会被提升为 Candidate。
+- `CandidateSet` 内容寻址、只读持久化；普通事件只保存统计摘要。
+- 覆盖成功、拒绝、超时、资源上限、幂等、符号链接拒绝和临时文件清理路径。
+
+M3 仍只生成待人工选择的静态假设，不排队验证、不执行目标代码，也不会把 Candidate
+直接升级为 Finding。下一里程碑进入 Phase 2，先实现 Sandbox Profile、Tool Broker 协议和
+可离线验证的 Runner 边界，再连接 Docker。
+
 ## Phase 2：受控动态验证
 
 目标：在本地 Docker 测试应用中验证一个人工选择的 Candidate。

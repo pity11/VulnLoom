@@ -231,17 +231,25 @@ class SourceLocation(DomainModel):
 class Candidate(DomainModel):
     candidate_id: UUID = Field(default_factory=uuid4)
     target_id: UUID
+    target_version: NonEmpty
+    source_graph_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    scope_id: UUID
+    scope_version: Annotated[int, Field(ge=1)]
     title: NonEmpty
     cwe: Annotated[str, Field(pattern=r"^CWE-[1-9][0-9]*$")]
     entry_point: SourceLocation
     sink: SourceLocation
-    code_path: tuple[SourceLocation, ...]
+    code_path: Annotated[tuple[SourceLocation, ...], Field(min_length=1)]
     preconditions: tuple[str, ...] = ()
     security_invariant: NonEmpty
     hypothesis: NonEmpty
-    signal_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...]
+    signal_ids: Annotated[
+        tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...],
+        Field(min_length=1),
+    ]
     cheapest_disproof: NonEmpty
-    duplicate_fingerprint: NonEmpty
+    duplicate_fingerprint: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    confidence: float = Field(ge=0, le=1)
     state: CandidateState = CandidateState.PROPOSED
 
 

@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "source_graph_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Graph Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "entry_point": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "sink": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "code_path": {
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "minItems": 1,
+          "title": "Code Path",
+          "type": "array"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "security_invariant": {
+          "minLength": 1,
+          "title": "Security Invariant",
+          "type": "string"
+        },
+        "hypothesis": {
+          "minLength": 1,
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "signal_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Signal Ids",
+          "type": "array"
+        },
+        "cheapest_disproof": {
+          "minLength": 1,
+          "title": "Cheapest Disproof",
+          "type": "string"
+        },
+        "duplicate_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Fingerprint",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "state": {
+          "$ref": "#/$defs/CandidateState",
+          "default": "proposed"
+        }
+      },
+      "required": [
+        "target_id",
+        "target_version",
+        "source_graph_id",
+        "scope_id",
+        "scope_version",
+        "title",
+        "cwe",
+        "entry_point",
+        "sink",
+        "code_path",
+        "security_invariant",
+        "hypothesis",
+        "signal_ids",
+        "cheapest_disproof",
+        "duplicate_fingerprint",
+        "confidence"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "generator_version": {
+      "minLength": 1,
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "excluded_signal_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Excluded Signal Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "candidate_set_id",
+    "source_graph_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "generator_version",
+    "candidates"
+  ],
+  "title": "CandidateSet",
+  "type": "object"
+}

@@ -95,6 +95,10 @@ source_graph:
 ```yaml
 candidate_id: uuid
 target_id: uuid
+target_version: string
+source_graph_id: sha256
+scope_id: uuid
+scope_version: integer
 title: string
 cwe: string
 entry_point: SourceLocation
@@ -106,8 +110,13 @@ hypothesis: string
 signals: []
 cheapest_disproof: string
 duplicate_fingerprint: string
+confidence: 0.0-1.0
 state: enum
 ```
+
+`CandidateSet` 是确定性的内容寻址产物，保存 Candidate 以及未提升 signal 的 ID。Candidate
+必须绑定生成它的 Target、SourceGraph 和 Scope 版本；最便宜反证仅是后续验证规划输入，
+不能触发工具调用或状态迁移。
 
 ### ValidationRun
 

@@ -44,10 +44,14 @@ def approved_scope(now, engagement_id) -> Scope:
 
 
 @pytest.fixture
-def candidate() -> Candidate:
+def candidate(approved_scope) -> Candidate:
     signal_id = "d" * 64
     return Candidate(
         target_id=uuid4(),
+        target_version="a" * 40,
+        source_graph_id="b" * 64,
+        scope_id=approved_scope.scope_id,
+        scope_version=approved_scope.version,
         title="Object lookup omits ownership predicate",
         cwe="CWE-639",
         entry_point=SourceLocation(path="app/routes.py", line=10, symbol="get_invoice"),
@@ -60,5 +64,6 @@ def candidate() -> Candidate:
         hypothesis="The route loads an invoice by identifier without a tenant predicate",
         signal_ids=(signal_id,),
         cheapest_disproof="Show a mandatory tenant filter on every reachable lookup path",
-        duplicate_fingerprint="cwe639:invoice:get-without-tenant",
+        duplicate_fingerprint="e" * 64,
+        confidence=0.72,
     )

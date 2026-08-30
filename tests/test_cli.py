@@ -222,3 +222,28 @@ def hello(name):
     repeated = json.loads(capsys.readouterr().out)
     assert repeated["graph_created"] is False
     assert repeated["event_created"] is False
+
+    candidate_args = [
+        "--db",
+        str(db),
+        "candidate-generate",
+        "--graph-id",
+        first["graph"]["graph_id"],
+        "--scope-file",
+        str(scope_file),
+        "--analysis-store",
+        str(tmp_path / "analysis"),
+        "--candidate-store",
+        str(tmp_path / "candidates"),
+    ]
+    assert main(candidate_args) == 0
+    generated = json.loads(capsys.readouterr().out)
+    assert generated["candidate_set_created"] is True
+    assert generated["event_created"] is True
+    assert generated["candidate_set"]["candidates"] == 1
+    assert Path(generated["candidate_set_path"]).is_file()
+
+    assert main(candidate_args) == 0
+    repeated_candidates = json.loads(capsys.readouterr().out)
+    assert repeated_candidates["candidate_set_created"] is False
+    assert repeated_candidates["event_created"] is False

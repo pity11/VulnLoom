@@ -21,6 +21,7 @@ from vulnloom.domain.models import (
     ValidationRun,
 )
 from vulnloom.domain.protocol import TaskEnvelope, WorkerResult
+from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 
 MODELS = (
@@ -32,6 +33,8 @@ MODELS = (
     SourceMapperLimits,
     SourceGraph,
     Candidate,
+    CandidateGeneratorLimits,
+    CandidateSet,
     ApprovalRequest,
     ValidationRun,
     Evidence,

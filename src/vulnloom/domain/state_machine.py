@@ -48,12 +48,19 @@ def queue_validation(candidate: Candidate, scope: Scope, *, now: datetime) -> Ca
         raise TransitionRejected("validation requires an approved Scope")
     if not scope.valid_from <= now < scope.valid_until:
         raise TransitionRejected("validation is outside the Scope validity window")
+    if candidate.scope_id != scope.scope_id or candidate.scope_version != scope.version:
+        raise TransitionRejected("Candidate is bound to another Scope version")
     return transition_candidate(candidate, CandidateState.VALIDATION_PENDING)
 
 
 def complete_validation(candidate: Candidate, run: ValidationRun) -> Candidate:
     if run.candidate_id != candidate.candidate_id:
         raise TransitionRejected("ValidationRun belongs to another Candidate")
+    if (
+        run.target_version != candidate.target_version
+        or run.scope_version != candidate.scope_version
+    ):
+        raise TransitionRejected("ValidationRun is bound to another Target or Scope version")
     target = (
         CandidateState.VALIDATED
         if run.result is ValidationResult.REPRODUCED
@@ -82,6 +89,8 @@ def promote_candidate(
         run
         for run in runs
         if run.candidate_id == candidate.candidate_id
+        and run.target_version == candidate.target_version
+        and run.scope_version == candidate.scope_version
         and run.result is ValidationResult.REPRODUCED
         and run.evidence_refs
     )

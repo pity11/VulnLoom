@@ -76,6 +76,12 @@ def test_expired_scope_cannot_queue_validation(candidate, approved_scope):
         queue_validation(candidate, approved_scope, now=approved_scope.valid_until)
 
 
+def test_candidate_cannot_cross_scope_versions(candidate, approved_scope, now):
+    unrelated = approved_scope.model_copy(update={"version": approved_scope.version + 1})
+    with pytest.raises(TransitionRejected, match="another Scope version"):
+        queue_validation(candidate, unrelated, now=now)
+
+
 def test_illegal_shortcut_to_finding_is_rejected(candidate):
     with pytest.raises(TransitionRejected, match="illegal candidate transition"):
         transition_candidate(candidate, CandidateState.PROMOTED)
@@ -94,6 +100,16 @@ def test_validation_run_for_another_candidate_is_rejected(candidate, approved_sc
     other = candidate.model_copy(update={"candidate_id": __import__("uuid").uuid4()})
     with pytest.raises(TransitionRejected, match="another Candidate"):
         complete_validation(candidate, _run(other, now))
+
+
+@pytest.mark.parametrize("field", ["target_version", "scope_version"])
+def test_validation_run_must_match_candidate_provenance(candidate, approved_scope, now, field):
+    candidate = queue_validation(candidate, approved_scope, now=now)
+    candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
+    value = "other-version" if field == "target_version" else 2
+    run = _run(candidate, now).model_copy(update={field: value})
+    with pytest.raises(TransitionRejected, match="another Target or Scope"):
+        complete_validation(candidate, run)
 
 
 @pytest.mark.parametrize("failure", ["evidence", "critic", "duplicate"])
