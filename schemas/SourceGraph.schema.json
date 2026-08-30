@@ -473,6 +473,16 @@
       "title": "Target Version",
       "type": "string"
     },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
     "manifest_id": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Manifest Id",
@@ -551,6 +561,8 @@
     "graph_id",
     "target_id",
     "target_version",
+    "scope_id",
+    "scope_version",
     "manifest_id",
     "analyzer_version",
     "files_analyzed",

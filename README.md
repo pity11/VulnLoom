@@ -108,6 +108,8 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - File size and SHA-256 verification before analysis; tampering, path escape, resource-limit violations, and timeouts fail closed.
 - Optional Semgrep adapter restricted to pre-registered local rules, with metrics and version checks disabled and no inherited API keys.
 - Idempotent `SourceGraphBuilt` summary events. Full graphs are stored separately as read-only objects instead of being copied into the normal event log.
+- Scope identity, version, and validity are rechecked before every source-mapping run.
+- CI runs lint, schema-drift checks, and the full test suite on Python 3.12, 3.13, and 3.14.
 
 ## Local development
 
@@ -143,7 +145,7 @@ vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
 
 # Build an offline Python Web SourceGraph from a verified filesystem snapshot.
 vulnloom --db .vulnloom/events.db --store .vulnloom/targets \
-  source-map --snapshot-id <manifest-sha256> \
+  source-map --snapshot-id <manifest-sha256> --scope-file scope.json \
   --analysis-store .vulnloom/analysis
 ```
 

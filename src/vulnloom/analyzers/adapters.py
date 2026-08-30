@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 import subprocess
+import tempfile
 from pathlib import Path, PurePosixPath
 
 from vulnloom.domain.models import SourceLocation, TargetSnapshot
@@ -34,8 +37,8 @@ class SemgrepAdapter:
     ):
         if timeout_seconds <= 0 or max_target_bytes <= 0 or max_output_bytes <= 0:
             raise ValueError("Semgrep limits must be positive")
-        self.executable = executable.resolve()
-        self.rules = {name: path.resolve() for name, path in rules.items()}
+        self.executable = executable.absolute()
+        self.rules = {name: path.absolute() for name, path in rules.items()}
         self.timeout_seconds = timeout_seconds
         self.max_target_bytes = max_target_bytes
         self.max_output_bytes = max_output_bytes
@@ -49,15 +52,13 @@ class SemgrepAdapter:
         config = self.rules.get(rule_set)
         if config is None:
             raise AnalyzerAdapterError("unknown Semgrep rule set")
-        if not self.executable.is_file() or self.executable.is_symlink():
-            raise AnalyzerAdapterError("Semgrep executable is unavailable or unsafe")
-        if not config.is_file() or config.is_symlink():
-            raise AnalyzerAdapterError("Semgrep config is unavailable or unsafe")
+        executable = self._trusted_regular_file(self.executable, "executable")
+        config = self._trusted_regular_file(config, "config")
         root = snapshot_root.resolve()
         if not root.is_dir():
             raise AnalyzerAdapterError("snapshot root is unavailable")
         command = [
-            str(self.executable),
+            str(executable),
             "--json",
             "--config",
             str(config),
@@ -78,30 +79,59 @@ class SemgrepAdapter:
             "SEMGREP_ENABLE_VERSION_CHECK": "0",
         }
         try:
-            completed = subprocess.run(
-                command,
-                cwd=root,
-                env=environment,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout_seconds,
-                check=False,
-            )
+            with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+                completed = subprocess.run(
+                    command,
+                    cwd=root,
+                    env=environment,
+                    stdout=stdout,
+                    stderr=stderr,
+                    timeout=self.timeout_seconds,
+                    check=False,
+                )
+                stdout_size = stdout.tell()
+                if stdout_size > self.max_output_bytes:
+                    raise AnalyzerAdapterError("Semgrep output exceeds the configured limit")
+                stdout.seek(0)
+                encoded_output = stdout.read(self.max_output_bytes + 1)
+                stderr.seek(0)
+                encoded_error = stderr.read(1_024)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise AnalyzerAdapterError("Semgrep execution failed or timed out") from exc
         if completed.returncode != 0:
-            raise AnalyzerAdapterError("Semgrep returned an analyzer error")
-        if len(completed.stdout.encode("utf-8")) > self.max_output_bytes:
-            raise AnalyzerAdapterError("Semgrep output exceeds the configured limit")
+            error = encoded_error.decode("utf-8", "replace").strip()
+            raise AnalyzerAdapterError(f"Semgrep returned an analyzer error: {error[:300]}")
         try:
-            payload = json.loads(completed.stdout)
+            payload = json.loads(encoded_output.decode("utf-8", "strict"))
             results = payload["results"]
-        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
             raise AnalyzerAdapterError("Semgrep returned invalid JSON") from exc
         if not isinstance(results, list):
             raise AnalyzerAdapterError("Semgrep results must be a list")
         signals = [self._signal(snapshot, root, result) for result in results]
         return tuple(sorted(signals, key=lambda item: item.signal_id))
+
+    @staticmethod
+    def _trusted_regular_file(path: Path, label: str) -> Path:
+        try:
+            metadata = path.lstat()
+        except OSError as exc:
+            raise AnalyzerAdapterError(f"Semgrep {label} is unavailable or unsafe") from exc
+        if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+            raise AnalyzerAdapterError(f"Semgrep {label} is unavailable or unsafe")
+        resolved = path.resolve()
+        try:
+            resolved_metadata = resolved.stat()
+        except OSError as exc:
+            raise AnalyzerAdapterError(f"Semgrep {label} is unavailable or unsafe") from exc
+        if (metadata.st_dev, metadata.st_ino) != (
+            resolved_metadata.st_dev,
+            resolved_metadata.st_ino,
+        ):
+            raise AnalyzerAdapterError(f"Semgrep {label} changed during validation")
+        if label == "executable" and not os.access(resolved, os.X_OK):
+            raise AnalyzerAdapterError("Semgrep executable is unavailable or unsafe")
+        return resolved
 
     @staticmethod
     def _signal(snapshot: TargetSnapshot, root: Path, result: object) -> StaticSignal:

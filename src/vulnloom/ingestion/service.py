@@ -93,6 +93,32 @@ class IngestionService:
         self._verify_snapshot_files(final, snapshot)
         return snapshot
 
+    @staticmethod
+    def require_snapshot_scope(snapshot: TargetSnapshot, scope: Scope, now=None) -> None:
+        """Re-authorize an existing Snapshot before any new processing step."""
+        instant = now or utc_now()
+        IngestionService._require_active_scope(scope, instant)
+        if (
+            snapshot.target.engagement_id != scope.engagement_id
+            or snapshot.artifact.engagement_id != scope.engagement_id
+        ):
+            raise IngestionError("Target Snapshot belongs to another Engagement")
+        if snapshot.artifact.kind is ArtifactKind.GIT_REPOSITORY:
+            allowed = any(
+                repository.url == snapshot.target.source_ref
+                and repository.commit.lower() == snapshot.target.version.lower()
+                for repository in scope.repositories
+            )
+        else:
+            allowed = any(
+                artifact.kind is snapshot.artifact.kind
+                and artifact.sha256 == snapshot.artifact.artifact_id
+                and artifact.source_name == snapshot.artifact.source_name
+                for artifact in scope.artifacts
+            )
+        if not allowed:
+            raise IngestionError("Target Snapshot is not present in the active Scope")
+
     def ingest_archive(
         self,
         source: Path,

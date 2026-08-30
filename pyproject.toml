@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnloom"
-version = "0.3.0"
+version = "0.3.1"
 description = "Evidence-first agent framework for authorized vulnerability research"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -29,6 +29,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers"
 testpaths = ["tests"]
+markers = [
+    "semgrep_integration: optional integration test requiring a local Semgrep binary",
+]
 
 [tool.coverage.run]
 branch = true

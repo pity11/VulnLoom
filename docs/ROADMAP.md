@@ -47,6 +47,16 @@ M1 不执行目标构建脚本、不拉取远程 Git、不拉取 OCI 镜像，�
 
 M2 的 guard 与 taint 是保守启发式线索，不声称完整的控制流支配或运行时可利用性。下一里程碑将以这些图和 signal 为输入实现 Candidate 合并、反证任务与重复指纹。
 
+### M2.1：静态链路稳定化（已完成）
+
+- 测试 Scope 使用运行时基准时间，不随日历日期失效。
+- `StaticSignal` 与 `Candidate.signal_ids` 统一使用内容摘要。
+- `SourceGraph` 绑定 `scope_id` 和 `scope_version`，分析前重新检查 Scope 有效期与 Snapshot 归属。
+- Validation queue 同样拒绝过期 Scope。
+- guard 传播排除返回后的不可达代码和非支配的可选分支。
+- Semgrep adapter 在解析前拒绝符号链接，输出落临时文件并限制读取大小。
+- GitHub Actions 覆盖 Python 3.12、3.13、3.14 的 lint、schema drift 和测试门禁。
+
 ## Phase 2：受控动态验证
 
 目标：在本地 Docker 测试应用中验证一个人工选择的 Candidate。

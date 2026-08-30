@@ -73,6 +73,8 @@ source_graph:
   graph_id: sha256
   target_id: uuid
   target_version: string
+  scope_id: uuid
+  scope_version: integer
   manifest_id: sha256
   analyzer_version: string
   files_analyzed: []
@@ -86,7 +88,7 @@ source_graph:
   parse_failures: []
 ```
 
-`StaticSignal` 保存规则、位置、置信度和局限性，是静态假设而不是漏洞结论。`SourceGraph` 不保存源码片段、凭据或完整工具输出，也不存在直接转成 `Finding` 的状态迁移。
+`StaticSignal` 保存规则、位置、置信度和局限性，是静态假设而不是漏洞结论。Signal ID 与 Candidate 中的引用均为内容摘要。`SourceGraph` 绑定生成时的 Scope 身份和版本，不保存源码片段、凭据或完整工具输出，也不存在直接转成 `Finding` 的状态迁移。
 
 ### Candidate
 

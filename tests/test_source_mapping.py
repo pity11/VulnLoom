@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import zipfile
 from pathlib import Path
@@ -40,11 +41,11 @@ def _snapshot(tmp_path: Path, approved_scope, files: dict[str, str]):
     )
     store = tmp_path / "targets"
     snapshot = IngestionService(store).ingest_archive(archive, scope=scope)
-    return snapshot, store
+    return snapshot, store, scope
 
 
 def test_flask_cross_file_route_call_taint_and_object_lookup(tmp_path, approved_scope):
-    snapshot, store = _snapshot(
+    snapshot, store, scope = _snapshot(
         tmp_path,
         approved_scope,
         {
@@ -67,8 +68,10 @@ def load_invoice(invoice_id):
         },
     )
 
-    graph = PythonWebSourceMapper().analyze(snapshot, store)
+    graph = PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
 
+    assert graph.scope_id == scope.scope_id
+    assert graph.scope_version == scope.version
     assert graph.routes[0].framework is WebFramework.FLASK
     assert graph.routes[0].input_names == ("invoice_id",)
     assert any(edge.resolved_symbol == "shop.service.load_invoice" for edge in graph.calls)
@@ -79,11 +82,11 @@ def load_invoice(invoice_id):
         SignalKind.TAINTED_SINK,
         SignalKind.OBJECT_LOOKUP_WITHOUT_VISIBLE_AUTHORIZATION,
     }
-    assert PythonWebSourceMapper().analyze(snapshot, store) == graph
+    assert PythonWebSourceMapper().analyze(snapshot, store, scope=scope) == graph
 
 
 def test_fastapi_dependencies_are_guards_not_taint_sources(tmp_path, approved_scope):
-    snapshot, store = _snapshot(
+    snapshot, store, scope = _snapshot(
         tmp_path,
         approved_scope,
         {
@@ -101,7 +104,7 @@ def item(item_id, user=Depends(get_current_user), db=Depends(get_db)):
         },
     )
 
-    graph = PythonWebSourceMapper().analyze(snapshot, store)
+    graph = PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
 
     route = graph.routes[0]
     assert route.framework is WebFramework.FASTAPI
@@ -115,7 +118,7 @@ def item(item_id, user=Depends(get_current_user), db=Depends(get_db)):
 
 
 def test_django_urlpatterns_and_ownership_guard(tmp_path, approved_scope):
-    snapshot, store = _snapshot(
+    snapshot, store, scope = _snapshot(
         tmp_path,
         approved_scope,
         {
@@ -136,7 +139,7 @@ def detail(request, doc_id):
         },
     )
 
-    graph = PythonWebSourceMapper().analyze(snapshot, store)
+    graph = PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
 
     assert graph.routes[0].framework is WebFramework.DJANGO
     assert graph.routes[0].handler_symbol == "docs.views.detail"
@@ -148,7 +151,7 @@ def detail(request, doc_id):
 
 
 def test_request_source_parse_failure_integrity_and_limits(tmp_path, approved_scope):
-    snapshot, store = _snapshot(
+    snapshot, store, scope = _snapshot(
         tmp_path,
         approved_scope,
         {
@@ -163,7 +166,7 @@ def fetch():
             "broken.py": "def nope(:\n",
         },
     )
-    graph = PythonWebSourceMapper().analyze(snapshot, store)
+    graph = PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
     assert graph.flows[0].source_names == ("request.args.get",)
     assert any(signal.kind is SignalKind.PARSE_FAILURE for signal in graph.signals)
 
@@ -171,19 +174,72 @@ def fetch():
     source.chmod(0o600)
     source.write_text("pass\n", encoding="utf-8")
     with pytest.raises(SourceMappingError, match="integrity"):
-        PythonWebSourceMapper().analyze(snapshot, store)
+        PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
     with pytest.raises(SourceMappingError, match="count limit"):
-        PythonWebSourceMapper(SourceMapperLimits(max_python_files=1)).analyze(snapshot, store)
+        PythonWebSourceMapper(SourceMapperLimits(max_python_files=1)).analyze(
+            snapshot, store, scope=scope
+        )
 
 
 def test_source_mapper_timeout_fails_closed(tmp_path, approved_scope):
-    snapshot, store = _snapshot(tmp_path, approved_scope, {"app.py": "def f(): pass\n"})
+    snapshot, store, scope = _snapshot(tmp_path, approved_scope, {"app.py": "def f(): pass\n"})
     with pytest.raises(SourceMappingError, match="timed out"):
-        PythonWebSourceMapper(SourceMapperLimits(timeout_seconds=1e-12)).analyze(snapshot, store)
+        PythonWebSourceMapper(SourceMapperLimits(timeout_seconds=1e-12)).analyze(
+            snapshot, store, scope=scope
+        )
+
+
+def test_source_mapper_rechecks_scope_before_reading_snapshot(tmp_path, approved_scope):
+    snapshot, store, scope = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
+    with pytest.raises(IngestionError, match="validity window"):
+        PythonWebSourceMapper().analyze(
+            snapshot,
+            store,
+            scope=scope,
+            now=scope.valid_until,
+        )
+    unrelated = scope.model_copy(update={"artifacts": ()})
+    with pytest.raises(IngestionError, match="active Scope"):
+        PythonWebSourceMapper().analyze(snapshot, store, scope=unrelated)
+
+
+def test_unreachable_or_optional_ownership_guard_does_not_hide_signal(tmp_path, approved_scope):
+    snapshot, store, scope = _snapshot(
+        tmp_path,
+        approved_scope,
+        {
+            "app.py": """
+from flask import Flask
+app = Flask(__name__)
+
+@app.get('/unreachable/<item_id>')
+def unreachable(item_id):
+    item = Item.query.get(item_id)
+    return item
+    if item.owner_id != current_user.id:
+        raise PermissionError()
+
+@app.get('/optional/<item_id>')
+def optional(item_id):
+    item = Item.query.get(item_id)
+    if debug_mode:
+        if item.owner_id != current_user.id:
+            raise PermissionError()
+    return item
+""",
+        },
+    )
+    graph = PythonWebSourceMapper().analyze(snapshot, store, scope=scope)
+    warnings = [
+        signal
+        for signal in graph.signals
+        if signal.kind is SignalKind.OBJECT_LOOKUP_WITHOUT_VISIBLE_AUTHORIZATION
+    ]
+    assert len(warnings) == 2
 
 
 def test_snapshot_loader_revalidates_identifier_and_files(tmp_path, approved_scope):
-    snapshot, store = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
+    snapshot, store, _scope = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
     service = IngestionService(store)
     assert service.load_snapshot(snapshot.manifest.manifest_id) == snapshot
     with pytest.raises(IngestionError, match="identifier"):
@@ -197,8 +253,10 @@ def test_snapshot_loader_revalidates_identifier_and_files(tmp_path, approved_sco
 
 
 def test_source_graph_store_is_immutable_and_idempotent(tmp_path, approved_scope):
-    snapshot, target_store = _snapshot(tmp_path, approved_scope, {"app.py": "def f(): pass\n"})
-    graph = PythonWebSourceMapper().analyze(snapshot, target_store)
+    snapshot, target_store, scope = _snapshot(
+        tmp_path, approved_scope, {"app.py": "def f(): pass\n"}
+    )
+    graph = PythonWebSourceMapper().analyze(snapshot, target_store, scope=scope)
     store = SourceGraphStore(tmp_path / "graphs")
     path, created = store.put(graph)
     repeated_path, repeated_created = store.put(graph)
@@ -212,14 +270,21 @@ def test_source_graph_store_is_immutable_and_idempotent(tmp_path, approved_scope
     forged = graph.model_copy(update={"graph_id": "0" * 64})
     with pytest.raises(ValueError, match="digest mismatch"):
         store.put(forged)
+    outside = tmp_path / "outside.json"
+    outside.write_bytes(path.read_bytes())
+    path.unlink()
+    path.symlink_to(outside)
+    with pytest.raises(ValueError, match="unsafe"):
+        store.load(graph.graph_id)
 
 
 def test_semgrep_adapter_uses_trusted_config_minimal_env_and_sanitizes_output(
     tmp_path, approved_scope, monkeypatch
 ):
-    snapshot, store = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
+    snapshot, store, _scope = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
     executable = tmp_path / "semgrep"
     executable.write_text("binary", encoding="utf-8")
+    executable.chmod(0o700)
     config = tmp_path / "rules.yml"
     config.write_text("rules: []\n", encoding="utf-8")
     captured = {}
@@ -236,7 +301,8 @@ def test_semgrep_adapter_uses_trusted_config_minimal_env_and_sanitizes_output(
                 }
             ]
         }
-        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(output), stderr="")
+        kwargs["stdout"].write(json.dumps(output).encode())
+        return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     root = store / snapshot.root_ref
@@ -258,9 +324,10 @@ def test_semgrep_adapter_uses_trusted_config_minimal_env_and_sanitizes_output(
 def test_semgrep_adapter_rejects_timeout_bad_output_and_escaped_path(
     tmp_path, approved_scope, monkeypatch
 ):
-    snapshot, store = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
+    snapshot, store, _scope = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
     executable = tmp_path / "semgrep"
     executable.write_text("binary", encoding="utf-8")
+    executable.chmod(0o700)
     config = tmp_path / "rules.yml"
     config.write_text("rules: []\n", encoding="utf-8")
     adapter = SemgrepAdapter(executable, {"web": config}, max_output_bytes=100)
@@ -284,18 +351,50 @@ def test_semgrep_adapter_rejects_timeout_bad_output_and_escaped_path(
                 }
             ]
         }
-        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(output), stderr="")
+        _kwargs["stdout"].write(json.dumps(output).encode())
+        return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr(subprocess, "run", escaped)
     with pytest.raises(AnalyzerAdapterError, match="escapes"):
         adapter.analyze(snapshot, root, "web")
 
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda command, **_kwargs: subprocess.CompletedProcess(
-            command, 0, stdout=json.dumps({"results": []}) + "x" * 101, stderr=""
-        ),
-    )
+    def oversized(command, **kwargs):
+        kwargs["stdout"].write(b"x" * 101)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(subprocess, "run", oversized)
     with pytest.raises(AnalyzerAdapterError, match="output exceeds"):
         adapter.analyze(snapshot, root, "web")
+
+    linked_config = tmp_path / "linked-rules.yml"
+    linked_config.symlink_to(config)
+    with pytest.raises(AnalyzerAdapterError, match="config.*unsafe"):
+        SemgrepAdapter(executable, {"web": linked_config}).analyze(snapshot, root, "web")
+
+
+@pytest.mark.semgrep_integration
+@pytest.mark.skipif(shutil.which("semgrep") is None, reason="Semgrep is not installed")
+def test_real_semgrep_adapter_with_local_rule(tmp_path, approved_scope):
+    snapshot, store, _scope = _snapshot(
+        tmp_path,
+        approved_scope,
+        {"app.py": "value = eval(user_input)\n"},
+    )
+    config = tmp_path / "rules.yml"
+    config.write_text(
+        """rules:
+  - id: vulnloom.test.eval
+    languages: [python]
+    message: eval candidate
+    severity: WARNING
+    pattern: eval(...)
+""",
+        encoding="utf-8",
+    )
+    executable = Path(shutil.which("semgrep") or "").resolve()
+    signals = SemgrepAdapter(executable, {"web": config}).analyze(
+        snapshot,
+        store / snapshot.root_ref,
+        "web",
+    )
+    assert [signal.rule_id for signal in signals] == ["semgrep:vulnloom.test.eval"]

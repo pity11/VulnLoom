@@ -64,7 +64,7 @@ VulnLoom 采用可信控制面与不可信 Worker 分离的架构。LLM 输出�
 
 构建路由、入口、身份、权限检查、数据流、危险点和部署配置之间的图。输出 `Signal`，不直接输出 Finding。
 
-M2 的首版 mapper 只读取 M1 已验证的文件系统 Snapshot，并在读取时复核 Manifest。它使用标准库 AST，绝不 import 目标模块；跨文件调用解析和 taint 均设置深度、文件大小、总量与墙钟限制。完整 `SourceGraph` 内容寻址保存，事件流只写统计摘要。
+M2 的首版 mapper 只读取 M1 已验证的文件系统 Snapshot，并在读取时复核 Manifest。每次映射还会重新检查 Scope 有效期、Engagement、Artifact digest 或 Git commit，并把 Scope 身份和版本写入图。它使用标准库 AST，绝不 import 目标模块；跨文件调用解析和 taint 均设置深度、文件大小、总量与墙钟限制。完整 `SourceGraph` 内容寻址保存，事件流只写统计摘要。
 
 ### Recon Worker
 

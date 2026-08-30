@@ -239,7 +239,7 @@ class Candidate(DomainModel):
     preconditions: tuple[str, ...] = ()
     security_invariant: NonEmpty
     hypothesis: NonEmpty
-    signal_ids: tuple[UUID, ...]
+    signal_ids: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...]
     cheapest_disproof: NonEmpty
     duplicate_fingerprint: NonEmpty
     state: CandidateState = CandidateState.PROPOSED

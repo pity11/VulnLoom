@@ -20,7 +20,8 @@ from typing import Any
 
 from pydantic import Field
 
-from vulnloom.domain.models import DomainModel, SourceLocation, TargetSnapshot
+from vulnloom.domain.models import DomainModel, Scope, SourceLocation, TargetSnapshot
+from vulnloom.ingestion import IngestionService
 
 from .models import (
     CallEdge,
@@ -102,8 +103,16 @@ class PythonWebSourceMapper:
     def __init__(self, limits: SourceMapperLimits | None = None):
         self.limits = limits or SourceMapperLimits()
 
-    def analyze(self, snapshot: TargetSnapshot, store_root: Path) -> SourceGraph:
+    def analyze(
+        self,
+        snapshot: TargetSnapshot,
+        store_root: Path,
+        *,
+        scope: Scope,
+        now=None,
+    ) -> SourceGraph:
         deadline = _Deadline(self.limits.timeout_seconds)
+        IngestionService.require_snapshot_scope(snapshot, scope, now)
         root = self._snapshot_root(snapshot, store_root)
         modules, failures, files = self._parse_modules(snapshot, root, deadline)
         index = self._build_index(modules, deadline)
@@ -121,6 +130,8 @@ class PythonWebSourceMapper:
         payload: dict[str, Any] = {
             "target_id": str(snapshot.target.target_id),
             "target_version": snapshot.target.version,
+            "scope_id": str(scope.scope_id),
+            "scope_version": scope.version,
             "manifest_id": snapshot.manifest.manifest_id,
             "analyzer_version": ANALYZER_VERSION,
             "files_analyzed": files,
@@ -281,7 +292,12 @@ class PythonWebSourceMapper:
             grouped[guard.function_symbol].append(guard.guard_id)
         index.guard_ids_by_function = {
             symbol: tuple(
-                sorted(guard.guard_id for guard in index.guards if guard.function_symbol == symbol)
+                sorted(
+                    guard.guard_id
+                    for guard in index.guards
+                    if guard.function_symbol == symbol
+                    and guard.mechanism.startswith(("decorator:", "dependency:"))
+                )
             )
             for symbol in grouped
         }
@@ -445,6 +461,7 @@ class _FlowTracer:
             chain,
             guards,
             active.union({info.symbol}),
+            dominant_sequence=True,
         )
 
     def _block(
@@ -456,6 +473,8 @@ class _FlowTracer:
         chain: tuple[str, ...],
         guards: frozenset[str],
         active: frozenset[str],
+        *,
+        dominant_sequence: bool,
     ) -> dict[str, frozenset[str]]:
         current_guards = guards
         for statement in statements:
@@ -494,6 +513,7 @@ class _FlowTracer:
                     chain,
                     branch_guards,
                     active,
+                    dominant_sequence=False,
                 )
                 right = self._block(
                     route,
@@ -503,8 +523,12 @@ class _FlowTracer:
                     chain,
                     current_guards,
                     active,
+                    dominant_sequence=False,
                 )
                 environment = _merge_environments(left, right)
+                if dominant_sequence and _denial_branch_guards_following_code(statement):
+                    current_guards = current_guards.union(branch_guards)
+                    self._add_guards_to_existing_flows(chain, branch_guards)
             elif isinstance(statement, (ast.For, ast.AsyncFor)):
                 self._expression(
                     route, info, statement.iter, environment, chain, current_guards, active
@@ -521,6 +545,7 @@ class _FlowTracer:
                     chain,
                     current_guards,
                     active,
+                    dominant_sequence=False,
                 )
                 environment = _merge_environments(environment, loop_environment)
             elif isinstance(statement, ast.While):
@@ -535,6 +560,7 @@ class _FlowTracer:
                     chain,
                     current_guards,
                     active,
+                    dominant_sequence=False,
                 )
                 environment = _merge_environments(environment, loop_environment)
             elif isinstance(statement, ast.Try):
@@ -547,6 +573,7 @@ class _FlowTracer:
                         chain,
                         current_guards,
                         active,
+                        dominant_sequence=False,
                     )
                 ]
                 branches.extend(
@@ -558,6 +585,7 @@ class _FlowTracer:
                         chain,
                         current_guards,
                         active,
+                        dominant_sequence=False,
                     )
                     for handler in statement.handlers
                 )
@@ -570,6 +598,7 @@ class _FlowTracer:
                     chain,
                     current_guards,
                     active,
+                    dominant_sequence=False,
                 )
             elif isinstance(statement, (ast.With, ast.AsyncWith)):
                 for item in statement.items:
@@ -590,6 +619,7 @@ class _FlowTracer:
                     chain,
                     current_guards,
                     active,
+                    dominant_sequence=False,
                 )
             else:
                 for expression in _statement_expressions(statement):
@@ -604,7 +634,28 @@ class _FlowTracer:
                         max(1, getattr(statement, "lineno", 1)),
                     )
                 )
+            if isinstance(statement, (ast.Return, ast.Raise)):
+                break
         return environment
+
+    def _add_guards_to_existing_flows(
+        self, chain: tuple[str, ...], guard_ids: frozenset[str]
+    ) -> None:
+        for old_id, flow in tuple(self.flows.items()):
+            if flow.call_chain[: len(chain)] != chain:
+                continue
+            combined = tuple(sorted(set(flow.guard_ids).union(guard_ids)))
+            new_id = _digest(
+                {
+                    "route": flow.route_id,
+                    "sources": sorted(flow.source_names),
+                    "chain": flow.call_chain,
+                    "sink": flow.sink_id,
+                    "guards": list(combined),
+                }
+            )
+            self.flows.pop(old_id)
+            self.flows[new_id] = flow.model_copy(update={"flow_id": new_id, "guard_ids": combined})
 
     def _expression(
         self,
@@ -1090,6 +1141,26 @@ def _guard_ids_at_line(index: _StaticIndex, symbol: str, line: int) -> frozenset
         item.guard_id
         for item in index.guards
         if item.function_symbol == symbol and item.location.line == line
+    )
+
+
+def _denial_branch_guards_following_code(statement: ast.If) -> bool:
+    """Recognize a top-level negative guard whose denied branch terminates.
+
+    For example, after ``if object.owner_id != user.id: raise``, the normal
+    continuation is ownership-checked. Positive branches such as
+    ``if is_owner: return object`` must not authorize the fall-through path.
+    """
+    if statement.orelse or not statement.body:
+        return False
+    terminates = isinstance(statement.body[-1], (ast.Raise, ast.Return))
+    if not terminates:
+        return False
+    test = statement.test
+    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        return True
+    return isinstance(test, ast.Compare) and any(
+        isinstance(operator, (ast.NotEq, ast.IsNot, ast.NotIn)) for operator in test.ops
     )
 
 

@@ -104,7 +104,7 @@
     },
     "signal_ids": {
       "items": {
-        "format": "uuid",
+        "pattern": "^[0-9a-f]{64}$",
         "type": "string"
       },
       "title": "Signal Ids",

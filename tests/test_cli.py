@@ -201,6 +201,8 @@ def hello(name):
         "source-map",
         "--snapshot-id",
         manifest_id,
+        "--scope-file",
+        str(scope_file),
         "--analysis-store",
         str(tmp_path / "analysis"),
     ]
@@ -211,7 +213,10 @@ def hello(name):
     assert first["event_created"] is True
     assert first["graph"]["routes"] == 1
     assert first["graph"]["signals"] == 1
-    assert Path(first["graph"]["graph_ref"]).is_file()
+    assert first["graph"]["scope_id"] == str(scope.scope_id)
+    assert first["graph"]["scope_version"] == scope.version
+    assert first["graph"]["graph_ref"].endswith(".json")
+    assert Path(first["graph_path"]).is_file()
 
     assert main(map_args) == 0
     repeated = json.loads(capsys.readouterr().out)

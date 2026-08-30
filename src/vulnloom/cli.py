@@ -154,13 +154,16 @@ def register_image(args: argparse.Namespace) -> int:
 def source_map(args: argparse.Namespace) -> int:
     service = IngestionService(Path(args.store))
     snapshot = service.load_snapshot(args.snapshot_id)
-    graph = PythonWebSourceMapper().analyze(snapshot, service.root)
+    scope = _load_scope(args.scope_file)
+    graph = PythonWebSourceMapper().analyze(snapshot, service.root, scope=scope)
     graph_path, graph_created = SourceGraphStore(Path(args.analysis_store)).put(graph)
     summary = {
         "graph_id": graph.graph_id,
         "manifest_id": graph.manifest_id,
+        "scope_id": str(graph.scope_id),
+        "scope_version": graph.scope_version,
         "analyzer_version": graph.analyzer_version,
-        "graph_ref": str(graph_path),
+        "graph_ref": graph_path.name,
         "files_analyzed": len(graph.files_analyzed),
         "routes": len(graph.routes),
         "flows": len(graph.flows),
@@ -181,6 +184,7 @@ def source_map(args: argparse.Namespace) -> int:
                 "graph_created": graph_created,
                 "event_created": event_created,
                 "graph": summary,
+                "graph_path": str(graph_path),
                 "event_id": str(stored.event_id),
             },
             indent=2,
@@ -250,6 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mapping = sub.add_parser("source-map")
     mapping.add_argument("--snapshot-id", required=True)
+    mapping.add_argument("--scope-file", required=True)
     mapping.add_argument("--analysis-store", default=".vulnloom/analysis")
     mapping.add_argument("--idempotency-key")
     mapping.set_defaults(handler=source_map)

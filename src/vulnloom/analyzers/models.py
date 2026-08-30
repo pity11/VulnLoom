@@ -121,6 +121,8 @@ class SourceGraph(DomainModel):
     graph_id: str = Field(pattern=r"^[0-9a-f]{64}$")
     target_id: UUID
     target_version: str
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
     manifest_id: str = Field(pattern=r"^[0-9a-f]{64}$")
     analyzer_version: str
     files_analyzed: tuple[str, ...]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 from uuid import UUID
 
 from .models import (
@@ -42,9 +43,11 @@ def transition_candidate(candidate: Candidate, target: CandidateState) -> Candid
     return candidate.model_copy(update={"state": target})
 
 
-def queue_validation(candidate: Candidate, scope: Scope) -> Candidate:
+def queue_validation(candidate: Candidate, scope: Scope, *, now: datetime) -> Candidate:
     if scope.state is not ScopeState.APPROVED:
         raise TransitionRejected("validation requires an approved Scope")
+    if not scope.valid_from <= now < scope.valid_until:
+        raise TransitionRejected("validation is outside the Scope validity window")
     return transition_candidate(candidate, CandidateState.VALIDATION_PENDING)
 
 

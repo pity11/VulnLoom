@@ -17,7 +17,9 @@ from vulnloom.domain.models import (
 
 @pytest.fixture
 def now() -> datetime:
-    return datetime(2026, 8, 27, 12, 0, tzinfo=UTC)
+    # Keep Scope-dependent tests independent from the wall-clock date. Tests
+    # that need expiry behavior derive explicit times from this shared instant.
+    return datetime.now(UTC)
 
 
 @pytest.fixture
@@ -43,7 +45,7 @@ def approved_scope(now, engagement_id) -> Scope:
 
 @pytest.fixture
 def candidate() -> Candidate:
-    signal_id = uuid4()
+    signal_id = "d" * 64
     return Candidate(
         target_id=uuid4(),
         title="Object lookup omits ownership predicate",

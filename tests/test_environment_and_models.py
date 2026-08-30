@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from vulnloom.adapters.models import ModelProviderConfig
+from vulnloom.domain.models import Candidate
 from vulnloom.runners.environment import UnsafeEnvironmentName, build_worker_environment
 
 
@@ -31,3 +33,9 @@ def test_model_key_is_resolved_only_by_control_plane(monkeypatch):
     monkeypatch.setenv("VULNLOOM_TEST_MODEL_KEY", "secret-value")
     assert config.resolve_api_key() == "secret-value"
     assert "secret-value" not in config.model_dump_json()
+
+
+def test_candidate_signal_references_are_content_digests(candidate):
+    assert candidate.signal_ids == ("d" * 64,)
+    with pytest.raises(ValidationError):
+        Candidate.model_validate({**candidate.model_dump(), "signal_ids": ("not-a-digest",)})

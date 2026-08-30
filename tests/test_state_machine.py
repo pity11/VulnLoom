@@ -37,7 +37,7 @@ def _run(candidate, now, result=ValidationResult.REPRODUCED, evidence=("a" * 64,
 
 
 def test_candidate_happy_path_requires_validation_and_critic(candidate, approved_scope, now):
-    candidate = queue_validation(candidate, approved_scope)
+    candidate = queue_validation(candidate, approved_scope, now=now)
     candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
     run = _run(candidate, now)
     candidate = complete_validation(candidate, run)
@@ -65,10 +65,15 @@ def test_candidate_happy_path_requires_validation_and_critic(candidate, approved
     assert finding.validation_run_ids == (run.run_id,)
 
 
-def test_draft_scope_cannot_queue_validation(candidate, approved_scope):
+def test_draft_scope_cannot_queue_validation(candidate, approved_scope, now):
     draft = approved_scope.model_copy(update={"state": ScopeState.DRAFT})
     with pytest.raises(TransitionRejected, match="approved Scope"):
-        queue_validation(candidate, draft)
+        queue_validation(candidate, draft, now=now)
+
+
+def test_expired_scope_cannot_queue_validation(candidate, approved_scope):
+    with pytest.raises(TransitionRejected, match="validity window"):
+        queue_validation(candidate, approved_scope, now=approved_scope.valid_until)
 
 
 def test_illegal_shortcut_to_finding_is_rejected(candidate):
@@ -77,14 +82,14 @@ def test_illegal_shortcut_to_finding_is_rejected(candidate):
 
 
 def test_non_reproduction_becomes_inconclusive(candidate, approved_scope, now):
-    candidate = queue_validation(candidate, approved_scope)
+    candidate = queue_validation(candidate, approved_scope, now=now)
     candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
     candidate = complete_validation(candidate, _run(candidate, now, ValidationResult.TIMED_OUT, ()))
     assert candidate.state is CandidateState.INCONCLUSIVE
 
 
 def test_validation_run_for_another_candidate_is_rejected(candidate, approved_scope, now):
-    candidate = queue_validation(candidate, approved_scope)
+    candidate = queue_validation(candidate, approved_scope, now=now)
     candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
     other = candidate.model_copy(update={"candidate_id": __import__("uuid").uuid4()})
     with pytest.raises(TransitionRejected, match="another Candidate"):
@@ -93,7 +98,7 @@ def test_validation_run_for_another_candidate_is_rejected(candidate, approved_sc
 
 @pytest.mark.parametrize("failure", ["evidence", "critic", "duplicate"])
 def test_finding_gate_rejects_missing_invariants(candidate, approved_scope, now, failure):
-    candidate = queue_validation(candidate, approved_scope)
+    candidate = queue_validation(candidate, approved_scope, now=now)
     candidate = transition_candidate(candidate, CandidateState.VALIDATION_RUNNING)
     run = _run(candidate, now, evidence=() if failure == "evidence" else ("a" * 64,))
     if failure == "evidence":
