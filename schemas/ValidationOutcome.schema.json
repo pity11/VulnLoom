@@ -1,0 +1,898 @@
+{
+  "$defs": {
+    "BrokerResult": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "format": "uuid",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/BrokerStatus"
+        },
+        "registry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Registry Digest",
+          "type": "string"
+        },
+        "call_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Call Digest",
+          "type": "string"
+        },
+        "tool_calls_used": {
+          "minimum": 0,
+          "title": "Tool Calls Used",
+          "type": "integer"
+        },
+        "policy_records": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PolicyRecord"
+          },
+          "title": "Policy Records",
+          "type": "array"
+        },
+        "http": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "task_id",
+        "tool_id",
+        "status",
+        "registry_digest",
+        "call_digest",
+        "tool_calls_used",
+        "completed_at"
+      ],
+      "title": "BrokerResult",
+      "type": "object"
+    },
+    "BrokerStatus": {
+      "enum": [
+        "completed",
+        "denied",
+        "approval_required",
+        "timed_out",
+        "failed"
+      ],
+      "title": "BrokerStatus",
+      "type": "string"
+    },
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "source_graph_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Graph Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "entry_point": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "sink": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "code_path": {
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "minItems": 1,
+          "title": "Code Path",
+          "type": "array"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "security_invariant": {
+          "minLength": 1,
+          "title": "Security Invariant",
+          "type": "string"
+        },
+        "hypothesis": {
+          "minLength": 1,
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "signal_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Signal Ids",
+          "type": "array"
+        },
+        "cheapest_disproof": {
+          "minLength": 1,
+          "title": "Cheapest Disproof",
+          "type": "string"
+        },
+        "duplicate_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Fingerprint",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "state": {
+          "$ref": "#/$defs/CandidateState",
+          "default": "proposed"
+        }
+      },
+      "required": [
+        "target_id",
+        "target_version",
+        "source_graph_id",
+        "scope_id",
+        "scope_version",
+        "title",
+        "cwe",
+        "entry_point",
+        "sink",
+        "code_path",
+        "security_invariant",
+        "hypothesis",
+        "signal_ids",
+        "cheapest_disproof",
+        "duplicate_fingerprint",
+        "confidence"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CleanupReport": {
+      "additionalProperties": false,
+      "properties": {
+        "processes_terminated": {
+          "title": "Processes Terminated",
+          "type": "boolean"
+        },
+        "network_released": {
+          "title": "Network Released",
+          "type": "boolean"
+        },
+        "writable_layer_removed": {
+          "title": "Writable Layer Removed",
+          "type": "boolean"
+        },
+        "temporary_mounts_removed": {
+          "title": "Temporary Mounts Removed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "processes_terminated",
+        "network_released",
+        "writable_layer_removed",
+        "temporary_mounts_removed"
+      ],
+      "title": "CleanupReport",
+      "type": "object"
+    },
+    "DecisionEffect": {
+      "enum": [
+        "allow",
+        "deny",
+        "approval_required"
+      ],
+      "title": "DecisionEffect",
+      "type": "string"
+    },
+    "EvidenceBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "format": "uuid",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "sealed_at": {
+          "format": "date-time",
+          "title": "Sealed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "evidence_refs"
+      ],
+      "title": "EvidenceBundle",
+      "type": "object"
+    },
+    "HttpToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "final_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "response_bytes": {
+          "minimum": 0,
+          "title": "Response Bytes",
+          "type": "integer"
+        },
+        "redirects": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RedirectRecord"
+          },
+          "title": "Redirects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status_code",
+        "final_url_digest",
+        "peer_ip",
+        "response_bytes",
+        "evidence_refs"
+      ],
+      "title": "HttpToolResult",
+      "type": "object"
+    },
+    "PolicyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Digest",
+          "type": "string"
+        },
+        "effect": {
+          "$ref": "#/$defs/DecisionEffect"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "obligations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Obligations",
+          "type": "array"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_digest",
+        "effect",
+        "reasons",
+        "obligations",
+        "policy_digest"
+      ],
+      "title": "PolicyRecord",
+      "type": "object"
+    },
+    "RedirectRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 399,
+          "minimum": 300,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "from_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "From Url Digest",
+          "type": "string"
+        },
+        "to_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "To Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status_code",
+        "from_url_digest",
+        "to_url_digest",
+        "peer_ip"
+      ],
+      "title": "RedirectRecord",
+      "type": "object"
+    },
+    "RunnerCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "attempt": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "task_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "policy_digest",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "attempt"
+      ],
+      "title": "RunnerCheckpoint",
+      "type": "object"
+    },
+    "SandboxRunResult": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SandboxRunStatus"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "budget_used": {
+          "$ref": "#/$defs/TaskBudget"
+        },
+        "usage": {
+          "$ref": "#/$defs/SandboxUsage"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunnerCheckpoint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "cleanup": {
+          "$ref": "#/$defs/CleanupReport"
+        }
+      },
+      "required": [
+        "run_id",
+        "task_id",
+        "status",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "budget_used",
+        "usage",
+        "cleanup"
+      ],
+      "title": "SandboxRunResult",
+      "type": "object"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    },
+    "SandboxUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "minimum": 0,
+          "title": "Wall Seconds",
+          "type": "number"
+        },
+        "cpu_millis": {
+          "minimum": 0,
+          "title": "Cpu Millis",
+          "type": "integer"
+        },
+        "peak_memory_bytes": {
+          "minimum": 0,
+          "title": "Peak Memory Bytes",
+          "type": "integer"
+        },
+        "pids_peak": {
+          "minimum": 0,
+          "title": "Pids Peak",
+          "type": "integer"
+        },
+        "open_files_peak": {
+          "minimum": 0,
+          "title": "Open Files Peak",
+          "type": "integer"
+        },
+        "output_bytes": {
+          "minimum": 0,
+          "title": "Output Bytes",
+          "type": "integer"
+        },
+        "temporary_bytes": {
+          "minimum": 0,
+          "title": "Temporary Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "cpu_millis",
+        "peak_memory_bytes",
+        "pids_peak",
+        "open_files_peak",
+        "output_bytes",
+        "temporary_bytes"
+      ],
+      "title": "SandboxUsage",
+      "type": "object"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "model_tokens": {
+          "minimum": 0,
+          "title": "Model Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "model_tokens",
+        "tool_calls"
+      ],
+      "title": "TaskBudget",
+      "type": "object"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    },
+    "ValidationRun": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "sandbox_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sandbox Image Digest",
+          "type": "string"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "plan": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Plan",
+          "type": "array"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "side_effects": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Side Effects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "resource_usage": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": "Resource Usage",
+          "type": "object"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "target_version",
+        "scope_version",
+        "sandbox_image_digest",
+        "policy_digest",
+        "plan",
+        "started_at",
+        "finished_at",
+        "result"
+      ],
+      "title": "ValidationRun",
+      "type": "object"
+    },
+    "ValidationVerdict": {
+      "additionalProperties": false,
+      "description": "Conclusion from a trusted deterministic judge, never from Worker prose.",
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "rationale_code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Rationale Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "result",
+        "rationale_code"
+      ],
+      "title": "ValidationVerdict",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "candidate": {
+      "$ref": "#/$defs/Candidate"
+    },
+    "validation_run": {
+      "$ref": "#/$defs/ValidationRun"
+    },
+    "evidence_bundle": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EvidenceBundle"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "runner_result": {
+      "$ref": "#/$defs/SandboxRunResult"
+    },
+    "broker_results": {
+      "items": {
+        "$ref": "#/$defs/BrokerResult"
+      },
+      "title": "Broker Results",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/ValidationVerdict"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "candidate",
+    "validation_run",
+    "evidence_bundle",
+    "runner_result",
+    "broker_results",
+    "verdict",
+    "completed_at"
+  ],
+  "title": "ValidationOutcome",
+  "type": "object"
+}

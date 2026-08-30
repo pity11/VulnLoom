@@ -71,6 +71,9 @@ invocation 协议为 VulnLoom 自有实现，尚未复用或声称具备 Strix �
 M4.2 继续采用窄工具面思想，但 Registry digest 绑定、三重 allowlist、opaque body/credential
 引用、逐跳 Policy/DNS/IP 判定和离线 transport 均为 VulnLoom 自有实现，没有复制其网络工具。
 
+M4.4 延续“验证结果驱动报告”的分层方向，但明确拆开执行完成与漏洞裁决：事务性 checkpoint、
+Candidate 状态变化、Evidence 子集校验和默认 `INCONCLUSIVE` judge 均由 VulnLoom 的可信领域层实现。
+
 ### PentAGI
 
 借鉴长期任务、记忆、可观测性和多模型支持；不在 MVP 中引入其完整重型平台。

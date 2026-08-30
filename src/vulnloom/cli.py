@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import UUID
 
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
+from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
     ArtifactKind,
     Engagement,
@@ -19,7 +20,9 @@ from vulnloom.domain.models import (
 )
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
+from vulnloom.runners import OfflineSandboxRunner
 from vulnloom.storage.events import Event, EventStore
+from vulnloom.validation import ValidationPlan, ValidationService, ValidationStore
 
 
 def _store(path: str) -> EventStore:
@@ -234,6 +237,65 @@ def generate_candidates(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_validation_offline(args: argparse.Namespace) -> int:
+    """Exercise orchestration without executing target code or opening sockets."""
+    scope = _load_scope(args.scope_file)
+    candidate_set = CandidateSetStore(Path(args.candidate_store)).load(args.candidate_set_id)
+    candidate_id = UUID(args.candidate_id)
+    matches = tuple(
+        candidate
+        for candidate in candidate_set.candidates
+        if candidate.candidate_id == candidate_id
+    )
+    if len(matches) != 1:
+        raise SystemExit("Candidate is absent from the selected immutable CandidateSet")
+    plan = ValidationPlan.model_validate_json(Path(args.plan_file).read_text(encoding="utf-8"))
+    if plan.broker_calls:
+        raise SystemExit("offline validation CLI refuses Broker calls and all network activity")
+    broker = ToolBroker(
+        scope=scope,
+        registry=default_tool_registry(),
+        resolver=StaticResolver({}),
+        http_transport=OfflineHttpTransport({}),
+    )
+    with ValidationStore(Path(args.validation_db)) as validation_store:
+        outcome = ValidationService(
+            scope=scope,
+            runner=OfflineSandboxRunner(frozenset({plan.runner_request.invocation.tool_id})),
+            broker=broker,
+            store=validation_store,
+        ).execute(matches[0], plan, now=utc_now())
+    summary = {
+        "mode": "offline_orchestration_only",
+        "plan_id": outcome.plan_id,
+        "candidate_id": str(outcome.candidate.candidate_id),
+        "candidate_state": outcome.candidate.state.value,
+        "validation_run_id": str(outcome.validation_run.run_id),
+        "result": outcome.validation_run.result.value,
+        "evidence_refs": list(outcome.validation_run.evidence_refs),
+    }
+    event = Event(
+        engagement_id=scope.engagement_id,
+        event_type="ValidationCompleted",
+        aggregate_id=str(outcome.candidate.candidate_id),
+        payload=summary,
+        idempotency_key=f"validation:completed:{outcome.plan_id}",
+    )
+    with _store(args.db) as event_store:
+        stored, event_created = event_store.append(event)
+    print(
+        json.dumps(
+            {
+                "event_created": event_created,
+                "validation": summary,
+                "event_id": str(stored.event_id),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -307,6 +369,15 @@ def build_parser() -> argparse.ArgumentParser:
     candidates.add_argument("--candidate-store", default=".vulnloom/candidates")
     candidates.add_argument("--idempotency-key")
     candidates.set_defaults(handler=generate_candidates)
+
+    validation = sub.add_parser("validation-run-offline")
+    validation.add_argument("--scope-file", required=True)
+    validation.add_argument("--candidate-store", default=".vulnloom/candidates")
+    validation.add_argument("--candidate-set-id", required=True)
+    validation.add_argument("--candidate-id", required=True)
+    validation.add_argument("--plan-file", required=True)
+    validation.add_argument("--validation-db", default=".vulnloom/validation.db")
+    validation.set_defaults(handler=run_validation_offline)
     return parser
 
 

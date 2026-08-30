@@ -132,7 +132,17 @@ egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Dock
   rootless 标志，因此本机测试例外不能满足 rootless 验收条件。
 - Docker Worker 的直接 `TARGET_ONLY` 仍 fail-closed 拒绝，授权网络访问由可信 Broker 承担。
   完成 M4.3 仍需 rootless Linux 组合环境、OS-level egress defense in depth、DNS rebinding/宿主
-  网关端到端测试，以及将 Broker 调用接入完整 Validation Run 编排。
+  网关端到端测试。
+
+### M4.4：事务性 Validation Orchestrator（已完成首版）
+
+- 人工选择、Candidate/Target/Scope 来源、network-none Runner 请求和有界 Broker 调用封装为内容寻址 `ValidationPlan`。
+- 执行前重查 Candidate 状态、Scope 有效期、Policy/Profile digest、Validator role 和 Candidate input binding。
+- SQLite 以 `STARTED/COMPLETED` 保存权威 checkpoint；完成结果幂等返回，未完成任务拒绝自动重放。
+- Runner 非成功时不进入 Broker；Broker 拒绝、缺审批、超时和失败分别映射为 fail-closed 领域结果。
+- 执行成功不等于漏洞复现。默认 judge 只返回 `INCONCLUSIVE`；可信确定性 judge 只能引用本次采集的 Evidence ID。
+- 生成 `ValidationRun`/`EvidenceBundle` 并通过既有状态机更新 Candidate，但不包含 Critic、Finding promotion 或外部提交。
+- 离线 CLI 只验证 Control Plane 编排，不执行目标代码、不调用 Broker、不联网，也不宣称复现。
 
 ## Phase 3：报告闭环
 

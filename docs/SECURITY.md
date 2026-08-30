@@ -64,6 +64,11 @@ redirect 重新授权。M4.3 新增 Broker-owned live HTTP/HTTPS adapter：只�
 Evidence 数据流。Worker 容器仍保持 network-none；rootless Linux 组合测试与 OS-level egress
 防御纵深尚未完成。
 
+M4.4 将 Runner 与 Broker 接入事务性 Validation Orchestrator。所有绑定在 `STARTED` checkpoint
+之前重新验证；Runner 未完成时不会继续 Broker，Broker 的拒绝、缺审批和超时不能被 judge
+覆盖。执行成功默认仍是 `INCONCLUSIVE`，judge 引用非本次采集 Evidence 时整个流程 fail-closed。
+未完成 checkpoint 不自动重放，避免重复副作用。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

@@ -153,6 +153,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Requires a rootless daemon by default. The current Docker Desktop engine is rootful, so its integration tests use an explicit test-only exception and do not satisfy the production rootless criterion.
 - Docker Workers still reject direct `target_only` networking and remain network-disabled. Authorized target access now belongs to the trusted Broker; rootless Linux end-to-end deployment and OS-level egress defense in depth remain unfinished.
 
+### M4.4: transactional Validation Orchestrator
+
+- Seals each human-selected Candidate content digest, exact Target/Scope provenance, networkless Runner request, and bounded Broker calls into a content-addressed `ValidationPlan`.
+- Rechecks Candidate state, current Scope validity, policy digest, Validator role, profile digest, and Candidate input binding before writing a `STARTED` checkpoint.
+- Runs the sandbox step before Broker calls, stops on the first non-completed result, and maps denials, missing approvals, timeouts, and failures to fail-closed domain outcomes.
+- Persists one idempotent `ValidationOutcome` in SQLite. Completed plans replay without re-execution; an interrupted `STARTED` plan requires explicit recovery and is never retried automatically.
+- Separates execution from verdict. The production default remains `INCONCLUSIVE`; only a trusted deterministic judge may return `REPRODUCED`, and it may cite only Evidence IDs collected by that run.
+- Produces an `EvidenceBundle` and advances `Candidate` only through the existing state machine. It cannot create or promote a `Finding`.
+- Adds `validation-run-offline`, which exercises the control-plane path without target execution, Broker calls, sockets, or a reproduced claim.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

@@ -74,11 +74,7 @@ class ToolBroker:
         now: datetime,
         approvals: tuple[ApprovalRequest, ...] = (),
     ) -> BrokerResult:
-        try:
-            call = BrokerCall.model_validate(call.model_dump(mode="python"))
-        except ValidationError as exc:
-            raise BrokerRejected("Broker call failed boundary validation") from exc
-        registration = self._preflight(call)
+        call, registration = self._validate_call(call)
         digest = broker_call_digest(call)
         existing = self._results.get(call.idempotency_key)
         if existing is not None:
@@ -98,6 +94,19 @@ class ToolBroker:
         if call.http.credential_ref and not registration.accepts_credential_ref:
             raise BrokerRejected("registered tool does not accept credential references")
         return self._execute_http(call, digest, now, approvals)
+
+    def validate_call(self, call: BrokerCall) -> BrokerCall:
+        """Validate all static Broker bindings without executing a tool."""
+        validated, _ = self._validate_call(call)
+        return validated
+
+    def _validate_call(self, call: BrokerCall):
+        try:
+            call = BrokerCall.model_validate(call.model_dump(mode="python"))
+        except ValidationError as exc:
+            raise BrokerRejected("Broker call failed boundary validation") from exc
+        registration = self._preflight(call)
+        return call, registration
 
     def _preflight(self, call: BrokerCall):
         try:

@@ -1,0 +1,42 @@
+{
+  "$defs": {
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Conclusion from a trusted deterministic judge, never from Worker prose.",
+  "properties": {
+    "result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "result",
+    "rationale_code"
+  ],
+  "title": "ValidationVerdict",
+  "type": "object"
+}

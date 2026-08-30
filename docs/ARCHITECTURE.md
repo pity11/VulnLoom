@@ -161,3 +161,16 @@ both adapters to match the Tool Registry bound into the queued Task.
 
 M4.3 is still in progress until this composition passes on a rootless Linux deployment and receives
 OS-level egress defense in depth. Worker containers remain `--network none` throughout this slice.
+
+## 11. M4.4 transactional Validation Orchestrator
+
+The Control Plane seals a human selection, Candidate content digest, and typed Runner/Broker requests into a content-addressed
+`ValidationPlan`. It revalidates Candidate, Target, Scope, policy, profile, role, and input bindings
+before claiming a SQLite `STARTED` checkpoint. A completed plan is returned idempotently; a stranded
+`STARTED` plan fails closed for explicit recovery instead of replaying possible side effects.
+
+Execution and verdict are separate trust boundaries. Runner completion or HTTP success never proves
+a vulnerability. The default judge returns `INCONCLUSIVE`; another deterministic judge may return
+`REPRODUCED` only with Evidence IDs collected by that execution. The Orchestrator creates a
+`ValidationRun`, optionally seals an `EvidenceBundle`, and uses the existing Candidate state machine.
+It has no path to create a Finding or submit a report.
