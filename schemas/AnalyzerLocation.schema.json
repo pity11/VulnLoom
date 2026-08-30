@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Path",
+      "type": "string"
+    },
+    "start_line": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Start Line"
+    },
+    "end_line": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "End Line"
+    },
+    "start_column": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Start Column"
+    },
+    "end_column": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "End Column"
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "title": "AnalyzerLocation",
+  "type": "object"
+}

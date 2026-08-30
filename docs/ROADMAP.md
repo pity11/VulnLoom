@@ -232,6 +232,19 @@ M5.3 的 `EXPORTED` 仅表示批准后的本地 Markdown/JSON 产物。`SUBMITTE
 
 M6.2 不声称执行或复现外部 benchmark。M6.3 再以统一 Observation 协议评估本地 CodeQL、Trivy、Checkov、Kubesec 等 adapter。
 
+### M6.3a：预计算分析器结果的统一 Observation Adapter（已完成首版）
+
+- CodeQL SARIF 2.1.0、Trivy JSON、Checkov JSON 与 Kubesec JSON 使用固定 adapter ID/version/digest。
+- 输入是预先生成的本地常规文件；VulnLoom 不启动分析器、不下载规则/数据库/镜像、不读取 URL，也不连接 Docker 或网络。
+- `AnalyzerResultSnapshot` 精确绑定 Target、版本、工具版本、规则摘要、输出摘要和可选 CWE sidecar；ImportPlan 再绑定 adapter、资源上限、deadline 与幂等键。
+- 输出统一为只含规则摘要、CWE、严重度、消息摘要和安全相对位置的 `AnalyzerObservationSet`；原始消息、Secret match、Kubernetes object 名称和规则原文不进入 artifact、checkpoint 或 CLI 摘要。
+- 原生缺少 CWE 的 Checkov/Kubesec 观察必须使用同一 snapshot 封存的显式 sidecar；缺失映射形成 typed exclusion，非法或陈旧映射整体拒绝。
+- 输入在解析前后都执行 no-follow、常规文件、大小与 SHA-256 复核；重复 JSON key、symlink、特殊文件、内容漂移、超限和超时 fail-closed。
+- SQLite STARTED/COMPLETED checkpoint 与只读内容寻址 artifact 支持幂等 replay、冲突拒绝、显式恢复和失败清理。
+- Analyzer Observation 没有 Candidate/Finding/Validation/Critic 字段，不能成为 Finding，也不能替代 M6.1 的完整工作流 Observation。
+
+M6.3b 将为这些 Observation 增加显式 ground-truth 对齐与跨工具指标；受控执行分析器是更后的独立边界，必须复用 Runner/Tool Broker 并固定本地工具或镜像摘要。
+
 ## 延后事项
 
 - 公网资产自主发现。

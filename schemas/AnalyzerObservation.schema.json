@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    },
+    "AnalyzerLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "start_line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Line"
+        },
+        "end_line": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Line"
+        },
+        "start_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Column"
+        },
+        "end_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Column"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "AnalyzerLocation",
+      "type": "object"
+    },
+    "AnalyzerSeverity": {
+      "enum": [
+        "unknown",
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "AnalyzerSeverity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "analyzer": {
+      "$ref": "#/$defs/AnalyzerKind"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "rule_id_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rule Id Digest",
+      "type": "string"
+    },
+    "rule_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rule Fingerprint",
+      "type": "string"
+    },
+    "cwes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Cwes",
+      "type": "array"
+    },
+    "severity": {
+      "$ref": "#/$defs/AnalyzerSeverity"
+    },
+    "message_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Message Digest",
+      "type": "string"
+    },
+    "locations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AnalyzerLocation"
+      },
+      "title": "Locations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "observation_id",
+    "analyzer",
+    "target_id",
+    "target_version",
+    "rule_id_digest",
+    "rule_fingerprint",
+    "cwes",
+    "severity",
+    "message_digest"
+  ],
+  "title": "AnalyzerObservation",
+  "type": "object"
+}

@@ -7,6 +7,16 @@ from pathlib import Path
 
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
 from vulnloom.benchmark import (
+    AnalyzerExclusion,
+    AnalyzerImportLimits,
+    AnalyzerImportOutcome,
+    AnalyzerImportPlan,
+    AnalyzerLocation,
+    AnalyzerObservation,
+    AnalyzerObservationArtifact,
+    AnalyzerObservationSet,
+    AnalyzerResultFile,
+    AnalyzerResultSnapshot,
     BenchmarkArtifact,
     BenchmarkBaseline,
     BenchmarkCase,
@@ -156,6 +166,16 @@ MODELS = (
     ExternalBenchmarkImportPlan,
     ExternalBenchmarkArtifact,
     ExternalBenchmarkImportOutcome,
+    AnalyzerResultFile,
+    AnalyzerResultSnapshot,
+    AnalyzerImportLimits,
+    AnalyzerLocation,
+    AnalyzerObservation,
+    AnalyzerExclusion,
+    AnalyzerObservationSet,
+    AnalyzerImportPlan,
+    AnalyzerObservationArtifact,
+    AnalyzerImportOutcome,
 )
 
 

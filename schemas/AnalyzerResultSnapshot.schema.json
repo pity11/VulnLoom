@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    },
+    "AnalyzerResultFile": {
+      "additionalProperties": false,
+      "properties": {
+        "logical_name": {
+          "pattern": "^(output|cwe-map)\\.json$",
+          "title": "Logical Name",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "logical_name",
+        "size",
+        "sha256"
+      ],
+      "title": "AnalyzerResultFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "analyzer": {
+      "$ref": "#/$defs/AnalyzerKind"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "tool_version": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$",
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "rules_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rules Digest",
+      "type": "string"
+    },
+    "output": {
+      "$ref": "#/$defs/AnalyzerResultFile"
+    },
+    "cwe_map": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalyzerResultFile"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "analyzer",
+    "target_id",
+    "target_version",
+    "tool_version",
+    "rules_digest",
+    "output"
+  ],
+  "title": "AnalyzerResultSnapshot",
+  "type": "object"
+}

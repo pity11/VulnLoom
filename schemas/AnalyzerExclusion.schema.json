@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "source_ref_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ref Digest",
+      "type": "string"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_ref_digest",
+    "reason_code"
+  ],
+  "title": "AnalyzerExclusion",
+  "type": "object"
+}

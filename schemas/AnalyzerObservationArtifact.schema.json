@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "json_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Json Sha256",
+      "type": "string"
+    },
+    "json_ref": {
+      "pattern": "^objects/[0-9a-f]{64}/observations\\.json$",
+      "title": "Json Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_set_id",
+    "json_sha256",
+    "json_ref"
+  ],
+  "title": "AnalyzerObservationArtifact",
+  "type": "object"
+}

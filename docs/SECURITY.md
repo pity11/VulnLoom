@@ -100,6 +100,14 @@ ZIP/TAR 不由该 adapter 处理，不能把未检查归档直接当作 snapshot
 报告正文；AutoPenBench 的 flag、task 与潜在凭据不会写入 suite、artifact、checkpoint、事件或 CLI
 摘要。adapter 没有 Runner/Broker/Docker/网络依赖，ImportPlan 也没有 URL、token 或 Submission 字段。
 
+M6.3a 只导入预先生成的本地 CodeQL/Trivy/Checkov/Kubesec JSON/SARIF。输入使用 `O_NOFOLLOW` 打开，
+限制大小与解析时间，对实际解析字节复核 SHA-256，并在规范化后再次复核文件以关闭 TOCTOU 窗口。
+重复 JSON key、非法 UTF-8、symlink、特殊文件、陈旧 CWE map、数量超限与超时均 fail-closed。
+
+工具原始 message、Trivy Secret match、Kubesec object/selector/reason 和原始 rule ID 不进入只读 artifact、
+checkpoint 或 CLI 摘要；只保留消息/规则摘要和必要的安全相对位置。Observation schema 不含执行、网络、
+凭据、Approval、Candidate、Finding、Validation 或 Critic 权限，因此工具命中不能绕过生产门禁。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

@@ -9,6 +9,13 @@ from uuid import UUID
 
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
 from vulnloom.benchmark import (
+    AnalyzerImportLimits,
+    AnalyzerImportPlan,
+    AnalyzerImportService,
+    AnalyzerImportStore,
+    AnalyzerKind,
+    AnalyzerObservationArtifactStore,
+    AnalyzerResultSnapshot,
     AutoPenBenchSnapshotAdapter,
     BenchmarkArtifactStore,
     BenchmarkGateStatus,
@@ -25,7 +32,9 @@ from vulnloom.benchmark import (
     ExternalBenchmarkKind,
     ExternalBenchmarkSnapshot,
     ExternalImportLimits,
+    create_analyzer_snapshot,
     create_external_snapshot,
+    default_analyzer_adapters,
 )
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
@@ -542,6 +551,64 @@ def import_external_benchmark_offline(args: argparse.Namespace) -> int:
     return 0
 
 
+def create_analyzer_result_manifest(args: argparse.Namespace) -> int:
+    limits = AnalyzerImportLimits(
+        max_output_bytes=args.max_output_bytes,
+        max_cwe_map_bytes=args.max_cwe_map_bytes,
+        timeout_seconds=args.timeout_seconds,
+    )
+    snapshot = create_analyzer_snapshot(
+        Path(args.output),
+        analyzer=AnalyzerKind(args.analyzer),
+        target_id=UUID(args.target_id),
+        target_version=args.target_version,
+        tool_version=args.tool_version,
+        rules_digest=args.rules_digest,
+        cwe_map_path=Path(args.cwe_map) if args.cwe_map else None,
+        limits=limits,
+    )
+    print(snapshot.model_dump_json(indent=2))
+    return 0
+
+
+def import_analyzer_observations_offline(args: argparse.Namespace) -> int:
+    snapshot = AnalyzerResultSnapshot.model_validate_json(
+        Path(args.snapshot_file).read_text(encoding="utf-8")
+    )
+    plan = AnalyzerImportPlan.model_validate_json(
+        Path(args.plan_file).read_text(encoding="utf-8")
+    )
+    adapter = default_analyzer_adapters()[snapshot.analyzer]
+    artifact_store = AnalyzerObservationArtifactStore(Path(args.observation_store))
+    with AnalyzerImportStore(Path(args.import_db)) as import_store:
+        outcome = AnalyzerImportService(
+            adapter=adapter,
+            store=import_store,
+            artifact_store=artifact_store,
+        ).import_result(
+            Path(args.output),
+            snapshot,
+            plan,
+            now=utc_now(),
+            cwe_map_path=Path(args.cwe_map) if args.cwe_map else None,
+        )
+    observations = outcome.observation_set
+    summary = {
+        "mode": "offline_precomputed_analyzer_import",
+        "plan_id": outcome.plan_id,
+        "snapshot_id": outcome.snapshot_id,
+        "observation_set_id": observations.observation_set_id,
+        "analyzer": observations.analyzer.value,
+        "target_id": str(observations.target_id),
+        "target_version": observations.target_version,
+        "observations": len(observations.observations),
+        "exclusions": len(observations.exclusions),
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -682,6 +749,32 @@ def build_parser() -> argparse.ArgumentParser:
     external.add_argument("--import-db", default=".vulnloom/benchmark-imports.db")
     external.add_argument("--suite-store", default=".vulnloom/benchmark-suites")
     external.set_defaults(handler=import_external_benchmark_offline)
+
+    analyzer_snapshot = sub.add_parser("analyzer-result-manifest-local")
+    analyzer_snapshot.add_argument("--output", required=True)
+    analyzer_snapshot.add_argument("--cwe-map")
+    analyzer_snapshot.add_argument(
+        "--analyzer", choices=tuple(item.value for item in AnalyzerKind), required=True
+    )
+    analyzer_snapshot.add_argument("--target-id", required=True)
+    analyzer_snapshot.add_argument("--target-version", required=True)
+    analyzer_snapshot.add_argument("--tool-version", required=True)
+    analyzer_snapshot.add_argument("--rules-digest", required=True)
+    analyzer_snapshot.add_argument("--max-output-bytes", type=int, default=32 * 1024 * 1024)
+    analyzer_snapshot.add_argument("--max-cwe-map-bytes", type=int, default=1024 * 1024)
+    analyzer_snapshot.add_argument("--timeout-seconds", type=float, default=60.0)
+    analyzer_snapshot.set_defaults(handler=create_analyzer_result_manifest)
+
+    analyzer_import = sub.add_parser("analyzer-observations-import-offline")
+    analyzer_import.add_argument("--output", required=True)
+    analyzer_import.add_argument("--cwe-map")
+    analyzer_import.add_argument("--snapshot-file", required=True)
+    analyzer_import.add_argument("--plan-file", required=True)
+    analyzer_import.add_argument("--import-db", default=".vulnloom/analyzer-imports.db")
+    analyzer_import.add_argument(
+        "--observation-store", default=".vulnloom/analyzer-observations"
+    )
+    analyzer_import.set_defaults(handler=import_analyzer_observations_offline)
     return parser
 
 

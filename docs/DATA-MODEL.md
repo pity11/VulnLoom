@@ -280,6 +280,19 @@ code，不保存上游 task、flag、prompt、报告或 exploit 内容。
 Suite source 明确区分 `local_fixture`、`bountybench_snapshot` 和 `autopenbench_snapshot`；所有外部 case
 都绑定 snapshot revision 或上游 vulnerable version。
 
+### AnalyzerObservationSet
+
+`AnalyzerResultSnapshot` 绑定 analyzer kind、Target/版本、工具版本、规则摘要、预计算输出文件的大小与
+SHA-256，以及可选 CWE sidecar。`AnalyzerImportPlan` 绑定 snapshot/adapter 完整摘要、资源上限、deadline
+和幂等键。
+
+`AnalyzerObservation` 只保存 analyzer、Target 绑定、规则 ID 摘要、规则版本指纹、规范化 CWE、严重度、
+消息摘要和安全相对位置。`AnalyzerExclusion` 只保存 source ref 摘要与 reason code。原始工具消息、Secret
+match、资源对象名称和规则文本不进入模型。
+
+`AnalyzerObservationSet` 与 `BenchmarkObservationSet` 是不同协议：前者只是静态工具命中的规范化投影，
+没有 Candidate/Finding/Validation/Critic/Evidence 字段，不能表示或触发领域状态变化。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

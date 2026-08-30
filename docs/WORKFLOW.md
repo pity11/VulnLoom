@@ -156,6 +156,22 @@ Adapter 不运行 benchmark：BountyBench 的 shell、Docker、exploit、verify 
 AutoPenBench 的 task/flag 只在可信解析函数内出现并立即丢弃。缺少显式 CWE 的 case 不猜测标签，进入
 exclusion；重复 JSON key、陈旧 sidecar、身份歧义和 snapshot 漂移均拒绝整个 import。
 
+### M6.3a 预计算分析器 Observation 链
+
+```text
+Precomputed local SARIF/JSON + optional sealed CWE map
+  → no-follow byte manifest
+  → exact Target/tool/rules/adapter plan binding
+  → strict versioned parser
+  → rule/message digest + CWE/severity/location normalization
+  → second byte-integrity check
+  → immutable AnalyzerObservationSet + typed exclusions
+```
+
+该链不启动 CodeQL、Trivy、Checkov 或 Kubesec，也不下载规则/数据库/镜像。Analyzer Observation 只是一条
+静态工具观察；它不能进入 Finding 状态机，也不能冒充 M6.1 中已经通过 Validation/Critic/Evidence 门禁的
+pipeline observation。未来 M6.3b 的 ground-truth 对齐只计算指标，不改变这一领域边界。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

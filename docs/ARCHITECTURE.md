@@ -228,3 +228,21 @@ CWE mappings because upstream vulnerability keywords are not a reliable taxonomy
 Normalized suites contain only digests, versions, CWE labels, and stable identities. Import artifacts
 and SQLite checkpoints are separate from raw snapshots, and adapter outputs can feed the existing
 M6.1 evaluator without granting it filesystem or network capability.
+
+## 15. M6.3a precomputed analyzer Observation boundary
+
+The analyzer import layer accepts one already-present CodeQL SARIF, Trivy JSON, Checkov JSON, or
+Kubesec JSON file plus an optional sealed CWE map. Acquisition and execution are outside this
+boundary. The protocol has no URL, command, environment, credential, Docker, Broker, or Submission
+field.
+
+`AnalyzerResultSnapshot` binds the exact Target/version, tool version, rules digest, and input
+bytes. A registered adapter converts that input to `AnalyzerObservationSet`, which persists only
+rule and message digests, normalized CWE labels, severity, and safe relative source locations.
+Checkov/Kubesec findings without an explicit CWE mapping are exclusions rather than guessed labels.
+
+The service verifies the actual bytes it parses and performs another full manifest check after
+normalization. It then claims a transactional checkpoint and publishes a read-only,
+content-addressed artifact. Analyzer observations are deliberately not pipeline observations: their
+schema cannot represent Candidate state, Validation, Critic approval, Evidence completeness, or a
+Finding identity. Later correlation must cross the ordinary Candidate→Finding gates.

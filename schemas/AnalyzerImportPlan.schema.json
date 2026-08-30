@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "AnalyzerImportLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_output_bytes": {
+          "default": 33554432,
+          "exclusiveMinimum": 0,
+          "title": "Max Output Bytes",
+          "type": "integer"
+        },
+        "max_cwe_map_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "title": "Max Cwe Map Bytes",
+          "type": "integer"
+        },
+        "max_observations": {
+          "default": 100000,
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "title": "Max Observations",
+          "type": "integer"
+        },
+        "max_locations_per_observation": {
+          "default": 32,
+          "exclusiveMinimum": 0,
+          "maximum": 1024,
+          "title": "Max Locations Per Observation",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AnalyzerImportLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "snapshot_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Digest",
+      "type": "string"
+    },
+    "adapter_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Adapter Id",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/AnalyzerImportLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "snapshot_id",
+    "snapshot_digest",
+    "adapter_id",
+    "adapter_digest",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AnalyzerImportPlan",
+  "type": "object"
+}

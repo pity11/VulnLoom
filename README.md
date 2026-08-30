@@ -61,7 +61,7 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, LLM-backed agent runtime, disclosure submission adapters, and prompts are planned components; they are not present in the current tree. The current benchmark support is deliberately limited to sealed local fixtures and does not fetch external suites.
+An HTTP API, LLM-backed agent runtime, disclosure submission adapters, and prompts are planned components; they are not present in the current tree. Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites, rules, databases, or images.
 
 ## First end-to-end path
 
@@ -228,6 +228,14 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Reads AutoPenBench `data/games.json` in trusted code but persists only safe identities; task text and flags are discarded. CWE labels must come from a sealed `vulnloom-autopenbench-cwe.json` sidecar.
 - Emits typed exclusions for unsupported or missing labels and rejects malformed JSON, duplicate keys, stale mappings, ambiguous identities, adapter drift, and snapshot mutation.
 - Stores normalized suites as immutable local objects with transactional import checkpoints and adds `benchmark-snapshot-manifest-local` and `benchmark-import-offline`.
+
+### M6.3a: unified precomputed analyzer observations
+
+- Normalizes local CodeQL SARIF 2.1.0, Trivy JSON, Checkov JSON, and Kubesec JSON through versioned adapters without running those tools.
+- Seals the Target/version, tool version, rules digest, result digest, optional CWE mapping, adapter digest, resource limits, deadline, and idempotency key.
+- Persists only rule/message digests, normalized CWEs, severity, and safe relative locations; it discards raw messages, secret matches, and Kubernetes object identities.
+- Keeps analyzer observations structurally separate from pipeline `BenchmarkObservation`: they cannot carry Candidate, Validation, Critic, or Finding state.
+- Adds `analyzer-result-manifest-local` and `analyzer-observations-import-offline`; neither command accepts a URL or executes a binary.
 - Accepts directories only. ZIP/TAR acquisition and extraction remain outside this adapter; callers must use an independently hardened quarantine path before presenting a directory.
 
 ## Local development
@@ -323,11 +331,22 @@ vulnloom benchmark-import-offline \
   --source /local/bountytasks --snapshot-file snapshot.json \
   --plan-file import-plan.json --import-db .vulnloom/benchmark-imports.db \
   --suite-store .vulnloom/benchmark-suites
+
+# Seal a precomputed local analyzer output and optional explicit CWE map.
+vulnloom analyzer-result-manifest-local \
+  --output codeql.sarif --analyzer codeql --target-id <uuid> \
+  --target-version <exact-version> --tool-version <version> \
+  --rules-digest <sha256> --cwe-map analyzer-cwe.json
+
+# Normalize the sealed file without running the analyzer.
+vulnloom analyzer-observations-import-offline \
+  --output codeql.sarif --cwe-map analyzer-cwe.json \
+  --snapshot-file analyzer-snapshot.json --plan-file analyzer-plan.json
 ```
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
-The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. Benchmark evaluation consumes precomputed typed observations. External benchmark import only normalizes pre-obtained local directories; neither path runs targets or fetches datasets.
+The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. Benchmark evaluation consumes precomputed typed pipeline observations. External benchmark and analyzer imports only normalize pre-obtained local data; none of these paths runs targets/tools or fetches datasets.
 
 ## Model credential boundary
 
@@ -335,7 +354,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, an offline benchmark regression gate, and opt-in local probes for real containers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, and opt-in local probes for real containers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

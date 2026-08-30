@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "logical_name": {
+      "pattern": "^(output|cwe-map)\\.json$",
+      "title": "Logical Name",
+      "type": "string"
+    },
+    "size": {
+      "minimum": 0,
+      "title": "Size",
+      "type": "integer"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "logical_name",
+    "size",
+    "sha256"
+  ],
+  "title": "AnalyzerResultFile",
+  "type": "object"
+}
