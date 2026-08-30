@@ -29,6 +29,7 @@ _ROLE_PROFILES = {
     WorkerRole.SCOPE_INTERPRETER: SandboxProfileKind.STATIC,
     WorkerRole.SOURCE_MAPPER: SandboxProfileKind.STATIC,
     WorkerRole.HYPOTHESIS: SandboxProfileKind.STATIC,
+    WorkerRole.ANALYZER: SandboxProfileKind.STATIC,
     WorkerRole.VALIDATOR: SandboxProfileKind.VALIDATION,
     WorkerRole.CRITIC: SandboxProfileKind.REPORT,
     WorkerRole.REPORTER: SandboxProfileKind.REPORT,

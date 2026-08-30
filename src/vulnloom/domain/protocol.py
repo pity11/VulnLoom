@@ -15,6 +15,7 @@ class WorkerRole(StrEnum):
     SCOPE_INTERPRETER = "scope_interpreter"
     SOURCE_MAPPER = "source_mapper"
     HYPOTHESIS = "hypothesis"
+    ANALYZER = "analyzer"
     VALIDATOR = "validator"
     CRITIC = "critic"
     REPORTER = "reporter"

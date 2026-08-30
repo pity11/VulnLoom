@@ -12,6 +12,29 @@ from .models import (
 )
 
 
+def analyzer_profile(
+    *, image_digest: str, snapshot_id: str, tool_id: str, limits: SandboxLimits
+) -> SandboxProfile:
+    """Create a network-disabled profile for one exact registered analyzer."""
+    return SandboxProfile(
+        kind=SandboxProfileKind.STATIC,
+        image_digest=image_digest,
+        run_as_uid=65_532,
+        run_as_gid=65_532,
+        mounts=(
+            SandboxMount(
+                kind="snapshot",
+                destination="/workspace/source",
+                object_id=snapshot_id,
+                read_only=True,
+            ),
+            *_scratch_mounts(),
+        ),
+        allowed_tools=frozenset({tool_id}),
+        limits=limits,
+    )
+
+
 def _scratch_mounts() -> tuple[SandboxMount, SandboxMount]:
     return (
         SandboxMount(kind="output", destination="/workspace/output", read_only=False),

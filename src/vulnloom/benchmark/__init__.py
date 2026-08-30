@@ -45,6 +45,23 @@ from .analyzer_evaluator import (
     evaluate_analyzer_metrics,
     evaluate_analyzer_regressions,
 )
+from .analyzer_execution_models import (
+    AnalyzerExecutionMode,
+    AnalyzerExecutionPlan,
+    AnalyzerToolRegistration,
+    OfflineAnalyzerExecutionOutcome,
+    OfflineAnalyzerExecutionStatus,
+)
+from .analyzer_execution_registry import AnalyzerToolRegistry
+from .analyzer_execution_service import (
+    AnalyzerExecutionRejected,
+    OfflineAnalyzerExecutionService,
+)
+from .analyzer_execution_store import (
+    AnalyzerExecutionIdempotencyConflict,
+    AnalyzerExecutionRecoveryRequired,
+    AnalyzerExecutionStore,
+)
 from .analyzer_io import AnalyzerImportRejected, create_analyzer_snapshot
 from .analyzer_models import (
     AnalyzerExclusion,
@@ -149,6 +166,12 @@ __all__ = [
     "AnalyzerEvaluationService",
     "AnalyzerEvaluationStore",
     "AnalyzerExclusion",
+    "AnalyzerExecutionIdempotencyConflict",
+    "AnalyzerExecutionMode",
+    "AnalyzerExecutionPlan",
+    "AnalyzerExecutionRecoveryRequired",
+    "AnalyzerExecutionRejected",
+    "AnalyzerExecutionStore",
     "AnalyzerImportIdempotencyConflict",
     "AnalyzerImportLimits",
     "AnalyzerImportOutcome",
@@ -170,6 +193,8 @@ __all__ = [
     "AnalyzerSeverity",
     "AnalyzerTruthAlignment",
     "AnalyzerTruthMatch",
+    "AnalyzerToolRegistration",
+    "AnalyzerToolRegistry",
     "BenchmarkArtifact",
     "BenchmarkArtifactStore",
     "BenchmarkBaseline",
@@ -215,6 +240,9 @@ __all__ = [
     "KUBESEC_ADAPTER_DIGEST",
     "KUBESEC_ADAPTER_ID",
     "KubesecJsonAdapter",
+    "OfflineAnalyzerExecutionOutcome",
+    "OfflineAnalyzerExecutionService",
+    "OfflineAnalyzerExecutionStatus",
     "RegressionViolation",
     "SnapshotFile",
     "TRIVY_ADAPTER_DIGEST",

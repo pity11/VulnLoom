@@ -257,6 +257,18 @@ M6.2 不声称执行或复现外部 benchmark。M6.3 再以统一 Observation �
 
 M6.3 至此完成离线导入与跨工具评测首版。受控执行分析器属于后续独立里程碑，必须复用 Runner/Tool Broker 并固定本地工具、规则数据库或镜像摘要。
 
+### M6.4a：分析器执行协议与离线 Runner（已完成首版）
+
+- `AnalyzerToolRegistration` 固定 analyzer/tool 版本、exact image ID、规则摘要、Observation adapter、绝对入口、完整 argv、空基线环境和唯一输出位置；不接受 Shell 字符串、占位符、URL 或运行时追加参数。
+- `AnalyzerExecutionPlan` 精确绑定 Target Snapshot/Manifest、Scope/Policy、Tool Registry、Registration、Sandbox Profile、Runner Request、deadline 和幂等键。
+- 新增独立 `ANALYZER` Worker role；专用 Profile 只读挂载源码、使用非 root 身份、无 capability、只读根、`network=none` 和有界临时/输出目录，并禁止执行目标代码。
+- Tool Registry 直接从 sealed argv 生成 Docker Runner 注册项，避免真实 adapter 手工重组命令；镜像仍为 exact ID 且禁止 pull。
+- `OfflineAnalyzerExecutionService` 只验证控制面协议并调用不启动进程/容器/网络的 Offline Runner；成功状态明确为 `protocol_completed`，结果固定不含 `AnalyzerResultSnapshot`，不伪称真实分析器已运行。
+- SQLite STARTED/COMPLETED checkpoint 覆盖完成幂等返回、冲突拒绝和遗留任务显式恢复；测试覆盖成功、拒绝、超时、失败、取消与完整清理。
+- `analyzer-execution-check-offline` 只加载已验证本地 Target Snapshot 和密封 JSON，不安装/运行分析器、不连接 Docker/Broker/网络，也不产生 Observation、Candidate、Finding 或 Submission。
+
+M6.4a 只证明类型化协议和离线编排。真实 Checkov/Kubesec/Trivy/CodeQL 执行必须在后续里程碑使用 M4.3 已准入的 rootless Docker 边界，并分别证明输出提取、超时与容器/存储清理。CodeQL database build 等会执行目标构建脚本的模式必须使用独立 `RUN_UNTRUSTED_BUILD` Approval；当前协议只允许 source-only 模式。
+
 ## 延后事项
 
 - 公网资产自主发现。

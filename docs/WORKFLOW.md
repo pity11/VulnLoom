@@ -186,6 +186,23 @@ BenchmarkSuite + exact AnalyzerObservationSets
 alignment 中没有列出的 Observation 即使 CWE 相同也不算命中。评测 gate 失败返回类型化 violation 和非零
 CLI 状态，但不重试工具、不生成 Candidate/Finding、不改变报告状态，也不产生网络或外部副作用。
 
+### M6.4a source-only 分析器执行协议
+
+```text
+Verified Target Snapshot + active Scope
+  + sealed AnalyzerToolRegistration
+  + exact static Sandbox/Profile/Registry binding
+  → pre-check all target/policy/image/rules/argv/deadline digests
+  → transactional STARTED checkpoint
+  → Offline Runner lifecycle only
+  → protocol_completed | failed | timed_out | cancelled
+  → proven cleanup + COMPLETED checkpoint
+```
+
+`protocol_completed` 不代表工具已执行，也不产生 `AnalyzerResultSnapshot`。真实执行的输出未来只能先封存为
+M6.3a 输入，再规范化成 Observation；Observation 后续仍须经过单独的确定性 Candidate 投影以及既有
+Validation/Critic/Finding 门禁。当前链没有网络、Broker、credential、目标 build、Approval 消费或 Submission。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

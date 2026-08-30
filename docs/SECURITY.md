@@ -116,6 +116,15 @@ match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 t
 逐工具阈值和 baseline 防止聚合指标掩盖单工具退化。整个路径没有 Target 文件访问、Runner、Broker、
 Docker、socket、credential、Approval 或状态机调用，无法创建 Candidate/Finding 或触发 Submission。
 
+M6.4a 新增的是 source-only 执行协议，不是新的任意命令入口。Registration 必须固定绝对可执行文件、完整
+argv、exact image ID、规则和 adapter 摘要；argv 禁止占位符、URL 和运行时追加参数。Analyzer Worker 使用
+只读源码、无网络、非 root、无 capability、只读根和显式空基线环境，Profile/Registry/Policy/Target 任一
+摘要漂移都会在 checkpoint 前拒绝。
+
+当前 concrete service 只接受 Offline Runner，因此不会启动进程、容器、Docker 或 socket，也不会生成
+分析器输出。未来真实执行必须复用 M4.3 rootless 准入并证明输出提取与清理；任何目标 build script 都不
+属于 source-only 模式，必须新增精确 `RUN_UNTRUSTED_BUILD` Approval 校验后才能分配 Runner 资源。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

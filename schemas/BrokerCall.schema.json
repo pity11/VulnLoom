@@ -560,6 +560,7 @@
         "scope_interpreter",
         "source_mapper",
         "hypothesis",
+        "analyzer",
         "validator",
         "critic",
         "reporter"

@@ -263,3 +263,22 @@ regression in one adapter.
 All semantic and resource checks precede the SQLite STARTED checkpoint. Results are local immutable
 JSON/Markdown objects. The evaluator has no analyzer execution, filesystem target access, Runner,
 Broker, network, credential, Candidate transition, Finding promotion, or Submission capability.
+
+## 17. M6.4a analyzer execution protocol boundary
+
+The Control Plane registers one exact source-only analyzer contract: analyzer and tool version,
+image ID, rules digest, Observation adapter digest, absolute in-image executable, complete argv,
+explicit safe environment, and `/workspace/output/output.json`. Plans bind that registration and its
+registry to an exact Target Snapshot/Manifest, active Scope and policy, static Sandbox Profile,
+Runner request, deadline, and idempotency key.
+
+The analyzer registry materializes `DockerTool` entries directly from the sealed argv. Workers cannot
+append arguments, select a tag, pull an image, add network, enable target-code execution, inherit the
+host environment, or choose a host path. M6.4a's concrete service uses only `OfflineSandboxRunner`;
+`protocol_completed` proves orchestration semantics and cleanup, not analyzer execution, and cannot
+contain an `AnalyzerResultSnapshot`.
+
+This boundary has no Candidate/Finding transition or Broker/Submission path. Future real executors
+must capture and seal output before scratch cleanup, then pass it through the existing M6.3a adapter.
+Target-build modes remain outside this source-only protocol and require an exact untrusted-build
+Approval before any runner allocation.

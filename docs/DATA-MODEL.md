@@ -293,6 +293,16 @@ match、资源对象名称和规则文本不进入模型。
 `AnalyzerObservationSet` 与 `BenchmarkObservationSet` 是不同协议：前者只是静态工具命中的规范化投影，
 没有 Candidate/Finding/Validation/Critic/Evidence 字段，不能表示或触发领域状态变化。
 
+### AnalyzerToolRegistration 与 AnalyzerExecutionPlan
+
+`AnalyzerToolRegistration` 内容寻址绑定 analyzer/tool 版本、exact image ID、规则与 adapter 摘要、固定绝对
+入口、完整 argv、显式安全环境和唯一 `output.json` 路径。当前 execution mode 只有 `source_only`。
+
+`AnalyzerExecutionPlan` 再绑定 Target Snapshot/Manifest 摘要、Scope 版本、Registration/Registry 摘要、
+静态 `SandboxRunRequest`、deadline 和幂等键。`OfflineAnalyzerExecutionOutcome` 只保存 Runner 生命周期和
+清理证明，成功值是 `protocol_completed`，且 `analyzer_result_snapshot` 类型固定为 null；它不能冒充 M6.3a
+的预计算结果，也没有 Observation、Candidate、Validation、Critic、Finding 或 Report 字段。
+
 ### AnalyzerTruthAlignment 与 AnalyzerEvaluation
 
 `AnalyzerCaseBinding` 将 benchmark case 精确绑定到一个 analyzer 的 ObservationSet 完整摘要；同一

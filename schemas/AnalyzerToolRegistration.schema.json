@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "AnalyzerExecutionMode": {
+      "enum": [
+        "source_only"
+      ],
+      "title": "AnalyzerExecutionMode",
+      "type": "string"
+    },
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "analyzer": {
+      "$ref": "#/$defs/AnalyzerKind"
+    },
+    "tool_version": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$",
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "rules_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rules Digest",
+      "type": "string"
+    },
+    "adapter_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Adapter Id",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "argv": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 2,
+      "title": "Argv",
+      "type": "array"
+    },
+    "environment": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "output_path": {
+      "default": "/workspace/output/output.json",
+      "title": "Output Path",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/AnalyzerExecutionMode",
+      "default": "source_only"
+    }
+  },
+  "required": [
+    "registration_id",
+    "tool_id",
+    "analyzer",
+    "tool_version",
+    "image_digest",
+    "rules_digest",
+    "adapter_id",
+    "adapter_digest",
+    "argv"
+  ],
+  "title": "AnalyzerToolRegistration",
+  "type": "object"
+}

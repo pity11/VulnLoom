@@ -13,6 +13,8 @@ from vulnloom.benchmark import (
     AnalyzerEvaluationPlan,
     AnalyzerEvaluationService,
     AnalyzerEvaluationStore,
+    AnalyzerExecutionPlan,
+    AnalyzerExecutionStore,
     AnalyzerImportLimits,
     AnalyzerImportPlan,
     AnalyzerImportService,
@@ -21,6 +23,8 @@ from vulnloom.benchmark import (
     AnalyzerObservationArtifactStore,
     AnalyzerObservationSet,
     AnalyzerResultSnapshot,
+    AnalyzerToolRegistration,
+    AnalyzerToolRegistry,
     AnalyzerTruthAlignment,
     AutoPenBenchSnapshotAdapter,
     BenchmarkArtifactStore,
@@ -38,6 +42,7 @@ from vulnloom.benchmark import (
     ExternalBenchmarkKind,
     ExternalBenchmarkSnapshot,
     ExternalImportLimits,
+    OfflineAnalyzerExecutionService,
     create_analyzer_snapshot,
     create_external_snapshot,
     default_analyzer_adapters,
@@ -650,6 +655,38 @@ def evaluate_analyzers_offline(args: argparse.Namespace) -> int:
     return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
 
 
+def check_analyzer_execution_offline(args: argparse.Namespace) -> int:
+    """Validate a sealed analyzer execution through the non-executing Runner."""
+    scope = _load_scope(args.scope_file)
+    target = IngestionService(Path(args.store)).load_snapshot(args.snapshot_id)
+    registration = AnalyzerToolRegistration.model_validate_json(
+        Path(args.registration_file).read_text(encoding="utf-8")
+    )
+    registry = AnalyzerToolRegistry((registration,))
+    plan = AnalyzerExecutionPlan.model_validate_json(
+        Path(args.plan_file).read_text(encoding="utf-8")
+    )
+    with AnalyzerExecutionStore(Path(args.execution_db)) as execution_store:
+        outcome = OfflineAnalyzerExecutionService(
+            scope=scope,
+            registry=registry,
+            runner=OfflineSandboxRunner(registry.tool_ids),
+            store=execution_store,
+        ).execute(target, plan, now=utc_now())
+    summary = {
+        "mode": "offline_protocol_only",
+        "plan_id": outcome.plan_id,
+        "registration_id": outcome.registration_id,
+        "target_id": str(outcome.target_id),
+        "target_version": outcome.target_version,
+        "status": outcome.status.value,
+        "analyzer_result_snapshot": None,
+        "cleanup_complete": outcome.runner_result.cleanup.complete,
+    }
+    print(json.dumps(summary, indent=2))
+    return 0 if outcome.status.value == "protocol_completed" else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -831,6 +868,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--result-store", default=".vulnloom/analyzer-evaluation-results"
     )
     analyzer_evaluation.set_defaults(handler=evaluate_analyzers_offline)
+
+    analyzer_execution = sub.add_parser("analyzer-execution-check-offline")
+    analyzer_execution.add_argument("--scope-file", required=True)
+    analyzer_execution.add_argument("--snapshot-id", required=True)
+    analyzer_execution.add_argument("--registration-file", required=True)
+    analyzer_execution.add_argument("--plan-file", required=True)
+    analyzer_execution.add_argument(
+        "--execution-db", default=".vulnloom/analyzer-executions.db"
+    )
+    analyzer_execution.set_defaults(handler=check_analyzer_execution_offline)
     return parser
 
 
