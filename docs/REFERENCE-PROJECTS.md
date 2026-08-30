@@ -65,6 +65,9 @@ M3 延续其“围绕一条可解释调用链形成假设”的思路，但 Cand
 
 借鉴浏览器、代理、代码与动态工具的协作，以及以验证结果生成报告；其主动测试能力只应放进 Validation Sandbox。
 
+M4.1 只继承“工具必须通过隔离边界”的架构方向；Profile、Runner、checkpoint 和 typed
+invocation 协议为 VulnLoom 自有实现，尚未复用或声称具备 Strix 的动态执行能力。
+
 ### PentAGI
 
 借鉴长期任务、记忆、可观测性和多模型支持；不在 MVP 中引入其完整重型平台。

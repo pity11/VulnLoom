@@ -113,3 +113,14 @@ Semgrep adapter 只接受 Control Plane 预注册的本地规则集，不接受 
 ## 7. 部署建议
 
 第一阶段使用单机 Linux：Control Plane 运行在普通用户进程，Runner 使用 rootless Docker。Control Plane 不进入目标网络，Worker 不挂载 Docker socket。Docker 操作由一个最小权限 Runner Service 代理。成熟后再将 Validation Sandbox 移到独立 VM 或 gVisor/Firecracker。
+
+## 8. M4.1 Runner contract
+
+`SandboxRunner` receives a typed `SandboxRunRequest`. The request binds a `TaskEnvelope`, an
+immutable Sandbox Profile, one registered `ToolInvocation`, an explicit secret-free environment,
+an attempt number, and an optional content-addressed checkpoint. The Runner rejects mismatched
+Scope/Target/Profile provenance before allocating resources.
+
+The current `OfflineSandboxRunner` is a lifecycle test double. It never starts a process or opens a
+socket. Its cleanup report validates orchestration semantics only; it is not evidence of operating
+system or container isolation.

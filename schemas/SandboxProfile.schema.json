@@ -1,0 +1,270 @@
+{
+  "$defs": {
+    "MountKind": {
+      "enum": [
+        "snapshot",
+        "evidence",
+        "output",
+        "temp"
+      ],
+      "title": "MountKind",
+      "type": "string"
+    },
+    "NetworkGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Host",
+          "type": "string"
+        },
+        "ports": {
+          "items": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Ports",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "schemes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Schemes",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "host",
+        "ports",
+        "schemes"
+      ],
+      "title": "NetworkGrant",
+      "type": "object"
+    },
+    "NetworkMode": {
+      "enum": [
+        "none",
+        "target_only"
+      ],
+      "title": "NetworkMode",
+      "type": "string"
+    },
+    "SandboxLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "cpu_millis": {
+          "exclusiveMinimum": 0,
+          "maximum": 57600000,
+          "title": "Cpu Millis",
+          "type": "integer"
+        },
+        "memory_bytes": {
+          "maximum": 17179869184,
+          "minimum": 16777216,
+          "title": "Memory Bytes",
+          "type": "integer"
+        },
+        "pids": {
+          "exclusiveMinimum": 0,
+          "maximum": 4096,
+          "title": "Pids",
+          "type": "integer"
+        },
+        "open_files": {
+          "exclusiveMinimum": 0,
+          "maximum": 65536,
+          "title": "Open Files",
+          "type": "integer"
+        },
+        "file_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 10737418240,
+          "title": "File Bytes",
+          "type": "integer"
+        },
+        "tmp_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 10737418240,
+          "title": "Tmp Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "cpu_millis",
+        "memory_bytes",
+        "pids",
+        "open_files",
+        "file_bytes",
+        "tmp_bytes"
+      ],
+      "title": "SandboxLimits",
+      "type": "object"
+    },
+    "SandboxMount": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/MountKind"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Id"
+        },
+        "read_only": {
+          "title": "Read Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "read_only"
+      ],
+      "title": "SandboxMount",
+      "type": "object"
+    },
+    "SandboxProfileKind": {
+      "enum": [
+        "static",
+        "validation",
+        "report"
+      ],
+      "title": "SandboxProfileKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/SandboxProfileKind"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "run_as_uid": {
+      "exclusiveMinimum": 0,
+      "maximum": 2147483647,
+      "title": "Run As Uid",
+      "type": "integer"
+    },
+    "run_as_gid": {
+      "exclusiveMinimum": 0,
+      "maximum": 2147483647,
+      "title": "Run As Gid",
+      "type": "integer"
+    },
+    "read_only_root": {
+      "default": true,
+      "title": "Read Only Root",
+      "type": "boolean"
+    },
+    "no_new_privileges": {
+      "default": true,
+      "title": "No New Privileges",
+      "type": "boolean"
+    },
+    "capabilities": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Capabilities",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "network_mode": {
+      "$ref": "#/$defs/NetworkMode",
+      "default": "none"
+    },
+    "network_grants": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/NetworkGrant"
+      },
+      "title": "Network Grants",
+      "type": "array"
+    },
+    "mounts": {
+      "items": {
+        "$ref": "#/$defs/SandboxMount"
+      },
+      "title": "Mounts",
+      "type": "array"
+    },
+    "writable_paths": {
+      "default": [
+        "/tmp",
+        "/workspace/output"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Writable Paths",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "allowed_tools": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Allowed Tools",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "execute_target_code": {
+      "default": false,
+      "title": "Execute Target Code",
+      "type": "boolean"
+    },
+    "max_attempts": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    },
+    "limits": {
+      "$ref": "#/$defs/SandboxLimits"
+    }
+  },
+  "required": [
+    "kind",
+    "image_digest",
+    "run_as_uid",
+    "run_as_gid",
+    "mounts",
+    "allowed_tools",
+    "limits"
+  ],
+  "title": "SandboxProfile",
+  "type": "object"
+}

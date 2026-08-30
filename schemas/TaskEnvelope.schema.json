@@ -58,6 +58,16 @@
       "title": "Target Id",
       "type": "string"
     },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
     "worker_role": {
       "$ref": "#/$defs/WorkerRole"
     },
@@ -71,6 +81,11 @@
       "title": "Policy Digest",
       "type": "string"
     },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
     "input_refs": {
       "items": {
         "type": "string"
@@ -80,6 +95,7 @@
     },
     "allowed_tools": {
       "items": {
+        "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
         "type": "string"
       },
       "title": "Allowed Tools",
@@ -103,9 +119,12 @@
   "required": [
     "engagement_id",
     "target_id",
+    "target_version",
+    "scope_id",
     "worker_role",
     "scope_version",
     "policy_digest",
+    "sandbox_profile_digest",
     "input_refs",
     "allowed_tools",
     "budget",

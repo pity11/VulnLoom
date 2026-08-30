@@ -1,5 +1,63 @@
-"""Runner safety primitives; concrete sandboxes arrive in Phase 2."""
+"""Typed sandbox profiles and an offline lifecycle runner."""
 
-from .environment import UnsafeEnvironmentName, build_worker_environment
+from .base import SandboxRunner
+from .environment import (
+    UnsafeEnvironmentName,
+    UnsafeEnvironmentValue,
+    build_worker_environment,
+)
+from .models import (
+    CleanupReport,
+    MountKind,
+    NetworkGrant,
+    NetworkMode,
+    RunnerCheckpoint,
+    SandboxLimits,
+    SandboxMount,
+    SandboxProfile,
+    SandboxProfileKind,
+    SandboxRunRequest,
+    SandboxRunResult,
+    SandboxRunStatus,
+    ToolInvocation,
+    WorkingDirectory,
+    sandbox_profile_digest,
+)
+from .offline import (
+    OfflineOutcome,
+    OfflineSandboxRunner,
+    OfflineScenario,
+    RunnerIdempotencyConflict,
+    RunnerRejected,
+)
+from .profiles import report_profile, static_profile, validation_profile
 
-__all__ = ["UnsafeEnvironmentName", "build_worker_environment"]
+__all__ = [
+    "CleanupReport",
+    "MountKind",
+    "NetworkGrant",
+    "NetworkMode",
+    "OfflineOutcome",
+    "OfflineSandboxRunner",
+    "OfflineScenario",
+    "RunnerCheckpoint",
+    "RunnerIdempotencyConflict",
+    "RunnerRejected",
+    "SandboxLimits",
+    "SandboxMount",
+    "SandboxProfile",
+    "SandboxProfileKind",
+    "SandboxRunRequest",
+    "SandboxRunResult",
+    "SandboxRunStatus",
+    "SandboxRunner",
+    "ToolInvocation",
+    "UnsafeEnvironmentName",
+    "UnsafeEnvironmentValue",
+    "WorkingDirectory",
+    "build_worker_environment",
+    "report_profile",
+    "sandbox_profile_digest",
+    "static_profile",
+    "validation_profile",
+]

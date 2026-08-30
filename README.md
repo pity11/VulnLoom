@@ -121,6 +121,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Excludes parse failures, visibly guarded object lookups, and external matches that cannot be classified safely.
 - Stores each `CandidateSet` as an immutable content-addressed object and records only a redacted summary event.
 
+### M4.1: sandbox contracts and offline runner
+
+- Defines immutable Static, Validation, and Report sandbox profiles with non-root identities, fixed mount slots, network modes, and resource ceilings.
+- Rejects writable roots, Linux capabilities, host-path mounts, unregistered writable paths, and profile-purpose mismatches at schema validation time.
+- Binds every Worker task to an exact Target version, Scope identity, policy digest, and sandbox-profile digest.
+- Accepts only typed registered-tool invocations with argument arrays and logical working directories—never arbitrary shell command strings.
+- Provides a `SandboxRunner` adapter contract and a deterministic offline implementation for success, refusal, timeout, cancellation, resource exhaustion, checkpoint/resume, idempotency, and cleanup paths.
+- Does not claim process, filesystem, or network isolation yet; those guarantees require the future rootless Docker adapter and real integration tests.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -170,6 +179,6 @@ The Control Plane resolves model API keys through `ModelProviderConfig.api_key_e
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, and deterministic Candidate generation. Dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, and offline-tested sandbox contracts. Real sandbox execution, dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

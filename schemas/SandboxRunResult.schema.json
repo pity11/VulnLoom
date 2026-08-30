@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "CleanupReport": {
+      "additionalProperties": false,
+      "properties": {
+        "processes_terminated": {
+          "title": "Processes Terminated",
+          "type": "boolean"
+        },
+        "network_released": {
+          "title": "Network Released",
+          "type": "boolean"
+        },
+        "writable_layer_removed": {
+          "title": "Writable Layer Removed",
+          "type": "boolean"
+        },
+        "temporary_mounts_removed": {
+          "title": "Temporary Mounts Removed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "processes_terminated",
+        "network_released",
+        "writable_layer_removed",
+        "temporary_mounts_removed"
+      ],
+      "title": "CleanupReport",
+      "type": "object"
+    },
+    "RunnerCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "attempt": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "task_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "policy_digest",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "attempt"
+      ],
+      "title": "RunnerCheckpoint",
+      "type": "object"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    },
+    "SandboxUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "minimum": 0,
+          "title": "Wall Seconds",
+          "type": "number"
+        },
+        "cpu_millis": {
+          "minimum": 0,
+          "title": "Cpu Millis",
+          "type": "integer"
+        },
+        "peak_memory_bytes": {
+          "minimum": 0,
+          "title": "Peak Memory Bytes",
+          "type": "integer"
+        },
+        "pids_peak": {
+          "minimum": 0,
+          "title": "Pids Peak",
+          "type": "integer"
+        },
+        "open_files_peak": {
+          "minimum": 0,
+          "title": "Open Files Peak",
+          "type": "integer"
+        },
+        "output_bytes": {
+          "minimum": 0,
+          "title": "Output Bytes",
+          "type": "integer"
+        },
+        "temporary_bytes": {
+          "minimum": 0,
+          "title": "Temporary Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "cpu_millis",
+        "peak_memory_bytes",
+        "pids_peak",
+        "open_files_peak",
+        "output_bytes",
+        "temporary_bytes"
+      ],
+      "title": "SandboxUsage",
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "model_tokens": {
+          "minimum": 0,
+          "title": "Model Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "model_tokens",
+        "tool_calls"
+      ],
+      "title": "TaskBudget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/SandboxRunStatus"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invocation Digest",
+      "type": "string"
+    },
+    "budget_used": {
+      "$ref": "#/$defs/TaskBudget"
+    },
+    "usage": {
+      "$ref": "#/$defs/SandboxUsage"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "checkpoint": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunnerCheckpoint"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "cleanup": {
+      "$ref": "#/$defs/CleanupReport"
+    }
+  },
+  "required": [
+    "run_id",
+    "task_id",
+    "status",
+    "sandbox_profile_digest",
+    "invocation_digest",
+    "budget_used",
+    "usage",
+    "cleanup"
+  ],
+  "title": "SandboxRunResult",
+  "type": "object"
+}

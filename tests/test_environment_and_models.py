@@ -5,7 +5,11 @@ from pydantic import ValidationError
 
 from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.domain.models import Candidate
-from vulnloom.runners.environment import UnsafeEnvironmentName, build_worker_environment
+from vulnloom.runners.environment import (
+    UnsafeEnvironmentName,
+    UnsafeEnvironmentValue,
+    build_worker_environment,
+)
 
 
 def test_worker_environment_starts_empty_and_does_not_inherit_parent(monkeypatch):
@@ -19,6 +23,13 @@ def test_worker_environment_starts_empty_and_does_not_inherit_parent(monkeypatch
 def test_worker_environment_rejects_explicit_secret():
     with pytest.raises(UnsafeEnvironmentName, match="cannot enter Worker"):
         build_worker_environment({"OPENAI_API_KEY": "secret"})
+
+
+def test_worker_environment_rejects_fixed_names_and_unsafe_values():
+    with pytest.raises(UnsafeEnvironmentName, match="cannot be overridden"):
+        build_worker_environment({"LANG": "en_US.UTF-8"})
+    with pytest.raises(UnsafeEnvironmentValue, match="safety limits"):
+        build_worker_environment({"VULNLOOM_INPUT": "bad\x00value"})
 
 
 def test_model_key_is_resolved_only_by_control_plane(monkeypatch):

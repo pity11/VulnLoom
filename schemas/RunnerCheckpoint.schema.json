@@ -1,0 +1,70 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invocation Digest",
+      "type": "string"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "task_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "policy_digest",
+    "sandbox_profile_digest",
+    "invocation_digest",
+    "attempt"
+  ],
+  "title": "RunnerCheckpoint",
+  "type": "object"
+}

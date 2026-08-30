@@ -39,6 +39,10 @@ VulnLoom 假定以下内容都可能恶意：
 - 不能读取原始 Cookie、Authorization 和身份数据。
 - 输出只能写到该 Report 的临时目录。
 
+M4.1 已将这些要求编码为类型化 Profile 与 Runner preflight，但当前只提供不执行代码的离线
+Runner。Profile 中的 `read_only_root`、network mode 和 cleanup report 是未来 adapter 必须落实
+并用真实集成测试证明的合同，不是当前宿主隔离能力声明。
+
 ## 3. 网络策略
 
 网络允许规则以解析后的 IP 和端口执行，而不仅是 URL 字符串：

@@ -23,6 +23,13 @@ from vulnloom.domain.models import (
 from vulnloom.domain.protocol import TaskEnvelope, WorkerResult
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
+from vulnloom.runners import (
+    RunnerCheckpoint,
+    SandboxProfile,
+    SandboxRunRequest,
+    SandboxRunResult,
+    ToolInvocation,
+)
 
 MODELS = (
     Scope,
@@ -44,6 +51,11 @@ MODELS = (
     DisclosureCase,
     TaskEnvelope,
     WorkerResult,
+    SandboxProfile,
+    ToolInvocation,
+    RunnerCheckpoint,
+    SandboxRunRequest,
+    SandboxRunResult,
 )
 
 

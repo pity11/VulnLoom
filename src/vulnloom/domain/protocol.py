@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, Field
@@ -36,11 +37,14 @@ class TaskEnvelope(DomainModel):
     task_id: UUID = Field(default_factory=uuid4)
     engagement_id: UUID
     target_id: UUID
+    target_version: str = Field(min_length=1)
+    scope_id: UUID
     worker_role: WorkerRole
     scope_version: int = Field(ge=1)
     policy_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    sandbox_profile_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     input_refs: tuple[str, ...]
-    allowed_tools: frozenset[str]
+    allowed_tools: frozenset[Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]]
     budget: TaskBudget
     deadline: AwareDatetime
     idempotency_key: str = Field(min_length=1)

@@ -136,6 +136,37 @@ evidence_refs: []
 resource_usage: {}
 ```
 
+### SandboxProfile 与 SandboxRun
+
+```yaml
+sandbox_profile:
+  kind: static | validation | report
+  image_digest: sha256
+  run_as_uid: non-root integer
+  read_only_root: true
+  no_new_privileges: true
+  capabilities: []
+  network_mode: none | target_only
+  network_grants: []
+  mounts: []
+  allowed_tools: []
+  execute_target_code: boolean
+  max_attempts: 1-3
+  limits: {}
+
+sandbox_run_request:
+  task: TaskEnvelope
+  profile: SandboxProfile
+  invocation: ToolInvocation
+  environment: explicit secret-free map
+  attempt: integer
+  resume_from: RunnerCheckpoint | null
+  idempotency_key: string
+```
+
+Task、Checkpoint 和 Run Result 均绑定 Profile 摘要；checkpoint 还绑定 Target、Scope、Policy
+和 tool invocation 摘要。任何一个版本变化都必须从新任务开始，不能直接 resume。
+
 ### Evidence
 
 ```yaml

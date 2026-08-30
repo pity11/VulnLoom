@@ -84,6 +84,20 @@ M3 仍只生成待人工选择的静态假设，不排队验证、不执行目�
 
 验收：Worker 不能访问宿主密钥、其他容器和互联网；超时后没有残留容器、进程、网络和 volume。
 
+### M4.1：Sandbox 协议与离线 Runner（已完成首版）
+
+- `TaskEnvelope` 绑定 Target 版本、Scope 身份和 Sandbox Profile 摘要。
+- Static、Validation、Report Profile 以不可变类型表达镜像摘要、非 root 身份、挂载、网络和资源上限。
+- Profile 在模型层拒绝可写根文件系统、capability、宿主路径挂载、未注册写入目录和不符合用途的网络/源码访问。
+- `ToolInvocation` 只接受注册工具 ID、参数数组和逻辑工作目录，不接受 Shell 字符串或宿主路径。
+- `SandboxRunner` adapter 协议与不启动进程、不访问网络的 `OfflineSandboxRunner`。
+- 离线生命周期覆盖成功、拒绝、取消、墙钟/资源超限、checkpoint/resume、重试上限、幂等冲突和完整清理结果。
+- Worker 环境继续从空环境和显式白名单构造，凭据型变量在请求解析与 Runner preflight 两层拒绝。
+
+M4.1 证明的是协议、状态与 fail-closed 门禁，不声称已经实现进程、文件系统或网络隔离。
+这些隔离声明必须等 M4.3 的 rootless Docker adapter 通过真实容器、网络、进程和 volume
+清理测试后才能成立。M4.2 将先实现 Tool Broker 注册表与 typed HTTP tool。
+
 ## Phase 3：报告闭环
 
 目标：把 Finding 转换为一致、脱敏、可人工提交的报告。

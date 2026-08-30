@@ -1,0 +1,39 @@
+{
+  "$defs": {
+    "WorkingDirectory": {
+      "enum": [
+        "source",
+        "output",
+        "temp"
+      ],
+      "title": "WorkingDirectory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "arguments": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Arguments",
+      "type": "array"
+    },
+    "working_directory": {
+      "$ref": "#/$defs/WorkingDirectory"
+    }
+  },
+  "required": [
+    "tool_id",
+    "working_directory"
+  ],
+  "title": "ToolInvocation",
+  "type": "object"
+}
