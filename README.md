@@ -31,6 +31,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/DATA-MODEL.md](./docs/DATA-MODEL.md): core entities and domain events.
 - [docs/ROADMAP.md](./docs/ROADMAP.md): milestones and acceptance criteria.
 - [docs/PHASE3-ADMISSION.md](./docs/PHASE3-ADMISSION.md): reproducible M4.3 production-isolation admission evidence.
+- [docs/EXTERNAL-BENCHMARKS.md](./docs/EXTERNAL-BENCHMARKS.md): supported upstream layouts and local-snapshot safety boundary.
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
 
 ## Project layout
@@ -219,6 +220,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Includes a generated local microbenchmark and baseline in `benchmarks/m6_1`; ordinary CI verifies fixture drift and runs the offline regression gate.
 - Adds `benchmark-evaluate-offline`. It consumes only sealed local files and has no Runner, Broker, network, credential, or Submission dependency.
 
+### M6.2: external benchmark local-snapshot adapters
+
+- Adds versioned BountyBench and AutoPenBench adapters for pre-obtained local directory snapshots; neither adapter accepts a URL or downloads data.
+- Seals every regular file by normalized path, size, and SHA-256, rejects symlinks and special files, and enforces file-count, per-file, total-size, and deadline budgets before and after normalization.
+- Reads only `bounty_metadata.json` labels from BountyBench. Prompt, report, exploit, setup, patch, and verification contents are never copied into normalized suites.
+- Reads AutoPenBench `data/games.json` in trusted code but persists only safe identities; task text and flags are discarded. CWE labels must come from a sealed `vulnloom-autopenbench-cwe.json` sidecar.
+- Emits typed exclusions for unsupported or missing labels and rejects malformed JSON, duplicate keys, stale mappings, ambiguous identities, adapter drift, and snapshot mutation.
+- Stores normalized suites as immutable local objects with transactional import checkpoints and adds `benchmark-snapshot-manifest-local` and `benchmark-import-offline`.
+- Accepts directories only. ZIP/TAR acquisition and extraction remain outside this adapter; callers must use an independently hardened quarantine path before presenting a directory.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -301,11 +312,22 @@ vulnloom benchmark-evaluate-offline \
   --suite-file suite.json --observations-file observations.json \
   --plan-file benchmark-plan.json --benchmark-db .vulnloom/benchmarks.db \
   --result-store .vulnloom/benchmark-results
+
+# Seal an already-present local BountyBench directory without executing its files.
+vulnloom benchmark-snapshot-manifest-local \
+  --source /local/bountytasks --kind bountybench \
+  --upstream-revision <full-commit> --license-spdx Apache-2.0
+
+# Normalize a sealed local external snapshot. The plan binds the manifest and adapter digest.
+vulnloom benchmark-import-offline \
+  --source /local/bountytasks --snapshot-file snapshot.json \
+  --plan-file import-plan.json --import-db .vulnloom/benchmark-imports.db \
+  --suite-store .vulnloom/benchmark-suites
 ```
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
-The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. The benchmark command evaluates precomputed typed observations; it does not run targets or fetch datasets.
+The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition. Benchmark evaluation consumes precomputed typed observations. External benchmark import only normalizes pre-obtained local directories; neither path runs targets or fetches datasets.
 
 ## Model credential boundary
 

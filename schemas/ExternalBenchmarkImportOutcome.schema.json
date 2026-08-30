@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "BenchmarkCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "target_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "ground_truth": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GroundTruthFinding"
+          },
+          "title": "Ground Truth",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "target_version"
+      ],
+      "title": "BenchmarkCase",
+      "type": "object"
+    },
+    "BenchmarkSource": {
+      "enum": [
+        "local_fixture",
+        "bountybench_snapshot",
+        "autopenbench_snapshot"
+      ],
+      "title": "BenchmarkSource",
+      "type": "string"
+    },
+    "BenchmarkSuite": {
+      "additionalProperties": false,
+      "properties": {
+        "suite_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Suite Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/BenchmarkSource",
+          "default": "local_fixture"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkCase"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Cases",
+          "type": "array"
+        }
+      },
+      "required": [
+        "suite_id",
+        "name",
+        "version",
+        "cases"
+      ],
+      "title": "BenchmarkSuite",
+      "type": "object"
+    },
+    "ExternalBenchmarkArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "suite_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Suite Digest",
+          "type": "string"
+        },
+        "json_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Json Sha256",
+          "type": "string"
+        },
+        "json_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/suite\\.json$",
+          "title": "Json Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suite_digest",
+        "json_sha256",
+        "json_ref"
+      ],
+      "title": "ExternalBenchmarkArtifact",
+      "type": "object"
+    },
+    "ExternalCaseExclusion": {
+      "additionalProperties": false,
+      "properties": {
+        "source_case_ref": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/+@=-]*$",
+          "title": "Source Case Ref",
+          "type": "string"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Reason Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_case_ref",
+        "reason_code"
+      ],
+      "title": "ExternalCaseExclusion",
+      "type": "object"
+    },
+    "GroundTruthFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "truth_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Truth Id",
+          "type": "string"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "duplicate_family": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Family",
+          "type": "string"
+        }
+      },
+      "required": [
+        "truth_id",
+        "cwe",
+        "duplicate_family"
+      ],
+      "title": "GroundTruthFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "suite": {
+      "$ref": "#/$defs/BenchmarkSuite"
+    },
+    "exclusions": {
+      "items": {
+        "$ref": "#/$defs/ExternalCaseExclusion"
+      },
+      "title": "Exclusions",
+      "type": "array"
+    },
+    "artifact": {
+      "$ref": "#/$defs/ExternalBenchmarkArtifact"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "snapshot_id",
+    "suite",
+    "exclusions",
+    "artifact",
+    "completed_at"
+  ],
+  "title": "ExternalBenchmarkImportOutcome",
+  "type": "object"
+}

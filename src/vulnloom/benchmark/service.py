@@ -14,7 +14,6 @@ from .models import (
     BenchmarkOutcome,
     BenchmarkPlan,
     BenchmarkResult,
-    BenchmarkSource,
     BenchmarkSuite,
 )
 from .store import BenchmarkArtifactStore, BenchmarkStore
@@ -35,8 +34,6 @@ class BenchmarkService:
     ) -> BenchmarkOutcome:
         if now < plan.created_at or now >= plan.deadline:
             raise BenchmarkRejected("BenchmarkPlan is not active at evaluation time")
-        if suite.source is not BenchmarkSource.LOCAL_FIXTURE:
-            raise BenchmarkRejected("M6.1 accepts only sealed local fixture suites")
         if (
             plan.suite_id != suite.suite_id
             or plan.suite_digest != canonical_digest(suite.model_dump(mode="python"))

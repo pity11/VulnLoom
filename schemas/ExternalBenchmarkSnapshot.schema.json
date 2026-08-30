@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "ExternalBenchmarkKind": {
+      "enum": [
+        "bountybench",
+        "autopenbench"
+      ],
+      "title": "ExternalBenchmarkKind",
+      "type": "string"
+    },
+    "SnapshotFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "sha256"
+      ],
+      "title": "SnapshotFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ExternalBenchmarkKind"
+    },
+    "upstream_revision": {
+      "pattern": "^[0-9a-f]{40}|[0-9a-f]{64}$",
+      "title": "Upstream Revision",
+      "type": "string"
+    },
+    "license_spdx": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "License Spdx",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/SnapshotFile"
+      },
+      "maxItems": 100000,
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "kind",
+    "upstream_revision",
+    "license_spdx",
+    "files"
+  ],
+  "title": "ExternalBenchmarkSnapshot",
+  "type": "object"
+}

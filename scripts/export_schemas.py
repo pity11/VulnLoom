@@ -18,8 +18,15 @@ from vulnloom.benchmark import (
     BenchmarkRegressionPolicy,
     BenchmarkResult,
     BenchmarkSuite,
+    ExternalBenchmarkArtifact,
+    ExternalBenchmarkImportOutcome,
+    ExternalBenchmarkImportPlan,
+    ExternalBenchmarkSnapshot,
+    ExternalCaseExclusion,
+    ExternalImportLimits,
     GroundTruthFinding,
     RegressionViolation,
+    SnapshotFile,
 )
 from vulnloom.broker import (
     BrokerCall,
@@ -142,6 +149,13 @@ MODELS = (
     BenchmarkResult,
     BenchmarkArtifact,
     BenchmarkOutcome,
+    SnapshotFile,
+    ExternalBenchmarkSnapshot,
+    ExternalImportLimits,
+    ExternalCaseExclusion,
+    ExternalBenchmarkImportPlan,
+    ExternalBenchmarkArtifact,
+    ExternalBenchmarkImportOutcome,
 )
 
 

@@ -220,7 +220,17 @@ M5.3 的 `EXPORTED` 仅表示批准后的本地 Markdown/JSON 产物。`SUBMITTE
 - 仓库内 `benchmarks/m6_1` 微型 ground truth 可重复生成；常规 CI 检查 fixture/schema 漂移并运行离线回归门禁。
 - M6.1 不获取 BountyBench/AutoPenBench，不启动 Runner，不调用 Broker，不联网，也没有 Submission 或凭据字段。
 
-M6.2 再通过独立 adapter 导入外部 benchmark 的本地快照；数据获取不属于评测器，也不得在普通 CI 中隐式联网。
+### M6.2：外部 Benchmark 本地快照 Adapter（已完成首版）
+
+- BountyBench 与 AutoPenBench 使用各自固定 ID/version/digest 的 adapter；ImportPlan 精确绑定 snapshot、adapter、limits、deadline 和幂等键。
+- 输入只接受预先获得的本地目录，不接受 URL、不下载数据、不解压归档、不执行上游 setup/exploit/verify/Docker 文件。
+- snapshot manifest 覆盖每个常规文件的 NFC 归一化相对路径、大小和 SHA-256；导入前后均全量复核，并拒绝 symlink、特殊文件、路径碰撞、数量/大小超限、超时和并发内容变化。
+- BountyBench 只消费官方 `bounty_metadata.json` 的 CWE/CVE/vulnerable_commit；缺失或 unsupported CWE 形成显式 exclusion。
+- AutoPenBench `games.json` 中的 task/flag 不进入 suite、artifact 或 CLI 输出；CWE 必须来自同一 snapshot 内封存的显式 sidecar，缺失映射形成 exclusion，陈旧/非法映射整体拒绝。
+- 规范化 suite 内容寻址并只读落盘；SQLite STARTED/COMPLETED checkpoint 支持幂等完成、冲突拒绝和显式恢复，失败清理临时对象。
+- `benchmark-snapshot-manifest-local` 与 `benchmark-import-offline` 均为离线命令，没有 Runner、Broker、credential、Submission 或公网能力。
+
+M6.2 不声称执行或复现外部 benchmark。M6.3 再以统一 Observation 协议评估本地 CodeQL、Trivy、Checkov、Kubesec 等 adapter。
 
 ## 延后事项
 

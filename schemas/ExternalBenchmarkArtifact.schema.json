@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "suite_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Digest",
+      "type": "string"
+    },
+    "json_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Json Sha256",
+      "type": "string"
+    },
+    "json_ref": {
+      "pattern": "^objects/[0-9a-f]{64}/suite\\.json$",
+      "title": "Json Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "suite_digest",
+    "json_sha256",
+    "json_ref"
+  ],
+  "title": "ExternalBenchmarkArtifact",
+  "type": "object"
+}

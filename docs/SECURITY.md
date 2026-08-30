@@ -94,6 +94,12 @@ Candidate→Finding 门禁，无法表示绕过 Validation、Critic、promotion 
 清理临时目录，遗留 STARTED checkpoint 必须人工恢复。普通 CI 只重建本地 fixture 并离线计算指标，
 不下载外部 benchmark。
 
+M6.2 不提供外部数据获取器。目录 snapshot 在 manifest 生成与 import 时都拒绝 symlink、特殊文件、
+非归一化/碰撞路径和资源超限；所有读取使用 `O_NOFOLLOW`，规范化之后再次全量复核以阻止 TOCTOU。
+ZIP/TAR 不由该 adapter 处理，不能把未检查归档直接当作 snapshot。BountyBench adapter 不读取脚本和
+报告正文；AutoPenBench 的 flag、task 与潜在凭据不会写入 suite、artifact、checkpoint、事件或 CLI
+摘要。adapter 没有 Runner/Broker/Docker/网络依赖，ImportPlan 也没有 URL、token 或 Submission 字段。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

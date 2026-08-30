@@ -1,6 +1,38 @@
 """Deterministic, offline benchmark contracts and regression gates."""
 
 from .evaluator import BenchmarkRejected, evaluate_metrics, evaluate_regressions
+from .external_adapters import (
+    AUTOPENBENCH_ADAPTER_DIGEST,
+    AUTOPENBENCH_ADAPTER_ID,
+    BOUNTYBENCH_ADAPTER_DIGEST,
+    BOUNTYBENCH_ADAPTER_ID,
+    AutoPenBenchSnapshotAdapter,
+    BountyBenchSnapshotAdapter,
+    ExternalBenchmarkAdapter,
+)
+from .external_io import (
+    ExternalBenchmarkRejected,
+    create_external_snapshot,
+    inspect_snapshot_directory,
+    verify_snapshot_directory,
+)
+from .external_models import (
+    ExternalBenchmarkArtifact,
+    ExternalBenchmarkImportOutcome,
+    ExternalBenchmarkImportPlan,
+    ExternalBenchmarkKind,
+    ExternalBenchmarkSnapshot,
+    ExternalCaseExclusion,
+    ExternalImportLimits,
+    SnapshotFile,
+)
+from .external_service import ExternalBenchmarkImportService
+from .external_store import (
+    ExternalBenchmarkArtifactStore,
+    ExternalBenchmarkImportStore,
+    ExternalImportIdempotencyConflict,
+    ExternalImportRecoveryRequired,
+)
 from .models import (
     BenchmarkArtifact,
     BenchmarkBaseline,
@@ -27,6 +59,11 @@ from .store import (
 )
 
 __all__ = [
+    "AUTOPENBENCH_ADAPTER_DIGEST",
+    "AUTOPENBENCH_ADAPTER_ID",
+    "BOUNTYBENCH_ADAPTER_DIGEST",
+    "BOUNTYBENCH_ADAPTER_ID",
+    "AutoPenBenchSnapshotAdapter",
     "BenchmarkArtifact",
     "BenchmarkArtifactStore",
     "BenchmarkBaseline",
@@ -46,8 +83,27 @@ __all__ = [
     "BenchmarkSource",
     "BenchmarkStore",
     "BenchmarkSuite",
+    "BountyBenchSnapshotAdapter",
+    "ExternalBenchmarkAdapter",
+    "ExternalBenchmarkArtifact",
+    "ExternalBenchmarkArtifactStore",
+    "ExternalBenchmarkImportOutcome",
+    "ExternalBenchmarkImportPlan",
+    "ExternalBenchmarkImportService",
+    "ExternalBenchmarkImportStore",
+    "ExternalBenchmarkKind",
+    "ExternalBenchmarkRejected",
+    "ExternalBenchmarkSnapshot",
+    "ExternalCaseExclusion",
+    "ExternalImportIdempotencyConflict",
+    "ExternalImportLimits",
+    "ExternalImportRecoveryRequired",
     "GroundTruthFinding",
     "RegressionViolation",
+    "SnapshotFile",
+    "create_external_snapshot",
     "evaluate_metrics",
     "evaluate_regressions",
+    "inspect_snapshot_directory",
+    "verify_snapshot_directory",
 ]

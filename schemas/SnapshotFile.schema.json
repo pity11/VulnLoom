@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Path",
+      "type": "string"
+    },
+    "size": {
+      "minimum": 0,
+      "title": "Size",
+      "type": "integer"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path",
+    "size",
+    "sha256"
+  ],
+  "title": "SnapshotFile",
+  "type": "object"
+}

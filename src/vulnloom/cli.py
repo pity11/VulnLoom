@@ -9,6 +9,7 @@ from uuid import UUID
 
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
 from vulnloom.benchmark import (
+    AutoPenBenchSnapshotAdapter,
     BenchmarkArtifactStore,
     BenchmarkGateStatus,
     BenchmarkObservationSet,
@@ -16,6 +17,15 @@ from vulnloom.benchmark import (
     BenchmarkService,
     BenchmarkStore,
     BenchmarkSuite,
+    BountyBenchSnapshotAdapter,
+    ExternalBenchmarkArtifactStore,
+    ExternalBenchmarkImportPlan,
+    ExternalBenchmarkImportService,
+    ExternalBenchmarkImportStore,
+    ExternalBenchmarkKind,
+    ExternalBenchmarkSnapshot,
+    ExternalImportLimits,
+    create_external_snapshot,
 )
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
@@ -481,6 +491,57 @@ def evaluate_benchmark_offline(args: argparse.Namespace) -> int:
     return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
 
 
+def create_benchmark_snapshot_manifest(args: argparse.Namespace) -> int:
+    limits = ExternalImportLimits(
+        max_files=args.max_files,
+        max_single_file_bytes=args.max_single_file_bytes,
+        max_total_bytes=args.max_total_bytes,
+        timeout_seconds=args.timeout_seconds,
+    )
+    snapshot = create_external_snapshot(
+        Path(args.source),
+        kind=ExternalBenchmarkKind(args.kind),
+        upstream_revision=args.upstream_revision,
+        license_spdx=args.license_spdx,
+        limits=limits,
+    )
+    print(snapshot.model_dump_json(indent=2))
+    return 0
+
+
+def import_external_benchmark_offline(args: argparse.Namespace) -> int:
+    snapshot = ExternalBenchmarkSnapshot.model_validate_json(
+        Path(args.snapshot_file).read_text(encoding="utf-8")
+    )
+    plan = ExternalBenchmarkImportPlan.model_validate_json(
+        Path(args.plan_file).read_text(encoding="utf-8")
+    )
+    adapters = {
+        ExternalBenchmarkKind.BOUNTYBENCH: BountyBenchSnapshotAdapter(),
+        ExternalBenchmarkKind.AUTOPENBENCH: AutoPenBenchSnapshotAdapter(),
+    }
+    adapter = adapters[snapshot.kind]
+    artifact_store = ExternalBenchmarkArtifactStore(Path(args.suite_store))
+    with ExternalBenchmarkImportStore(Path(args.import_db)) as import_store:
+        outcome = ExternalBenchmarkImportService(
+            adapter=adapter,
+            store=import_store,
+            artifact_store=artifact_store,
+        ).import_snapshot(Path(args.source), snapshot, plan, now=utc_now())
+    summary = {
+        "mode": "offline_external_snapshot_import",
+        "plan_id": outcome.plan_id,
+        "snapshot_id": outcome.snapshot_id,
+        "suite_id": outcome.suite.suite_id,
+        "suite_source": outcome.suite.source.value,
+        "cases": len(outcome.suite.cases),
+        "exclusions": [item.model_dump(mode="json") for item in outcome.exclusions],
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -600,6 +661,27 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--benchmark-db", default=".vulnloom/benchmarks.db")
     benchmark.add_argument("--result-store", default=".vulnloom/benchmark-results")
     benchmark.set_defaults(handler=evaluate_benchmark_offline)
+
+    snapshot = sub.add_parser("benchmark-snapshot-manifest-local")
+    snapshot.add_argument("--source", required=True)
+    snapshot.add_argument(
+        "--kind", choices=tuple(item.value for item in ExternalBenchmarkKind), required=True
+    )
+    snapshot.add_argument("--upstream-revision", required=True)
+    snapshot.add_argument("--license-spdx", required=True)
+    snapshot.add_argument("--max-files", type=int, default=20_000)
+    snapshot.add_argument("--max-single-file-bytes", type=int, default=20 * 1024 * 1024)
+    snapshot.add_argument("--max-total-bytes", type=int, default=200 * 1024 * 1024)
+    snapshot.add_argument("--timeout-seconds", type=float, default=60.0)
+    snapshot.set_defaults(handler=create_benchmark_snapshot_manifest)
+
+    external = sub.add_parser("benchmark-import-offline")
+    external.add_argument("--source", required=True)
+    external.add_argument("--snapshot-file", required=True)
+    external.add_argument("--plan-file", required=True)
+    external.add_argument("--import-db", default=".vulnloom/benchmark-imports.db")
+    external.add_argument("--suite-store", default=".vulnloom/benchmark-suites")
+    external.set_defaults(handler=import_external_benchmark_offline)
     return parser
 
 

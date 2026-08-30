@@ -269,6 +269,17 @@ Evidence 不完整的 Candidate 携带 Finding identity。
 `BenchmarkArtifact` 只引用本地内容寻址 JSON/Markdown。Baseline 自身内容寻址并绑定 exact suite，
 不能跨数据集比较。
 
+### ExternalBenchmarkSnapshot
+
+`ExternalBenchmarkSnapshot` 绑定 benchmark kind、上游完整 revision、SPDX license 声明以及按路径排序的
+`SnapshotFile(path,size,sha256)`。`ExternalBenchmarkImportPlan` 再绑定 snapshot 完整摘要、adapter
+ID/digest、资源限制、deadline 和幂等键。`ExternalCaseExclusion` 只允许安全 source ref 与稳定 reason
+code，不保存上游 task、flag、prompt、报告或 exploit 内容。
+
+`ExternalBenchmarkImportOutcome` 包含规范化 `BenchmarkSuite`、exclusion 列表与只读 suite artifact。
+Suite source 明确区分 `local_fixture`、`bountybench_snapshot` 和 `autopenbench_snapshot`；所有外部 case
+都绑定 snapshot revision 或上游 vulnerable version。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

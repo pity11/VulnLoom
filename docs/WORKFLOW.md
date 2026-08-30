@@ -141,6 +141,21 @@ Finding identity 必须同时绑定 reproduced Validation、accepted Critic、PR
 Evidence。语义引用、suite 摘要、baseline 摘要或 deadline 任一不匹配均 fail-closed；回归失败是
 正常的类型化结果，不会开启重试、网络或外部动作。
 
+### M6.2 外部快照规范化链
+
+```text
+Pre-obtained local directory
+  → bounded no-follow manifest scan
+  → exact adapter/snapshot plan binding
+  → whitelist metadata normalization
+  → second full integrity scan
+  → immutable BenchmarkSuite + typed exclusions
+```
+
+Adapter 不运行 benchmark：BountyBench 的 shell、Docker、exploit、verify 和 patch 文件仅参与摘要复核；
+AutoPenBench 的 task/flag 只在可信解析函数内出现并立即丢弃。缺少显式 CWE 的 case 不猜测标签，进入
+exclusion；重复 JSON key、陈旧 sidecar、身份歧义和 snapshot 漂移均拒绝整个 import。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

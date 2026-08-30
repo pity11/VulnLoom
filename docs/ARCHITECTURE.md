@@ -214,3 +214,17 @@ set, regression policy, optional baseline, deadline, and idempotency key before 
 local JSON/Markdown artifacts. Baselines are themselves content-addressed and bound to the complete
 suite digest. Ordinary CI regenerates the local fixture, detects drift, and runs this same offline
 gate; importing future external suites remains an adapter concern.
+
+## 14. M6.2 external benchmark snapshot boundary
+
+External benchmark acquisition is outside VulnLoom. The importer receives only an already-present
+local directory, a content-addressed manifest, and a plan bound to one registered adapter digest.
+It performs two complete bounded no-follow scans around normalization, closing both initial drift
+and scan/parse TOCTOU windows. It never invokes a file from the snapshot.
+
+The BountyBench adapter reads only official bounty metadata labels. The AutoPenBench adapter treats
+task text and flags as sensitive source data and discards them; a separate sealed sidecar supplies
+CWE mappings because upstream vulnerability keywords are not a reliable taxonomy boundary.
+Normalized suites contain only digests, versions, CWE labels, and stable identities. Import artifacts
+and SQLite checkpoints are separate from raw snapshots, and adapter outputs can feed the existing
+M6.1 evaluator without granting it filesystem or network capability.

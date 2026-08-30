@@ -24,6 +24,8 @@ Code = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
 
 class BenchmarkSource(StrEnum):
     LOCAL_FIXTURE = "local_fixture"
+    BOUNTYBENCH_SNAPSHOT = "bountybench_snapshot"
+    AUTOPENBENCH_SNAPSHOT = "autopenbench_snapshot"
 
 
 class BenchmarkGateStatus(StrEnum):
@@ -78,11 +80,12 @@ class BenchmarkSuite(DomainModel):
         name: str,
         version: str,
         cases: tuple[BenchmarkCase, ...],
+        source: BenchmarkSource = BenchmarkSource.LOCAL_FIXTURE,
     ) -> BenchmarkSuite:
         values = {
             "name": name,
             "version": version,
-            "source": BenchmarkSource.LOCAL_FIXTURE,
+            "source": source,
             "cases": cases,
         }
         digest_values = {
@@ -203,9 +206,7 @@ class BenchmarkBaseline(DomainModel):
         return self
 
     @classmethod
-    def create(
-        cls, *, suite: BenchmarkSuite, metrics: BenchmarkMetrics
-    ) -> BenchmarkBaseline:
+    def create(cls, *, suite: BenchmarkSuite, metrics: BenchmarkMetrics) -> BenchmarkBaseline:
         values = {
             "suite_id": suite.suite_id,
             "suite_digest": canonical_digest(suite.model_dump(mode="python")),
@@ -341,8 +342,6 @@ class BenchmarkOutcome(DomainModel):
     def result_and_artifact_are_bound(self) -> Self:
         if self.plan_id != self.result.plan_id:
             raise ValueError("BenchmarkOutcome plan does not match its result")
-        if self.artifact.result_digest != canonical_digest(
-            self.result.model_dump(mode="python")
-        ):
+        if self.artifact.result_digest != canonical_digest(self.result.model_dump(mode="python")):
             raise ValueError("BenchmarkOutcome artifact does not match its result")
         return self

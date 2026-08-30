@@ -32,7 +32,9 @@
     },
     "BenchmarkSource": {
       "enum": [
-        "local_fixture"
+        "local_fixture",
+        "bountybench_snapshot",
+        "autopenbench_snapshot"
       ],
       "title": "BenchmarkSource",
       "type": "string"

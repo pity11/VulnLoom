@@ -1,0 +1,23 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "source_case_ref": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/+@=-]*$",
+      "title": "Source Case Ref",
+      "type": "string"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_case_ref",
+    "reason_code"
+  ],
+  "title": "ExternalCaseExclusion",
+  "type": "object"
+}
