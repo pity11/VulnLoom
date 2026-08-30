@@ -76,6 +76,12 @@ M4.5 的确定性 HTTP 裁决要求人工计划提前绑定确切 call、状态�
 Judge 默认只接受 live pinned HTTP Registry 摘要；offline Registry 只能在测试代码显式注入其摘要，
 不能使用生产默认配置形成复现结论。
 
+M5.2 报告服务不读取或复制 Evidence 正文，只在状态变化前用 `O_NOFOLLOW`、大小和摘要复核对象。
+报告文本统一经过内置脱敏器，Markdown 进一步转义 HTML 与图片/链接控制字符，避免本地预览触发
+嵌入式外部资源。Markdown/JSON 写入随机临时目录后原子发布为只读内容寻址对象；失败会清理临时
+目录。checkpoint 只保存 plan digest 和已脱敏 outcome，不保存原始报告计划文本。该路径没有网络、
+披露凭据或 Submission adapter。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

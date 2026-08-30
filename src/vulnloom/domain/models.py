@@ -136,6 +136,27 @@ class ReportChannel(StrEnum):
     CVE_DRAFT = "cve-draft"
 
 
+class ReportSectionKind(StrEnum):
+    SUMMARY = "summary"
+    CODE_LOCATION = "code_location"
+    REQUEST_RESPONSE = "request_response"
+    REPRODUCTION = "reproduction"
+    IMPACT = "impact"
+    REMEDIATION = "remediation"
+
+
+class RedactionStatus(StrEnum):
+    PASSED = "passed"
+    FAILED = "failed"
+
+
+class ReportReviewStatus(StrEnum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+    EXPORTED = "exported"
+    SUBMITTED = "submitted"
+
+
 class Engagement(DomainModel):
     engagement_id: UUID = Field(default_factory=uuid4)
     authority_reference: NonEmpty
@@ -397,9 +418,35 @@ class ProductIdentity(DomainModel):
     repository_url: HttpUrl | None = None
 
 
+class ReportSection(DomainModel):
+    kind: ReportSectionKind
+    text: str = Field(min_length=1, max_length=8192)
+    evidence_refs: tuple[
+        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
+    ] = ()
+
+    @model_validator(mode="after")
+    def evidence_backed_claims(self) -> ReportSection:
+        evidence_required = {
+            ReportSectionKind.CODE_LOCATION,
+            ReportSectionKind.REQUEST_RESPONSE,
+            ReportSectionKind.REPRODUCTION,
+            ReportSectionKind.IMPACT,
+        }
+        if self.kind in evidence_required and not self.evidence_refs:
+            raise ValueError("this Report section requires Evidence references")
+        return self
+
+
 class Report(DomainModel):
-    report_id: UUID = Field(default_factory=uuid4)
+    report_id: UUID
+    draft_plan_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     finding_id: UUID
+    candidate_id: UUID
+    evidence_bundle_id: UUID
+    target_version: NonEmpty
+    scope_id: UUID
+    scope_version: Annotated[int, Field(ge=1)]
     channel: ReportChannel
     version: Annotated[int, Field(ge=1)] = 1
     title: NonEmpty
@@ -407,9 +454,37 @@ class Report(DomainModel):
     reproduction: tuple[str, ...]
     impact: NonEmpty
     remediation: NonEmpty
-    evidence_refs: tuple[str, ...]
-    redaction_status: str = "passed"
-    review_status: str = "draft"
+    sections: Annotated[tuple[ReportSection, ...], Field(min_length=6, max_length=32)]
+    evidence_refs: tuple[
+        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
+    ]
+    redaction_status: RedactionStatus = RedactionStatus.PASSED
+    review_status: ReportReviewStatus = ReportReviewStatus.DRAFT
+
+    @model_validator(mode="after")
+    def deterministic_draft_is_consistent(self) -> Report:
+        expected_id = uuid5(NAMESPACE_URL, f"vulnloom:report:{self.draft_plan_id}")
+        if self.report_id != expected_id:
+            raise ValueError("Report identity does not match its sealed draft plan")
+        counts = {kind: 0 for kind in ReportSectionKind}
+        for section in self.sections:
+            counts[section.kind] += 1
+        if any(
+            counts[kind] != 1
+            for kind in ReportSectionKind
+            if kind is not ReportSectionKind.REPRODUCTION
+        ) or counts[ReportSectionKind.REPRODUCTION] < 1:
+            raise ValueError("Report must contain every required section exactly once")
+        referenced = tuple(
+            dict.fromkeys(ref for section in self.sections for ref in section.evidence_refs)
+        )
+        if referenced != self.evidence_refs:
+            raise ValueError("Report Evidence index does not match section citations")
+        if self.review_status is not ReportReviewStatus.DRAFT:
+            raise ValueError("new Reports must begin in draft review status")
+        if self.redaction_status is not RedactionStatus.PASSED:
+            raise ValueError("Report draft must pass redaction before persistence")
+        return self
 
 
 class DisclosureCase(DomainModel):

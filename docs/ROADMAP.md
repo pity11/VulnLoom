@@ -178,7 +178,18 @@ egress、防宿主网关访问和资源清理由后续 M4.3 rootless Docker/HTTP
 - SQLite 保存 STARTED/COMPLETED checkpoint；完成结果幂等返回，未完成执行拒绝自动重放。
 - Critic 不执行目标、不调用 Broker、不联网、不生成 Finding 或提交报告；Finding promotion 仍要求当前有效 Scope、成功复现、完整 Evidence、绑定的 Critic 通过和 duplicate check。
 
-M5.1 的反证 disposition 是可信控制面封存的类型化观察，不从 Worker prose、模型置信度或普通日志推导。后续 M5.2 将实现脱敏且 Evidence 可追溯的报告草稿与一致性检查。
+M5.1 的反证 disposition 是可信控制面封存的类型化观察，不从 Worker prose、模型置信度或普通日志推导。M5.2 在此门禁之后消费已验证 Finding，不回写 Critic 结论。
+
+### M5.2：Evidence 一致的离线报告草稿（已完成首版）
+
+- `ReportDraftPlan` 内容寻址绑定 Finding、已提升 Candidate、Finding 的 Evidence Bundle、Scope 版本、渠道、受限文本和逐节 Evidence 引用。
+- 代码位置、请求/响应、复现和影响章节必须引用 Bundle 内 Evidence；生成前复核全部 Bundle 对象的 no-follow、大小、摘要和 Target 版本。
+- 文本在持久化前统一脱敏；Markdown 转义 HTML 和可触发外部资源的图片/链接语法，不复制 Evidence 正文。
+- 通用、EduSRC、CNVD、厂商和 CVE 草稿使用确定性标题映射，输出内容寻址且只读的本地 Markdown/JSON。
+- SQLite 保存 STARTED/COMPLETED checkpoint；完成结果幂等返回，未完成执行拒绝自动重放，写入失败清理临时目录。
+- 新报告固定为 `draft`，不包含人工批准、平台凭据、网络 adapter 或 Submission；发送到外部平台仍必须经过独立 Approval Gate。
+
+M5.2 的“本地导出”只表示生成供人工审阅的文件，不把 Report 状态提升为 `exported`，也不产生任何外部副作用。下一里程碑将实现人工审阅/diff 与显式批准状态机。
 
 ## Phase 4：评测与扩展
 

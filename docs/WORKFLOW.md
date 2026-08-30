@@ -121,6 +121,8 @@ Candidate 转为 Finding 必须同时满足：
 
 M5.1 中 Critic 使用固定优先级：任一反证角度 `confirmed` 即拒绝；否则任一角度 `inconclusive` 即保持 `VALIDATED`；只有四个角度均有 Evidence 支持地 `ruled_out` 才进入 `CRITIC_REVIEWED`。Critic 计划与验证计划必须使用不同上下文和 producer，普通 Worker 文本或 confidence 不能设置这些 disposition。
 
+M5.2 只允许 `PROMOTED` Candidate 对应的 verified Finding 进入报告草稿服务。代码位置、请求/响应、复现和影响章节都必须引用 Finding 的 Evidence Bundle；缺失、越界、损坏或 Target 版本不一致时不创建 Report。生成的本地 Markdown/JSON 始终保持 `draft`，人工批准、外部导出与 Submission 是后续独立状态和 Approval Gate。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

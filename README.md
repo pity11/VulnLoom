@@ -47,6 +47,7 @@ VulnLoom/
 │   ├── hypotheses/         # Deterministic Candidate generation
 │   ├── ingestion/          # Archive, Git, and OCI target ingestion
 │   ├── policy/             # Scope and approval enforcement
+│   ├── reporting/          # Evidence-consistent offline report drafts
 │   ├── runners/            # Offline and Docker sandbox runners
 │   ├── storage/            # Event and validation persistence
 │   ├── validation/         # Plans, orchestration, and deterministic judging
@@ -57,7 +58,7 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, LLM-backed agent runtime, report exporters, disclosure adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
+An HTTP API, LLM-backed agent runtime, disclosure submission adapters, prompts, and benchmark suites are planned components; they are not present in the current tree.
 
 ## First end-to-end path
 
@@ -75,7 +76,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, and independent counterevidence review. The report-draft stage remains planned work.
+The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, and offline Evidence-backed report drafts. Human approval and external disclosure remain separate future stages.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -188,6 +189,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Persists STARTED/COMPLETED SQLite checkpoints, returns completed outcomes idempotently, and refuses unfinished automatic replay.
 - Performs no target execution, Broker call, network access, report submission, or Finding promotion. The final promotion gate separately rechecks current Scope, reproduced-run Evidence coverage, Critic binding, and duplicate review.
 
+### M5.2: Evidence-consistent offline report drafts
+
+- Seals the Finding, promoted Candidate, approved EvidenceBundle, Scope version, channel, bounded narrative, and exact section citations into a content-addressed `ReportDraftPlan`.
+- Requires code-location, request/response, reproduction, and impact claims to cite Evidence IDs from the Finding's bundle; every bundled Evidence object is rechecked for no-follow access, size, digest, and Target version.
+- Redacts report text before persistence, escapes active HTML and Markdown image/link syntax, and never copies Evidence bodies into the draft.
+- Renders deterministic generic, EduSRC, CNVD, vendor, and CVE-draft headings to immutable local Markdown and JSON artifacts.
+- Uses STARTED/COMPLETED SQLite checkpoints, content-addressed artifact directories, bounded writes, idempotent completed replay, fail-closed recovery, and temporary-output cleanup.
+- Produces only `draft` review status. It has no network adapter, platform credential, approval mutation, or submission path.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -260,6 +270,6 @@ vulnloom --db .vulnloom/events.db \
 
 VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
 
-Live Docker/Broker validation and the deterministic Critic are currently exposed only through library and integration-test paths, not a production CLI or HTTP API. The rootless Linux and OS-level egress admission gate passes. Report generation, disclosure/CVE workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation, the deterministic Critic, and offline report drafting are currently exposed through library paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. Human report approval, external disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

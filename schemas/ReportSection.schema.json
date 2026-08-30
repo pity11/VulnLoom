@@ -1,0 +1,43 @@
+{
+  "$defs": {
+    "ReportSectionKind": {
+      "enum": [
+        "summary",
+        "code_location",
+        "request_response",
+        "reproduction",
+        "impact",
+        "remediation"
+      ],
+      "title": "ReportSectionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/ReportSectionKind"
+    },
+    "text": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "kind",
+    "text"
+  ],
+  "title": "ReportSection",
+  "type": "object"
+}

@@ -88,6 +88,8 @@ M5.1 先实现不依赖 LLM 的可信确定性 reducer。封存的 `CriticPlan` 
 
 只接收 Finding 和脱敏 Evidence Bundle，生成报告草稿；不连接目标，不持有提交凭据。
 
+M5.2 先由可信离线服务完成一致性门禁和确定性渲染。`ReportDraftPlan` 绑定 Finding、Candidate、Evidence Bundle、Scope 和逐节引用；代码位置、请求/响应、复现及影响结论均必须反向解析到 Bundle 内的 Evidence ID。服务只读取已脱敏 Evidence 并输出内容寻址的本地 Markdown/JSON，不向 Reporter 暴露 Evidence 正文、网络、披露凭据或状态提升权限。
+
 ## 5. Tool Broker
 
 Worker 不直接调用宿主 Shell。首期工具接口应保持狭窄：

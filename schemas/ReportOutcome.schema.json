@@ -1,0 +1,266 @@
+{
+  "$defs": {
+    "RedactionStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "RedactionStatus",
+      "type": "string"
+    },
+    "Report": {
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "format": "uuid",
+          "title": "Report Id",
+          "type": "string"
+        },
+        "draft_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Draft Plan Id",
+          "type": "string"
+        },
+        "finding_id": {
+          "format": "uuid",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evidence_bundle_id": {
+          "format": "uuid",
+          "title": "Evidence Bundle Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "channel": {
+          "$ref": "#/$defs/ReportChannel"
+        },
+        "version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "reproduction": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reproduction",
+          "type": "array"
+        },
+        "impact": {
+          "minLength": 1,
+          "title": "Impact",
+          "type": "string"
+        },
+        "remediation": {
+          "minLength": 1,
+          "title": "Remediation",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/ReportSection"
+          },
+          "maxItems": 32,
+          "minItems": 6,
+          "title": "Sections",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "redaction_status": {
+          "$ref": "#/$defs/RedactionStatus",
+          "default": "passed"
+        },
+        "review_status": {
+          "$ref": "#/$defs/ReportReviewStatus",
+          "default": "draft"
+        }
+      },
+      "required": [
+        "report_id",
+        "draft_plan_id",
+        "finding_id",
+        "candidate_id",
+        "evidence_bundle_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "channel",
+        "title",
+        "summary",
+        "reproduction",
+        "impact",
+        "remediation",
+        "sections",
+        "evidence_refs"
+      ],
+      "title": "Report",
+      "type": "object"
+    },
+    "ReportArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "report_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Digest",
+          "type": "string"
+        },
+        "markdown_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Markdown Sha256",
+          "type": "string"
+        },
+        "json_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Json Sha256",
+          "type": "string"
+        },
+        "markdown_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/report\\.md$",
+          "title": "Markdown Ref",
+          "type": "string"
+        },
+        "json_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/report\\.json$",
+          "title": "Json Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_digest",
+        "markdown_sha256",
+        "json_sha256",
+        "markdown_ref",
+        "json_ref"
+      ],
+      "title": "ReportArtifact",
+      "type": "object"
+    },
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    },
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    },
+    "ReportSection": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ReportSectionKind"
+        },
+        "text": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "title": "ReportSection",
+      "type": "object"
+    },
+    "ReportSectionKind": {
+      "enum": [
+        "summary",
+        "code_location",
+        "request_response",
+        "reproduction",
+        "impact",
+        "remediation"
+      ],
+      "title": "ReportSectionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "report": {
+      "$ref": "#/$defs/Report"
+    },
+    "artifact": {
+      "$ref": "#/$defs/ReportArtifact"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "report",
+    "artifact",
+    "completed_at"
+  ],
+  "title": "ReportOutcome",
+  "type": "object"
+}

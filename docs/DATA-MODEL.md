@@ -253,6 +253,8 @@ redaction_status: passed | failed
 review_status: draft | approved | exported | submitted
 ```
 
+M5.2 的 `ReportDraftPlan` 额外绑定 Finding/Candidate/EvidenceBundle 内容摘要、Scope 身份与版本、渠道、截止时间和逐节引用。`Report.sections` 明确区分 summary、code location、request/response、reproduction、impact 和 remediation；除摘要与修复建议外的事实性章节必须引用 Finding Bundle 内的 Evidence ID。新建 Report 的确定性 UUID 来自 plan digest，并且只能以 `draft`/`passed` 状态落盘。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
