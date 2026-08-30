@@ -85,6 +85,8 @@ def test_profile_factories_are_hardened_and_deterministic():
         profile.read_only_root and not profile.capabilities
         for profile in (static, validation, report)
     )
+    reparsed = SandboxProfile.model_validate(static.model_dump(mode="python"))
+    assert sandbox_profile_digest(reparsed) == sandbox_profile_digest(static)
 
 
 @pytest.mark.parametrize(

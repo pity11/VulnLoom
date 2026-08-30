@@ -1,6 +1,15 @@
 """Typed sandbox profiles and an offline lifecycle runner."""
 
 from .base import SandboxRunner
+from .docker import (
+    DockerBackendError,
+    DockerCliBackend,
+    DockerEnginePolicy,
+    DockerSandboxRunner,
+    DockerTool,
+    RegisteredObjectStore,
+    RunnerCleanupFailed,
+)
 from .environment import (
     UnsafeEnvironmentName,
     UnsafeEnvironmentValue,
@@ -27,13 +36,17 @@ from .offline import (
     OfflineOutcome,
     OfflineSandboxRunner,
     OfflineScenario,
-    RunnerIdempotencyConflict,
-    RunnerRejected,
 )
+from .preflight import RunnerIdempotencyConflict, RunnerRejected
 from .profiles import report_profile, static_profile, validation_profile
 
 __all__ = [
     "CleanupReport",
+    "DockerBackendError",
+    "DockerCliBackend",
+    "DockerEnginePolicy",
+    "DockerSandboxRunner",
+    "DockerTool",
     "MountKind",
     "NetworkGrant",
     "NetworkMode",
@@ -41,6 +54,7 @@ __all__ = [
     "OfflineSandboxRunner",
     "OfflineScenario",
     "RunnerCheckpoint",
+    "RunnerCleanupFailed",
     "RunnerIdempotencyConflict",
     "RunnerRejected",
     "SandboxLimits",
@@ -51,6 +65,7 @@ __all__ = [
     "SandboxRunResult",
     "SandboxRunStatus",
     "SandboxRunner",
+    "RegisteredObjectStore",
     "ToolInvocation",
     "UnsafeEnvironmentName",
     "UnsafeEnvironmentValue",

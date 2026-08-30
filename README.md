@@ -128,7 +128,6 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Binds every Worker task to an exact Target version, Scope identity, policy digest, and sandbox-profile digest.
 - Accepts only typed registered-tool invocations with argument arrays and logical working directories—never arbitrary shell command strings.
 - Provides a `SandboxRunner` adapter contract and a deterministic offline implementation for success, refusal, timeout, cancellation, resource exhaustion, checkpoint/resume, idempotency, and cleanup paths.
-- Does not claim process, filesystem, or network isolation yet; those guarantees require the future rootless Docker adapter and real integration tests.
 
 ### M4.2: Tool Broker and typed HTTP
 
@@ -140,6 +139,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Returns only policy records, URL digests, peer metadata, Evidence IDs, and budget usage; response bodies and sensitive headers stay outside the normal result path.
 - Uses deterministic offline resolver and transport adapters. No real HTTP request or network isolation claim is introduced in M4.2.
 
+### M4.3: ephemeral Docker Runner (in progress)
+
+- Adds a trusted Docker CLI adapter that uses argument arrays only; Workers never receive the Docker socket or the host process environment.
+- Resolves content mounts through a Control Plane-owned registry, pins exact image IDs, disables pulls, and replaces image entrypoints with registered absolute tool executables.
+- Applies and re-inspects a read-only root, non-root UID/GID, dropped capabilities, `no-new-privileges`, seccomp, no network, resource limits, read-only content, and bounded `noexec,nosuid,nodev` tmpfs mounts.
+- Kills timed-out Workers, removes containers and anonymous storage, and refuses to report a normal result unless absence is verified.
+- Includes opt-in real-container probes for isolation, secret non-inheritance, timeout, and cleanup.
+- Requires a rootless daemon by default. The current Docker Desktop engine is rootful, so its integration tests use an explicit test-only exception and do not satisfy the production rootless criterion.
+- Rejects `target_only` profiles until a destination-enforcing egress adapter exists; typed HTTP remains offline in this slice.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -149,6 +158,9 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest --cov=vulnloom --cov-report=term-missing
 .venv/bin/python scripts/export_schemas.py
+
+# Optional; requires a local Alpine 3.22 image and Docker engine.
+VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integration.py
 ```
 
 ## Basic usage

@@ -136,3 +136,19 @@ The first typed tool is `http.request`. Request bodies and credentials cross the
 opaque content digests. Each redirect is treated as a new policy decision and DNS resolution; the
 transport must connect to the pinned IP and report the actual peer. The current resolver and
 transport are deterministic offline adapters and never open a socket.
+
+## 10. M4.3 Docker Runner boundary
+
+`DockerSandboxRunner` is a trusted adapter: only this process talks to the Docker daemon. A Worker
+never receives the Docker socket, host environment, image tag, host mount path, or an arbitrary
+entrypoint. Image IDs, content objects, and absolute in-image tool prefixes come from Control
+Plane-owned registries.
+
+The adapter currently supports network-disabled runs. It creates the container without starting it,
+inspects the resulting Docker configuration, and only then starts the registered tool. Rootless mode
+and seccomp are engine preconditions by default. A terminal result is returned only after the
+container is removed and an inspection confirms absence.
+
+`TARGET_ONLY` is deliberately rejected. A Docker bridge alone is not a destination egress policy,
+and the typed HTTP adapters remain offline. M4.3 is therefore still in progress until a rootless
+Linux engine and destination-enforcing network adapter pass the integration suite.

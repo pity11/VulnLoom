@@ -39,9 +39,11 @@ VulnLoom 假定以下内容都可能恶意：
 - 不能读取原始 Cookie、Authorization 和身份数据。
 - 输出只能写到该 Report 的临时目录。
 
-M4.1 已将这些要求编码为类型化 Profile 与 Runner preflight，但当前只提供不执行代码的离线
-Runner。Profile 中的 `read_only_root`、network mode 和 cleanup report 是未来 adapter 必须落实
-并用真实集成测试证明的合同，不是当前宿主隔离能力声明。
+M4.1 已将这些要求编码为类型化 Profile 与 Runner preflight。M4.3 的 Docker adapter 已在真实
+容器中证明 network-none Profile 的非 root、只读根、只读源码、cap-drop、NoNewPrivs、限额
+tmpfs、无默认路由、无 Docker socket、超时终止与容器清理。当前 Docker Desktop daemon 不是
+rootless，测试使用显式的 test-only 例外；生产默认门禁仍拒绝非 rootless daemon。Target-only
+egress 尚未实现，Runner 会 fail-closed 拒绝该模式。
 
 ## 3. 网络策略
 
@@ -57,7 +59,8 @@ OAST、Webhook 或外部回连使用一次性 Approval 和一次性 callback 标
 
 M4.2 的 Broker 已实现逐跳 Scope/Profile 判定、离线 DNS pin 语义、peer IP 一致性、危险地址
 拒绝和 redirect 重新授权。当前 `StaticResolver`/`OfflineHttpTransport` 不创建真实连接；因此
-这些测试不能替代 M4.3 的 socket、容器 egress、DNS rebinding 和宿主网关集成测试。
+这些测试不能替代真实 socket、target-only egress、DNS rebinding 和宿主网关集成测试。M4.3
+已证明 network-none 容器没有默认路由；更细粒度的目标地址 allowlist 仍未完成。
 
 ## 4. 凭据策略
 

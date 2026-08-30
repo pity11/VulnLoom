@@ -112,6 +112,19 @@ M4.1 证明的是协议、状态与 fail-closed 门禁，不声称已经实现�
 M4.2 证明的是 Broker 决策、typed HTTP 数据流和离线网络策略。真实 socket pinning、容器
 egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Docker/HTTP adapter 集成测试证明。
 
+### M4.3：临时 Docker Runner（进行中）
+
+- 已实现可信 Docker CLI adapter；Worker 不获得 Docker socket、宿主环境、镜像 tag 或宿主路径。
+- 镜像绑定 exact image ID 且禁止 pull；内容挂载只由可信 object registry 解析并强制只读。
+- 已实现并在创建后复核非 root、只读根、cap-drop、NoNewPrivs、network-none、CPU/内存/PID/
+  open-files 限额，以及有界 `noexec,nosuid,nodev` tmpfs。
+- 已用真实 Alpine 容器验证无默认路由、无 Docker socket、无宿主密钥继承、只读边界、scratch
+  写入、正常清理，以及墙钟超时后的 kill 与清理。
+- 生产默认要求 rootless daemon；当前 Docker Desktop 仅有 seccomp/cgroup namespace，没有
+  rootless 标志，因此本机测试例外不能满足 rootless 验收条件。
+- `TARGET_ONLY` 暂时 fail-closed 拒绝。完成 M4.3 仍需 rootless Linux 集成环境、目标级 egress
+  enforcement、真实 HTTP socket pinning/DNS rebinding/宿主网关测试，以及 Evidence 单向导出。
+
 ## Phase 3：报告闭环
 
 目标：把 Finding 转换为一致、脱敏、可人工提交的报告。

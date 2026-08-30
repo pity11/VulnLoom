@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnloom"
-version = "0.6.0"
+version = "0.7.0"
 description = "Evidence-first agent framework for authorized vulnerability research"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -30,6 +30,7 @@ where = ["src"]
 addopts = "-q --strict-markers"
 testpaths = ["tests"]
 markers = [
+    "docker_integration: optional integration test requiring a local Docker engine",
     "semgrep_integration: optional integration test requiring a local Semgrep binary",
 ]
 
