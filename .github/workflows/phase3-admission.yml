@@ -23,8 +23,28 @@ jobs:
       - name: Install rootless Docker prerequisites
         run: |
           sudo systemctl disable --now docker.service docker.socket
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+            -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          architecture="$(dpkg --print-architecture)"
+          sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+          Types: deb
+          URIs: https://download.docker.com/linux/ubuntu
+          Suites: noble
+          Components: stable
+          Architectures: ${architecture}
+          Signed-By: /etc/apt/keyrings/docker.asc
+          EOF
           sudo apt-get update
-          sudo apt-get install --yes dbus-user-session docker-ce-rootless-extras uidmap
+          docker_version="5:29.7.2-1~ubuntu.24.04~noble"
+          sudo apt-get install --yes \
+            dbus-user-session \
+            docker-ce="${docker_version}" \
+            docker-ce-cli="${docker_version}" \
+            docker-ce-rootless-extras="${docker_version}" \
+            uidmap
+          sudo systemctl disable --now docker.service docker.socket
           if ! grep -q "^${USER}:" /etc/subuid; then
             sudo usermod --add-subuids 100000-165535 "$USER"
           fi
