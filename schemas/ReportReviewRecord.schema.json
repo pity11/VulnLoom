@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    },
+    "ReviewDecisionKind": {
+      "enum": [
+        "approve",
+        "request_changes",
+        "reject"
+      ],
+      "title": "ReviewDecisionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "report_version": {
+      "minimum": 1,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "reviewed_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reviewed Report Digest",
+      "type": "string"
+    },
+    "resulting_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resulting Report Digest",
+      "type": "string"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/ReviewDecisionKind"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    },
+    "diff_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Diff Id"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "resulting_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    }
+  },
+  "required": [
+    "review_id",
+    "plan_id",
+    "command_id",
+    "report_id",
+    "report_family_id",
+    "report_version",
+    "reviewed_report_digest",
+    "resulting_report_digest",
+    "reviewer",
+    "decision",
+    "rationale_code",
+    "decided_at",
+    "expires_at",
+    "resulting_status"
+  ],
+  "title": "ReportReviewRecord",
+  "type": "object"
+}

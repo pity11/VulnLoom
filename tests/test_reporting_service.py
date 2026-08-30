@@ -30,6 +30,7 @@ from vulnloom.reporting import (
     ReportIdempotencyConflict,
     ReportRecoveryRequired,
     ReportRejected,
+    diff_reports,
     domain_object_digest,
 )
 
@@ -221,6 +222,56 @@ def test_channel_mapping_changes_only_deterministic_headings(
     markdown = artifacts.read_markdown(outcome.artifact)
     store.close()
     assert f"## {heading}" in markdown
+
+
+def test_report_drafting_supports_digest_bound_consecutive_revisions(
+    tmp_path, candidate, approved_scope, now
+):
+    evidence_store, evidence, promoted, finding, bundle = _finding_inputs(
+        tmp_path, candidate, approved_scope, now
+    )
+    first_plan = _plan(now, promoted, finding, bundle)
+    service, store, artifacts = _service(tmp_path, approved_scope, evidence_store)
+    first = service.draft(
+        finding, promoted, bundle, evidence, first_plan, now=first_plan.created_at
+    )
+    sections = list(_sections(*bundle.evidence_refs))
+    sections[0] = sections[0].model_copy(
+        update={"text": "The reachable lookup path lacks a tenant predicate."}
+    )
+    second_plan = _plan(
+        now,
+        promoted,
+        finding,
+        bundle,
+        sections=tuple(sections),
+        key="report:2",
+        version=2,
+        previous_report_digest=domain_object_digest(first.report),
+    )
+    with pytest.raises(ReportRejected, match="predecessor"):
+        service.draft(
+            finding,
+            promoted,
+            bundle,
+            evidence,
+            second_plan,
+            now=second_plan.created_at,
+        )
+    second = service.draft(
+        finding,
+        promoted,
+        bundle,
+        evidence,
+        second_plan,
+        now=second_plan.created_at,
+        previous_report=first.report,
+    )
+    store.close()
+    assert second.report.report_family_id == first.report.report_family_id
+    assert second.report.version == 2
+    assert diff_reports(first.report, second.report).changes
+    assert artifacts.read_report(second.artifact) == second.report
 
 
 def test_report_plan_requires_all_sections_and_evidence_backing(

@@ -189,7 +189,19 @@ M5.1 的反证 disposition 是可信控制面封存的类型化观察，不从 W
 - SQLite 保存 STARTED/COMPLETED checkpoint；完成结果幂等返回，未完成执行拒绝自动重放，写入失败清理临时目录。
 - 新报告固定为 `draft`，不包含人工批准、平台凭据、网络 adapter 或 Submission；发送到外部平台仍必须经过独立 Approval Gate。
 
-M5.2 的“本地导出”只表示生成供人工审阅的文件，不把 Report 状态提升为 `exported`，也不产生任何外部副作用。下一里程碑将实现人工审阅/diff 与显式批准状态机。
+M5.2 的“本地导出”只表示生成供人工审阅的文件，不把 Report 状态提升为 `exported`，也不产生任何外部副作用。M5.3 在此草稿上执行显式人工决策。
+
+### M5.3：人工审阅、版本 Diff 与批准后本地导出（已完成首版）
+
+- 相同 Finding/渠道使用稳定 report family；第 2 版起必须绑定紧邻前一版的完整 Report digest。
+- 结构化 Diff 确定性比较标题、逐节文本和 Evidence 引用；拒绝无变化、跨 family、跳版和未脱敏输入。
+- `ReportReviewPlan`/`Command`/`Record` 绑定 Report、只读 artifact、Evidence Bundle、Scope、reviewer、Diff、决策截止时间和批准过期时间。
+- 显式状态机只允许 `DRAFT → HUMAN_APPROVED | CHANGES_REQUESTED | REJECTED`，以及 `HUMAN_APPROVED → EXPORTED`。
+- Report 内容、引用或 artifact 任一变化都会使旧审阅计划失效；同一计划的冲突决定 fail-closed，未完成 checkpoint 不自动重放。
+- 批准前重新验证 Scope、Evidence 和 artifact；批准过期后拒绝本地导出。
+- `report-review-diff`、`report-review-offline` 和 `report-export-local` 均为离线路径，不包含网络、平台 token 或 Submission。
+
+M5.3 的 `EXPORTED` 仅表示批准后的本地 Markdown/JSON 产物。`SUBMITTED` 没有可达状态迁移；未来任何外部发送仍必须增加独立 adapter，并验证精确、未过期的 `SUBMIT_REPORT` Approval。
 
 ## Phase 4：评测与扩展
 

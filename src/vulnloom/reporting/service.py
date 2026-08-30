@@ -55,9 +55,16 @@ class DeterministicReportService:
         plan: ReportDraftPlan,
         *,
         now: datetime,
+        previous_report: Report | None = None,
     ) -> ReportOutcome:
         catalog = self._preflight(
-            finding, candidate, evidence_bundle, evidence, plan, now=now
+            finding,
+            candidate,
+            evidence_bundle,
+            evidence,
+            plan,
+            now=now,
+            previous_report=previous_report,
         )
         claim = self.store.claim(plan, now=now)
         if not claim.created:
@@ -87,6 +94,7 @@ class DeterministicReportService:
         )
         report = Report(
             report_id=uuid5(NAMESPACE_URL, f"vulnloom:report:{plan.plan_id}"),
+            report_family_id=plan.report_family_id,
             draft_plan_id=plan.plan_id,
             finding_id=finding.finding_id,
             candidate_id=candidate.candidate_id,
@@ -95,6 +103,7 @@ class DeterministicReportService:
             scope_id=candidate.scope_id,
             scope_version=candidate.scope_version,
             channel=plan.channel,
+            version=plan.version,
             title=self.redactor.text(plan.title),
             summary=by_kind[ReportSectionKind.SUMMARY].text,
             reproduction=reproduction,
@@ -124,6 +133,7 @@ class DeterministicReportService:
         plan: ReportDraftPlan,
         *,
         now: datetime,
+        previous_report: Report | None,
     ) -> dict[str, Evidence]:
         if candidate.state is not CandidateState.PROMOTED or finding.state != "verified":
             raise ReportRejected("Report drafting requires a verified promoted Finding")
@@ -135,6 +145,21 @@ class DeterministicReportService:
             raise ReportRejected("ReportDraftPlan is not currently valid")
         if evidence_bundle.sealed_at > plan.created_at:
             raise ReportRejected("ReportDraftPlan predates its EvidenceBundle")
+        if plan.version == 1:
+            if previous_report is not None:
+                raise ReportRejected("the first Report version cannot have a predecessor")
+        elif (
+            previous_report is None
+            or previous_report.report_family_id != plan.report_family_id
+            or previous_report.version + 1 != plan.version
+            or domain_object_digest(previous_report) != plan.previous_report_digest
+            or previous_report.finding_id != finding.finding_id
+            or previous_report.candidate_id != candidate.candidate_id
+            or previous_report.evidence_bundle_id != evidence_bundle.bundle_id
+            or previous_report.scope_id != self.scope.scope_id
+            or previous_report.scope_version != self.scope.version
+        ):
+            raise ReportRejected("Report revision predecessor binding is invalid")
         if (
             candidate.scope_id != self.scope.scope_id
             or candidate.scope_version != self.scope.version

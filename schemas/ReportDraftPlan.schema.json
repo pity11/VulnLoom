@@ -60,6 +60,29 @@
       "title": "Plan Id",
       "type": "string"
     },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "previous_report_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Report Digest"
+    },
     "finding_id": {
       "format": "uuid",
       "title": "Finding Id",
@@ -143,6 +166,8 @@
   },
   "required": [
     "plan_id",
+    "report_family_id",
+    "version",
     "finding_id",
     "finding_digest",
     "candidate_id",

@@ -13,6 +13,9 @@ from vulnloom.domain.models import (
     ArtifactKind,
     Engagement,
     EngagementState,
+    Evidence,
+    EvidenceBundle,
+    Report,
     Scope,
     ScopeState,
     TargetSnapshot,
@@ -21,6 +24,20 @@ from vulnloom.domain.models import (
 from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
+from vulnloom.reporting import (
+    HumanReportReviewService,
+    LocalReportExportService,
+    ReportArtifact,
+    ReportArtifactStore,
+    ReportDiff,
+    ReportExportPlan,
+    ReportExportStore,
+    ReportReviewCommand,
+    ReportReviewPlan,
+    ReportReviewRecord,
+    ReportReviewStore,
+    diff_reports,
+)
 from vulnloom.runners import OfflineSandboxRunner
 from vulnloom.storage.events import Event, EventStore
 from vulnloom.validation import ValidationPlan, ValidationService, ValidationStore
@@ -298,6 +315,132 @@ def run_validation_offline(args: argparse.Namespace) -> int:
     return 0
 
 
+def show_report_diff(args: argparse.Namespace) -> int:
+    previous = Report.model_validate_json(Path(args.before).read_text(encoding="utf-8"))
+    current = Report.model_validate_json(Path(args.after).read_text(encoding="utf-8"))
+    result = diff_reports(previous, current)
+    print(result.model_dump_json(indent=2))
+    return 0
+
+
+def review_report_offline(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
+    artifact = ReportArtifact.model_validate_json(
+        Path(args.artifact_file).read_text(encoding="utf-8")
+    )
+    artifact_store = ReportArtifactStore(Path(args.report_store))
+    report = artifact_store.read_report(artifact)
+    bundle = EvidenceBundle.model_validate_json(
+        Path(args.evidence_bundle_file).read_text(encoding="utf-8")
+    )
+    evidence = tuple(
+        Evidence.model_validate(item)
+        for item in json.loads(Path(args.evidence_catalog_file).read_text(encoding="utf-8"))
+    )
+    plan = ReportReviewPlan.model_validate_json(
+        Path(args.review_plan_file).read_text(encoding="utf-8")
+    )
+    command = ReportReviewCommand.model_validate_json(
+        Path(args.review_command_file).read_text(encoding="utf-8")
+    )
+    previous = (
+        Report.model_validate_json(Path(args.previous_report_file).read_text(encoding="utf-8"))
+        if args.previous_report_file
+        else None
+    )
+    report_diff = (
+        ReportDiff.model_validate_json(Path(args.diff_file).read_text(encoding="utf-8"))
+        if args.diff_file
+        else None
+    )
+    with ReportReviewStore(Path(args.review_db)) as review_store:
+        outcome = HumanReportReviewService(
+            scope=scope,
+            evidence_store=EvidenceStore(Path(args.evidence_store)),
+            artifact_store=artifact_store,
+            store=review_store,
+        ).review(
+            report,
+            artifact,
+            bundle,
+            evidence,
+            plan,
+            command,
+            now=utc_now(),
+            previous_report=previous,
+            report_diff=report_diff,
+        )
+    summary = {
+        "mode": "offline_human_review",
+        "report_id": str(outcome.report.report_id),
+        "report_version": outcome.report.version,
+        "review_id": str(outcome.review.review_id),
+        "decision": outcome.review.decision.value,
+        "review_status": outcome.report.review_status.value,
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    event = Event(
+        engagement_id=scope.engagement_id,
+        event_type="ReportReviewed",
+        aggregate_id=str(outcome.report.report_id),
+        payload=summary,
+        idempotency_key=f"report:reviewed:{outcome.review.command_id}",
+    )
+    with _store(args.db) as event_store:
+        stored, event_created = event_store.append(event)
+    print(
+        json.dumps(
+            {"event_created": event_created, "review": summary, "event_id": str(stored.event_id)},
+            indent=2,
+        )
+    )
+    return 0
+
+
+def export_report_local(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
+    artifact = ReportArtifact.model_validate_json(
+        Path(args.artifact_file).read_text(encoding="utf-8")
+    )
+    artifact_store = ReportArtifactStore(Path(args.report_store))
+    report = artifact_store.read_report(artifact)
+    review = ReportReviewRecord.model_validate_json(
+        Path(args.review_record_file).read_text(encoding="utf-8")
+    )
+    plan = ReportExportPlan.model_validate_json(
+        Path(args.export_plan_file).read_text(encoding="utf-8")
+    )
+    with ReportExportStore(Path(args.export_db)) as export_store:
+        outcome = LocalReportExportService(
+            scope=scope,
+            artifact_store=artifact_store,
+            store=export_store,
+        ).export(report, artifact, review, plan, now=utc_now())
+    summary = {
+        "mode": "local_export_only",
+        "report_id": str(outcome.report.report_id),
+        "report_version": outcome.report.version,
+        "review_status": outcome.report.review_status.value,
+        "artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    event = Event(
+        engagement_id=scope.engagement_id,
+        event_type="ReportExported",
+        aggregate_id=str(outcome.report.report_id),
+        payload=summary,
+        idempotency_key=f"report:exported:{outcome.plan_id}",
+    )
+    with _store(args.db) as event_store:
+        stored, event_created = event_store.append(event)
+    print(
+        json.dumps(
+            {"event_created": event_created, "export": summary, "event_id": str(stored.event_id)},
+            indent=2,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
@@ -381,6 +524,34 @@ def build_parser() -> argparse.ArgumentParser:
     validation.add_argument("--validation-db", default=".vulnloom/validation.db")
     validation.add_argument("--evidence-store", default=".vulnloom/evidence")
     validation.set_defaults(handler=run_validation_offline)
+
+    report_diff = sub.add_parser("report-review-diff")
+    report_diff.add_argument("--before", required=True)
+    report_diff.add_argument("--after", required=True)
+    report_diff.set_defaults(handler=show_report_diff)
+
+    review = sub.add_parser("report-review-offline")
+    review.add_argument("--scope-file", required=True)
+    review.add_argument("--artifact-file", required=True)
+    review.add_argument("--evidence-bundle-file", required=True)
+    review.add_argument("--evidence-catalog-file", required=True)
+    review.add_argument("--review-plan-file", required=True)
+    review.add_argument("--review-command-file", required=True)
+    review.add_argument("--previous-report-file")
+    review.add_argument("--diff-file")
+    review.add_argument("--report-store", default=".vulnloom/reports")
+    review.add_argument("--evidence-store", default=".vulnloom/evidence")
+    review.add_argument("--review-db", default=".vulnloom/report-reviews.db")
+    review.set_defaults(handler=review_report_offline)
+
+    export = sub.add_parser("report-export-local")
+    export.add_argument("--scope-file", required=True)
+    export.add_argument("--artifact-file", required=True)
+    export.add_argument("--review-record-file", required=True)
+    export.add_argument("--export-plan-file", required=True)
+    export.add_argument("--report-store", default=".vulnloom/reports")
+    export.add_argument("--export-db", default=".vulnloom/report-exports.db")
+    export.set_defaults(handler=export_report_local)
     return parser
 
 

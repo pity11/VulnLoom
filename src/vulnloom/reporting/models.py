@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Annotated, Self
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import AwareDatetime, Field, model_validator
 
@@ -22,6 +22,9 @@ Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 class ReportDraftPlan(DomainModel):
     plan_id: Digest
+    report_family_id: UUID
+    version: int = Field(ge=1)
+    previous_report_digest: Digest | None = None
     finding_id: UUID
     finding_digest: Digest
     candidate_id: UUID
@@ -44,6 +47,14 @@ class ReportDraftPlan(DomainModel):
             raise ValueError("ReportDraftPlan content digest mismatch")
         if self.deadline <= self.created_at:
             raise ValueError("ReportDraftPlan deadline must be after creation")
+        expected_family = uuid5(
+            NAMESPACE_URL,
+            f"vulnloom:report-family:{self.finding_id}:{self.channel.value}",
+        )
+        if self.report_family_id != expected_family:
+            raise ValueError("ReportDraftPlan family does not match Finding and channel")
+        if (self.version == 1) != (self.previous_report_digest is None):
+            raise ValueError("only the first Report version may omit a previous digest")
         counts = {kind: 0 for kind in ReportSectionKind}
         for section in self.sections:
             counts[section.kind] += 1
@@ -76,8 +87,17 @@ class ReportDraftPlan(DomainModel):
         created_at: datetime,
         deadline: datetime,
         idempotency_key: str,
+        version: int = 1,
+        previous_report_digest: str | None = None,
     ) -> ReportDraftPlan:
+        report_family_id = uuid5(
+            NAMESPACE_URL,
+            f"vulnloom:report-family:{finding_id}:{channel.value}",
+        )
         values = {
+            "report_family_id": report_family_id,
+            "version": version,
+            "previous_report_digest": previous_report_digest,
             "finding_id": finding_id,
             "finding_digest": finding_digest,
             "candidate_id": candidate_id,

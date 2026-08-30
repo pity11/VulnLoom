@@ -37,7 +37,19 @@ from vulnloom.domain.models import (
 from vulnloom.domain.protocol import TaskEnvelope, WorkerResult
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
-from vulnloom.reporting import ReportArtifact, ReportDraftPlan, ReportOutcome
+from vulnloom.reporting import (
+    ReportArtifact,
+    ReportDiff,
+    ReportDraftPlan,
+    ReportExportOutcome,
+    ReportExportPlan,
+    ReportFieldChange,
+    ReportOutcome,
+    ReportReviewCommand,
+    ReportReviewOutcome,
+    ReportReviewPlan,
+    ReportReviewRecord,
+)
 from vulnloom.runners import (
     RunnerCheckpoint,
     SandboxProfile,
@@ -73,6 +85,14 @@ MODELS = (
     ReportDraftPlan,
     ReportArtifact,
     ReportOutcome,
+    ReportFieldChange,
+    ReportDiff,
+    ReportReviewPlan,
+    ReportReviewCommand,
+    ReportReviewRecord,
+    ReportReviewOutcome,
+    ReportExportPlan,
+    ReportExportOutcome,
     DisclosureCase,
     TaskEnvelope,
     WorkerResult,

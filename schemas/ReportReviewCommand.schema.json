@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "ReviewDecisionKind": {
+      "enum": [
+        "approve",
+        "request_changes",
+        "reject"
+      ],
+      "title": "ReviewDecisionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/ReviewDecisionKind"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "plan_id",
+    "report_id",
+    "report_digest",
+    "reviewer",
+    "decision",
+    "rationale_code",
+    "decided_at"
+  ],
+  "title": "ReportReviewCommand",
+  "type": "object"
+}

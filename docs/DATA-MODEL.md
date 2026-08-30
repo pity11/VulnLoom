@@ -250,10 +250,12 @@ impact: string
 remediation: string
 evidence_refs: []
 redaction_status: passed | failed
-review_status: draft | approved | exported | submitted
+review_status: draft | changes_requested | rejected | human_approved | exported | submitted
 ```
 
 M5.2 的 `ReportDraftPlan` 额外绑定 Finding/Candidate/EvidenceBundle 内容摘要、Scope 身份与版本、渠道、截止时间和逐节引用。`Report.sections` 明确区分 summary、code location、request/response、reproduction、impact 和 remediation；除摘要与修复建议外的事实性章节必须引用 Finding Bundle 内的 Evidence ID。新建 Report 的确定性 UUID 来自 plan digest，并且只能以 `draft`/`passed` 状态落盘。
+
+M5.3 增加稳定的 `report_family_id`、连续 version/previous digest、`ReportDiff`、`ReportReviewPlan`、`ReportReviewCommand`、`ReportReviewRecord` 与 `ReportExportPlan`。批准记录同时绑定被审阅的 draft digest 和状态变化后的 digest，并设置明确过期时间；`EXPORTED` 只能由仍有效的 `HUMAN_APPROVED` 记录产生。不存在到 `SUBMITTED` 的领域转换。
 
 ## 3. 领域事件
 

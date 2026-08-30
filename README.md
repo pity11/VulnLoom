@@ -76,7 +76,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, and offline Evidence-backed report drafts. Human approval and external disclosure remain separate future stages.
+The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, and approved local export. External disclosure remains a separate future stage.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -198,6 +198,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Uses STARTED/COMPLETED SQLite checkpoints, content-addressed artifact directories, bounded writes, idempotent completed replay, fail-closed recovery, and temporary-output cleanup.
 - Produces only `draft` review status. It has no network adapter, platform credential, approval mutation, or submission path.
 
+### M5.3: human review, revision diff, and approved local export
+
+- Groups report revisions into a stable Finding/channel family and binds every version after the first to the exact preceding Report digest.
+- Produces deterministic structured diffs for consecutive redacted revisions, including text and Evidence-reference changes; unchanged, unrelated, skipped, or unredacted revisions are rejected.
+- Seals the exact Report digest, artifact digest, EvidenceBundle, Scope version, reviewer, diff, decision deadline, and approval expiry into typed review protocol objects.
+- Applies only explicit `approve`, `request_changes`, or `reject` commands through the Control Plane state machine. Any content or citation change invalidates the sealed request.
+- Allows local export only from `human_approved`, before approval expiry, with an exact ReviewRecord and artifact match. Local export writes a new immutable Markdown/JSON artifact with `exported` status.
+- Adds offline `report-review-diff`, `report-review-offline`, and `report-export-local` CLI paths. None has a network or Submission adapter.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -258,9 +267,25 @@ vulnloom --db .vulnloom/events.db \
   --candidate-set-id <candidate-set-sha256> --candidate-id <candidate-uuid> \
   --plan-file validation-plan.json --validation-db .vulnloom/validation.db \
   --evidence-store .vulnloom/evidence
+
+# Compare two consecutive, already-redacted Report revisions without network access.
+vulnloom report-review-diff --before report-v1.json --after report-v2.json
+
+# Apply a pre-sealed human decision to an immutable local Report artifact.
+vulnloom --db .vulnloom/events.db report-review-offline \
+  --scope-file scope.json --artifact-file report-artifact.json \
+  --evidence-bundle-file evidence-bundle.json --evidence-catalog-file evidence.json \
+  --review-plan-file review-plan.json --review-command-file review-command.json
+
+# Mark an exactly approved Report as locally exported. This never sends it anywhere.
+vulnloom --db .vulnloom/events.db report-export-local \
+  --scope-file scope.json --artifact-file approved-artifact.json \
+  --review-record-file review-record.json --export-plan-file export-plan.json
 ```
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
+
+The report review commands accept only sealed JSON contracts and content-addressed local objects. `report-export-local` changes the Report to `exported` only inside the local store; it has no destination URL, disclosure adapter, or `submitted` transition.
 
 ## Model credential boundary
 
@@ -270,6 +295,6 @@ vulnloom --db .vulnloom/events.db \
 
 VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, and opt-in local probes for real containers, sockets, and full validation composition.
 
-Live Docker/Broker validation, the deterministic Critic, and offline report drafting are currently exposed through library paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. Human report approval, external disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

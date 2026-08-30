@@ -152,7 +152,9 @@ class RedactionStatus(StrEnum):
 
 class ReportReviewStatus(StrEnum):
     DRAFT = "draft"
-    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
+    REJECTED = "rejected"
+    HUMAN_APPROVED = "human_approved"
     EXPORTED = "exported"
     SUBMITTED = "submitted"
 
@@ -440,6 +442,7 @@ class ReportSection(DomainModel):
 
 class Report(DomainModel):
     report_id: UUID
+    report_family_id: UUID
     draft_plan_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     finding_id: UUID
     candidate_id: UUID
@@ -466,6 +469,12 @@ class Report(DomainModel):
         expected_id = uuid5(NAMESPACE_URL, f"vulnloom:report:{self.draft_plan_id}")
         if self.report_id != expected_id:
             raise ValueError("Report identity does not match its sealed draft plan")
+        expected_family = uuid5(
+            NAMESPACE_URL,
+            f"vulnloom:report-family:{self.finding_id}:{self.channel.value}",
+        )
+        if self.report_family_id != expected_family:
+            raise ValueError("Report family does not match Finding and channel")
         counts = {kind: 0 for kind in ReportSectionKind}
         for section in self.sections:
             counts[section.kind] += 1
@@ -480,8 +489,19 @@ class Report(DomainModel):
         )
         if referenced != self.evidence_refs:
             raise ValueError("Report Evidence index does not match section citations")
-        if self.review_status is not ReportReviewStatus.DRAFT:
-            raise ValueError("new Reports must begin in draft review status")
+        by_kind = {section.kind: section for section in self.sections}
+        reproduction = tuple(
+            section.text
+            for section in self.sections
+            if section.kind is ReportSectionKind.REPRODUCTION
+        )
+        if (
+            self.summary != by_kind[ReportSectionKind.SUMMARY].text
+            or self.reproduction != reproduction
+            or self.impact != by_kind[ReportSectionKind.IMPACT].text
+            or self.remediation != by_kind[ReportSectionKind.REMEDIATION].text
+        ):
+            raise ValueError("Report summary fields do not match structured sections")
         if self.redaction_status is not RedactionStatus.PASSED:
             raise ValueError("Report draft must pass redaction before persistence")
         return self

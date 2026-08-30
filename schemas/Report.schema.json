@@ -22,7 +22,9 @@
     "ReportReviewStatus": {
       "enum": [
         "draft",
-        "approved",
+        "changes_requested",
+        "rejected",
+        "human_approved",
         "exported",
         "submitted"
       ],
@@ -76,6 +78,11 @@
     "report_id": {
       "format": "uuid",
       "title": "Report Id",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
       "type": "string"
     },
     "draft_plan_id": {
@@ -177,6 +184,7 @@
   },
   "required": [
     "report_id",
+    "report_family_id",
     "draft_plan_id",
     "finding_id",
     "candidate_id",

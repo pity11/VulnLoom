@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "ReportChangeKind": {
+      "enum": [
+        "added",
+        "removed",
+        "modified"
+      ],
+      "title": "ReportChangeKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "pattern": "^(title|sections\\.[a-z_]+(?:\\.[0-9]+)?)$",
+      "title": "Path",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ReportChangeKind"
+    },
+    "before": {
+      "anyOf": [
+        {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Before"
+    },
+    "after": {
+      "anyOf": [
+        {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "After"
+    },
+    "before_evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Before Evidence Refs",
+      "type": "array"
+    },
+    "after_evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "After Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "path",
+    "kind"
+  ],
+  "title": "ReportFieldChange",
+  "type": "object"
+}

@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "ReportChangeKind": {
+      "enum": [
+        "added",
+        "removed",
+        "modified"
+      ],
+      "title": "ReportChangeKind",
+      "type": "string"
+    },
+    "ReportFieldChange": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^(title|sections\\.[a-z_]+(?:\\.[0-9]+)?)$",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ReportChangeKind"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "before_evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Before Evidence Refs",
+          "type": "array"
+        },
+        "after_evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "After Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "kind"
+      ],
+      "title": "ReportFieldChange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "diff_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Diff Id",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "from_report_id": {
+      "format": "uuid",
+      "title": "From Report Id",
+      "type": "string"
+    },
+    "from_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "From Report Digest",
+      "type": "string"
+    },
+    "from_version": {
+      "minimum": 1,
+      "title": "From Version",
+      "type": "integer"
+    },
+    "to_report_id": {
+      "format": "uuid",
+      "title": "To Report Id",
+      "type": "string"
+    },
+    "to_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "To Report Digest",
+      "type": "string"
+    },
+    "to_version": {
+      "minimum": 2,
+      "title": "To Version",
+      "type": "integer"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/ReportFieldChange"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Changes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "diff_id",
+    "report_family_id",
+    "from_report_id",
+    "from_report_digest",
+    "from_version",
+    "to_report_id",
+    "to_report_digest",
+    "to_version",
+    "changes"
+  ],
+  "title": "ReportDiff",
+  "type": "object"
+}

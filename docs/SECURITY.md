@@ -82,6 +82,11 @@ M5.2 报告服务不读取或复制 Evidence 正文，只在状态变化前用 `
 目录。checkpoint 只保存 plan digest 和已脱敏 outcome，不保存原始报告计划文本。该路径没有网络、
 披露凭据或 Submission adapter。
 
+M5.3 的人工审批不是自由文本或模型结论，而是绑定 reviewer、Report/artifact/Evidence/Scope/Diff
+摘要和期限的类型化命令。SQLite 对每个 review plan 只接受一个决定，内容变化、并发冲突、过期批准
+和损坏 artifact 均 fail-closed。本地导出只在受控 Report Store 内生成新内容对象，不接受任意路径；
+CLI 不包含网络调用。`SUBMITTED` 仍不可达，平台 token 也未引入任何 Worker 或 Report 流程。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

@@ -90,6 +90,8 @@ M5.1 先实现不依赖 LLM 的可信确定性 reducer。封存的 `CriticPlan` 
 
 M5.2 先由可信离线服务完成一致性门禁和确定性渲染。`ReportDraftPlan` 绑定 Finding、Candidate、Evidence Bundle、Scope 和逐节引用；代码位置、请求/响应、复现及影响结论均必须反向解析到 Bundle 内的 Evidence ID。服务只读取已脱敏 Evidence 并输出内容寻址的本地 Markdown/JSON，不向 Reporter 暴露 Evidence 正文、网络、披露凭据或状态提升权限。
 
+M5.3 将人工决定建模为内容寻址的 ReviewPlan 与 ReviewCommand，而不是聊天文本。Control Plane 在决定前复核精确 Report/artifact/Evidence/Scope/Diff 绑定，并以事务 checkpoint 防止并发决定。批准记录带有效期；本地导出只接受完全匹配且仍有效的 `HUMAN_APPROVED` 记录。该 adapter 仍只写受控内容存储，不接受任意目标路径或外部 URL。
+
 ## 5. Tool Broker
 
 Worker 不直接调用宿主 Shell。首期工具接口应保持狭窄：
