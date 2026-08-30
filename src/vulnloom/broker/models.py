@@ -217,6 +217,7 @@ class HttpToolResult(DomainModel):
     final_url_digest: Digest
     peer_ip: str = Field(min_length=1)
     response_bytes: int = Field(ge=0)
+    response_body_sha256: Digest
     redirects: tuple[RedirectRecord, ...] = ()
     evidence_refs: tuple[Digest, ...]
 

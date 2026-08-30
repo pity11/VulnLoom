@@ -395,6 +395,7 @@ class PinnedHttpTransport:
                 status_code=response.status,
                 peer_ip=peer_ip,
                 response_bytes=len(response_body),
+                response_body_sha256=hashlib.sha256(response_body).hexdigest(),
                 evidence_ref=evidence_ref,
                 elapsed_seconds=elapsed,
                 location=locations[0] if locations else None,

@@ -18,6 +18,7 @@ from vulnloom.domain.models import (
     TargetSnapshot,
     utc_now,
 )
+from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
 from vulnloom.runners import OfflineSandboxRunner
@@ -264,6 +265,7 @@ def run_validation_offline(args: argparse.Namespace) -> int:
             runner=OfflineSandboxRunner(frozenset({plan.runner_request.invocation.tool_id})),
             broker=broker,
             store=validation_store,
+            evidence_store=EvidenceStore(Path(args.evidence_store)),
         ).execute(matches[0], plan, now=utc_now())
     summary = {
         "mode": "offline_orchestration_only",
@@ -377,6 +379,7 @@ def build_parser() -> argparse.ArgumentParser:
     validation.add_argument("--candidate-id", required=True)
     validation.add_argument("--plan-file", required=True)
     validation.add_argument("--validation-db", default=".vulnloom/validation.db")
+    validation.add_argument("--evidence-store", default=".vulnloom/evidence")
     validation.set_defaults(handler=run_validation_offline)
     return parser
 

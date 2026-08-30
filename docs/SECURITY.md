@@ -69,6 +69,13 @@ M4.4 将 Runner 与 Broker 接入事务性 Validation Orchestrator。所有绑�
 覆盖。执行成功默认仍是 `INCONCLUSIVE`，judge 引用非本次采集 Evidence 时整个流程 fail-closed。
 未完成 checkpoint 不自动重放，避免重复副作用。
 
+M4.5 的确定性 HTTP 裁决要求人工计划提前绑定确切 call、状态码和最终原始正文 SHA-256。
+正文不进入 Broker result；普通路径只接收摘要与脱敏 Evidence。裁决前 Evidence Store 使用
+`O_NOFOLLOW`、常规文件/大小检查和内容摘要复核，损坏、缺失或符号链接对象都会 fail-closed。
+任何断言不匹配都保持 `INCONCLUSIVE`，不能由状态码单独触发复现结论。
+Judge 默认只接受 live pinned HTTP Registry 摘要；offline Registry 只能在测试代码显式注入其摘要，
+不能使用生产默认配置形成复现结论。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

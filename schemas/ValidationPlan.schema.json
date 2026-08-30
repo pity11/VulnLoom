@@ -198,6 +198,45 @@
       "title": "HttpRequestPlan",
       "type": "object"
     },
+    "HttpResponseAssertion": {
+      "additionalProperties": false,
+      "description": "A precommitted exact assertion over one Broker-owned HTTP response.",
+      "properties": {
+        "assertion_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "call_id": {
+          "format": "uuid",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "expected_status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Expected Status Code",
+          "type": "integer"
+        },
+        "expected_body_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Expected Body Sha256",
+          "type": "string"
+        },
+        "match_result": {
+          "$ref": "#/$defs/ValidationResult"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "call_id",
+        "expected_status_code",
+        "expected_body_sha256",
+        "match_result"
+      ],
+      "title": "HttpResponseAssertion",
+      "type": "object"
+    },
     "MountKind": {
       "enum": [
         "snapshot",
@@ -750,6 +789,17 @@
       "title": "ToolInvocation",
       "type": "object"
     },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    },
     "WorkerRole": {
       "enum": [
         "scope_interpreter",
@@ -838,6 +888,17 @@
       "maxItems": 16,
       "title": "Broker Calls",
       "type": "array"
+    },
+    "http_assertion": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HttpResponseAssertion"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "idempotency_key": {
       "maxLength": 256,

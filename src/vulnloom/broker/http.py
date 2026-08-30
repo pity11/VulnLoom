@@ -43,6 +43,7 @@ class OfflineHttpHop(DomainModel):
     status_code: int = Field(ge=100, le=599)
     peer_ip: str = Field(min_length=1)
     response_bytes: int = Field(ge=0)
+    response_body_sha256: Digest
     evidence_ref: Digest
     elapsed_seconds: float = Field(default=0.01, ge=0)
     location: str | None = Field(default=None, max_length=2048)

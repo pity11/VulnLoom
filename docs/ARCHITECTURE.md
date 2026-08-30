@@ -174,3 +174,20 @@ a vulnerability. The default judge returns `INCONCLUSIVE`; another deterministic
 `REPRODUCED` only with Evidence IDs collected by that execution. The Orchestrator creates a
 `ValidationRun`, optionally seals an `EvidenceBundle`, and uses the existing Candidate state machine.
 It has no path to create a Finding or submit a report.
+
+## 12. M4.5 deterministic HTTP assertion
+
+`HttpResponseAssertion` is sealed into the plan before execution and identifies one exact Broker
+call, expected status, expected final raw-body SHA-256, and the result to record on an exact match.
+The raw body never enters `BrokerResult`; only its digest and the redacted Evidence reference do.
+
+`DeterministicHttpJudge` trusts only the live pinned HTTP Registry by default and returns the
+precommitted `REPRODUCED` or `NOT_REPRODUCED` only when both status and body digest match. Offline
+registries, missing calls, incomplete calls, and mismatches are `INCONCLUSIVE`.
+Before invoking any judge, the Orchestrator opens every referenced Evidence object with no-follow,
+checks its size, and recomputes its content digest.
+
+An opt-in local composition probe now runs a network-disabled ephemeral Docker Validator, then lets
+the Broker contact a temporary authorized fixture, captures Evidence, evaluates the exact assertion,
+updates Candidate state, and verifies container cleanup. It does not prove the outstanding rootless
+Linux or OS-level egress requirements.

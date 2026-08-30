@@ -163,6 +163,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Produces an `EvidenceBundle` and advances `Candidate` only through the existing state machine. It cannot create or promote a `Finding`.
 - Adds `validation-run-offline`, which exercises the control-plane path without target execution, Broker calls, sockets, or a reproduced claim.
 
+### M4.5: deterministic HTTP assertions
+
+- Adds a content-addressed `HttpResponseAssertion` selected before execution and bound to one exact Broker call.
+- Requires both an exact HTTP status and SHA-256 of the raw final response body. Status-only checks cannot produce a reproduced verdict.
+- Keeps raw response bodies out of Broker results; only the body digest, bounded metadata, and redacted Evidence reference cross the trusted boundary.
+- Adds `DeterministicHttpJudge`: by default it trusts only the live pinned HTTP Registry; an exact match returns the precommitted `REPRODUCED` or `NOT_REPRODUCED` result, while an offline Registry or any mismatch remains `INCONCLUSIVE`.
+- Verifies every Evidence object through a no-follow, size-bounded, content-integrity read before judging or sealing an `EvidenceBundle`.
+- Adds an opt-in composition probe covering a real ephemeral Docker Validator, a Broker-owned pinned HTTP connection to a temporary authorized fixture, Evidence capture, exact verdict, state transition, and cleanup.
+- The composition probe uses an explicit rootful Docker Desktop test exception. Production still requires the unfinished rootless Linux and OS-level egress gates from M4.3.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -178,6 +188,10 @@ VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integrat
 
 # Optional; opens one temporary loopback-only HTTP server.
 VULNLOOM_SOCKET_INTEGRATION=1 .venv/bin/pytest tests/test_live_http_integration.py
+
+# Optional; combines one real Docker Worker and one temporary authorized HTTP fixture.
+VULNLOOM_COMPOSITION_INTEGRATION=1 \
+  .venv/bin/pytest tests/test_validation_composition_integration.py
 ```
 
 ## Basic usage

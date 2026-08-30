@@ -21,6 +21,7 @@ from vulnloom.domain.state_machine import (
     queue_validation,
     transition_candidate,
 )
+from vulnloom.evidence import EvidenceStore
 from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     NetworkMode,
@@ -81,12 +82,14 @@ class ValidationService:
         runner: SandboxRunner,
         broker: ToolBroker,
         store: ValidationStore,
+        evidence_store: EvidenceStore,
         judge: ValidationJudge | None = None,
     ):
         self.scope = scope
         self.runner = runner
         self.broker = broker
         self.store = store
+        self.evidence_store = evidence_store
         self.judge = judge or InconclusiveValidationJudge()
 
     def execute(
@@ -116,6 +119,8 @@ class ValidationService:
                     break
 
         collected = self._evidence_refs(runner_result, tuple(broker_results))
+        if any(not self.evidence_store.contains(item) for item in collected):
+            raise ValidationRejected("validation referenced unavailable or corrupt Evidence")
         forced = self._forced_result(runner_result, tuple(broker_results))
         if forced is None:
             verdict = self.judge.evaluate(

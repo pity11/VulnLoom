@@ -74,6 +74,9 @@ M4.2 继续采用窄工具面思想，但 Registry digest 绑定、三重 allowl
 M4.4 延续“验证结果驱动报告”的分层方向，但明确拆开执行完成与漏洞裁决：事务性 checkpoint、
 Candidate 状态变化、Evidence 子集校验和默认 `INCONCLUSIVE` judge 均由 VulnLoom 的可信领域层实现。
 
+M4.5 继续只借鉴动态复现的工作流目标；精确状态/正文摘要断言、预执行内容寻址绑定、Evidence
+完整性复核与 mismatch 固定 `INCONCLUSIVE` 是 VulnLoom 自有的确定性安全边界。
+
 ### PentAGI
 
 借鉴长期任务、记忆、可观测性和多模型支持；不在 MVP 中引入其完整重型平台。

@@ -327,6 +327,7 @@ class ToolBroker:
                     final_url_digest=url_digest(current),
                     peer_ip=hop.peer_ip,
                     response_bytes=total_bytes,
+                    response_body_sha256=hop.response_body_sha256,
                     redirects=tuple(redirects),
                     evidence_refs=tuple(evidence),
                 )

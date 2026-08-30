@@ -144,6 +144,16 @@ egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Dock
 - 生成 `ValidationRun`/`EvidenceBundle` 并通过既有状态机更新 Candidate，但不包含 Critic、Finding promotion 或外部提交。
 - 离线 CLI 只验证 Control Plane 编排，不执行目标代码、不调用 Broker、不联网，也不宣称复现。
 
+### M4.5：确定性 HTTP 断言（已完成首版）
+
+- 人工在执行前封存 `HttpResponseAssertion`，并绑定一个确切 Broker call。
+- 复现判据必须同时匹配状态码和最终原始响应正文 SHA-256；只匹配状态码不能得到 `REPRODUCED`。
+- Broker result 只增加正文摘要，不携带原始正文；正文仍只经过脱敏后写入 Evidence Store。
+- `DeterministicHttpJudge` 默认只信任 live pinned HTTP Registry；精确匹配时返回预先选择的 `REPRODUCED`/`NOT_REPRODUCED`，离线 Registry 或不匹配时固定为 `INCONCLUSIVE`。
+- 编排层在裁决和封装 Evidence Bundle 前，以 no-follow、大小上限和内容摘要校验每个 Evidence 对象。
+- opt-in 组合测试已串通真实临时 Docker Validator、Broker-owned pinned HTTP、本机授权夹具、Evidence、裁决、状态转换和清理。
+- 本机 Docker Desktop 组合测试仍使用 rootful 测试例外；M4.3 的 rootless Linux 和 OS-level egress 生产验收没有因此完成。
+
 ## Phase 3：报告闭环
 
 目标：把 Finding 转换为一致、脱敏、可人工提交的报告。

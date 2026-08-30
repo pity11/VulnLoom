@@ -39,12 +39,17 @@ class ValidationPlan(DomainModel):
     selection_reason: str = Field(min_length=1, max_length=2048)
     runner_request: SandboxRunRequest
     broker_calls: Annotated[tuple[BrokerCall, ...], Field(max_length=16)] = ()
+    http_assertion: HttpResponseAssertion | None = None
     idempotency_key: str = Field(min_length=1, max_length=256)
 
     @model_validator(mode="after")
     def content_address_is_valid(self) -> Self:
         if self.plan_id != validation_plan_digest(self):
             raise ValueError("ValidationPlan content digest mismatch")
+        if self.http_assertion is not None and self.http_assertion.call_id not in {
+            call.call_id for call in self.broker_calls
+        }:
+            raise ValueError("HTTP assertion references a call outside the ValidationPlan")
         return self
 
     @classmethod
@@ -62,6 +67,7 @@ class ValidationPlan(DomainModel):
         selection_reason: str,
         runner_request: SandboxRunRequest,
         broker_calls: tuple[BrokerCall, ...] = (),
+        http_assertion: HttpResponseAssertion | None = None,
         idempotency_key: str,
     ) -> ValidationPlan:
         values = {
@@ -76,12 +82,16 @@ class ValidationPlan(DomainModel):
             "selection_reason": selection_reason,
             "runner_request": runner_request,
             "broker_calls": broker_calls,
+            "http_assertion": http_assertion,
             "idempotency_key": idempotency_key,
         }
         digest_values = {
             **values,
             "runner_request": runner_request.model_dump(mode="python"),
             "broker_calls": tuple(call.model_dump(mode="python") for call in broker_calls),
+            "http_assertion": (
+                http_assertion.model_dump(mode="python") if http_assertion is not None else None
+            ),
         }
         return cls(plan_id=canonical_digest(digest_values), **values)
 
@@ -92,6 +102,48 @@ def validation_plan_digest(plan: ValidationPlan) -> str:
 
 def candidate_content_digest(candidate: Candidate) -> str:
     return canonical_digest(candidate.model_dump(mode="python"))
+
+
+class HttpResponseAssertion(DomainModel):
+    """A precommitted exact assertion over one Broker-owned HTTP response."""
+
+    assertion_id: Digest
+    call_id: UUID
+    expected_status_code: int = Field(ge=100, le=599)
+    expected_body_sha256: Digest
+    match_result: ValidationResult
+
+    @model_validator(mode="after")
+    def assertion_is_safe_and_content_addressed(self) -> Self:
+        if self.match_result not in {
+            ValidationResult.REPRODUCED,
+            ValidationResult.NOT_REPRODUCED,
+        }:
+            raise ValueError("HTTP assertion match result must be reproduced or not_reproduced")
+        if self.assertion_id != http_response_assertion_digest(self):
+            raise ValueError("HTTP response assertion content digest mismatch")
+        return self
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        call_id: UUID,
+        expected_status_code: int,
+        expected_body_sha256: str,
+        match_result: ValidationResult,
+    ) -> HttpResponseAssertion:
+        values = {
+            "call_id": call_id,
+            "expected_status_code": expected_status_code,
+            "expected_body_sha256": expected_body_sha256,
+            "match_result": match_result,
+        }
+        return cls(assertion_id=canonical_digest(values), **values)
+
+
+def http_response_assertion_digest(assertion: HttpResponseAssertion) -> str:
+    return canonical_digest(assertion.model_dump(mode="python", exclude={"assertion_id"}))
 
 
 class ValidationVerdict(DomainModel):

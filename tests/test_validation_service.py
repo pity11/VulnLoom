@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import timedelta
 from uuid import uuid4
@@ -17,8 +18,9 @@ from vulnloom.broker import (
     default_tool_registry,
 )
 from vulnloom.cli import main
-from vulnloom.domain.models import CandidateState, ValidationResult
+from vulnloom.domain.models import CandidateState, EvidenceKind, ValidationResult
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
+from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateSetStore
 from vulnloom.hypotheses.models import CandidateSet, candidate_set_digest
 from vulnloom.policy import PolicyEngine
@@ -31,6 +33,8 @@ from vulnloom.runners import (
 )
 from vulnloom.runners.models import SandboxRunRequest, sandbox_profile_digest
 from vulnloom.validation import (
+    DeterministicHttpJudge,
+    HttpResponseAssertion,
     ValidationIdempotencyConflict,
     ValidationPlan,
     ValidationRecoveryRequired,
@@ -43,7 +47,9 @@ from vulnloom.validation import (
 
 IMAGE = "sha256:" + "1" * 64
 SNAPSHOT = "2" * 64
-EVIDENCE = "3" * 64
+EVIDENCE_TEXT = "authorized fixture evidence"
+EVIDENCE = hashlib.sha256(EVIDENCE_TEXT.encode()).hexdigest()
+BODY_SHA256 = hashlib.sha256(b"authorized fixture response").hexdigest()
 IP = "192.0.2.10"
 URL = "https://app.example.test/items?id=7"
 
@@ -105,7 +111,17 @@ def _task(now, scope, candidate, profile, *, key, deadline=None):
     )
 
 
-def _plan(now, scope, candidate, *, broker_url=URL, runner_deadline=None, key="validation:1"):
+def _plan(
+    now,
+    scope,
+    candidate,
+    *,
+    broker_url=URL,
+    runner_deadline=None,
+    expected_body_sha256=None,
+    match_result=ValidationResult.REPRODUCED,
+    key="validation:1",
+):
     runner_profile = validation_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
     runner_task = _task(
         now,
@@ -142,6 +158,16 @@ def _plan(now, scope, candidate, *, broker_url=URL, runner_deadline=None, key="v
         http=HttpRequestPlan(method="GET", url=broker_url, test_class="read_only"),
         idempotency_key=f"{key}:broker",
     )
+    assertion = (
+        HttpResponseAssertion.create(
+            call_id=call.call_id,
+            expected_status_code=200,
+            expected_body_sha256=expected_body_sha256,
+            match_result=match_result,
+        )
+        if expected_body_sha256 is not None
+        else None
+    )
     return ValidationPlan.create(
         candidate_id=candidate.candidate_id,
         candidate_digest=candidate_content_digest(candidate),
@@ -154,14 +180,23 @@ def _plan(now, scope, candidate, *, broker_url=URL, runner_deadline=None, key="v
         selection_reason="Cheapest authorized disproof requires one read-only fixture request",
         runner_request=runner_request,
         broker_calls=(call,),
+        http_assertion=assertion,
         idempotency_key=key,
     )
 
 
-def _broker(scope, *, url=URL):
+def _broker(scope, *, url=URL, evidence_ref=EVIDENCE):
     host = "outside.example" if "outside.example" in url else "app.example.test"
     transport = OfflineHttpTransport(
-        {url: OfflineHttpHop(status_code=200, peer_ip=IP, response_bytes=32, evidence_ref=EVIDENCE)}
+        {
+            url: OfflineHttpHop(
+                status_code=200,
+                peer_ip=IP,
+                response_bytes=32,
+                response_body_sha256=BODY_SHA256,
+                evidence_ref=evidence_ref,
+            )
+        }
     )
     broker = ToolBroker(
         scope=scope,
@@ -185,6 +220,7 @@ def _reseal(plan, **updates):
         "selection_reason": plan.selection_reason,
         "runner_request": plan.runner_request,
         "broker_calls": plan.broker_calls,
+        "http_assertion": plan.http_assertion,
         "idempotency_key": plan.idempotency_key,
     }
     values.update(updates)
@@ -193,14 +229,34 @@ def _reseal(plan, **updates):
 
 def _service(tmp_path, scope, broker, *, judge=None):
     store = ValidationStore(tmp_path / "validation.db")
+    evidence_store = _evidence_store(tmp_path)
     service = ValidationService(
         scope=scope,
         runner=OfflineSandboxRunner(frozenset({"sandbox.test"})),
         broker=broker,
         store=store,
+        evidence_store=evidence_store,
         judge=judge,
     )
     return service, store
+
+
+def _offline_deterministic_judge():
+    return DeterministicHttpJudge(trusted_registry_digest=default_tool_registry().digest)
+
+
+def _evidence_store(tmp_path):
+    evidence_store = EvidenceStore(tmp_path / "evidence")
+    evidence = evidence_store.capture_text(
+        EVIDENCE_TEXT,
+        kind=EvidenceKind.TEST,
+        source_ref="authorized-fixture",
+        producer="test.validation",
+        target_version="fixture-v1",
+        summary="Authorized deterministic fixture Evidence",
+    )
+    assert evidence.evidence_id == EVIDENCE
+    return evidence_store
 
 
 def test_default_judge_seals_evidence_but_does_not_claim_reproduction(
@@ -241,6 +297,120 @@ def test_only_trusted_judge_with_collected_evidence_can_validate(
     assert outcome.verdict.evidence_refs == (EVIDENCE,)
 
 
+def test_deterministic_http_assertion_can_reproduce_exact_fixture(
+    tmp_path, approved_scope, candidate, now
+):
+    plan = _plan(
+        now,
+        approved_scope,
+        candidate,
+        expected_body_sha256=BODY_SHA256,
+    )
+    broker, _ = _broker(approved_scope)
+    service, store = _service(
+        tmp_path,
+        approved_scope,
+        broker,
+        judge=_offline_deterministic_judge(),
+    )
+    try:
+        outcome = service.execute(candidate, plan, now=now)
+    finally:
+        store.close()
+    assert outcome.validation_run.result is ValidationResult.REPRODUCED
+    assert outcome.candidate.state is CandidateState.VALIDATED
+    assert outcome.verdict.rationale_code == "http_response_assertion_matched"
+    assert outcome.broker_results[0].http.response_body_sha256 == BODY_SHA256
+
+
+def test_deterministic_http_assertion_mismatch_is_inconclusive(
+    tmp_path, approved_scope, candidate, now
+):
+    plan = _plan(
+        now,
+        approved_scope,
+        candidate,
+        expected_body_sha256="f" * 64,
+    )
+    broker, _ = _broker(approved_scope)
+    service, store = _service(
+        tmp_path,
+        approved_scope,
+        broker,
+        judge=_offline_deterministic_judge(),
+    )
+    try:
+        outcome = service.execute(candidate, plan, now=now)
+    finally:
+        store.close()
+    assert outcome.validation_run.result is ValidationResult.INCONCLUSIVE
+    assert outcome.candidate.state is CandidateState.INCONCLUSIVE
+    assert outcome.verdict.rationale_code == "http_response_assertion_mismatched"
+
+
+def test_deterministic_judge_rejects_offline_registry_by_default(
+    tmp_path, approved_scope, candidate, now
+):
+    plan = _plan(
+        now,
+        approved_scope,
+        candidate,
+        expected_body_sha256=BODY_SHA256,
+    )
+    broker, _ = _broker(approved_scope)
+    service, store = _service(
+        tmp_path,
+        approved_scope,
+        broker,
+        judge=DeterministicHttpJudge(),
+    )
+    try:
+        outcome = service.execute(candidate, plan, now=now)
+    finally:
+        store.close()
+    assert outcome.validation_run.result is ValidationResult.INCONCLUSIVE
+    assert outcome.verdict.rationale_code == "http_assertion_untrusted_registry"
+
+
+def test_exact_secure_fixture_assertion_can_record_not_reproduced(
+    tmp_path, approved_scope, candidate, now
+):
+    plan = _plan(
+        now,
+        approved_scope,
+        candidate,
+        expected_body_sha256=BODY_SHA256,
+        match_result=ValidationResult.NOT_REPRODUCED,
+    )
+    broker, _ = _broker(approved_scope)
+    service, store = _service(
+        tmp_path,
+        approved_scope,
+        broker,
+        judge=_offline_deterministic_judge(),
+    )
+    try:
+        outcome = service.execute(candidate, plan, now=now)
+    finally:
+        store.close()
+    assert outcome.validation_run.result is ValidationResult.NOT_REPRODUCED
+    assert outcome.candidate.state is CandidateState.INCONCLUSIVE
+
+
+def test_http_assertion_cannot_reference_a_call_outside_plan(
+    approved_scope, candidate, now
+):
+    plan = _plan(now, approved_scope, candidate)
+    assertion = HttpResponseAssertion.create(
+        call_id=uuid4(),
+        expected_status_code=200,
+        expected_body_sha256=BODY_SHA256,
+        match_result=ValidationResult.REPRODUCED,
+    )
+    with pytest.raises(ValueError, match="outside the ValidationPlan"):
+        _reseal(plan, http_assertion=assertion)
+
+
 def test_foreign_judge_evidence_is_rejected_fail_closed(
     tmp_path, approved_scope, candidate, now
 ):
@@ -249,6 +419,29 @@ def test_foreign_judge_evidence_is_rejected_fail_closed(
     service, store = _service(tmp_path, approved_scope, broker, judge=ForeignEvidenceJudge())
     try:
         with pytest.raises(ValidationRejected, match="not produced"):
+            service.execute(candidate, plan, now=now)
+    finally:
+        store.close()
+
+
+def test_unavailable_broker_evidence_is_rejected_before_judging(
+    tmp_path, approved_scope, candidate, now
+):
+    plan = _plan(
+        now,
+        approved_scope,
+        candidate,
+        expected_body_sha256=BODY_SHA256,
+    )
+    broker, _ = _broker(approved_scope, evidence_ref="f" * 64)
+    service, store = _service(
+        tmp_path,
+        approved_scope,
+        broker,
+        judge=_offline_deterministic_judge(),
+    )
+    try:
+        with pytest.raises(ValidationRejected, match="unavailable or corrupt Evidence"):
             service.execute(candidate, plan, now=now)
     finally:
         store.close()
@@ -356,7 +549,13 @@ def test_broker_static_mismatch_is_rejected_before_runner_or_checkpoint(
     broker, _ = _broker(approved_scope)
     runner = CountingRunner()
     store = ValidationStore(tmp_path / "validation.db")
-    service = ValidationService(scope=approved_scope, runner=runner, broker=broker, store=store)
+    service = ValidationService(
+        scope=approved_scope,
+        runner=runner,
+        broker=broker,
+        store=store,
+        evidence_store=_evidence_store(tmp_path),
+    )
     try:
         with pytest.raises(ValidationRejected, match="Broker call failed static preflight"):
             service.execute(candidate, plan, now=now)
@@ -374,6 +573,7 @@ def test_runner_result_binding_mismatch_fails_closed(tmp_path, approved_scope, c
         runner=CountingRunner(mismatch=True),
         broker=broker,
         store=store,
+        evidence_store=_evidence_store(tmp_path),
     )
     try:
         with pytest.raises(ValidationRejected, match="Runner result does not match"):
@@ -472,6 +672,8 @@ def test_cli_runs_only_networkless_offline_orchestration(
         str(plan_file),
         "--validation-db",
         str(tmp_path / "validation.db"),
+        "--evidence-store",
+        str(tmp_path / "evidence"),
     ]
 
     assert main(args) == 0

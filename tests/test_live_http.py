@@ -136,6 +136,7 @@ def test_transport_connects_to_only_pinned_ip_and_reports_actual_peer():
 
     assert hop.peer_ip == IP
     assert hop.evidence_ref == sink.evidence_ref
+    assert hop.response_body_sha256 == hashlib.sha256(b"hello").hexdigest()
     assert factory.calls == [
         {
             "host": "app.example.test",

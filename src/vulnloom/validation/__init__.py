@@ -1,10 +1,13 @@
 """Transactional validation planning and orchestration."""
 
+from .assertions import DeterministicHttpJudge
 from .models import (
+    HttpResponseAssertion,
     ValidationOutcome,
     ValidationPlan,
     ValidationVerdict,
     candidate_content_digest,
+    http_response_assertion_digest,
 )
 from .service import (
     InconclusiveValidationJudge,
@@ -21,6 +24,8 @@ from .store import (
 
 __all__ = [
     "InconclusiveValidationJudge",
+    "DeterministicHttpJudge",
+    "HttpResponseAssertion",
     "ValidationClaim",
     "ValidationIdempotencyConflict",
     "ValidationJudge",
@@ -32,4 +37,5 @@ __all__ = [
     "ValidationStore",
     "ValidationVerdict",
     "candidate_content_digest",
+    "http_response_assertion_digest",
 ]

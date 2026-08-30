@@ -21,6 +21,7 @@ def test_evidence_is_redacted_content_addressed_and_integrity_checked(tmp_path):
         summary="response for a@example.org",
     )
     captured = store.read_text(evidence)
+    assert store.contains(evidence.evidence_id)
     assert "top-secret-token" not in captured
     assert "a@example.org" not in captured
     assert "sk-live" not in captured
@@ -29,6 +30,36 @@ def test_evidence_is_redacted_content_addressed_and_integrity_checked(tmp_path):
     path = tmp_path / "evidence" / evidence.content_ref
     path.write_text("tampered", encoding="utf-8")
     with pytest.raises(ValueError, match="integrity"):
+        store.read_text(evidence)
+    assert not store.contains(evidence.evidence_id)
+
+
+def test_evidence_store_rejects_oversize_and_symlink_objects(tmp_path):
+    store = EvidenceStore(tmp_path / "evidence", max_evidence_bytes=8)
+    with pytest.raises(ValueError, match="size limit"):
+        store.capture_text(
+            "x" * 9,
+            kind=EvidenceKind.TEST,
+            source_ref="fixture:oversize",
+            producer="test",
+            target_version="v1",
+            summary="oversize",
+        )
+
+    evidence = store.capture_text(
+        "12345678",
+        kind=EvidenceKind.TEST,
+        source_ref="fixture:symlink",
+        producer="test",
+        target_version="v1",
+        summary="symlink",
+    )
+    path = tmp_path / "evidence" / evidence.content_ref
+    moved = tmp_path / "outside-evidence"
+    path.rename(moved)
+    path.symlink_to(moved)
+    assert not store.contains(evidence.evidence_id)
+    with pytest.raises(ValueError, match="unavailable or unsafe"):
         store.read_text(evidence)
 
 

@@ -37,6 +37,7 @@ from vulnloom.runners import NetworkGrant, sandbox_profile_digest, validation_pr
 IMAGE = "sha256:" + "1" * 64
 SNAPSHOT = "2" * 64
 EVIDENCE = "3" * 64
+BODY_SHA256 = "7" * 64
 IP = "192.0.2.10"
 URL = "https://app.example.test/items?id=7"
 
@@ -95,6 +96,7 @@ def _hop(*, status=200, ip=IP, evidence=EVIDENCE, **values):
         "status_code": status,
         "peer_ip": ip,
         "response_bytes": 128,
+        "response_body_sha256": BODY_SHA256,
         "evidence_ref": evidence,
         **values,
     }
@@ -114,6 +116,7 @@ def test_broker_http_success_pins_ip_is_idempotent_and_returns_only_evidence(app
     assert first.status is BrokerStatus.COMPLETED
     assert first.http is not None
     assert first.http.evidence_refs == (EVIDENCE,)
+    assert first.http.response_body_sha256 == BODY_SHA256
     assert first.http.final_url_digest != URL
     assert first.policy_records[0].obligations == (
         "resolve_and_pin_ip",

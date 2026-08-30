@@ -37,7 +37,12 @@ from vulnloom.runners import (
     SandboxRunResult,
     ToolInvocation,
 )
-from vulnloom.validation import ValidationOutcome, ValidationPlan, ValidationVerdict
+from vulnloom.validation import (
+    HttpResponseAssertion,
+    ValidationOutcome,
+    ValidationPlan,
+    ValidationVerdict,
+)
 
 MODELS = (
     Scope,
@@ -69,6 +74,7 @@ MODELS = (
     BrokerCall,
     HttpToolResult,
     BrokerResult,
+    HttpResponseAssertion,
     ValidationPlan,
     ValidationVerdict,
     ValidationOutcome,
