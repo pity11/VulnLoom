@@ -86,6 +86,11 @@
       "title": "Sandbox Profile Digest",
       "type": "string"
     },
+    "tool_registry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Registry Digest",
+      "type": "string"
+    },
     "input_refs": {
       "items": {
         "type": "string"
@@ -125,6 +130,7 @@
     "scope_version",
     "policy_digest",
     "sandbox_profile_digest",
+    "tool_registry_digest",
     "input_refs",
     "allowed_tools",
     "budget",

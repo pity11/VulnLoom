@@ -98,6 +98,20 @@ M4.1 证明的是协议、状态与 fail-closed 门禁，不声称已经实现�
 这些隔离声明必须等 M4.3 的 rootless Docker adapter 通过真实容器、网络、进程和 volume
 清理测试后才能成立。M4.2 将先实现 Tool Broker 注册表与 typed HTTP tool。
 
+### M4.2：Tool Broker 与 typed HTTP（已完成首版）
+
+- 不可变 Tool Registry 保存 capability、版本、Profile 范围、副作用模式和 implementation digest；任务绑定 Registry digest。
+- Broker 在执行前重新验证整个 Call，并同时核对 Registry、Task allowlist、Sandbox Profile、Scope/Policy 与 Worker role。
+- HTTP 输入只接受固定 method、规范化 URL、安全 header、opaque credential/body digest 和显式预算；不接受原始凭据或 body。
+- GET/HEAD/OPTIONS 之外的方法由可信代码标记为状态变更并进入 Approval Gate；opaque credential 使用同样需要精确 Approval。
+- 每个 redirect hop 都重新检查 Scope、Profile network grant、DNS 结果和连接 peer IP；带凭据请求禁止自动 redirect。
+- 默认拒绝 loopback、link-local/云元数据、multicast、unspecified、混合危险 DNS 结果和 Control Plane 指定的宿主网关地址。
+- Broker 输出只包含 URL digest、状态、peer IP、预算统计、Policy 记录和 Evidence ID，不返回响应 body 或敏感 header。
+- `StaticResolver` 与 `OfflineHttpTransport` 覆盖成功、拒绝、Approval、DNS rebinding、redirect、超时、大小、预算、幂等和 adapter 失败路径，全程不联网。
+
+M4.2 证明的是 Broker 决策、typed HTTP 数据流和离线网络策略。真实 socket pinning、容器
+egress、防宿主网关访问和资源清理仍必须由 M4.3 的 rootless Docker/HTTP adapter 集成测试证明。
+
 ## Phase 3：报告闭环
 
 目标：把 Finding 转换为一致、脱敏、可人工提交的报告。

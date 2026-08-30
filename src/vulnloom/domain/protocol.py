@@ -43,6 +43,7 @@ class TaskEnvelope(DomainModel):
     scope_version: int = Field(ge=1)
     policy_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     sandbox_profile_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    tool_registry_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     input_refs: tuple[str, ...]
     allowed_tools: frozenset[Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]]
     budget: TaskBudget

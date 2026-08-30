@@ -43,6 +43,7 @@ def _request(now, *, role=WorkerRole.SOURCE_MAPPER, profile=None, key="run:1"):
         scope_version=2,
         policy_digest="5" * 64,
         sandbox_profile_digest=sandbox_profile_digest(profile),
+        tool_registry_digest="6" * 64,
         input_refs=("snapshot:" + SNAPSHOT,),
         allowed_tools=frozenset({"source.read"}),
         budget=TaskBudget(wall_seconds=60, model_tokens=0, tool_calls=2),

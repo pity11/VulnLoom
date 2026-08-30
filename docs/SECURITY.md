@@ -55,6 +55,10 @@ Runner。Profile 中的 `read_only_root`、network mode 和 cleanup report 是�
 
 OAST、Webhook 或外部回连使用一次性 Approval 和一次性 callback 标识，不能开放通用互联网出口。
 
+M4.2 的 Broker 已实现逐跳 Scope/Profile 判定、离线 DNS pin 语义、peer IP 一致性、危险地址
+拒绝和 redirect 重新授权。当前 `StaticResolver`/`OfflineHttpTransport` 不创建真实连接；因此
+这些测试不能替代 M4.3 的 socket、容器 egress、DNS rebinding 和宿主网关集成测试。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

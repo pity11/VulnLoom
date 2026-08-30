@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "SandboxProfileKind": {
+      "enum": [
+        "static",
+        "validation",
+        "report"
+      ],
+      "title": "SandboxProfileKind",
+      "type": "string"
+    },
+    "SideEffectMode": {
+      "enum": [
+        "read_only",
+        "conditional"
+      ],
+      "title": "SideEffectMode",
+      "type": "string"
+    },
+    "ToolCapability": {
+      "enum": [
+        "http_request"
+      ],
+      "title": "ToolCapability",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    },
+    "capability": {
+      "$ref": "#/$defs/ToolCapability"
+    },
+    "allowed_profiles": {
+      "items": {
+        "$ref": "#/$defs/SandboxProfileKind"
+      },
+      "title": "Allowed Profiles",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "requires_network": {
+      "title": "Requires Network",
+      "type": "boolean"
+    },
+    "accepts_credential_ref": {
+      "title": "Accepts Credential Ref",
+      "type": "boolean"
+    },
+    "side_effect_mode": {
+      "$ref": "#/$defs/SideEffectMode"
+    },
+    "implementation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool_id",
+    "version",
+    "capability",
+    "allowed_profiles",
+    "requires_network",
+    "accepts_credential_ref",
+    "side_effect_mode",
+    "implementation_digest"
+  ],
+  "title": "ToolRegistration",
+  "type": "object"
+}

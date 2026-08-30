@@ -68,6 +68,9 @@ M3 延续其“围绕一条可解释调用链形成假设”的思路，但 Cand
 M4.1 只继承“工具必须通过隔离边界”的架构方向；Profile、Runner、checkpoint 和 typed
 invocation 协议为 VulnLoom 自有实现，尚未复用或声称具备 Strix 的动态执行能力。
 
+M4.2 继续采用窄工具面思想，但 Registry digest 绑定、三重 allowlist、opaque body/credential
+引用、逐跳 Policy/DNS/IP 判定和离线 transport 均为 VulnLoom 自有实现，没有复制其网络工具。
+
 ### PentAGI
 
 借鉴长期任务、记忆、可观测性和多模型支持；不在 MVP 中引入其完整重型平台。

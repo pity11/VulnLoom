@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "BrokerStatus": {
+      "enum": [
+        "completed",
+        "denied",
+        "approval_required",
+        "timed_out",
+        "failed"
+      ],
+      "title": "BrokerStatus",
+      "type": "string"
+    },
+    "DecisionEffect": {
+      "enum": [
+        "allow",
+        "deny",
+        "approval_required"
+      ],
+      "title": "DecisionEffect",
+      "type": "string"
+    },
+    "HttpToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "final_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "response_bytes": {
+          "minimum": 0,
+          "title": "Response Bytes",
+          "type": "integer"
+        },
+        "redirects": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RedirectRecord"
+          },
+          "title": "Redirects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status_code",
+        "final_url_digest",
+        "peer_ip",
+        "response_bytes",
+        "evidence_refs"
+      ],
+      "title": "HttpToolResult",
+      "type": "object"
+    },
+    "PolicyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Digest",
+          "type": "string"
+        },
+        "effect": {
+          "$ref": "#/$defs/DecisionEffect"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "obligations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Obligations",
+          "type": "array"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_digest",
+        "effect",
+        "reasons",
+        "obligations",
+        "policy_digest"
+      ],
+      "title": "PolicyRecord",
+      "type": "object"
+    },
+    "RedirectRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 399,
+          "minimum": 300,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "from_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "From Url Digest",
+          "type": "string"
+        },
+        "to_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "To Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status_code",
+        "from_url_digest",
+        "to_url_digest",
+        "peer_ip"
+      ],
+      "title": "RedirectRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "format": "uuid",
+      "title": "Call Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/BrokerStatus"
+    },
+    "registry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registry Digest",
+      "type": "string"
+    },
+    "call_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Call Digest",
+      "type": "string"
+    },
+    "tool_calls_used": {
+      "minimum": 0,
+      "title": "Tool Calls Used",
+      "type": "integer"
+    },
+    "policy_records": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PolicyRecord"
+      },
+      "title": "Policy Records",
+      "type": "array"
+    },
+    "http": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HttpToolResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "call_id",
+    "task_id",
+    "tool_id",
+    "status",
+    "registry_digest",
+    "call_digest",
+    "tool_calls_used",
+    "completed_at"
+  ],
+  "title": "BrokerResult",
+  "type": "object"
+}

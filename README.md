@@ -130,6 +130,16 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Provides a `SandboxRunner` adapter contract and a deterministic offline implementation for success, refusal, timeout, cancellation, resource exhaustion, checkpoint/resume, idempotency, and cleanup paths.
 - Does not claim process, filesystem, or network isolation yet; those guarantees require the future rootless Docker adapter and real integration tests.
 
+### M4.2: Tool Broker and typed HTTP
+
+- Adds an immutable capability registry whose digest is bound into every queued Worker task.
+- Requires a tool to be present in the Registry, Task allowlist, and Sandbox Profile while also matching the current Scope, policy digest, and Worker role.
+- Accepts HTTP methods, normalized credential-free URLs, safe headers, opaque credential/body references, and explicit time/size/redirect budgets—never raw credentials or request bodies.
+- Derives state-changing behavior from the HTTP method in trusted code and requires exact, unexpired approvals for mutations and credential use.
+- Reauthorizes every redirect, resolves every hop, pins the selected IP, verifies the reported peer, and rejects loopback, link-local metadata, multicast, unspecified, mixed-dangerous, and configured host-gateway addresses.
+- Returns only policy records, URL digests, peer metadata, Evidence IDs, and budget usage; response bodies and sensitive headers stay outside the normal result path.
+- Uses deterministic offline resolver and transport adapters. No real HTTP request or network isolation claim is introduced in M4.2.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -179,6 +189,6 @@ The Control Plane resolves model API keys through `ModelProviderConfig.api_key_e
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, and offline-tested sandbox contracts. Real sandbox execution, dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, sandbox contracts, and an offline-tested Tool Broker with typed HTTP policy enforcement. Real sandbox/network execution, dynamic validation, autonomous report generation, disclosure-platform integration, and CVE workflows are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

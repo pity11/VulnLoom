@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "RedirectRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 399,
+          "minimum": 300,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "from_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "From Url Digest",
+          "type": "string"
+        },
+        "to_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "To Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status_code",
+        "from_url_digest",
+        "to_url_digest",
+        "peer_ip"
+      ],
+      "title": "RedirectRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "status_code": {
+      "maximum": 599,
+      "minimum": 100,
+      "title": "Status Code",
+      "type": "integer"
+    },
+    "final_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Url Digest",
+      "type": "string"
+    },
+    "peer_ip": {
+      "minLength": 1,
+      "title": "Peer Ip",
+      "type": "string"
+    },
+    "response_bytes": {
+      "minimum": 0,
+      "title": "Response Bytes",
+      "type": "integer"
+    },
+    "redirects": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RedirectRecord"
+      },
+      "title": "Redirects",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status_code",
+    "final_url_digest",
+    "peer_ip",
+    "response_bytes",
+    "evidence_refs"
+  ],
+  "title": "HttpToolResult",
+  "type": "object"
+}

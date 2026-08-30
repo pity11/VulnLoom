@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "HttpHeader": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 4096,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "HttpHeader",
+      "type": "object"
+    },
+    "HttpLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "connect_seconds": {
+          "default": 3.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Connect Seconds",
+          "type": "number"
+        },
+        "read_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Read Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 15.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Total Seconds",
+          "type": "number"
+        },
+        "max_response_bytes": {
+          "default": 2097152,
+          "exclusiveMinimum": 0,
+          "maximum": 20971520,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "max_redirects": {
+          "default": 0,
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Max Redirects",
+          "type": "integer"
+        },
+        "max_requests": {
+          "default": 1,
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Max Requests",
+          "type": "integer"
+        }
+      },
+      "title": "HttpLimits",
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "title": "HttpMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "$ref": "#/$defs/HttpMethod"
+    },
+    "url": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    },
+    "test_class": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Test Class",
+      "type": "string"
+    },
+    "headers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/HttpHeader"
+      },
+      "maxItems": 64,
+      "title": "Headers",
+      "type": "array"
+    },
+    "credential_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Credential Ref"
+    },
+    "body_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Body Ref"
+    },
+    "body_bytes": {
+      "default": 0,
+      "maximum": 20971520,
+      "minimum": 0,
+      "title": "Body Bytes",
+      "type": "integer"
+    },
+    "follow_redirects": {
+      "default": false,
+      "title": "Follow Redirects",
+      "type": "boolean"
+    },
+    "limits": {
+      "$ref": "#/$defs/HttpLimits"
+    }
+  },
+  "required": [
+    "method",
+    "url",
+    "test_class"
+  ],
+  "title": "HttpRequestPlan",
+  "type": "object"
+}

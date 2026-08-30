@@ -167,6 +167,39 @@ sandbox_run_request:
 Task、Checkpoint 和 Run Result 均绑定 Profile 摘要；checkpoint 还绑定 Target、Scope、Policy
 和 tool invocation 摘要。任何一个版本变化都必须从新任务开始，不能直接 resume。
 
+### Tool Registry 与 BrokerCall
+
+```yaml
+tool_registration:
+  tool_id: http.request
+  version: string
+  capability: http_request
+  allowed_profiles: [validation]
+  requires_network: true
+  accepts_credential_ref: true
+  side_effect_mode: conditional
+  implementation_digest: sha256
+
+broker_call:
+  task: TaskEnvelope
+  profile: SandboxProfile
+  tool_id: http.request
+  http:
+    method: enum
+    url: normalized credential-free URL
+    test_class: string
+    headers: safe non-secret headers
+    credential_ref: sha256 | null
+    body_ref: sha256 | null
+    body_bytes: integer
+    limits: {}
+  idempotency_key: string
+```
+
+`BrokerResult` 不保存响应 body、原始 header 或 URL，只记录 URL digest、Policy decision、
+实际 peer IP、Evidence ID 与预算使用量。Task 同时绑定 Policy、Sandbox Profile 和 Tool
+Registry digest，任一变化都使 preflight fail-closed。
+
 ### Evidence
 
 ```yaml

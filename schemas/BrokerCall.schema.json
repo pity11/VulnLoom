@@ -1,5 +1,164 @@
 {
   "$defs": {
+    "HttpHeader": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 4096,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "HttpHeader",
+      "type": "object"
+    },
+    "HttpLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "connect_seconds": {
+          "default": 3.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Connect Seconds",
+          "type": "number"
+        },
+        "read_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Read Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 15.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Total Seconds",
+          "type": "number"
+        },
+        "max_response_bytes": {
+          "default": 2097152,
+          "exclusiveMinimum": 0,
+          "maximum": 20971520,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "max_redirects": {
+          "default": 0,
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Max Redirects",
+          "type": "integer"
+        },
+        "max_requests": {
+          "default": 1,
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Max Requests",
+          "type": "integer"
+        }
+      },
+      "title": "HttpLimits",
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "title": "HttpMethod",
+      "type": "string"
+    },
+    "HttpRequestPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "url": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "test_class": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Test Class",
+          "type": "string"
+        },
+        "headers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          },
+          "maxItems": 64,
+          "title": "Headers",
+          "type": "array"
+        },
+        "credential_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credential Ref"
+        },
+        "body_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Ref"
+        },
+        "body_bytes": {
+          "default": 0,
+          "maximum": 20971520,
+          "minimum": 0,
+          "title": "Body Bytes",
+          "type": "integer"
+        },
+        "follow_redirects": {
+          "default": false,
+          "title": "Follow Redirects",
+          "type": "boolean"
+        },
+        "limits": {
+          "$ref": "#/$defs/HttpLimits"
+        }
+      },
+      "required": [
+        "method",
+        "url",
+        "test_class"
+      ],
+      "title": "HttpRequestPlan",
+      "type": "object"
+    },
     "MountKind": {
       "enum": [
         "snapshot",
@@ -54,76 +213,6 @@
       ],
       "title": "NetworkMode",
       "type": "string"
-    },
-    "RunnerCheckpoint": {
-      "additionalProperties": false,
-      "properties": {
-        "checkpoint_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Checkpoint Id",
-          "type": "string"
-        },
-        "task_id": {
-          "format": "uuid",
-          "title": "Task Id",
-          "type": "string"
-        },
-        "target_id": {
-          "format": "uuid",
-          "title": "Target Id",
-          "type": "string"
-        },
-        "target_version": {
-          "minLength": 1,
-          "title": "Target Version",
-          "type": "string"
-        },
-        "scope_id": {
-          "format": "uuid",
-          "title": "Scope Id",
-          "type": "string"
-        },
-        "scope_version": {
-          "minimum": 1,
-          "title": "Scope Version",
-          "type": "integer"
-        },
-        "policy_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Policy Digest",
-          "type": "string"
-        },
-        "sandbox_profile_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Sandbox Profile Digest",
-          "type": "string"
-        },
-        "invocation_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Invocation Digest",
-          "type": "string"
-        },
-        "attempt": {
-          "maximum": 3,
-          "minimum": 1,
-          "title": "Attempt",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "checkpoint_id",
-        "task_id",
-        "target_id",
-        "target_version",
-        "scope_id",
-        "scope_version",
-        "policy_digest",
-        "sandbox_profile_digest",
-        "invocation_digest",
-        "attempt"
-      ],
-      "title": "RunnerCheckpoint",
-      "type": "object"
     },
     "SandboxLimits": {
       "additionalProperties": false,
@@ -466,34 +555,6 @@
       "title": "TaskEnvelope",
       "type": "object"
     },
-    "ToolInvocation": {
-      "additionalProperties": false,
-      "properties": {
-        "tool_id": {
-          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
-          "title": "Tool Id",
-          "type": "string"
-        },
-        "arguments": {
-          "default": [],
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 128,
-          "title": "Arguments",
-          "type": "array"
-        },
-        "working_directory": {
-          "$ref": "#/$defs/WorkingDirectory"
-        }
-      },
-      "required": [
-        "tool_id",
-        "working_directory"
-      ],
-      "title": "ToolInvocation",
-      "type": "object"
-    },
     "WorkerRole": {
       "enum": [
         "scope_interpreter",
@@ -505,22 +566,13 @@
       ],
       "title": "WorkerRole",
       "type": "string"
-    },
-    "WorkingDirectory": {
-      "enum": [
-        "source",
-        "output",
-        "temp"
-      ],
-      "title": "WorkingDirectory",
-      "type": "string"
     }
   },
   "additionalProperties": false,
   "properties": {
-    "run_id": {
+    "call_id": {
       "format": "uuid",
-      "title": "Run Id",
+      "title": "Call Id",
       "type": "string"
     },
     "task": {
@@ -529,33 +581,13 @@
     "profile": {
       "$ref": "#/$defs/SandboxProfile"
     },
-    "invocation": {
-      "$ref": "#/$defs/ToolInvocation"
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
     },
-    "environment": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "title": "Environment",
-      "type": "object"
-    },
-    "attempt": {
-      "default": 1,
-      "maximum": 3,
-      "minimum": 1,
-      "title": "Attempt",
-      "type": "integer"
-    },
-    "resume_from": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/RunnerCheckpoint"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "http": {
+      "$ref": "#/$defs/HttpRequestPlan"
     },
     "idempotency_key": {
       "maxLength": 256,
@@ -567,9 +599,10 @@
   "required": [
     "task",
     "profile",
-    "invocation",
+    "tool_id",
+    "http",
     "idempotency_key"
   ],
-  "title": "SandboxRunRequest",
+  "title": "BrokerCall",
   "type": "object"
 }

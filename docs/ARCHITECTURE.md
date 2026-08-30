@@ -124,3 +124,15 @@ Scope/Target/Profile provenance before allocating resources.
 The current `OfflineSandboxRunner` is a lifecycle test double. It never starts a process or opens a
 socket. Its cleanup report validates orchestration semantics only; it is not evidence of operating
 system or container isolation.
+
+## 9. M4.2 Tool Broker contract
+
+The Tool Broker owns an immutable capability registry. `TaskEnvelope` binds the registry digest so
+queued work cannot silently pick up a changed tool implementation. A call proceeds only when its
+tool is present in the Registry, Task allowlist, and Sandbox Profile and when its Scope/Policy and
+Worker-role bindings still match.
+
+The first typed tool is `http.request`. Request bodies and credentials cross the boundary only as
+opaque content digests. Each redirect is treated as a new policy decision and DNS resolution; the
+transport must connect to the pinned IP and report the actual peer. The current resolver and
+transport are deterministic offline adapters and never open a socket.

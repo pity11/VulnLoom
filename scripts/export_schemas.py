@@ -6,6 +6,13 @@ import json
 from pathlib import Path
 
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
+from vulnloom.broker import (
+    BrokerCall,
+    BrokerResult,
+    HttpRequestPlan,
+    HttpToolResult,
+    ToolRegistration,
+)
 from vulnloom.domain.models import (
     ApprovalRequest,
     Artifact,
@@ -56,6 +63,11 @@ MODELS = (
     RunnerCheckpoint,
     SandboxRunRequest,
     SandboxRunResult,
+    ToolRegistration,
+    HttpRequestPlan,
+    BrokerCall,
+    HttpToolResult,
+    BrokerResult,
 )
 
 
