@@ -20,20 +20,30 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: Prepare delegated systemd user session
+      - name: Install rootless Docker prerequisites
+        run: |
+          sudo systemctl disable --now docker.service docker.socket
+          sudo apt-get update
+          sudo apt-get install --yes dbus-user-session docker-ce-rootless-extras uidmap
+          if ! grep -q "^${USER}:" /etc/subuid; then
+            sudo usermod --add-subuids 100000-165535 "$USER"
+          fi
+          if ! grep -q "^${USER}:" /etc/subgid; then
+            sudo usermod --add-subgids 100000-165535 "$USER"
+          fi
+      - name: Start rootless Docker as a delegated user service
         run: |
           uid="$(id -u)"
           sudo loginctl enable-linger "$USER"
           sudo systemctl start "user@${uid}.service"
           test -S "/run/user/${uid}/bus"
-          echo "XDG_RUNTIME_DIR=/run/user/${uid}" >> "$GITHUB_ENV"
-          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${uid}/bus" >> "$GITHUB_ENV"
-      - name: Set up pinned rootless Docker Engine
-        uses: docker/setup-docker-action@v5
-        with:
-          version: v29.7.2
-          rootless: true
-          set-host: true
+          export XDG_RUNTIME_DIR="/run/user/${uid}"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+          dockerd-rootless-setuptool.sh install --force
+          systemctl --user is-active docker.service
+          echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}" >> "$GITHUB_ENV"
+          echo "DOCKER_HOST=unix://${XDG_RUNTIME_DIR}/docker.sock" >> "$GITHUB_ENV"
       - name: Install
         run: python -m pip install -e '.[dev]'
       - name: Prepare immutable test image
