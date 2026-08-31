@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from vulnloom.domain.digests import canonical_digest
 
+from .context import AgentContextRejected, AgentContextStore
 from .models import (
     AgentAdapterKind,
     AgentCleanupReport,
@@ -40,10 +41,12 @@ class OfflineAgentRuntime:
         store: AgentRunStore,
         registration: AgentModelRegistration,
         adapter: AgentModelAdapter,
+        context_store: AgentContextStore | None = None,
     ):
         self.store = store
         self.registration = registration
         self.adapter = adapter
+        self.context_store = context_store
 
     def execute(self, plan: AgentRunPlan, *, now: datetime) -> AgentRunOutcome:
         if now < plan.created_at or now >= plan.deadline or now >= plan.task.deadline:
@@ -61,6 +64,14 @@ class OfflineAgentRuntime:
             or plan.task.worker_role not in self.registration.supported_roles
         ):
             raise AgentRuntimeRejected("Agent model registration binding mismatch")
+        if plan.context_snapshot_id is not None:
+            if self.context_store is None:
+                raise AgentRuntimeRejected("Agent context store is required")
+            try:
+                snapshot = self.context_store.read(plan.context_snapshot_id)
+                snapshot.assert_for_task(plan.task)
+            except AgentContextRejected as exc:
+                raise AgentRuntimeRejected("Agent context binding mismatch") from exc
         claim = self.store.claim(plan, now=now)
         if not claim.created:
             if claim.outcome is None:

@@ -312,6 +312,21 @@ Sealed credential reference + local-fake registration
 缺失/错误凭据在 STARTED 后失败并要求显式恢复；模型超时结果也必须先释放 lease。该链不把 credential
 reference 或值放入 `AgentStepRequest`，不继承环境到 Worker，也没有 live endpoint、工具执行或状态变化。
 
+### M7.2 密封上下文装配链
+
+```text
+Exact TaskEnvelope.input_refs + transient typed sources
+  → require complete ordered one-to-one binding
+  → normalize + reject controls + builtin-v2 redact
+  → enforce raw/redacted/total/count/wall budgets
+  → immutable untrusted fragments + content-addressed snapshot
+  → atomic read-only store + no-follow/digest revalidation
+  → AgentRunPlan/StepRequest bind snapshot ID only
+```
+
+缺失、额外、替换或重排 source、凭据/PII 未脱敏、超限、超时、可写对象、链接或内容漂移均在模型调用前
+拒绝。snapshot 的 `untrusted` 标记不会因文本内容变化；上下文不能授权工具、Approval 或状态迁移。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_fragments": {
+      "default": 64,
+      "maximum": 1024,
+      "minimum": 0,
+      "title": "Max Fragments",
+      "type": "integer"
+    },
+    "max_source_bytes_per_fragment": {
+      "default": 65536,
+      "exclusiveMinimum": 0,
+      "maximum": 1048576,
+      "title": "Max Source Bytes Per Fragment",
+      "type": "integer"
+    },
+    "max_fragment_bytes": {
+      "default": 32768,
+      "exclusiveMinimum": 0,
+      "maximum": 1048576,
+      "title": "Max Fragment Bytes",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 262144,
+      "exclusiveMinimum": 0,
+      "maximum": 4194304,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 5.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AgentContextLimits",
+  "type": "object"
+}

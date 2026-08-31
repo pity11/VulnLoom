@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "AgentContextSourceKind": {
+      "enum": [
+        "task_summary",
+        "evidence_summary",
+        "observation_summary"
+      ],
+      "title": "AgentContextSourceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ordinal": {
+      "maximum": 1023,
+      "minimum": 0,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "source_ref_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ref Digest",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/AgentContextSourceKind"
+    },
+    "redacted_text": {
+      "title": "Redacted Text",
+      "type": "string"
+    },
+    "text_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Text Digest",
+      "type": "string"
+    },
+    "byte_size": {
+      "maximum": 1048576,
+      "minimum": 0,
+      "title": "Byte Size",
+      "type": "integer"
+    },
+    "untrusted": {
+      "default": true,
+      "title": "Untrusted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "ordinal",
+    "source_ref_digest",
+    "kind",
+    "redacted_text",
+    "text_digest",
+    "byte_size"
+  ],
+  "title": "AgentContextFragment",
+  "type": "object"
+}

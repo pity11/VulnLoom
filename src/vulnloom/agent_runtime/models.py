@@ -20,6 +20,8 @@ from vulnloom.runners.models import (
     invocation_digest,
 )
 
+from .context import AgentContextSnapshot
+
 AGENT_DECISION_SCHEMA_DIGEST = canonical_digest(
     {"contract": "vulnloom.agent-decision", "version": 1, "raw_text_persisted": False}
 )
@@ -136,6 +138,7 @@ class AgentRunPlan(DomainModel):
     model_registration_id: Digest
     model_registration_digest: Digest
     context_digest: Digest
+    context_snapshot_id: Digest | None = None
     decision_schema_digest: Digest = AGENT_DECISION_SCHEMA_DIGEST
     limits: AgentRunLimits
     created_at: AwareDatetime
@@ -148,7 +151,12 @@ class AgentRunPlan(DomainModel):
             raise ValueError("Agent run deadline must be after creation")
         if self.task_digest != canonical_digest(self.task.model_dump(mode="python")):
             raise ValueError("Agent task digest mismatch")
-        if self.context_digest != canonical_digest(self.task.input_refs):
+        expected_context = (
+            canonical_digest(self.task.input_refs)
+            if self.context_snapshot_id is None
+            else self.context_snapshot_id
+        )
+        if self.context_digest != expected_context:
             raise ValueError("Agent context digest mismatch")
         if self.decision_schema_digest != AGENT_DECISION_SCHEMA_DIGEST:
             raise ValueError("Agent decision schema is not trusted")
@@ -166,6 +174,7 @@ class AgentRunPlan(DomainModel):
         created_at: datetime,
         deadline: datetime,
         idempotency_key: str,
+        context_snapshot: AgentContextSnapshot | None = None,
     ) -> AgentRunPlan:
         if task.worker_role not in registration.supported_roles:
             raise ValueError("Agent model registration does not support the Worker role")
@@ -173,6 +182,8 @@ class AgentRunPlan(DomainModel):
             raise ValueError("Agent task requires a positive model token budget")
         if limits.max_output_tokens_per_step > registration.max_output_tokens:
             raise ValueError("Agent step output limit exceeds the model registration")
+        if context_snapshot is not None:
+            context_snapshot.assert_for_task(task)
         values = {
             "task": task,
             "task_digest": canonical_digest(task.model_dump(mode="python")),
@@ -180,7 +191,14 @@ class AgentRunPlan(DomainModel):
             "model_registration_digest": canonical_digest(
                 registration.model_dump(mode="python")
             ),
-            "context_digest": canonical_digest(task.input_refs),
+            "context_digest": (
+                canonical_digest(task.input_refs)
+                if context_snapshot is None
+                else context_snapshot.snapshot_id
+            ),
+            "context_snapshot_id": (
+                None if context_snapshot is None else context_snapshot.snapshot_id
+            ),
             "decision_schema_digest": AGENT_DECISION_SCHEMA_DIGEST,
             "limits": limits,
             "created_at": created_at,

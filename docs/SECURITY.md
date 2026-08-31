@@ -143,6 +143,14 @@ adapter failure 并保留 STARTED checkpoint。local-fake adapter 无 socket/URL
 不进入 Worker request、outcome、SQLite 或错误消息。此处不声称 Python 进程内存可抵御宿主级取证；live
 provider 仍需独立进程/网络/日志与响应捕获 Admission。
 
+M7.2 只允许与 Task `input_refs` 完整同序匹配的瞬时 source 进入 assembler，并由可信代码执行规范化、控制
+字符拒绝和 `builtin-v2` 脱敏。原始/脱敏单片、总字节、fragment 数和墙钟都有独立上限。snapshot 中所有
+内容固定标记为 untrusted，因此 prompt injection 文本不能修改工具白名单、Approval 或 Scope；真正工具
+授权仍只在 Broker/Sandbox。上下文对象只读、no-follow、内容寻址并绑定 Task/Target/Scope/redaction policy。
+M7.2 不读取完整认证响应或原始 Evidence body，也不声称脱敏器能替代上游最小化；未知敏感格式仍应在加入
+context 前由人工或专用 normalizer 排除。绑定 snapshot 的 Runtime 如果没有显式 context store，或重读时发现
+对象不可写性/内容/Task 绑定漂移，会在 STARTED checkpoint 前拒绝。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

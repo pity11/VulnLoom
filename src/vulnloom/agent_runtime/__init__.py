@@ -1,5 +1,17 @@
 """Offline, typed Agent Runtime contracts and replay implementation."""
 
+from .context import (
+    AgentContextAssembler,
+    AgentContextFragment,
+    AgentContextLimits,
+    AgentContextRejected,
+    AgentContextSnapshot,
+    AgentContextSource,
+    AgentContextSourceKind,
+    AgentContextStore,
+    AgentContextTimedOut,
+    agent_context_snapshot_digest,
+)
 from .local_fake import (
     LocalFakeModelAdapter,
     LocalFakeProviderExhausted,
@@ -40,6 +52,15 @@ __all__ = [
     "AGENT_DECISION_SCHEMA_DIGEST",
     "AgentAdapterKind",
     "AgentCleanupReport",
+    "AgentContextAssembler",
+    "AgentContextFragment",
+    "AgentContextLimits",
+    "AgentContextRejected",
+    "AgentContextSnapshot",
+    "AgentContextSource",
+    "AgentContextSourceKind",
+    "AgentContextStore",
+    "AgentContextTimedOut",
     "AgentDecisionKind",
     "AgentDecisionPayload",
     "AgentModelAdapter",
@@ -66,4 +87,5 @@ __all__ = [
     "OfflineReplayMismatch",
     "OfflineReplayModelAdapter",
     "ReplayTurn",
+    "agent_context_snapshot_digest",
 ]

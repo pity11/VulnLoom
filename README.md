@@ -283,6 +283,19 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Keeps the credential value and unrelated environment entries out of Worker requests, outcomes,
   checkpoints, schemas, and error messages.
 
+### M7.2: sealed and bounded model context
+
+- Requires transient context sources to match the Task's ordered input references exactly.
+- Normalizes and redacts content in trusted code, rejects unsafe controls, and enforces fragment,
+  total-byte, count, deadline, and wall-clock limits.
+- Stores only explicitly untrusted, redacted fragments in immutable content-addressed snapshots bound
+  to the exact Task, Target, Scope, references, and redaction policy.
+- Revalidates no-follow, regular-file, read-only, size, schema, identity, and digest properties on
+  every stored read; failed publication removes temporary files.
+- Binds only the context snapshot ID into Agent run plans and step requests. It performs no provider,
+  network, tool, Approval, or domain-state action; the Runtime reloads the snapshot before creating
+  its STARTED checkpoint.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -414,7 +427,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, typed offline Agent Runtime adapters with scoped credential leases, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, typed offline Agent Runtime adapters with scoped credential leases and sealed model context, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, live model-provider execution, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

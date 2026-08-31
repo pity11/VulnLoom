@@ -356,6 +356,16 @@ provider 配置和 local-fake registration 绑定中，但不会进入 Worker re
 Pydantic/JSON 对象，只在可信 adapter 的一次调用作用域内持有 UTF-8 字节；关闭后缓冲区归零且不可再次读取。
 原始 credential、lease 和 local-fake turn 都不属于 checkpoint 或领域事件数据模型。
 
+### AgentContextFragment 与 AgentContextSnapshot
+
+`AgentContextSource` 只存在于 assembler 调用栈，不是 schema/存储对象。`AgentContextFragment` 保存 ordinal、
+source ref 摘要、source kind、脱敏文本、文本摘要、UTF-8 字节数和固定 `untrusted=true`。它不能携带权限、
+Approval、工具参数或原始 Evidence 身份。
+
+`AgentContextSnapshot` 内容寻址绑定 Task 摘要、Target/version、Scope/version、完整有序 input-ref 摘要、
+redaction policy、fragment 列表、总字节和装配时间。`AgentRunPlan.context_snapshot_id` 可进一步绑定该对象，
+此时 `context_digest` 必须等于 snapshot ID；StepRequest 仍只复制摘要。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

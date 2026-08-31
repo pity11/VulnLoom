@@ -9,6 +9,9 @@ from vulnloom.adapters import ModelCredentialReference
 from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.agent_runtime import (
     AgentCleanupReport,
+    AgentContextFragment,
+    AgentContextLimits,
+    AgentContextSnapshot,
     AgentDecisionPayload,
     AgentModelRegistration,
     AgentModelReply,
@@ -139,6 +142,9 @@ from vulnloom.validation import (
 MODELS = (
     ModelCredentialReference,
     ModelProviderConfig,
+    AgentContextLimits,
+    AgentContextFragment,
+    AgentContextSnapshot,
     AgentModelRegistration,
     AgentRunLimits,
     AgentRunPlan,

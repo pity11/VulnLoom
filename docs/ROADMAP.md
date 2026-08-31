@@ -351,6 +351,18 @@ M7.1a 不接入公网模型、provider SDK、模型凭据、真实工具执行�
 
 M7.1b 只证明 Control Plane 内的凭据生命周期和 adapter 绑定，不声称进程级隔离，也不增加 live endpoint、DNS、HTTP、proxy、provider SDK、真实工具执行或任何领域状态变化。实时模型出口仍需独立 Admission。
 
+### M7.2：密封、脱敏且有界的模型上下文（已完成首版）
+
+- `AgentContextSource` 是不可序列化的瞬时输入；source ref 必须与 `TaskEnvelope.input_refs` 完整、同序、一一对应，缺失、插入、替换和重排均在读取模型前拒绝。
+- 可信 assembler 统一执行 NFC/换行规范化、控制字符拒绝和 `builtin-v2` 凭据/Cookie/PII 脱敏，不接受调用方“已经脱敏”的声明。
+- `AgentContextLimits` 同时限制 fragment 数、原始单片字节、脱敏单片字节、总字节和墙钟时间；截止时间或装配中超时均 fail-closed。
+- snapshot 只保存 source ref 摘要、类型、明确的 `untrusted=true`、脱敏文本及其摘要，并绑定 Task/Target/Scope/input refs/redaction policy。
+- `AgentContextStore` 原子发布只读内容寻址 JSON；读取强制 no-follow、常规文件、不可写、大小、schema、对象 ID 与内容摘要复核，发布失败清理临时文件。
+- `AgentRunPlan` 可绑定 exact context snapshot ID；Runtime 在 STARTED checkpoint 前必须从显式 context store 重读并复核 Task/对象完整性。`AgentStepRequest` 只携带该摘要，不复制脱敏文本，更不包含原始 source。
+- 测试覆盖成功、凭据/邮箱脱敏、prompt-injection 文本不改变 untrusted 标记、引用注入、资源超限、超时、Task/内容漂移、symlink、可写对象、存储上限和清理。
+
+M7.2 不读取原始 Evidence Store 正文、不自动选择上下文、不把上下文当授权，也不增加 live provider、网络、工具调用或领域状态变化。后续 prompt rendering 必须从已复核 snapshot 构造固定角色消息。
+
 ## 延后事项
 
 - 公网资产自主发现。

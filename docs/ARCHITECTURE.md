@@ -383,3 +383,20 @@ outcome, or checkpoint.
 This is Control Plane object-lifecycle isolation, not a live-provider or OS-isolation claim. The
 adapter has no socket, URL, DNS, proxy, HTTP client, SDK, Runner, Broker, tool execution, Approval,
 domain reducer, or Submission capability.
+
+## 25. M7.2 sealed model-context boundary
+
+Context assembly is a trusted Control Plane reducer over transient source records. Every source must
+match the Task's ordered `input_refs` exactly; callers cannot omit, append, substitute, or reorder a
+record. The assembler normalizes text, rejects unsafe controls, applies the fixed Evidence redactor,
+and enforces raw-fragment, redacted-fragment, total-byte, fragment-count, deadline, and wall budgets.
+
+The resulting content-addressed snapshot binds Task, Target, Scope, input-reference digests,
+redaction policy, and ordered fragments. Persisted fragments contain only reference digests,
+redacted text, content digests, and an immutable `untrusted` marker. The store uses atomic publication
+and no-follow, regular-file, read-only, size, schema, identity, and digest verification.
+
+An Agent run may bind the exact snapshot ID; the Runtime must reload and revalidate it before the
+STARTED checkpoint, while step requests receive only that ID. M7.2 does not read
+raw Evidence bodies, select context autonomously, render provider messages, grant permissions, call a
+model or tool, open a socket, or change domain state.
