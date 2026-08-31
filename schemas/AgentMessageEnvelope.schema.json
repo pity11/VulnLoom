@@ -1,0 +1,179 @@
+{
+  "$defs": {
+    "AgentProviderMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/AgentProviderMessageRole"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "content_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "byte_size": {
+          "maximum": 2097152,
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "contains_untrusted_context": {
+          "title": "Contains Untrusted Context",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "content",
+        "content_digest",
+        "byte_size",
+        "contains_untrusted_context"
+      ],
+      "title": "AgentProviderMessage",
+      "type": "object"
+    },
+    "AgentProviderMessageRole": {
+      "enum": [
+        "system",
+        "user"
+      ],
+      "title": "AgentProviderMessageRole",
+      "type": "string"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "envelope_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Task Digest",
+      "type": "string"
+    },
+    "step": {
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Step",
+      "type": "integer"
+    },
+    "worker_role": {
+      "$ref": "#/$defs/WorkerRole"
+    },
+    "context_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Context Snapshot Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Binding Digest",
+      "type": "string"
+    },
+    "model_registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Registration Id",
+      "type": "string"
+    },
+    "prompt_template_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prompt Template Id",
+      "type": "string"
+    },
+    "decision_schema_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Schema Digest",
+      "type": "string"
+    },
+    "allowed_tools": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Allowed Tools",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "tool_call_budget": {
+      "minimum": 0,
+      "title": "Tool Call Budget",
+      "type": "integer"
+    },
+    "max_output_tokens": {
+      "exclusiveMinimum": 0,
+      "maximum": 65536,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/AgentProviderMessage"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Messages",
+      "type": "array"
+    },
+    "total_bytes": {
+      "maximum": 2162688,
+      "minimum": 0,
+      "title": "Total Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "envelope_id",
+    "plan_id",
+    "task_id",
+    "task_digest",
+    "step",
+    "worker_role",
+    "context_snapshot_id",
+    "target_version_digest",
+    "scope_binding_digest",
+    "model_registration_id",
+    "prompt_template_id",
+    "decision_schema_digest",
+    "allowed_tools",
+    "tool_call_budget",
+    "max_output_tokens",
+    "messages",
+    "total_bytes"
+  ],
+  "title": "AgentMessageEnvelope",
+  "type": "object"
+}

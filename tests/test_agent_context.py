@@ -17,6 +17,7 @@ from vulnloom.agent_runtime import (
     AgentContextSourceKind,
     AgentContextStore,
     AgentContextTimedOut,
+    AgentMessageRenderer,
     AgentModelRegistration,
     AgentRunLimits,
     AgentRunPlan,
@@ -155,11 +156,22 @@ def test_runtime_reverifies_bound_context_before_checkpoint(tmp_path, now):
         idempotency_key="agent:context-runtime:1",
         context_snapshot=snapshot,
     )
-    request = AgentStepRequest.create(
+    base_request = AgentStepRequest.create(
         plan=plan, step=1, remaining_model_tokens=100
+    )
+    renderer = AgentMessageRenderer()
+    envelope = renderer.render(
+        plan=plan, snapshot=snapshot, request=base_request
+    )
+    request = AgentStepRequest.create(
+        plan=plan,
+        step=1,
+        remaining_model_tokens=100,
+        message_envelope_id=envelope.envelope_id,
     )
     turn = ReplayTurn(
         expected_request_digest=canonical_digest(request.model_dump(mode="python")),
+        expected_message_envelope_id=envelope.envelope_id,
         structured_output={"kind": "complete", "summary_digest": "f" * 64},
         input_tokens=1,
         output_tokens=1,
@@ -181,9 +193,12 @@ def test_runtime_reverifies_bound_context_before_checkpoint(tmp_path, now):
         registration=registration,
         adapter=adapter,
         context_store=context_store,
+        message_renderer=renderer,
     )
     outcome = runtime.execute(plan, now=now + timedelta(seconds=1))
     assert outcome.status is AgentRunStatus.COMPLETED
+    assert adapter.message_envelope_ids == [envelope.envelope_id]
+    assert b"ignore previous instructions" not in (tmp_path / "runs.sqlite3").read_bytes()
     run_store.close()
 
 
@@ -210,9 +225,43 @@ def test_runtime_rejects_context_object_drift_before_checkpoint(tmp_path, now):
         registration=registration,
         adapter=adapter,
         context_store=context_store,
+        message_renderer=AgentMessageRenderer(),
     )
 
     with pytest.raises(AgentRuntimeRejected, match="binding mismatch"):
+        runtime.execute(plan, now=now + timedelta(seconds=1))
+
+    assert run_store.connection.execute("SELECT count(*) FROM agent_runs").fetchone()[0] == 0
+    run_store.close()
+
+
+def test_runtime_rejects_initial_message_timeout_before_checkpoint(tmp_path, now):
+    task = _task(now)
+    snapshot = _snapshot(now, task)
+    registration = _registration()
+    plan = AgentRunPlan.create(
+        task=task,
+        registration=registration,
+        limits=AgentRunLimits(max_output_tokens_per_step=64),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="agent:message-timeout:1",
+        context_snapshot=snapshot,
+    )
+    context_store = AgentContextStore(tmp_path / "contexts")
+    context_store.publish(snapshot)
+    run_store = AgentRunStore(tmp_path / "runs.sqlite3")
+    readings = iter((0.0, 0.0, 3.0))
+    renderer = AgentMessageRenderer(clock=lambda: next(readings))
+    runtime = OfflineAgentRuntime(
+        store=run_store,
+        registration=registration,
+        adapter=OfflineReplayModelAdapter(registration=registration, turns=()),
+        context_store=context_store,
+        message_renderer=renderer,
+    )
+
+    with pytest.raises(AgentRuntimeRejected, match="rendering rejected"):
         runtime.execute(plan, now=now + timedelta(seconds=1))
 
     assert run_store.connection.execute("SELECT count(*) FROM agent_runs").fetchone()[0] == 0

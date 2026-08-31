@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "AgentProviderMessageRole": {
+      "enum": [
+        "system",
+        "user"
+      ],
+      "title": "AgentProviderMessageRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "role": {
+      "$ref": "#/$defs/AgentProviderMessageRole"
+    },
+    "content": {
+      "title": "Content",
+      "type": "string"
+    },
+    "content_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Content Digest",
+      "type": "string"
+    },
+    "byte_size": {
+      "maximum": 2097152,
+      "minimum": 0,
+      "title": "Byte Size",
+      "type": "integer"
+    },
+    "contains_untrusted_context": {
+      "title": "Contains Untrusted Context",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "role",
+    "content",
+    "content_digest",
+    "byte_size",
+    "contains_untrusted_context"
+  ],
+  "title": "AgentProviderMessage",
+  "type": "object"
+}

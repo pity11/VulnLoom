@@ -9,7 +9,13 @@ from pydantic import ValidationError
 
 from vulnloom.domain.digests import canonical_digest
 
-from .context import AgentContextRejected, AgentContextStore
+from .context import AgentContextRejected, AgentContextSnapshot, AgentContextStore
+from .messages import (
+    AgentMessageEnvelope,
+    AgentMessageRejected,
+    AgentMessageRenderer,
+    AgentMessageTimedOut,
+)
 from .models import (
     AgentAdapterKind,
     AgentCleanupReport,
@@ -42,11 +48,13 @@ class OfflineAgentRuntime:
         registration: AgentModelRegistration,
         adapter: AgentModelAdapter,
         context_store: AgentContextStore | None = None,
+        message_renderer: AgentMessageRenderer | None = None,
     ):
         self.store = store
         self.registration = registration
         self.adapter = adapter
         self.context_store = context_store
+        self.message_renderer = message_renderer
 
     def execute(self, plan: AgentRunPlan, *, now: datetime) -> AgentRunOutcome:
         if now < plan.created_at or now >= plan.deadline or now >= plan.task.deadline:
@@ -64,14 +72,27 @@ class OfflineAgentRuntime:
             or plan.task.worker_role not in self.registration.supported_roles
         ):
             raise AgentRuntimeRejected("Agent model registration binding mismatch")
+        snapshot = None
         if plan.context_snapshot_id is not None:
             if self.context_store is None:
                 raise AgentRuntimeRejected("Agent context store is required")
+            if self.message_renderer is None:
+                raise AgentRuntimeRejected("Agent message renderer is required")
             try:
                 snapshot = self.context_store.read(plan.context_snapshot_id)
                 snapshot.assert_for_task(plan.task)
             except AgentContextRejected as exc:
                 raise AgentRuntimeRejected("Agent context binding mismatch") from exc
+        initial_remaining = plan.task.budget.model_tokens
+        try:
+            first_request, first_envelope = self._prepare_request(
+                plan,
+                step=1,
+                remaining=initial_remaining,
+                snapshot=snapshot,
+            )
+        except (AgentMessageRejected, AgentMessageTimedOut) as exc:
+            raise AgentRuntimeRejected("Agent message rendering rejected") from exc
         claim = self.store.claim(plan, now=now)
         if not claim.created:
             if claim.outcome is None:
@@ -99,11 +120,40 @@ class OfflineAgentRuntime:
                     output_tokens=total_output,
                     error_codes=("model_token_budget_exhausted",),
                 )
-            request = AgentStepRequest.create(
-                plan=plan, step=step, remaining_model_tokens=remaining
-            )
+            if step == 1:
+                request, message_envelope = first_request, first_envelope
+            else:
+                try:
+                    request, message_envelope = self._prepare_request(
+                        plan,
+                        step=step,
+                        remaining=remaining,
+                        snapshot=snapshot,
+                    )
+                except AgentMessageTimedOut:
+                    return self._finish(
+                        plan,
+                        now=now,
+                        status=AgentRunStatus.TIMED_OUT,
+                        steps=step,
+                        input_tokens=total_input,
+                        output_tokens=total_output,
+                        error_codes=("message_rendering_wall_time_exceeded",),
+                    )
+                except AgentMessageRejected:
+                    return self._finish(
+                        plan,
+                        now=now,
+                        status=AgentRunStatus.FAILED,
+                        steps=step,
+                        input_tokens=total_input,
+                        output_tokens=total_output,
+                        error_codes=("message_rendering_rejected",),
+                    )
             try:
-                reply = self.adapter.complete(request)
+                reply = self.adapter.complete(
+                    request, message_envelope=message_envelope
+                )
             except Exception as exc:
                 raise AgentRuntimeAdapterFailure(
                     "offline Agent adapter failed after STARTED checkpoint"
@@ -237,6 +287,31 @@ class OfflineAgentRuntime:
                 supporting_ref_digests=decision.supporting_ref_digests,
             )
         raise RuntimeError("Agent loop exhausted without a terminal outcome")
+
+    def _prepare_request(
+        self,
+        plan: AgentRunPlan,
+        *,
+        step: int,
+        remaining: int,
+        snapshot: AgentContextSnapshot | None,
+    ) -> tuple[AgentStepRequest, AgentMessageEnvelope | None]:
+        base = AgentStepRequest.create(
+            plan=plan, step=step, remaining_model_tokens=remaining
+        )
+        if snapshot is None:
+            return base, None
+        assert self.message_renderer is not None
+        envelope = self.message_renderer.render(
+            plan=plan, snapshot=snapshot, request=base
+        )
+        request = AgentStepRequest.create(
+            plan=plan,
+            step=step,
+            remaining_model_tokens=remaining,
+            message_envelope_id=envelope.envelope_id,
+        )
+        return request, envelope
 
     def _finish(
         self,

@@ -366,6 +366,16 @@ Approval、工具参数或原始 Evidence 身份。
 redaction policy、fragment 列表、总字节和装配时间。`AgentRunPlan.context_snapshot_id` 可进一步绑定该对象，
 此时 `context_digest` 必须等于 snapshot ID；StepRequest 仍只复制摘要。
 
+### AgentPromptTemplateRegistration 与 AgentMessageEnvelope
+
+`AgentPromptTemplateRegistration` 只表达 `builtin-v1`、Worker role 和可信 system message 摘要。
+`AgentProviderMessage` 保存 role、正文、摘要、UTF-8 字节数和 untrusted-context 标记；system 固定为 trusted，
+user 固定包含 untrusted context。
+
+`AgentMessageEnvelope` 内容寻址绑定 plan/task/task digest、step、role、context snapshot、Target/Scope 摘要、
+model registration、template、decision schema、工具白名单、tool-call/output 预算、消息和总字节。
+`AgentStepRequest.message_envelope_id` 只保存 envelope 摘要；消息正文不属于运行 checkpoint/outcome。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

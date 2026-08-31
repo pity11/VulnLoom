@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_system_bytes": {
+      "default": 4096,
+      "exclusiveMinimum": 0,
+      "maximum": 65536,
+      "title": "Max System Bytes",
+      "type": "integer"
+    },
+    "max_user_bytes": {
+      "default": 524288,
+      "exclusiveMinimum": 0,
+      "maximum": 2097152,
+      "title": "Max User Bytes",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 528384,
+      "exclusiveMinimum": 0,
+      "maximum": 2162688,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 2.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AgentMessageLimits",
+  "type": "object"
+}

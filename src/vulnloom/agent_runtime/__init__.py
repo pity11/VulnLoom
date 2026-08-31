@@ -18,6 +18,18 @@ from .local_fake import (
     LocalFakeProviderMismatch,
     LocalFakeTurn,
 )
+from .messages import (
+    AgentMessageEnvelope,
+    AgentMessageLimits,
+    AgentMessageRejected,
+    AgentMessageRenderer,
+    AgentMessageTimedOut,
+    AgentPromptTemplateRegistration,
+    AgentProviderMessage,
+    AgentProviderMessageRole,
+    agent_message_envelope_digest,
+    agent_prompt_template_digest,
+)
 from .models import (
     AGENT_DECISION_SCHEMA_DIGEST,
     AgentAdapterKind,
@@ -66,6 +78,14 @@ __all__ = [
     "AgentModelAdapter",
     "AgentModelRegistration",
     "AgentModelReply",
+    "AgentMessageEnvelope",
+    "AgentMessageLimits",
+    "AgentMessageRejected",
+    "AgentMessageRenderer",
+    "AgentMessageTimedOut",
+    "AgentPromptTemplateRegistration",
+    "AgentProviderMessage",
+    "AgentProviderMessageRole",
     "AgentRunIdempotencyConflict",
     "AgentRunLimits",
     "AgentRunOutcome",
@@ -88,4 +108,6 @@ __all__ = [
     "OfflineReplayModelAdapter",
     "ReplayTurn",
     "agent_context_snapshot_digest",
+    "agent_message_envelope_digest",
+    "agent_prompt_template_digest",
 ]

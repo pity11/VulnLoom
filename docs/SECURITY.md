@@ -151,6 +151,12 @@ M7.2 不读取完整认证响应或原始 Evidence body，也不声称脱敏器�
 context 前由人工或专用 normalizer 排除。绑定 snapshot 的 Runtime 如果没有显式 context store，或重读时发现
 对象不可写性/内容/Task 绑定漂移，会在 STARTED checkpoint 前拒绝。
 
+M7.3 的 system message 来自固定内置模板，user message 是重复键拒绝的确定性 JSON。脱敏 context 只能位于
+`untrusted_context` 字符串字段；即使正文包含伪造 control JSON 或“忽略前文”，也不能修改 envelope 的
+工具白名单、预算、schema 或 `can_execute_tools=false`。Runtime 继续独立验证工具提案，Broker/Sandbox 才是
+真正权限边界。renderer 对 system/user/总字节和墙钟分别设限，并在 checkpoint 前拒绝首步渲染失败。
+adapter 和 SQLite 只保留 envelope digest，不持久化 message/context 正文。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

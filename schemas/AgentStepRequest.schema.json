@@ -45,6 +45,19 @@
       "title": "Context Digest",
       "type": "string"
     },
+    "message_envelope_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Message Envelope Id"
+    },
     "allowed_tools": {
       "items": {
         "pattern": "^[a-z][a-z0-9_.-]{0,127}$",

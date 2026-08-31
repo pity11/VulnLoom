@@ -327,6 +327,23 @@ Exact TaskEnvelope.input_refs + transient typed sources
 缺失、额外、替换或重排 source、凭据/PII 未脱敏、超限、超时、可写对象、链接或内容漂移均在模型调用前
 拒绝。snapshot 的 `untrusted` 标记不会因文本内容变化；上下文不能授权工具、Approval 或状态迁移。
 
+### M7.3 固定消息渲染链
+
+```text
+Verified AgentRunPlan + reloaded context snapshot + builtin role template
+  → fixed trusted system message
+  → canonical strict-JSON user message
+     ├─ trusted typed control: tools/schema/budgets/can_execute=false
+     └─ escaped untrusted_context fragments
+  → enforce system/user/total/wall budgets
+  → content-addressed message envelope
+  → seal envelope ID into AgentStepRequest
+  → transient adapter call; retain digest only
+```
+
+模板、system、JSON shape、control、Task/Scope/Target、fragment ordinal/trust 或摘要任一漂移都拒绝。模型仍只能
+返回工具提案；prompt 文字不能执行工具、授予 Approval 或触发 Candidate/Finding/Submission 状态变化。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

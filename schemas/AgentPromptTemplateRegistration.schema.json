@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "template_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Template Id",
+      "type": "string"
+    },
+    "template_version": {
+      "default": "builtin-v1",
+      "title": "Template Version",
+      "type": "string"
+    },
+    "worker_role": {
+      "$ref": "#/$defs/WorkerRole"
+    },
+    "system_message_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "System Message Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "template_id",
+    "worker_role",
+    "system_message_digest"
+  ],
+  "title": "AgentPromptTemplateRegistration",
+  "type": "object"
+}

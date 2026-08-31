@@ -363,6 +363,19 @@ M7.1b 只证明 Control Plane 内的凭据生命周期和 adapter 绑定，不�
 
 M7.2 不读取原始 Evidence Store 正文、不自动选择上下文、不把上下文当授权，也不增加 live provider、网络、工具调用或领域状态变化。后续 prompt rendering 必须从已复核 snapshot 构造固定角色消息。
 
+### M7.3：固定模板 Provider Message Envelope（已完成首版）
+
+- 每个 `WorkerRole` 只对应一个内容寻址的 `builtin-v1` template；system message 由可信代码生成，调用方不能提供、替换或版本漂移。
+- user message 使用确定性 strict JSON，把 Task/Target/Scope 摘要、工具白名单、tool-call/output 预算和 decision schema 放在独立 control 区，把脱敏 fragment 放在 `untrusted_context` 数组。
+- context 中伪造的 `allowed_tools`、`can_execute_tools` 或 prompt 指令只是 JSON string 数据；envelope control 固定 `can_execute_tools=false`，真实权限仍由 Runtime/Broker 强制。
+- `AgentMessageLimits` 分别限制 system/user/总字节与渲染墙钟；重复 JSON key、字段增删、ordinal/trust 漂移、未脱敏 fragment 和超限/超时均拒绝。
+- `AgentMessageEnvelope` 内容寻址绑定 plan/task/context/model/template/schema/工具/预算和两条消息；schema 反序列化时重新验证 builtin system 与 strict user JSON。
+- context-bound Runtime 在 STARTED 前重新渲染首步 envelope，并把其 ID 封入 `AgentStepRequest`；后续重试按 step/剩余预算生成新 envelope。
+- offline replay 与 local-fake adapter 接收 envelope，但仅记录 request 与 envelope ID；消息正文和 context 不进入 Agent checkpoint/outcome。
+- 测试覆盖七种 Worker role、system/template 篡改、control 注入、重复键、trust 漂移、请求绑定、字节/超时门禁、adapter 摘要匹配和 SQLite 无正文。
+
+M7.3 不把 system prompt 当安全边界；它没有 live provider、HTTP/SDK、网络、凭据扩散、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。实时 adapter 仍需独立出口与响应捕获 Admission。
+
 ## 延后事项
 
 - 公网资产自主发现。

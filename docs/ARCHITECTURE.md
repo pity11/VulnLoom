@@ -400,3 +400,21 @@ An Agent run may bind the exact snapshot ID; the Runtime must reload and revalid
 STARTED checkpoint, while step requests receive only that ID. M7.2 does not read
 raw Evidence bodies, select context autonomously, render provider messages, grant permissions, call a
 model or tool, open a socket, or change domain state.
+
+## 26. M7.3 fixed provider-message envelope
+
+Each Worker role maps to one built-in, content-addressed system template. Callers cannot supply system
+text or a template version. The user message is canonical strict JSON: trusted control metadata and
+budgets occupy a separate object, while every redacted fragment remains inside an explicitly
+untrusted array. JSON escaping prevents fragment text from changing the message shape; authorization
+still comes only from typed Runtime/Broker checks, never from prompt precedence.
+
+The envelope binds the exact plan, Task digest, context snapshot, Target/Scope digests, model
+registration, template, decision schema, tool allowlist, budgets, step, and messages. Its validators
+reparse JSON with duplicate-key rejection and revalidate every fragment. System, user, total-byte,
+and rendering wall limits are independent.
+
+For context-bound runs, the Runtime rebuilds the first envelope before its STARTED checkpoint and
+seals the envelope ID into the step request. Retries render a new envelope for their step and
+remaining output budget. Offline adapters receive the transient envelope but retain only its ID.
+M7.3 adds no live transport, SDK, socket, tool execution, domain reducer, or Submission path.

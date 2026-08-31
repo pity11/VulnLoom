@@ -269,6 +269,7 @@ class AgentStepRequest(DomainModel):
     step: int = Field(ge=1, le=8)
     worker_role: WorkerRole
     context_digest: Digest
+    message_envelope_id: Digest | None = None
     allowed_tools: frozenset[ToolId]
     decision_schema_digest: Digest
     remaining_model_tokens: int = Field(gt=0)
@@ -285,7 +286,12 @@ class AgentStepRequest(DomainModel):
 
     @classmethod
     def create(
-        cls, *, plan: AgentRunPlan, step: int, remaining_model_tokens: int
+        cls,
+        *,
+        plan: AgentRunPlan,
+        step: int,
+        remaining_model_tokens: int,
+        message_envelope_id: str | None = None,
     ) -> AgentStepRequest:
         values = {
             "plan_id": plan.plan_id,
@@ -293,6 +299,7 @@ class AgentStepRequest(DomainModel):
             "step": step,
             "worker_role": plan.task.worker_role,
             "context_digest": plan.context_digest,
+            "message_envelope_id": message_envelope_id,
             "allowed_tools": plan.task.allowed_tools,
             "decision_schema_digest": plan.decision_schema_digest,
             "remaining_model_tokens": remaining_model_tokens,
