@@ -349,6 +349,13 @@ deadline 与幂等键。
 完整 invocation 摘要、逐参数摘要和逻辑工作目录，不保存原始参数，也不表示工具已经执行。终态 outcome 只
 保存摘要、稳定错误码、预算使用与逻辑清理证明；原始模型输出不属于持久化数据模型。
 
+### ModelCredentialReference 与 ModelCredentialLease
+
+`ModelCredentialReference` 是一个环境变量名称及其内容摘要，不是 credential。它可以存在于 Control Plane
+provider 配置和 local-fake registration 绑定中，但不会进入 Worker request。`ModelCredentialLease` 不是
+Pydantic/JSON 对象，只在可信 adapter 的一次调用作用域内持有 UTF-8 字节；关闭后缓冲区归零且不可再次读取。
+原始 credential、lease 和 local-fake turn 都不属于 checkpoint 或领域事件数据模型。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

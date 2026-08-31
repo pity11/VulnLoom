@@ -366,3 +366,20 @@ The checkpoint store persists only STARTED state or a bounded terminal outcome. 
 raw tool arguments are discarded, and an interrupted adapter call requires explicit recovery instead
 of automatic replay. There is no live provider, socket, endpoint, credential resolver, Runner,
 Broker call, Approval consumption, domain transition, or Submission path in M7.1a.
+
+## 24. M7.1b Control Plane credential lease and local fake provider
+
+Serializable provider configuration now binds a content-addressed credential reference instead of
+offering an API-key-returning method. The reference names one explicitly allowed Control Plane
+environment variable; the provider resolves only an initialization-time allowlisted reference into a non-serializable byte buffer.
+The lease is scoped to one adapter call and zeroed on normal completion or exception.
+
+The `local_fake_provider` adapter proves this lifecycle without network ambiguity. Its registration
+binds the credential reference, adapter implementation, provider/model identity, roles, and budgets.
+It compares a sealed request digest and credential digest in memory, releases the lease, then returns
+a fixed structured reply. Neither the secret nor the reference is copied into the Agent step request,
+outcome, or checkpoint.
+
+This is Control Plane object-lifecycle isolation, not a live-provider or OS-isolation claim. The
+adapter has no socket, URL, DNS, proxy, HTTP client, SDK, Runner, Broker, tool execution, Approval,
+domain reducer, or Submission capability.

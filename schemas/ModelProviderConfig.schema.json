@@ -1,0 +1,69 @@
+{
+  "$defs": {
+    "ModelCredentialReference": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "environment_variable": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Environment Variable",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "environment_variable"
+      ],
+      "title": "ModelCredentialReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "provider_id": {
+      "minLength": 1,
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "base_url": {
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1,
+      "title": "Base Url",
+      "type": "string"
+    },
+    "model": {
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "credential_reference": {
+      "$ref": "#/$defs/ModelCredentialReference"
+    },
+    "max_output_tokens": {
+      "default": 8192,
+      "minimum": 1,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60,
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "required": [
+    "provider_id",
+    "base_url",
+    "model",
+    "credential_reference"
+  ],
+  "title": "ModelProviderConfig",
+  "type": "object"
+}

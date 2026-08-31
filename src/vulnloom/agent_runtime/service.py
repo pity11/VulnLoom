@@ -53,7 +53,11 @@ class OfflineAgentRuntime:
             or plan.model_registration_digest
             != canonical_digest(self.registration.model_dump(mode="python"))
             or self.adapter.registration != self.registration
-            or self.registration.adapter_kind is not AgentAdapterKind.OFFLINE_REPLAY
+            or self.registration.adapter_kind
+            not in {
+                AgentAdapterKind.OFFLINE_REPLAY,
+                AgentAdapterKind.LOCAL_FAKE_PROVIDER,
+            }
             or plan.task.worker_role not in self.registration.supported_roles
         ):
             raise AgentRuntimeRejected("Agent model registration binding mismatch")

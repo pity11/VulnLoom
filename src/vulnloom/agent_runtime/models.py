@@ -27,6 +27,7 @@ AGENT_DECISION_SCHEMA_DIGEST = canonical_digest(
 
 class AgentAdapterKind(StrEnum):
     OFFLINE_REPLAY = "offline_replay"
+    LOCAL_FAKE_PROVIDER = "local_fake_provider"
 
 
 class AgentDecisionKind(StrEnum):
@@ -49,6 +50,7 @@ class AgentModelRegistration(DomainModel):
     model: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$")
     adapter_kind: AgentAdapterKind = AgentAdapterKind.OFFLINE_REPLAY
     adapter_digest: Digest
+    credential_reference_id: Digest | None = None
     supported_roles: Annotated[tuple[WorkerRole, ...], Field(min_length=1)]
     max_output_tokens: int = Field(gt=0, le=65_536)
 
@@ -57,6 +59,16 @@ class AgentModelRegistration(DomainModel):
         expected_roles = tuple(sorted(set(self.supported_roles), key=lambda item: item.value))
         if self.supported_roles != expected_roles:
             raise ValueError("Agent model roles must be unique and sorted")
+        if (
+            self.adapter_kind is AgentAdapterKind.OFFLINE_REPLAY
+            and self.credential_reference_id is not None
+        ):
+            raise ValueError("offline replay cannot bind a model credential")
+        if (
+            self.adapter_kind is AgentAdapterKind.LOCAL_FAKE_PROVIDER
+            and self.credential_reference_id is None
+        ):
+            raise ValueError("local fake provider requires a credential reference")
         if self.registration_id != agent_model_registration_digest(self):
             raise ValueError("Agent model registration content digest mismatch")
         return self
@@ -77,6 +89,30 @@ class AgentModelRegistration(DomainModel):
             "model": model,
             "adapter_kind": AgentAdapterKind.OFFLINE_REPLAY,
             "adapter_digest": adapter_digest,
+            "credential_reference_id": None,
+            "supported_roles": roles,
+            "max_output_tokens": max_output_tokens,
+        }
+        return cls(registration_id=canonical_digest(values), **values)
+
+    @classmethod
+    def create_local_fake(
+        cls,
+        *,
+        provider_id: str,
+        model: str,
+        adapter_digest: str,
+        credential_reference_id: str,
+        supported_roles: tuple[WorkerRole, ...],
+        max_output_tokens: int,
+    ) -> AgentModelRegistration:
+        roles = tuple(sorted(set(supported_roles), key=lambda item: item.value))
+        values = {
+            "provider_id": provider_id,
+            "model": model,
+            "adapter_kind": AgentAdapterKind.LOCAL_FAKE_PROVIDER,
+            "adapter_digest": adapter_digest,
+            "credential_reference_id": credential_reference_id,
             "supported_roles": roles,
             "max_output_tokens": max_output_tokens,
         }

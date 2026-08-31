@@ -298,6 +298,20 @@ Exact TaskEnvelope + offline model registration + fixed decision schema
 fail-closed outcome；adapter 异常保留 STARTED，后续调用必须显式恢复而不能静默重放。该链没有 live provider、
 Runner、Broker、领域状态机、Approval 消费或 Submission。
 
+### M7.1b 本地凭据租约链
+
+```text
+Sealed credential reference + local-fake registration
+  → resolve exactly one Control Plane environment entry
+  → acquire non-serializable byte lease
+  → verify sealed request and credential inside no-socket fake adapter
+  → zero lease on success or exception
+  → M7.1a structured validation and checkpoint outcome
+```
+
+缺失/错误凭据在 STARTED 后失败并要求显式恢复；模型超时结果也必须先释放 lease。该链不把 credential
+reference 或值放入 `AgentStepRequest`，不继承环境到 Worker，也没有 live endpoint、工具执行或状态变化。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

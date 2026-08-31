@@ -136,6 +136,13 @@ M7.1a 的 Agent Runtime 只接受离线 replay adapter。模型注册和运行�
 schema、身份、token、墙钟和字节上限。工具提案只产生参数摘要，不执行 Runner/Broker，也不能消费 Approval
 或触发领域状态。原始响应与原始参数不落 checkpoint；adapter 中断后的 STARTED 记录拒绝自动重放。
 
+M7.1b 新增的 credential reference 只允许 Control Plane provider 读取启动时显式准入的精确环境变量；未注册
+引用在访问环境前拒绝，且 provider 不复制完整宿主
+环境。读取值进入不可序列化的 lease 缓冲，正常、错误和超时路径都在返回前归零；缺失/错误凭据只产生通用
+adapter failure 并保留 STARTED checkpoint。local-fake adapter 无 socket/URL/SDK，凭据、引用和无关环境值
+不进入 Worker request、outcome、SQLite 或错误消息。此处不声称 Python 进程内存可抵御宿主级取证；live
+provider 仍需独立进程/网络/日志与响应捕获 Admission。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

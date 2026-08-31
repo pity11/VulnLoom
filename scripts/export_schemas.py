@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from vulnloom.adapters import ModelCredentialReference
+from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.agent_runtime import (
     AgentCleanupReport,
     AgentDecisionPayload,
@@ -135,6 +137,8 @@ from vulnloom.validation import (
 )
 
 MODELS = (
+    ModelCredentialReference,
+    ModelProviderConfig,
     AgentModelRegistration,
     AgentRunLimits,
     AgentRunPlan,

@@ -3,6 +3,11 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from vulnloom.adapters import (
+    EnvironmentModelCredentialProvider,
+    ModelCredentialReference,
+    ModelCredentialUnavailable,
+)
 from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.domain.models import Candidate
 from vulnloom.runners.environment import (
@@ -32,18 +37,62 @@ def test_worker_environment_rejects_fixed_names_and_unsafe_values():
         build_worker_environment({"VULNLOOM_INPUT": "bad\x00value"})
 
 
-def test_model_key_is_resolved_only_by_control_plane(monkeypatch):
+def test_model_key_is_leased_only_by_control_plane():
+    reference = ModelCredentialReference.create(
+        environment_variable="VULNLOOM_TEST_MODEL_KEY"
+    )
     config = ModelProviderConfig(
         provider_id="openai-compatible",
         base_url="https://models.example/v1",
         model="research-model",
-        api_key_env="VULNLOOM_TEST_MODEL_KEY",
+        credential_reference=reference,
     )
-    with pytest.raises(RuntimeError, match="not set"):
-        config.resolve_api_key()
-    monkeypatch.setenv("VULNLOOM_TEST_MODEL_KEY", "secret-value")
-    assert config.resolve_api_key() == "secret-value"
+    provider = EnvironmentModelCredentialProvider(
+        {"VULNLOOM_TEST_MODEL_KEY": "secret-value", "UNRELATED_SECRET": "hidden"},
+        allowed_references=(reference,),
+    )
+    lease = provider.acquire(reference)
+    with lease:
+        assert bytes(lease.view()) == b"secret-value"
+    assert lease.released
+    assert lease.zeroed
+    with pytest.raises(ModelCredentialUnavailable, match="released"):
+        lease.view()
     assert "secret-value" not in config.model_dump_json()
+    assert "hidden" not in config.model_dump_json()
+
+
+def test_model_credential_provider_rejects_unregistered_reference():
+    allowed = ModelCredentialReference.create(environment_variable="ALLOWED_MODEL_KEY")
+    denied = ModelCredentialReference.create(environment_variable="UNRELATED_SECRET")
+    provider = EnvironmentModelCredentialProvider(
+        {"ALLOWED_MODEL_KEY": "allowed", "UNRELATED_SECRET": "hidden"},
+        allowed_references=(allowed,),
+    )
+
+    with pytest.raises(ModelCredentialUnavailable, match="not allowed"):
+        provider.acquire(denied)
+
+
+@pytest.mark.parametrize("secret", ["", "bad\x00secret", "x" * 16_385])
+def test_model_credential_provider_rejects_invalid_secret_values(secret):
+    reference = ModelCredentialReference.create(environment_variable="MODEL_KEY")
+    provider = EnvironmentModelCredentialProvider(
+        {"MODEL_KEY": secret}, allowed_references=(reference,)
+    )
+
+    with pytest.raises(ModelCredentialUnavailable, match="unavailable|invalid"):
+        provider.acquire(reference)
+
+
+def test_model_credential_provider_requires_a_nonempty_unique_allowlist():
+    reference = ModelCredentialReference.create(environment_variable="MODEL_KEY")
+    with pytest.raises(ValueError, match="non-empty and unique"):
+        EnvironmentModelCredentialProvider({}, allowed_references=())
+    with pytest.raises(ValueError, match="non-empty and unique"):
+        EnvironmentModelCredentialProvider(
+            {}, allowed_references=(reference, reference)
+        )
 
 
 def test_candidate_signal_references_are_content_digests(candidate):

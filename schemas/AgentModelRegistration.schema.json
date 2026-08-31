@@ -2,7 +2,8 @@
   "$defs": {
     "AgentAdapterKind": {
       "enum": [
-        "offline_replay"
+        "offline_replay",
+        "local_fake_provider"
       ],
       "title": "AgentAdapterKind",
       "type": "string"
@@ -46,6 +47,19 @@
       "pattern": "^[0-9a-f]{64}$",
       "title": "Adapter Digest",
       "type": "string"
+    },
+    "credential_reference_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Credential Reference Id"
     },
     "supported_roles": {
       "items": {

@@ -1,5 +1,11 @@
 """Offline, typed Agent Runtime contracts and replay implementation."""
 
+from .local_fake import (
+    LocalFakeModelAdapter,
+    LocalFakeProviderExhausted,
+    LocalFakeProviderMismatch,
+    LocalFakeTurn,
+)
 from .models import (
     AGENT_DECISION_SCHEMA_DIGEST,
     AgentAdapterKind,
@@ -51,6 +57,10 @@ __all__ = [
     "AgentStepRequest",
     "AgentToolCallPayload",
     "AgentToolIntent",
+    "LocalFakeModelAdapter",
+    "LocalFakeProviderExhausted",
+    "LocalFakeProviderMismatch",
+    "LocalFakeTurn",
     "OfflineAgentRuntime",
     "OfflineReplayExhausted",
     "OfflineReplayMismatch",

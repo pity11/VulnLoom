@@ -63,9 +63,9 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, disclosure submission adapters, and prompts are planned
-components; they are not present in the current tree. M7.1a includes only a deterministic offline
-Agent Runtime replay boundary. Benchmark and analyzer imports consume only sealed, pre-obtained local
-data and never fetch suites, rules, databases, or images.
+components; they are not present in the current tree. M7.1a-b include deterministic replay and a
+credential-isolated, no-socket local fake provider. Benchmark and analyzer imports consume only
+sealed, pre-obtained local data and never fetch suites, rules, databases, or images.
 
 ## First end-to-end path
 
@@ -272,6 +272,17 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Uses no model socket, SDK, endpoint, credential, Runner, Broker, Approval, domain transition, or
   Submission path.
 
+### M7.1b: credential lease and local fake provider
+
+- Replaces direct API-key string resolution with an initialization-time allowlisted,
+  content-addressed reference to one explicit Control Plane environment variable.
+- Holds secret bytes only in a non-serializable lease that is zeroed on success, exception, and
+  timeout-result paths.
+- Adds a registration-bound local fake adapter to test provider identity and credential lifecycle
+  without a socket, URL, SDK, proxy, or inherited environment.
+- Keeps the credential value and unrelated environment entries out of Worker requests, outcomes,
+  checkpoints, schemas, and error messages.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -399,11 +410,11 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Model credential boundary
 
-`ModelProviderConfig.api_key_env` defines how a future Control Plane provider adapter must resolve an API key immediately before making a request. No model-provider HTTP or SDK call is implemented yet. M7.1a accepts only an `offline_replay` registration and persists neither provider configuration nor raw model output. The boundary is designed so keys never appear in `TaskEnvelope`, Worker environments, checkpoints, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
+`ModelProviderConfig.credential_reference` identifies one explicit Control Plane environment variable without containing its value. M7.1b resolves it into a short-lived, zeroed byte lease used only by the no-socket local fake adapter. No model-provider HTTP or SDK call is implemented yet. Keys never appear in `TaskEnvelope`, Worker environments, Agent requests, checkpoints, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, a typed offline Agent Runtime replay boundary, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, typed offline Agent Runtime adapters with scoped credential leases, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, live model-provider execution, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

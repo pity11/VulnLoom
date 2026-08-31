@@ -339,6 +339,18 @@ M6.4d 运行期不下载 CodeQL、数据库或查询包，不执行 Target build
 
 M7.1a 不接入公网模型、provider SDK、模型凭据、真实工具执行、Target build、Candidate/Finding 状态变化、Approval 消费或 Submission。后续 live adapter 必须作为独立里程碑增加网络、凭据、速率、响应捕获和 Admission 边界。
 
+### M7.1b：Control Plane 凭据租约与本地假 Provider（已完成首版）
+
+- `ModelCredentialReference` 只封存允许读取的单个环境变量名称及内容摘要，不携带凭据值，也不导出父进程环境。
+- `EnvironmentModelCredentialProvider` 只解析启动时显式准入的精确引用；未注册引用在读取环境前拒绝。凭据进入非序列化 `ModelCredentialLease` 字节缓冲，并在上下文退出、异常和超时结果前归零。
+- `ModelProviderConfig` 不再直接返回 API key 字符串，只持有 credential reference；Worker `TaskEnvelope`、`AgentStepRequest` 和环境白名单均不包含该引用或密钥。
+- 新增内容绑定的 `local_fake_provider` registration 与 adapter。它只在内存中校验请求/credential 摘要并返回固定结构化 turn，不创建 socket、不解析 URL、不调用 SDK。
+- Agent Runtime 同时准入 offline replay 与 local fake 两个无网络 adapter；registration/credential reference 任一漂移均在调用前拒绝。
+- 原始 credential、无关环境变量、原始响应与工具参数均不进入 request、outcome、checkpoint 或 schema；错误消息只返回稳定边界错误。
+- 测试覆盖成功、缺失凭据、错误凭据、超时后清零、STARTED 恢复拒绝、引用篡改、registration 漂移和 Worker 环境不继承。
+
+M7.1b 只证明 Control Plane 内的凭据生命周期和 adapter 绑定，不声称进程级隔离，也不增加 live endpoint、DNS、HTTP、proxy、provider SDK、真实工具执行或任何领域状态变化。实时模型出口仍需独立 Admission。
+
 ## 延后事项
 
 - 公网资产自主发现。
