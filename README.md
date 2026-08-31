@@ -247,6 +247,14 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Adds `analyzer-evaluate-offline`, which creates only local immutable JSON/Markdown results and cannot alter Candidate or Finding state.
 - Accepts directories only. ZIP/TAR acquisition and extraction remain outside this adapter; callers must use an independently hardened quarantine path before presenting a directory.
 
+### M6.4: sealed analyzer execution
+
+- Runs exact Checkov, Kubesec, Trivy, and CodeQL registrations through the hardened Docker Runner with inspected image IDs, `--pull never`, `network=none`, read-only inputs/root, non-root identity, bounded resources, and mandatory cleanup.
+- Captures analyzer output within a trusted byte limit and completes the outer checkpoint only after the existing M6.3a adapter creates redacted Observations.
+- Restricts Trivy to its sealed read-only DB v2 and vulnerability scanner; DB/check/Java/VEX updates, secret scanning, telemetry, and version checks are disabled.
+- Binds CodeQL 2.26.2 to a Target/version/Manifest and one sealed prebuilt DB/query snapshot. A narrow wrapper copies the DB into bounded tmpfs because CodeQL writes query results, while the original DB and query pack remain read-only and are reverified after cleanup.
+- Does not expose analyzer/package downloads, arbitrary commands, Target builds, Candidate/Finding promotion, or Submission. CodeQL database construction remains separately `RUN_UNTRUSTED_BUILD` Approval-gated.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

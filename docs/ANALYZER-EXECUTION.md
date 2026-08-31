@@ -2,8 +2,8 @@
 
 M6.4a defines the source-only analyzer protocol. M6.4b adds narrowly admitted real Checkov and
 Kubesec execution through the existing Docker boundary. M6.4c adds Trivy 0.73.0 with a sealed,
-read-only vulnerability database. M6.4d begins the CodeQL prebuilt-database protocol; its first
-stage is deliberately protocol-only.
+read-only vulnerability database. M6.4d adds query-only CodeQL execution over a target-bound
+prebuilt database and query pack.
 
 ## Sealed inputs
 
@@ -16,8 +16,9 @@ stage is deliberately protocol-only.
   Task's `analyzer-data` input.
 - CodeQL binds one `CodeQLSnapshot` containing a prebuilt `database/` and precompiled `queries/`
   tree. Required database, query-pack, and query-suite markers, every member digest, the CLI
-  version, language, pack identity, and total size are covered by one content address. Prior
-  `database/results` are rejected.
+  version, Target/version/Manifest, language, pack identity, and total size are covered by one
+  content address. Prior `database/results`, empty directories, and trees without precompiled
+  `.qlx` queries are rejected.
 - One `AnalyzerExecutionPlan` binding the Target manifest, Scope/policy, registration/registry,
   static Sandbox Profile, Runner request, deadline, and idempotency key.
 
@@ -37,8 +38,8 @@ claim filesystem, process, container, or network isolation beyond the already-te
 
 ## Real execution admission
 
-`DockerAnalyzerExecutionService` accepts only the exact Checkov 3.3.15, Kubesec 2.14.2, and Trivy
-0.73.0 factory registrations. The operator provisions images and the Trivy database outside
+`DockerAnalyzerExecutionService` accepts only the exact Checkov 3.3.15, Kubesec 2.14.2, Trivy
+0.73.0, and CodeQL 2.26.2 factory registrations. The operator provisions images and analyzer data outside
 execution; the plan then binds the inspected image ID and content-addressed DB. Runtime uses
 `--pull never`, `network=none`, a read-only root, source, and optional analyzer-data mount, non-root
 identity, no capabilities, no-new-privileges, bounded cgroup resources, and a secret-free exact
@@ -69,25 +70,28 @@ functional regression evidence only, not production isolation qualification.
 CodeQL database construction or any other target build requires a separate exact
 `RUN_UNTRUSTED_BUILD` Approval and remains outside M6.4c.
 
-## CodeQL protocol-only boundary
+## CodeQL query-only boundary
 
-The M6.4d factory fixes CodeQL CLI 2.26.2, the prebuilt database path, one sealed `.qls`, SARIF
-output, one thread, and a temporary common cache. It contains no `database create`, `--download`,
-URL, shell, or runtime arguments. The same snapshot digest is bound to rules provenance and the
-read-only `analyzer-data` Task input.
+The M6.4d factory fixes CodeQL CLI 2.26.2, a target-bound prebuilt database, one sealed `.qls`,
+SARIF 2.1.0 output, one thread, and temporary caches. It contains no `database create`,
+`--download`, URL, shell, or runtime arguments. The same snapshot digest is bound to rules
+provenance and the read-only `analyzer-data` Task input.
 
 CodeQL's documented [`database run-queries`](https://docs.github.com/en/code-security/reference/code-scanning/codeql/codeql-cli-manual/database-run-queries)
 lifecycle writes BQRS results under the database `results` directory, and `database analyze`
-combines that command with result interpretation. Consequently, the current registry rejects
-materializing a CodeQL protocol registration as a Docker tool, and the real execution service
-continues to admit only Checkov, Kubesec, and Trivy. A read-only bind alone is a refusal test, not
-a successful CodeQL execution design.
+combines that command with result interpretation. The admitted wrapper therefore copies the
+database into the Runner's size-bounded output tmpfs using normalized, no-follow reads and exact
+file/entry/byte limits. CodeQL receives only that writable copy; the original database and query
+pack remain read-only and are fully reverified after container cleanup.
 
-Real CodeQL query admission is deferred until the Runner owns a bounded disposable database copy,
-keeps the sealed original database and query pack read-only, proves copy/container cleanup and
-input non-drift, captures SARIF within an explicit limit, and forces successful output through the
-existing M6.3a Observation import. Database construction and target compilation remain separately
-Approval-gated even after query-only execution is admitted.
+The wrapper disables SARIF source contents, snippets, and query help, writes caches only to bounded
+`/tmp`, and streams SARIF only after CodeQL exits successfully. Runner capture applies a second
+output bound before immutable publication, and the outer service can complete only after the
+existing M6.3a Observation import. Phase 3 uses a behavior fixture to prove the rootless Docker,
+tmpfs-write, immutable-original, import, and cleanup boundary without constructing a Target
+database. Real CodeQL bundle/database compatibility and license eligibility remain operator
+qualification responsibilities. Database construction and target compilation remain separately
+`RUN_UNTRUSTED_BUILD` Approval-gated.
 
 Analyzer output cannot directly create a Candidate or Finding and cannot replace Validation,
 Critic, Evidence, duplicate, or human Approval gates.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+
 from vulnloom.domain.models import StaticFileCategory, TargetSnapshot
 
 from .analyzer_adapters import (
@@ -19,10 +21,11 @@ from .analyzer_execution_models import (
     AnalyzerToolRegistration,
 )
 from .analyzer_models import AnalyzerKind, AnalyzerResultFile
-from .codeql_snapshot import CODEQL_TOOL_VERSION, CodeQLSnapshot
+from .codeql_snapshot import CODEQL_MAX_OUTPUT_BYTES, CODEQL_TOOL_VERSION, CodeQLSnapshot
 from .trivy_database import TrivyDatabaseSnapshot
 
 TRIVY_TOOL_VERSION = "0.73.0"
+CODEQL_WRAPPER_TIMEOUT_SECONDS = 300
 
 
 def codeql_registration(
@@ -31,13 +34,16 @@ def codeql_registration(
     image_digest: str,
     snapshot: CodeQLSnapshot,
 ) -> AnalyzerToolRegistration:
-    """Build the sealed M6.4d protocol registration.
-
-    Real Docker admission intentionally rejects this registration until the Runner owns a
-    bounded, disposable database copy: CodeQL writes query results into its database.
-    """
+    """Build the sealed M6.4d query-only registration."""
     if tool_version != CODEQL_TOOL_VERSION or snapshot.tool_version != CODEQL_TOOL_VERSION:
         raise ValueError(f"only CodeQL {CODEQL_TOOL_VERSION} is admitted")
+    database_files = tuple(item for item in snapshot.files if item.path.startswith("database/"))
+    database_directories = {
+        parent.as_posix()
+        for item in database_files
+        for parent in PurePosixPath(item.path).parents
+        if parent.as_posix() not in {".", "database"}
+    }
     return AnalyzerToolRegistration.create(
         tool_id="analyzer.codeql",
         analyzer=AnalyzerKind.CODEQL,
@@ -47,20 +53,22 @@ def codeql_registration(
         adapter_id=CODEQL_ADAPTER_ID,
         adapter_digest=CODEQL_ADAPTER_DIGEST,
         argv=(
-            "/opt/codeql/codeql",
-            "database",
-            "analyze",
-            "/workspace/analyzer-data/database",
+            "/usr/local/bin/vulnloom-codeql-query-wrapper",
+            "--query",
             f"/workspace/analyzer-data/{snapshot.query_suite_path}",
-            "--format",
-            "sarifv2.1.0",
-            "--output",
-            "/workspace/output/output.json",
-            "--threads=1",
-            "--common-caches=/tmp/codeql-cache",
+            "--max-files",
+            str(len(database_files)),
+            "--max-entries",
+            str(len(database_files) + len(database_directories)),
+            "--max-database-bytes",
+            str(sum(item.size for item in database_files)),
+            "--max-output-bytes",
+            str(CODEQL_MAX_OUTPUT_BYTES),
+            "--timeout-seconds",
+            str(CODEQL_WRAPPER_TIMEOUT_SECONDS),
         ),
         environment={"HOME": "/tmp", "TMPDIR": "/tmp"},
-        output_mode=AnalyzerOutputMode.FILE,
+        output_mode=AnalyzerOutputMode.STDOUT,
         codeql_snapshot=snapshot,
     )
 
@@ -237,7 +245,22 @@ def validate_admitted_registration(
             image_digest=registration.image_digest,
             database=registration.trivy_database,
         )
+    elif registration.analyzer is AnalyzerKind.CODEQL:
+        if (
+            registration.cwe_map is not None
+            or registration.trivy_database is not None
+            or registration.codeql_snapshot is None
+            or registration.codeql_snapshot.target_id != target.target.target_id
+            or registration.codeql_snapshot.target_version != target.target.version
+            or registration.codeql_snapshot.manifest_id != target.manifest.manifest_id
+        ):
+            raise ValueError("real CodeQL execution requires one target-bound sealed snapshot")
+        expected = codeql_registration(
+            tool_version=registration.tool_version,
+            image_digest=registration.image_digest,
+            snapshot=registration.codeql_snapshot,
+        )
     else:
-        raise ValueError("only Checkov, Kubesec, and Trivy are admitted for real execution")
+        raise ValueError("only Checkov, Kubesec, Trivy, and CodeQL are admitted for real execution")
     if expected != registration:
         raise ValueError("analyzer registration does not match the admitted exact argv")

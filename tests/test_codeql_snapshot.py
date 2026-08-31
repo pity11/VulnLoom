@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from datetime import timedelta
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
@@ -46,6 +47,9 @@ from vulnloom.runners import (
 )
 
 IMAGE = "sha256:" + "1" * 64
+TARGET_ID = UUID("11111111-1111-4111-8111-111111111111")
+TARGET_VERSION = "a" * 40
+MANIFEST_ID = "3" * 64
 
 
 def _write_snapshot(root: Path) -> None:
@@ -64,6 +68,9 @@ def _write_snapshot(root: Path) -> None:
 def _inspect(root: Path, *, limits: CodeQLSnapshotLimits | None = None):
     return inspect_codeql_snapshot(
         root,
+        target_id=TARGET_ID,
+        target_version=TARGET_VERSION,
+        manifest_id=MANIFEST_ID,
         database_language="python",
         query_pack_name="vulnloom/python-queries",
         query_suite_path="queries/security.qls",
@@ -73,10 +80,11 @@ def _inspect(root: Path, *, limits: CodeQLSnapshotLimits | None = None):
 
 def _target(scope, now) -> TargetSnapshot:
     target = Target(
+        target_id=TARGET_ID,
         engagement_id=scope.engagement_id,
         kind=TargetKind.REPOSITORY,
         source_ref="https://example.test/app.git",
-        version="a" * 40,
+        version=TARGET_VERSION,
         ingested_at=now,
     )
     artifact = Artifact(
@@ -90,7 +98,7 @@ def _target(scope, now) -> TargetSnapshot:
         captured_at=now,
     )
     manifest = TargetManifest(
-        manifest_id="3" * 64,
+        manifest_id=MANIFEST_ID,
         artifact_id=artifact.artifact_id,
         target_id=target.target_id,
         target_version=target.version,
@@ -189,9 +197,7 @@ def test_codeql_snapshot_enforces_file_total_and_timeout_limits(tmp_path, monkey
         _inspect(root, limits=CodeQLSnapshotLimits(timeout_seconds=1))
 
 
-def test_codeql_registration_is_protocol_only_and_cannot_materialize_docker_tool(
-    tmp_path, approved_scope, now
-):
+def test_codeql_registration_is_exact_query_only_docker_tool(tmp_path, approved_scope, now):
     root = tmp_path / "protocol"
     root.mkdir()
     _write_snapshot(root)
@@ -205,16 +211,17 @@ def test_codeql_registration_is_protocol_only_and_cannot_materialize_docker_tool
     assert registration.analyzer is AnalyzerKind.CODEQL
     assert registration.mode is AnalyzerExecutionMode.PREBUILT_DATABASE_QUERY_ONLY
     assert registration.rules_digest == snapshot.snapshot_id
-    assert registration.argv[:3] == ("/opt/codeql/codeql", "database", "analyze")
+    assert registration.argv[0] == "/usr/local/bin/vulnloom-codeql-query-wrapper"
+    assert registration.argv[registration.argv.index("--query") + 1].endswith(
+        "/queries/security.qls"
+    )
     assert "create" not in registration.argv
     assert "--download" not in registration.argv
     assert registration.environment == {"HOME": "/tmp", "TMPDIR": "/tmp"}
 
     registry = AnalyzerToolRegistry((registration,))
-    with pytest.raises(ValueError, match="mutable-copy admission"):
-        _ = registry.docker_tools
-    with pytest.raises(ValueError, match="bounded stdout"):
-        validate_admitted_registration(_target(approved_scope, now), registration)
+    assert registry.docker_tools[0].argv_prefix == registration.argv
+    validate_admitted_registration(_target(approved_scope, now), registration)
 
     raw = registration.model_dump(mode="python")
     raw["rules_digest"] = "9" * 64
@@ -240,7 +247,7 @@ def test_codeql_protocol_binds_snapshot_input_and_read_only_mount(tmp_path, appr
         memory_bytes=256 * 1024 * 1024,
         pids=64,
         open_files=512,
-        file_bytes=32 * 1024 * 1024,
+        file_bytes=64 * 1024 * 1024,
         tmp_bytes=64 * 1024 * 1024,
     )
     profile = analyzer_profile(
@@ -294,6 +301,33 @@ def test_codeql_protocol_binds_snapshot_input_and_read_only_mount(tmp_path, appr
         runner=OfflineSandboxRunner(registry.tool_ids),
         store=store,
     )
+
+    small_limits = limits.model_copy(update={"file_bytes": 32 * 1024 * 1024})
+    small_profile = analyzer_profile(
+        image_digest=IMAGE,
+        snapshot_id=target.manifest.manifest_id,
+        tool_id=registration.tool_id,
+        limits=small_limits,
+        analyzer_data_id=snapshot.snapshot_id,
+    )
+    small_task = task.model_copy(
+        update={"sandbox_profile_digest": sandbox_profile_digest(small_profile)}
+    )
+    small_request = request.model_copy(update={"task": small_task, "profile": small_profile})
+    small_plan = AnalyzerExecutionPlan.create(
+        target=target,
+        scope_id=approved_scope.scope_id,
+        scope_version=approved_scope.version,
+        registration=registration,
+        registry_digest=registry.digest,
+        runner_request=small_request,
+        created_at=now - timedelta(seconds=1),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="codeql-protocol:small-tmpfs",
+    )
+    with pytest.raises(AnalyzerExecutionRejected, match="writable tmpfs"):
+        service.execute(target, small_plan, now=now)
+    assert store.connection.execute("SELECT COUNT(*) FROM analyzer_executions").fetchone()[0] == 0
 
     unbound_task = task.model_copy(
         update={"input_refs": (f"snapshot:{target.manifest.manifest_id}",)}

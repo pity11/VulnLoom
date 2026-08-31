@@ -312,3 +312,18 @@ version checks, telemetry, and dependency API lookups. The service verifies the 
 its checkpoint and again after container cleanup, closing the normal scan/import drift window. A
 successful Runner output still has no workflow authority: it must become a M6.3a Trivy Observation
 artifact before the Docker execution transaction can complete.
+
+## 20. M6.4d sealed CodeQL query boundary
+
+CodeQL is admitted as one exact 2.26.2 query-only factory over a `CodeQLSnapshot` that binds the
+Target/version/Manifest, prebuilt database, query pack, suite, precompiled query artifacts, and all
+member digests. Database construction is absent from the protocol. The original object is mounted
+read-only and verified before checkpoint claim and again after container cleanup.
+
+Because CodeQL writes query results into its database, the registered executable is a narrow
+wrapper inside the exact analyzer image. It copies only the database into the Runner's bounded
+output tmpfs with no-follow reads and exact file/entry/byte checks, then invokes one fixed
+`database analyze` command against that copy. Query caches are confined to bounded `/tmp`; SARIF
+source contents, snippets, query help, downloads, URLs, shell commands, and runtime arguments are
+not representable. Completed stdout must pass bounded immutable capture and the existing M6.3a
+CodeQL import before the outer transaction completes.

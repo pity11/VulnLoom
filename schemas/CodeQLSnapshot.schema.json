@@ -36,6 +36,22 @@
       "title": "Snapshot Id",
       "type": "string"
     },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
     "tool_version": {
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
       "title": "Tool Version",
@@ -72,6 +88,9 @@
   },
   "required": [
     "snapshot_id",
+    "target_id",
+    "target_version",
+    "manifest_id",
     "tool_version",
     "database_language",
     "query_pack_name",

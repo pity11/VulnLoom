@@ -20,11 +20,14 @@ from vulnloom.benchmark import (
     AnalyzerToolRegistration,
     AnalyzerToolRegistry,
     CheckovJsonAdapter,
+    CodeQLSarifAdapter,
     DockerAnalyzerExecutionService,
     DockerAnalyzerExecutionStatus,
     KubesecJsonAdapter,
     TrivyJsonAdapter,
     checkov_registration,
+    codeql_registration,
+    inspect_codeql_snapshot,
     inspect_trivy_database,
     kubesec_registration,
     trivy_registration,
@@ -184,7 +187,8 @@ def _inspection(profile, source, registration, analyzer_data=None):
             "Tmpfs": {
                 "/tmp": ("rw,noexec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"),
                 "/workspace/output": (
-                    "rw,noexec,nosuid,nodev,size=16777216,uid=65532,gid=65532,mode=0700"
+                    "rw,noexec,nosuid,nodev,"
+                    f"size={profile.limits.file_bytes},uid=65532,gid=65532,mode=0700"
                 ),
             },
             "Ulimits": [{"Name": "nofile", "Soft": 512, "Hard": 512}],
@@ -229,6 +233,34 @@ def _trivy_database(objects, source=None):
     return destination, snapshot
 
 
+def _codeql_data(objects, target):
+    staging = objects / "codeql-staging"
+    database = staging / "database"
+    queries = staging / "queries"
+    database.mkdir(parents=True)
+    queries.mkdir()
+    (database / "codeql-database.yml").write_text("primaryLanguage: python\n")
+    (database / "db-python").write_bytes(b"sealed-codeql-database")
+    (queries / "qlpack.yml").write_text("name: vulnloom/python-queries\n")
+    (queries / "security.qls").write_text("- queries: .\n")
+    (queries / "security.qlx").write_bytes(b"precompiled-query")
+    for path in sorted(staging.rglob("*"), reverse=True):
+        path.chmod(0o555 if path.is_dir() else 0o444)
+    staging.chmod(0o555)
+    snapshot = inspect_codeql_snapshot(
+        staging,
+        target_id=target.target.target_id,
+        target_version=target.target.version,
+        manifest_id=target.manifest.manifest_id,
+        database_language="python",
+        query_pack_name="vulnloom/python-queries",
+        query_suite_path="queries/security.qls",
+    )
+    destination = objects / snapshot.snapshot_id
+    staging.rename(destination)
+    return destination, snapshot
+
+
 def _setup(
     tmp_path,
     scope,
@@ -246,7 +278,8 @@ def _setup(
     cwe = None
     analyzer_data_path = None
     database = None
-    if analyzer is not AnalyzerKind.TRIVY:
+    codeql = None
+    if analyzer in {AnalyzerKind.CHECKOV, AnalyzerKind.KUBESEC}:
         cwe_path = tmp_path / f"{analyzer.value}-cwe.json"
         cwe_path.write_text(
             json.dumps(
@@ -261,7 +294,7 @@ def _setup(
             max_bytes=1024 * 1024,
             deadline=AnalyzerDeadline(5),
         )
-    else:
+    elif analyzer is AnalyzerKind.TRIVY:
         provisioned = (
             os.environ.get("VULNLOOM_TRIVY_DATABASE") if real_backend is not None else None
         )
@@ -270,6 +303,8 @@ def _setup(
             Path(provisioned) if provisioned is not None else None,
         )
     target = _target(scope, now)
+    if analyzer is AnalyzerKind.CODEQL:
+        analyzer_data_path, codeql = _codeql_data(objects, target)
     if analyzer is AnalyzerKind.CHECKOV:
         assert cwe is not None
         registration = checkov_registration(
@@ -290,7 +325,7 @@ def _setup(
             cwe_map=cwe,
         )
         adapter = KubesecJsonAdapter()
-    else:
+    elif analyzer is AnalyzerKind.TRIVY:
         assert database is not None
         registration = trivy_registration(
             tool_version="0.73.0",
@@ -298,6 +333,14 @@ def _setup(
             database=database,
         )
         adapter = TrivyJsonAdapter()
+    else:
+        assert codeql is not None
+        registration = codeql_registration(
+            tool_version="2.26.2",
+            image_digest=image,
+            snapshot=codeql,
+        )
+        adapter = CodeQLSarifAdapter()
     registry = AnalyzerToolRegistry((registration,))
     limits = SandboxLimits(
         wall_seconds=60,
@@ -305,7 +348,7 @@ def _setup(
         memory_bytes=256 * 1024 * 1024,
         pids=64,
         open_files=512,
-        file_bytes=16 * 1024 * 1024,
+        file_bytes=(64 if analyzer is AnalyzerKind.CODEQL else 16) * 1024 * 1024,
         tmp_bytes=64 * 1024 * 1024,
     )
     profile = analyzer_profile(
@@ -313,7 +356,7 @@ def _setup(
         snapshot_id=MANIFEST,
         tool_id=registration.tool_id,
         limits=limits,
-        analyzer_data_id=(database.snapshot_id if database is not None else None),
+        analyzer_data_id=(database or codeql).snapshot_id if database or codeql else None,
     )
     task = TaskEnvelope(
         engagement_id=scope.engagement_id,
@@ -327,7 +370,11 @@ def _setup(
         tool_registry_digest=registry.digest,
         input_refs=(
             f"snapshot:{MANIFEST}",
-            *((f"analyzer-data:{database.snapshot_id}",) if database is not None else ()),
+            *(
+                (f"analyzer-data:{(database or codeql).snapshot_id}",)
+                if database is not None or codeql is not None
+                else ()
+            ),
         ),
         allowed_tools=frozenset({registration.tool_id}),
         budget=TaskBudget(wall_seconds=60, model_tokens=0, tool_calls=1),
@@ -377,7 +424,7 @@ def _setup(
                 },
             }
         ]
-    else:
+    elif analyzer is AnalyzerKind.TRIVY:
         document = {
             "Results": [
                 {
@@ -395,6 +442,40 @@ def _setup(
                 }
             ]
         }
+    else:
+        document = {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "CodeQL",
+                            "rules": [
+                                {
+                                    "id": "py/unsafe-example",
+                                    "properties": {"tags": ["external/cwe/cwe-79"]},
+                                }
+                            ],
+                        }
+                    },
+                    "results": [
+                        {
+                            "ruleId": "py/unsafe-example",
+                            "level": "error",
+                            "message": {"text": "private raw message"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "deploy.yaml"},
+                                        "region": {"startLine": 1},
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
     output = json.dumps(document).encode()
     backend = real_backend or FakeAnalyzerDockerBackend(
         _inspection(profile, source, registration, analyzer_data_path), output
@@ -407,8 +488,9 @@ def _setup(
             {
                 MANIFEST: source,
                 **(
-                    {database.snapshot_id: analyzer_data_path}
-                    if database is not None and analyzer_data_path is not None
+                    {(database or codeql).snapshot_id: analyzer_data_path}
+                    if (database is not None or codeql is not None)
+                    and analyzer_data_path is not None
                     else {}
                 ),
             },
@@ -588,9 +670,7 @@ def test_trivy_uses_exact_offline_database_and_mandatory_observation_import(
     assert registration.rules_digest == registration.trivy_database.snapshot_id
     assert registration.argv[registration.argv.index("--scanners") + 1] == "vuln"
     assert "secret" not in registration.argv
-    tampered_argv = tuple(
-        "vuln,secret" if item == "vuln" else item for item in registration.argv
-    )
+    tampered_argv = tuple("vuln,secret" if item == "vuln" else item for item in registration.argv)
     tampered = AnalyzerToolRegistration.create(
         tool_id=registration.tool_id,
         analyzer=registration.analyzer,
@@ -678,6 +758,102 @@ def test_trivy_database_drift_fails_before_checkpoint_and_during_execution(
     imports.close()
 
 
+def test_codeql_uses_bounded_tmpfs_copy_and_mandatory_sarif_observation_import(
+    tmp_path, approved_scope, now
+):
+    (
+        target,
+        registration,
+        plan,
+        cwe_path,
+        backend,
+        _,
+        store,
+        imports,
+        service,
+        data_path,
+    ) = _setup(tmp_path, approved_scope, now, analyzer=AnalyzerKind.CODEQL)
+
+    outcome = service.execute(
+        target,
+        plan,
+        cwe_map_path=cwe_path,
+        analyzer_data_path=data_path,
+        now=now,
+    )
+
+    assert cwe_path is None
+    assert outcome.status is DockerAnalyzerExecutionStatus.COMPLETED
+    assert outcome.import_outcome is not None
+    observations = outcome.import_outcome.observation_set
+    assert observations.analyzer is AnalyzerKind.CODEQL
+    assert len(observations.observations) == 1
+    assert observations.observations[0].cwes == ("CWE-79",)
+    assert registration.codeql_snapshot is not None
+    assert registration.codeql_snapshot.target_id == target.target.target_id
+    assert registration.argv[0] == "/usr/local/bin/vulnloom-codeql-query-wrapper"
+    assert "database" not in registration.argv
+    assert "create" not in registration.argv
+    assert "--download" not in registration.argv
+    assert backend.created_arguments is not None
+    assert backend.created_arguments[backend.created_arguments.index("--pull") + 1] == "never"
+    assert backend.created_arguments[backend.created_arguments.index("--network") + 1] == "none"
+    assert any(
+        "dst=/workspace/analyzer-data,readonly" in item for item in backend.created_arguments
+    )
+    assert any(
+        item.startswith("/workspace/output:rw,noexec,nosuid,nodev,size=67108864")
+        for item in backend.created_arguments
+    )
+    assert outcome.runner_result.cleanup.complete and backend.removed
+    store.close()
+    imports.close()
+
+
+def test_codeql_snapshot_drift_fails_before_checkpoint_and_after_cleanup(
+    tmp_path, approved_scope, now
+):
+    target, _, plan, _, backend, _, store, imports, service, data_path = _setup(
+        tmp_path, approved_scope, now, analyzer=AnalyzerKind.CODEQL
+    )
+    assert data_path is not None
+    payload = data_path / "database" / "db-python"
+    payload.chmod(0o644)
+    payload.write_bytes(b"preflight drift")
+    payload.chmod(0o444)
+    with pytest.raises(AnalyzerExecutionRejected, match="verification failed"):
+        service.execute(target, plan, analyzer_data_path=data_path, now=now)
+    assert backend.created_arguments is None
+    assert (
+        store.connection.execute("SELECT COUNT(*) FROM analyzer_docker_executions").fetchone()[0]
+        == 0
+    )
+    store.close()
+    imports.close()
+
+    target, _, plan, _, backend, _, store, imports, service, data_path = _setup(
+        tmp_path / "during", approved_scope, now, analyzer=AnalyzerKind.CODEQL
+    )
+    assert data_path is not None
+    payload = data_path / "queries" / "security.qlx"
+
+    def mutate_snapshot():
+        payload.chmod(0o644)
+        payload.write_bytes(b"runtime drift")
+        payload.chmod(0o444)
+
+    backend.on_start = mutate_snapshot
+    with pytest.raises(AnalyzerExecutionRejected, match="changed during execution"):
+        service.execute(target, plan, analyzer_data_path=data_path, now=now)
+    assert backend.removed and not backend.container_exists
+    assert (
+        store.connection.execute("SELECT state FROM analyzer_docker_executions").fetchone()[0]
+        == "started"
+    )
+    store.close()
+    imports.close()
+
+
 @pytest.mark.docker_integration
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_ANALYZER_INTEGRATION") != "1",
@@ -700,6 +876,11 @@ def test_trivy_database_drift_fails_before_checkpoint_and_during_execution(
             AnalyzerKind.TRIVY,
             os.environ.get("VULNLOOM_TRIVY_IMAGE", "aquasec/trivy:0.73.0"),
             "CVE-2019-19844",
+        ),
+        (
+            AnalyzerKind.CODEQL,
+            os.environ.get("VULNLOOM_CODEQL_IMAGE", "vulnloom/codeql-admission:2.26.2"),
+            "py/unsafe-example",
         ),
     ),
 )
@@ -756,6 +937,9 @@ spec:
     assert outcome.runner_result.cleanup.complete
     assert len(outcome.runner_result.outputs) == 1
     assert outputs.read(outcome.runner_result.outputs[0])
+    if analyzer is AnalyzerKind.CODEQL:
+        assert data_path is not None
+        assert not (data_path / "database" / "results").exists()
     assert service.runner.last_inspection is not None
     assert service.runner.last_inspection["HostConfig"]["NetworkMode"] == "none"
     assert not backend.exists(service.runner.last_inspection["Id"])

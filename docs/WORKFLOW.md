@@ -235,6 +235,25 @@ Verified Target + exact Trivy 0.73.0 image ID + sealed read-only DB v2
 DB 和镜像只由 operator/CI 在执行路径之外预置。执行协议没有下载入口，也不能添加 secret scanner、
 misconfiguration/license scanner、运行时参数、目标 build、Broker、Candidate/Finding 或 Submission。
 
+### M6.4d CodeQL 预建 DB 查询链
+
+```text
+Verified Target + exact CodeQL 2.26.2 image ID
+  + target-bound sealed read-only DB/query snapshot
+  → verify tree/digests + Scope/Policy/Profile/Registry bindings
+  → Docker-execution STARTED checkpoint
+  → exact wrapper copies DB into bounded output tmpfs
+  → pull=never + network=none + one fixed database analyze over the copy
+  → bounded SARIF stdout + container/tmpfs cleanup
+  → reverify unchanged original DB/query snapshot
+  → mandatory M6.3a CodeQL import
+  → completed typed outcome containing redacted Observations only
+```
+
+wrapper 不下载 bundle/pack，不运行 `database create`，不执行 Target build，也不输出 source contents、
+snippets 或 query help。真实 CodeQL bundle、许可、query pack 和预建 DB 由 operator 在运行边界外资格审查；
+Phase 3 行为 fixture 只证明 rootless Docker、tmpfs 写边界、原始输入不变、Observation 导入和清理。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

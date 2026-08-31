@@ -108,6 +108,16 @@ M6.3a 只导入预先生成的本地 CodeQL/Trivy/Checkov/Kubesec JSON/SARIF。�
 checkpoint 或 CLI 摘要；只保留消息/规则摘要和必要的安全相对位置。Observation schema 不含执行、网络、
 凭据、Approval、Candidate、Finding、Validation 或 Critic 权限，因此工具命中不能绕过生产门禁。
 
+M6.4d 的 CodeQL 查询不会直接写入密封数据库。`CodeQLSnapshot` 绑定 Target/version/Manifest、预建 DB、
+query pack、suite、预编译查询和全部文件摘要；原始对象只读挂载并在容器清理后复核。精确 wrapper 使用
+no-follow 复制并核对文件数、entry 数和总字节，只把副本放入 Runner 有容量上限的 output tmpfs。
+CodeQL cache 只能写 `/tmp`；SARIF 禁止 file contents、snippets 和 query help，并在成功退出后才送入
+有界 attached capture。复制/查询/捕获/导入/复核/容器删除任一步失败，外层执行都不能完成。
+
+M6.4d 不提供 CodeQL 下载、pack 安装或 database create API。数据库构建和任何 Target 编译继续要求
+独立 `RUN_UNTRUSTED_BUILD` Approval；Admission 行为 fixture 只证明隔离和清理，不冒充真实 CodeQL
+bundle、许可、query pack 或预建数据库的运营资格。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

@@ -8,6 +8,13 @@
       "title": "Max Files",
       "type": "integer"
     },
+    "max_entries": {
+      "default": 200000,
+      "exclusiveMinimum": 0,
+      "maximum": 1000000,
+      "title": "Max Entries",
+      "type": "integer"
+    },
     "max_single_file_bytes": {
       "default": 2147483648,
       "exclusiveMinimum": 0,

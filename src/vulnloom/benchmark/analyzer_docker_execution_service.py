@@ -28,6 +28,7 @@ from .analyzer_io import (
 )
 from .analyzer_models import AnalyzerImportPlan
 from .analyzer_service import AnalyzerImportService
+from .codeql_snapshot import CodeQLSnapshotRejected, verify_codeql_snapshot
 from .trivy_database import TrivyDatabaseRejected, verify_trivy_database
 
 
@@ -96,21 +97,27 @@ class DockerAnalyzerExecutionService:
         if cwe_map != registration.cwe_map:
             raise AnalyzerExecutionRejected("analyzer CWE map does not match its registration")
         database = registration.trivy_database
-        if (database is None) != (analyzer_data_path is None):
+        codeql = registration.codeql_snapshot
+        analyzer_data = database if database is not None else codeql
+        if (analyzer_data is None) != (analyzer_data_path is None):
             raise AnalyzerExecutionRejected("analyzer data path does not match its registration")
-        if database is not None and analyzer_data_path is not None:
+        if analyzer_data is not None and analyzer_data_path is not None:
             try:
-                registered_path = self.runner.object_store.resolve(database.snapshot_id)
+                registered_path = self.runner.object_store.resolve(analyzer_data.snapshot_id)
                 if (
-                    registered_path.name != database.snapshot_id
+                    registered_path.name != analyzer_data.snapshot_id
                     or analyzer_data_path.resolve(strict=True) != registered_path
                 ):
                     raise AnalyzerExecutionRejected(
-                        "Trivy database path is not the registered content object"
+                        "analyzer data path is not the registered content object"
                     )
-                verify_trivy_database(analyzer_data_path, database)
-            except (OSError, TrivyDatabaseRejected) as exc:
-                raise AnalyzerExecutionRejected("Trivy database verification failed") from exc
+                if database is not None:
+                    verify_trivy_database(analyzer_data_path, database)
+                else:
+                    assert codeql is not None
+                    verify_codeql_snapshot(analyzer_data_path, codeql)
+            except (OSError, TrivyDatabaseRejected, CodeQLSnapshotRejected) as exc:
+                raise AnalyzerExecutionRejected("analyzer data verification failed") from exc
 
         claim = self.execution_store.claim(plan, now=now)
         if not claim.created:
@@ -132,11 +139,15 @@ class DockerAnalyzerExecutionService:
             return outcome
         if len(result.outputs) != 1:
             raise AnalyzerExecutionRejected("completed analyzer run did not publish one output")
-        if database is not None and analyzer_data_path is not None:
+        if analyzer_data is not None and analyzer_data_path is not None:
             try:
-                verify_trivy_database(analyzer_data_path, database)
-            except TrivyDatabaseRejected as exc:
-                raise AnalyzerExecutionRejected("Trivy database changed during execution") from exc
+                if database is not None:
+                    verify_trivy_database(analyzer_data_path, database)
+                else:
+                    assert codeql is not None
+                    verify_codeql_snapshot(analyzer_data_path, codeql)
+            except (TrivyDatabaseRejected, CodeQLSnapshotRejected) as exc:
+                raise AnalyzerExecutionRejected("analyzer data changed during execution") from exc
         output_path = self.output_store.path(result.outputs[0])
         snapshot = create_analyzer_snapshot(
             output_path,

@@ -296,7 +296,8 @@ match、资源对象名称和规则文本不进入模型。
 ### AnalyzerToolRegistration 与 AnalyzerExecutionPlan
 
 `AnalyzerToolRegistration` 内容寻址绑定 analyzer/tool 版本、exact image ID、规则与 adapter 摘要、固定绝对
-入口、完整 argv、显式安全环境和唯一 `output.json` 路径。当前 execution mode 只有 `source_only`。
+入口、完整 argv、显式安全环境和固定输出模式。execution mode 只允许 `source_only` 或 CodeQL 的
+`prebuilt_database_query_only`；两者都不能表示 Target build。
 
 `AnalyzerExecutionPlan` 再绑定 Target Snapshot/Manifest 摘要、Scope 版本、Registration/Registry 摘要、
 静态 `SandboxRunRequest`、deadline 和幂等键。`OfflineAnalyzerExecutionOutcome` 只保存 Runner 生命周期和
@@ -307,6 +308,11 @@ match、资源对象名称和规则文本不进入模型。
 `db/metadata.json`/`db/trivy.db` 文件清单、大小和 SHA-256。真实 Trivy Registration 必须引用该对象，
 并令 `rules_digest` 等于 DB snapshot ID；Task/Profile 还必须以同一 ID 绑定只读 `analyzer-data` 挂载。
 它不包含 URL、registry、下载命令、credential 或运行时追加参数。
+
+`CodeQLSnapshot` 内容寻址绑定 CodeQL 2.26.2、Target/version/Manifest、database language、query pack、
+suite、预编译 `.qlx`、全部文件大小/SHA-256 和总大小。它拒绝旧 `database/results`、空目录、路径碰撞、
+symlink、特殊文件、可写 entry 与资源超限。真实 Registration 的 `rules_digest`、Task input 和只读
+`analyzer-data` mount 必须使用同一 snapshot ID；可写数据库只存在于 Runner 有界 tmpfs 的临时副本。
 
 ### AnalyzerTruthAlignment 与 AnalyzerEvaluation
 

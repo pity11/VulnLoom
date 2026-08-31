@@ -292,16 +292,18 @@ M6.4b 不新增 CLI、镜像拉取器、网络能力、Target build、Candidate/
 
 M6.4c 不包含 DB/镜像下载 API、secret scanner、Target build、Broker、Candidate/Finding promotion 或 Submission。CodeQL database construction 仍留待独立且要求 `RUN_UNTRUSTED_BUILD` Approval 的里程碑。
 
-### M6.4d：CodeQL 预建数据库查询协议（已完成协议首版，真实执行未准入）
+### M6.4d：CodeQL 预建数据库查询执行（已完成首版）
 
 - 固定 CodeQL CLI 2.26.2，Registration 只表达 `database analyze`、一个密封预编译查询包和 SARIF 输出；不表达 `database create`、查询包下载、Target build、Shell 或网络位置。
-- `CodeQLSnapshot` 将预建 `database/` 与 `queries/` 作为一个只读内容对象密封；固定 database/query-pack marker 与 `.qls`，并对归一化路径、大小/数量、符号链接、特殊文件、权限、内容漂移和超时 fail-closed。
-- snapshot 禁止携带旧 `database/results`，其 ID 同时绑定 Registration `rules_digest`、Task `analyzer-data` 输入与只读挂载。
+- `CodeQLSnapshot` 将预建 `database/` 与 `queries/` 作为一个只读内容对象密封；固定 Target/version/Manifest、database/query-pack metadata、`.qls` 与预编译 `.qlx`，并对归一化路径、文件/entry 数量、大小、空目录、符号链接、特殊文件、权限、内容漂移和超时 fail-closed。
+- snapshot 禁止携带旧 `database/results`，其 ID 同时绑定 Registration `rules_digest`、Task `analyzer-data` 输入与只读挂载；错误 Target 数据库在 checkpoint 前拒绝。
 - Offline Runner 可以验证完整 Scope/Target/Policy/Profile/Registry 协议，但结果仍明确为 `protocol_completed`，不生成分析结果或 Observation。
-- CodeQL 官方 `database analyze`/`run-queries` 会在 database 的 `results` 子目录写入结果，因此当前 Registry 主动拒绝将该 Registration 物化为 Docker tool；只读挂载不会被伪称为可完成的真实查询执行。
-- 后续真实准入必须先实现 Runner 管理的、有总大小限制的临时数据库副本，并证明原始 DB/查询包保持只读、执行前后摘要一致、临时副本和容器均强制清理、输出有界且成功后强制经过 M6.3a SARIF Observation 导入。
+- 精确 wrapper 在 Runner 的有界 `/workspace/output` tmpfs 中 no-follow 复制数据库，核对精确文件/entry/byte 数后才调用 `/opt/codeql/codeql database analyze`；CodeQL 的 `results` 写入仅发生在该副本，原始 DB/查询包始终只读并在容器清理后全量复核。
+- 固定参数只允许一个 sealed `.qls`、SARIF 2.1.0、单线程和 `/tmp` cache；显式禁止 SARIF file contents、snippets 与 query help，且不含 `database create`、`--download`、URL、shell 或运行时参数。
+- Docker 继续强制 exact image ID、`--pull never`、`network=none`、只读根/源码/原始 analyzer-data、非 root、无 capability、no-new-privileges、有界 tmpfs/attached stdout 和容器清理；成功 SARIF 必须经过 M6.3a CodeQL adapter 才能完成外层 checkpoint。
+- Phase 3 Admission 使用不构建 Target 的 CodeQL 行为 fixture，在真实 rootless 容器中证明 wrapper 只能改写有界副本、原始 DB 不产生 `results`、输出被导入 Observation 且容器被删除；它不替代运营方对真实 CodeQL bundle、许可与预建数据库兼容性的单独资格审查。
 
-M6.4d 协议首版不下载 CodeQL、数据库或查询包，不执行查询或 Target build，不启用公网、secret scanner、Candidate/Finding promotion 或 Submission。数据库构建继续要求独立 `RUN_UNTRUSTED_BUILD` Approval。
+M6.4d 运行期不下载 CodeQL、数据库或查询包，不执行 Target build，不启用公网、secret scanner、Candidate/Finding promotion 或 Submission。数据库构建继续要求独立 `RUN_UNTRUSTED_BUILD` Approval。
 
 ## 延后事项
 

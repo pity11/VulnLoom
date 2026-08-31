@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnloom"
-version = "0.21.0"
+version = "0.22.0"
 description = "Evidence-first agent framework for authorized vulnerability research"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -22,6 +22,7 @@ dev = [
 
 [project.scripts]
 vulnloom = "vulnloom.cli:main"
+vulnloom-codeql-query-wrapper = "vulnloom.runners.codeql_query_wrapper:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

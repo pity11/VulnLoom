@@ -31,6 +31,7 @@ successfully on 2026-08-31 and qualify the M6.4c analyzer rows below.
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
+| CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | Enforced for M6.4d runs |
 
 ## Reproduction
 
@@ -49,7 +50,9 @@ test phase. M6.4c additionally provisions Trivy 0.73.0 and its DB v2 outside exe
 uses the inspected image ID, `--pull never`, and `network=none`. The historical M4.3 PASS above
 remains unchanged; each analyzer row is PASS only after the updated workflow succeeds.
 
-M6.4d's first CodeQL stage is protocol-only and is not added to the PASS table. The registry
-refuses to materialize it as a Docker tool because CodeQL query evaluation writes inside its
-database. A future admission must separately prove a bounded disposable database copy, immutable
-original inputs, bounded SARIF capture, mandatory M6.3a import, and complete cleanup.
+M6.4d builds a dedicated behavior-fixture image outside tested execution. The fixture performs the
+same database `results` write as CodeQL but does not construct or execute a Target. The production
+wrapper copies the sealed database into bounded output tmpfs, runs under the existing exact-image,
+`--pull never`, `network=none` boundary, streams bounded SARIF, and leaves the original database
+without a `results` directory. This row qualifies isolation and lifecycle enforcement; it does not
+claim qualification of a real CodeQL bundle, license, query pack, or prebuilt database.

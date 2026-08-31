@@ -9,6 +9,7 @@ import time
 import unicodedata
 from pathlib import Path, PurePosixPath
 from typing import Annotated, Self
+from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
@@ -17,6 +18,7 @@ from vulnloom.domain.models import DomainModel
 from vulnloom.runners.models import Digest
 
 CODEQL_TOOL_VERSION = "2.26.2"
+CODEQL_MAX_OUTPUT_BYTES = 32 * 1024 * 1024
 CODEQL_DATABASE_MARKER = "database/codeql-database.yml"
 CODEQL_QUERY_PACK_MARKER = "queries/qlpack.yml"
 
@@ -27,6 +29,7 @@ class CodeQLSnapshotRejected(ValueError):
 
 class CodeQLSnapshotLimits(DomainModel):
     max_files: int = Field(default=100_000, gt=0, le=500_000)
+    max_entries: int = Field(default=200_000, gt=0, le=1_000_000)
     max_single_file_bytes: int = Field(
         default=2 * 1024 * 1024 * 1024,
         gt=0,
@@ -66,6 +69,9 @@ class CodeQLSnapshotFile(DomainModel):
 
 class CodeQLSnapshot(DomainModel):
     snapshot_id: Digest
+    target_id: UUID
+    target_version: str = Field(min_length=1, max_length=256)
+    manifest_id: Digest
     tool_version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     database_language: str = Field(pattern=r"^[a-z][a-z0-9-]{0,31}$")
     query_pack_name: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*$")
@@ -111,6 +117,9 @@ class CodeQLSnapshot(DomainModel):
     def create(
         cls,
         *,
+        target_id: UUID,
+        target_version: str,
+        manifest_id: str,
         tool_version: str,
         database_language: str,
         query_pack_name: str,
@@ -119,6 +128,9 @@ class CodeQLSnapshot(DomainModel):
     ) -> CodeQLSnapshot:
         ordered = tuple(sorted(files, key=lambda item: item.path))
         values = {
+            "target_id": target_id,
+            "target_version": target_version,
+            "manifest_id": manifest_id,
             "tool_version": tool_version,
             "database_language": database_language,
             "query_pack_name": query_pack_name,
@@ -140,6 +152,9 @@ def codeql_snapshot_digest(snapshot: CodeQLSnapshot) -> str:
 def inspect_codeql_snapshot(
     root: Path,
     *,
+    target_id: UUID,
+    target_version: str,
+    manifest_id: str,
     database_language: str,
     query_pack_name: str,
     query_suite_path: str,
@@ -167,6 +182,9 @@ def inspect_codeql_snapshot(
     if _inspect_tree(root, limits=selected) != files:
         raise CodeQLSnapshotRejected("CodeQL snapshot changed while it was being sealed")
     return CodeQLSnapshot.create(
+        target_id=target_id,
+        target_version=target_version,
+        manifest_id=manifest_id,
         tool_version=tool_version,
         database_language=database_language,
         query_pack_name=query_pack_name,
@@ -183,6 +201,9 @@ def verify_codeql_snapshot(
 ) -> None:
     observed = inspect_codeql_snapshot(
         root,
+        target_id=snapshot.target_id,
+        target_version=snapshot.target_version,
+        manifest_id=snapshot.manifest_id,
         database_language=snapshot.database_language,
         query_pack_name=snapshot.query_pack_name,
         query_suite_path=snapshot.query_suite_path,
@@ -200,6 +221,7 @@ def _inspect_tree(root: Path, *, limits: CodeQLSnapshotLimits) -> tuple[CodeQLSn
     seen: set[str] = set()
     total = 0
     pending = [absolute]
+    entry_count = 0
     while pending:
         _check_deadline(deadline)
         directory = pending.pop()
@@ -207,8 +229,13 @@ def _inspect_tree(root: Path, *, limits: CodeQLSnapshotLimits) -> tuple[CodeQLSn
             entries = sorted(os.scandir(directory), key=lambda item: item.name)
         except OSError as exc:
             raise CodeQLSnapshotRejected("CodeQL snapshot directory is unavailable") from exc
+        if directory != absolute and not entries:
+            raise CodeQLSnapshotRejected("CodeQL snapshot empty directories are forbidden")
         for entry in entries:
             _check_deadline(deadline)
+            entry_count += 1
+            if entry_count > limits.max_entries:
+                raise CodeQLSnapshotRejected("CodeQL snapshot exceeds its entry limit")
             path = Path(entry.path)
             relative = path.relative_to(absolute).as_posix()
             try:

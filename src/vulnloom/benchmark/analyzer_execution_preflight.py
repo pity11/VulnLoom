@@ -14,6 +14,7 @@ from vulnloom.runners.models import sandbox_profile_digest
 
 from .analyzer_execution_models import AnalyzerExecutionPlan, AnalyzerToolRegistration
 from .analyzer_execution_registry import AnalyzerToolRegistry
+from .codeql_snapshot import CODEQL_MAX_OUTPUT_BYTES
 
 
 class AnalyzerExecutionRejected(ValueError):
@@ -94,6 +95,19 @@ def validate_analyzer_execution(
         expected_data_id = registration.trivy_database.snapshot_id
         expected_refs.append(f"analyzer-data:{expected_data_id}")
     elif registration.codeql_snapshot is not None:
+        if (
+            registration.codeql_snapshot.target_id != target.target.target_id
+            or registration.codeql_snapshot.target_version != target.target.version
+            or registration.codeql_snapshot.manifest_id != target.manifest.manifest_id
+        ):
+            raise AnalyzerExecutionRejected("CodeQL database Target binding mismatch")
+        database_bytes = sum(
+            item.size
+            for item in registration.codeql_snapshot.files
+            if item.path.startswith("database/")
+        )
+        if request.profile.limits.file_bytes < database_bytes + CODEQL_MAX_OUTPUT_BYTES:
+            raise AnalyzerExecutionRejected("CodeQL writable tmpfs cannot hold its bounded copy")
         expected_data_id = registration.codeql_snapshot.snapshot_id
         expected_refs.append(f"analyzer-data:{expected_data_id}")
     data_mounts = tuple(
