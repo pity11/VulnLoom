@@ -17,6 +17,12 @@ The M6.4c analyzer admission run is GitHub Actions
 [`33323829695`](https://github.com/pity11/VulnLoom/actions/runs/33323829695). Both completed
 successfully on 2026-08-31 and qualify the M6.4c analyzer rows below.
 
+The M6.4d CodeQL writable-copy admission run is GitHub Actions
+[`33354872312`](https://github.com/pity11/VulnLoom/actions/runs/33354872312) for commit
+`b6b98da676a07a6b833e4045d8e6fdc309fb2472`. The standard Python CI for the same commit is
+[`33354872370`](https://github.com/pity11/VulnLoom/actions/runs/33354872370). Both completed
+successfully on 2026-08-31 and qualify the M6.4d analyzer row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -31,7 +37,7 @@ successfully on 2026-08-31 and qualify the M6.4c analyzer rows below.
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
-| CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | Enforced for M6.4d runs |
+| CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | PASS (`33354872312`) |
 
 ## Reproduction
 
