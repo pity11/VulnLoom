@@ -23,6 +23,12 @@ The M6.4d CodeQL writable-copy admission run is GitHub Actions
 [`33354872370`](https://github.com/pity11/VulnLoom/actions/runs/33354872370). Both completed
 successfully on 2026-08-31 and qualify the M6.4d analyzer row below.
 
+The M6.6 four-analyzer qualification admission run is GitHub Actions
+[`33397257470`](https://github.com/pity11/VulnLoom/actions/runs/33397257470) for commit
+`a7208935134b49b20868a21d228d3f135d2c1cb7`. The standard Python CI for the same commit is
+[`33397257608`](https://github.com/pity11/VulnLoom/actions/runs/33397257608). Both completed
+successfully on 2026-08-31 and qualify the M6.6 fan-in row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -38,7 +44,7 @@ successfully on 2026-08-31 and qualify the M6.4d analyzer row below.
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
 | CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | PASS (`33354872312`) |
-| Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | Enforced for M6.6 runs |
+| Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | PASS (`33397257470`) |
 
 ## Reproduction
 
