@@ -38,6 +38,7 @@ successfully on 2026-08-31 and qualify the M6.4d analyzer row below.
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
 | CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | PASS (`33354872312`) |
+| Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | Enforced for M6.6 runs |
 
 ## Reproduction
 
@@ -62,3 +63,10 @@ wrapper copies the sealed database into bounded output tmpfs, runs under the exi
 `--pull never`, `network=none` boundary, streams bounded SARIF, and leaves the original database
 without a `results` directory. This row qualifies isolation and lifecycle enforcement; it does not
 claim qualification of a real CodeQL bundle, license, query pack, or prebuilt database.
+
+M6.6 keeps the four single-analyzer probes and adds one campaign probe. The campaign executes all
+four admitted registrations against the same Target provenance and one authoritative execution
+store, confirms that incomplete and drifted matrices leave both qualification and evaluation
+stores empty, then requires a complete four-analyzer M6.5 qualification and M6.3b PASS. It adds no
+new runtime permission; the existing rootless, exact-image, `--pull never`, `network=none`, bounded
+output, mandatory Observation import, immutable analyzer-data, and cleanup checks remain in force.

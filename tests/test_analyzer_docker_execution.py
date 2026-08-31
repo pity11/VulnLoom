@@ -9,20 +9,39 @@ from pathlib import Path
 import pytest
 
 from vulnloom.benchmark import (
+    AlignmentProvenance,
+    AnalyzerCaseBinding,
     AnalyzerDockerExecutionRecoveryRequired,
     AnalyzerDockerExecutionStore,
+    AnalyzerEvaluationArtifactStore,
+    AnalyzerEvaluationLimits,
+    AnalyzerEvaluationPlan,
+    AnalyzerEvaluationPolicy,
+    AnalyzerEvaluationService,
+    AnalyzerEvaluationStore,
+    AnalyzerExecutionEvidenceBinding,
     AnalyzerExecutionPlan,
     AnalyzerExecutionRejected,
     AnalyzerImportService,
     AnalyzerImportStore,
     AnalyzerKind,
     AnalyzerObservationArtifactStore,
+    AnalyzerQualificationPlan,
+    AnalyzerQualificationRejected,
+    AnalyzerQualificationService,
+    AnalyzerQualificationStore,
     AnalyzerToolRegistration,
     AnalyzerToolRegistry,
+    AnalyzerTruthAlignment,
+    AnalyzerTruthMatch,
+    BenchmarkCase,
+    BenchmarkGateStatus,
+    BenchmarkSuite,
     CheckovJsonAdapter,
     CodeQLSarifAdapter,
     DockerAnalyzerExecutionService,
     DockerAnalyzerExecutionStatus,
+    GroundTruthFinding,
     KubesecJsonAdapter,
     TrivyJsonAdapter,
     checkov_registration,
@@ -269,6 +288,8 @@ def _setup(
     analyzer=AnalyzerKind.CHECKOV,
     image=IMAGE,
     real_backend=None,
+    target_override=None,
+    execution_store_override=None,
 ):
     objects = tmp_path / "targets"
     source = objects / MANIFEST
@@ -279,6 +300,7 @@ def _setup(
     analyzer_data_path = None
     database = None
     codeql = None
+    target = target_override or _target(scope, now)
     if analyzer in {AnalyzerKind.CHECKOV, AnalyzerKind.KUBESEC}:
         cwe_path = tmp_path / f"{analyzer.value}-cwe.json"
         cwe_path.write_text(
@@ -302,7 +324,6 @@ def _setup(
             objects,
             Path(provisioned) if provisioned is not None else None,
         )
-    target = _target(scope, now)
     if analyzer is AnalyzerKind.CODEQL:
         analyzer_data_path, codeql = _codeql_data(objects, target)
     if analyzer is AnalyzerKind.CHECKOV:
@@ -379,14 +400,14 @@ def _setup(
         allowed_tools=frozenset({registration.tool_id}),
         budget=TaskBudget(wall_seconds=60, model_tokens=0, tool_calls=1),
         deadline=now + timedelta(seconds=45),
-        idempotency_key="task:docker-analyzer:1",
+        idempotency_key=f"task:docker-analyzer:{analyzer.value}:1",
     )
     request = SandboxRunRequest(
         task=task,
         profile=profile,
         invocation=ToolInvocation(tool_id=registration.tool_id, working_directory="source"),
         environment=registration.environment,
-        idempotency_key="runner:docker-analyzer:1",
+        idempotency_key=f"runner:docker-analyzer:{analyzer.value}:1",
     )
     plan = AnalyzerExecutionPlan.create(
         target=target,
@@ -397,7 +418,7 @@ def _setup(
         runner_request=request,
         created_at=now - timedelta(seconds=1),
         deadline=now + timedelta(minutes=1),
-        idempotency_key="docker-analyzer:1",
+        idempotency_key=f"docker-analyzer:{analyzer.value}:1",
     )
     if analyzer is AnalyzerKind.CHECKOV:
         document = {
@@ -506,7 +527,9 @@ def _setup(
         output_store=output_store,
         captured_output_tools=registry.tool_ids,
     )
-    execution_store = AnalyzerDockerExecutionStore(tmp_path / "docker-execution.db")
+    execution_store = execution_store_override or AnalyzerDockerExecutionStore(
+        tmp_path / "docker-execution.db"
+    )
     import_store = AnalyzerImportStore(tmp_path / "imports.db")
     import_service = AnalyzerImportService(
         adapter=adapter,
@@ -945,3 +968,239 @@ spec:
     assert not backend.exists(service.runner.last_inspection["Id"])
     store.close()
     imports.close()
+
+
+@pytest.mark.docker_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_ANALYZER_INTEGRATION") != "1",
+    reason="set VULNLOOM_ANALYZER_INTEGRATION=1 after provisioning exact analyzer images",
+)
+def test_real_four_analyzer_execution_matrix_qualifies(
+    tmp_path, approved_scope, now
+):
+    backend = DockerCliBackend()
+    shared_target = _target(approved_scope, now)
+    execution_store = AnalyzerDockerExecutionStore(tmp_path / "campaign-executions.db")
+    image_refs = {
+        AnalyzerKind.CHECKOV: os.environ.get(
+            "VULNLOOM_CHECKOV_IMAGE", "bridgecrew/checkov:3.3.15"
+        ),
+        AnalyzerKind.KUBESEC: os.environ.get(
+            "VULNLOOM_KUBESEC_IMAGE", "kubesec/kubesec:v2.14.2"
+        ),
+        AnalyzerKind.TRIVY: os.environ.get(
+            "VULNLOOM_TRIVY_IMAGE", "aquasec/trivy:0.73.0"
+        ),
+        AnalyzerKind.CODEQL: os.environ.get(
+            "VULNLOOM_CODEQL_IMAGE", "vulnloom/codeql-admission:2.26.2"
+        ),
+    }
+    registrations = []
+    plans = []
+    outcomes = []
+    observation_sets = []
+    bindings = []
+    case_id = canonical_digest({"m6.6": shared_target.target.version})
+
+    for analyzer in sorted(AnalyzerKind, key=lambda item: item.value):
+        run_root = tmp_path / analyzer.value
+        image = backend.inspect_image(image_refs[analyzer])["Id"]
+        (
+            target,
+            registration,
+            plan,
+            cwe_path,
+            _,
+            _,
+            _,
+            imports,
+            service,
+            data_path,
+        ) = _setup(
+            run_root,
+            approved_scope,
+            now,
+            analyzer=analyzer,
+            image=image,
+            real_backend=backend,
+            target_override=shared_target,
+            execution_store_override=execution_store,
+        )
+        source = run_root / "targets" / MANIFEST
+        (source / "deploy.yaml").write_text(
+            """apiVersion: v1
+kind: Pod
+metadata:
+  name: unsafe-fixture
+spec:
+  containers:
+    - name: fixture
+      image: alpine:3.22
+      securityContext:
+        allowPrivilegeEscalation: true
+        privileged: true
+"""
+        )
+        source.chmod(0o755)
+        (source / "deploy.yaml").chmod(0o644)
+        if analyzer is AnalyzerKind.TRIVY:
+            (source / "requirements.txt").write_text("django==2.0.0\n")
+            (source / "requirements.txt").chmod(0o644)
+
+        outcome = service.execute(
+            target,
+            plan,
+            cwe_map_path=cwe_path,
+            analyzer_data_path=data_path,
+            now=now,
+        )
+        assert outcome.status is DockerAnalyzerExecutionStatus.COMPLETED
+        assert outcome.import_outcome is not None
+        assert outcome.runner_result.cleanup.complete
+        observations = outcome.import_outcome.observation_set
+        assert observations.observations
+        registrations.append(registration)
+        plans.append(plan)
+        outcomes.append(outcome)
+        observation_sets.append(observations)
+        bindings.append(
+            AnalyzerExecutionEvidenceBinding.create(
+                case_id=case_id,
+                execution_plan=plan,
+                registration=registration,
+                outcome=outcome,
+            )
+        )
+        imports.close()
+
+    truths = tuple(
+        GroundTruthFinding(
+            truth_id=canonical_digest({"m6.6-truth": item.analyzer.value}),
+            cwe=item.observations[0].cwes[0],
+            duplicate_family=canonical_digest({"m6.6-family": item.analyzer.value}),
+        )
+        for item in observation_sets
+    )
+    truth_by_analyzer = {
+        observations.analyzer: truth
+        for observations, truth in zip(observation_sets, truths, strict=True)
+    }
+    suite = BenchmarkSuite.create(
+        name="m6.6-real-analyzer-qualification",
+        version="1",
+        cases=(
+            BenchmarkCase(
+                case_id=case_id,
+                target_version=shared_target.target.version,
+                ground_truth=truths,
+            ),
+        ),
+    )
+    case_bindings = tuple(
+        AnalyzerCaseBinding.create(case_id=case_id, observations=item)
+        for item in observation_sets
+    )
+    matches = tuple(
+        AnalyzerTruthMatch(
+            case_id=case_id,
+            observation_set_id=item.observation_set_id,
+            observation_id=item.observations[0].observation_id,
+            truth_id=truth_by_analyzer[item.analyzer].truth_id,
+            matched_cwe=truth_by_analyzer[item.analyzer].cwe,
+        )
+        for item in observation_sets
+    )
+    alignment = AnalyzerTruthAlignment.create(
+        suite=suite,
+        provenance=AlignmentProvenance.FIXTURE,
+        producer_id="m6.6.rootless-admission",
+        bindings=case_bindings,
+        matches=matches,
+    )
+    evaluation_plan = AnalyzerEvaluationPlan.create(
+        suite=suite,
+        alignment=alignment,
+        policy=AnalyzerEvaluationPolicy(
+            min_truth_recall=1.0,
+            min_observation_precision=0.0,
+            max_duplicate_rate=1.0,
+            max_exclusion_rate=1.0,
+            required_analyzers=tuple(sorted(AnalyzerKind, key=lambda item: item.value)),
+            require_full_case_matrix=True,
+            apply_thresholds_per_analyzer=False,
+        ),
+        limits=AnalyzerEvaluationLimits(),
+        created_at=now - timedelta(seconds=1),
+        deadline=now + timedelta(minutes=2),
+        idempotency_key="m6.6:real-evaluation",
+    )
+    qualification_plan = AnalyzerQualificationPlan.create(
+        suite=suite,
+        alignment=alignment,
+        evaluation_plan=evaluation_plan,
+        execution_bindings=tuple(bindings),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="m6.6:real-qualification",
+    )
+    evaluation_store = AnalyzerEvaluationStore(tmp_path / "campaign-evaluation.db")
+    qualification_store = AnalyzerQualificationStore(tmp_path / "campaign-qualification.db")
+    qualification_service = AnalyzerQualificationService(
+        store=qualification_store,
+        execution_store=execution_store,
+        evaluation_service=AnalyzerEvaluationService(
+            store=evaluation_store,
+            artifact_store=AnalyzerEvaluationArtifactStore(
+                tmp_path / "campaign-evaluation-artifacts"
+            ),
+        ),
+    )
+    inputs = (
+        suite,
+        tuple(plans),
+        tuple(registrations),
+        tuple(outcomes),
+        alignment,
+        evaluation_plan,
+        qualification_plan,
+    )
+
+    with pytest.raises(AnalyzerQualificationRejected, match="exact execution set"):
+        qualification_service.qualify(
+            suite,
+            tuple(plans),
+            tuple(registrations),
+            tuple(outcomes[:-1]),
+            alignment,
+            evaluation_plan,
+            qualification_plan,
+            now=now,
+        )
+    drifted = outcomes[0].model_copy(update={"completed_at": now + timedelta(seconds=1)})
+    with pytest.raises(AnalyzerQualificationRejected, match="provenance"):
+        qualification_service.qualify(
+            suite,
+            tuple(plans),
+            tuple(registrations),
+            (drifted, *outcomes[1:]),
+            alignment,
+            evaluation_plan,
+            qualification_plan,
+            now=now,
+        )
+    assert qualification_store.connection.execute(
+        "SELECT COUNT(*) FROM analyzer_qualifications"
+    ).fetchone()[0] == 0
+    assert evaluation_store.connection.execute(
+        "SELECT COUNT(*) FROM analyzer_evaluations"
+    ).fetchone()[0] == 0
+
+    qualified = qualification_service.qualify(*inputs, now=now)
+    assert qualified.gate_status is BenchmarkGateStatus.PASSED
+    assert qualified.execution_count == 4
+    assert qualified.evaluation_outcome.result.metrics.analyzer_count == 4
+    assert qualified.evaluation_outcome.result.metrics.truth_recall == 1.0
+    assert all(item.runner_result.cleanup.complete for item in outcomes)
+    qualification_store.close()
+    evaluation_store.close()
+    execution_store.close()

@@ -122,6 +122,19 @@ class AnalyzerQualificationPlan(DomainModel):
             self.execution_bindings
         ):
             raise ValueError("qualification permits one execution per case and analyzer")
+        provenance_by_case: dict[str, set[tuple[object, ...]]] = {}
+        for item in self.execution_bindings:
+            provenance_by_case.setdefault(item.case_id, set()).add(
+                (
+                    item.target_id,
+                    item.target_version,
+                    item.manifest_id,
+                    item.scope_id,
+                    item.scope_version,
+                )
+            )
+        if any(len(values) != 1 for values in provenance_by_case.values()):
+            raise ValueError("qualification case executions must share Target and Scope provenance")
         for attribute in (
             "execution_plan_id",
             "observation_set_id",

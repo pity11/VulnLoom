@@ -269,6 +269,19 @@ Exact BenchmarkSuite + reviewed truth alignment + M6.3b evaluation plan
 分析器，不修改 alignment，不自动匹配 CWE，也不拥有 Runner、Broker、网络、Target build、Candidate/Finding
 或 Submission 权限。
 
+### M6.6 rootless 四分析器资格组合
+
+```text
+One verified Target/Manifest/Scope
+  → exact Checkov + Kubesec + sealed-DB Trivy + sealed-copy CodeQL
+  → four authoritative completed execution checkpoints + mandatory M6.3a imports
+  → reject missing cell; reject drifted outcome; stores remain empty
+  → exact four-cell M6.5 matrix → M6.3b → PASS qualification
+```
+
+逐工具 probe 与组合 probe 同时保留。组合测试只证明现有能力的真实拼接，不增加下载、联网、构建、secret
+scanner、状态变更测试、Candidate/Finding promotion 或外部提交。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

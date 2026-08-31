@@ -110,3 +110,8 @@ inputs. Only the complete matrix is passed to M6.3b. A regression-gate failure i
 typed failed gate, while lifecycle or provenance failures remain hard rejections. This layer has no
 Runner, Docker, Broker, network, credential, analyzer-installation, Target-build, Candidate/Finding,
 or Submission capability.
+
+M6.6 exercises this fan-in in Phase 3 Admission with Checkov, Kubesec, Trivy, and CodeQL outcomes
+from one Target/Manifest/Scope and one authoritative Docker execution store. The probe first removes
+one outcome and then supplies a drifted completed outcome; both must be rejected before evaluation
+or qualification checkpoints. Only the exact four-cell matrix may produce the M6.3b gate result.

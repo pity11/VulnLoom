@@ -340,3 +340,11 @@ All provenance, digest, lifecycle, matrix, and alignment checks run before a qua
 checkpoint. The existing M6.3b service remains the only metric reducer and immutable result
 publisher. M6.5 owns no Runner, Docker adapter, network, credentials, domain state transition, or
 Submission path.
+
+## 22. M6.6 four-analyzer qualification admission
+
+The rootless admission environment now composes all four admitted analyzers over one Target
+provenance and one authoritative execution store. Per-analyzer probes remain separate, while the
+campaign probe verifies missing-cell and outcome-drift rejection before completing the exact
+Checkov/Kubesec/Trivy/CodeQL matrix through M6.5 and M6.3b. This is composition evidence only and
+does not expand any Worker, image, argv, filesystem, network, or workflow authority.

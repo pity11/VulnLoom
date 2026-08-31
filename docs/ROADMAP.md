@@ -314,6 +314,15 @@ M6.4d 运行期不下载 CodeQL、数据库或查询包，不执行 Target build
 - SQLite 使用独立 STARTED/COMPLETED checkpoint；相同计划幂等返回，冲突 key 和未完成 replay 均拒绝。语义拒绝发生在 qualification/evaluation checkpoint 之前。
 - M6.5 不增加 Runner、Docker、Broker、网络、credential、Target build、secret scanner、Candidate/Finding promotion 或 Submission 能力，也不改变 M6.4 的 rootless Phase 3 Admission 结论。
 
+### M6.6：四分析器端到端资格准入（已完成首版）
+
+- 同一授权 Target/Manifest/Scope 上依次执行 exact-image Checkov、Kubesec、Trivy 与 CodeQL，四个 outcome 写入同一权威 Docker execution store，并全部强制完成 M6.3a Observation 导入和容器清理。
+- M6.5 逐 case 不变量进一步要求所有 analyzer cell 使用相同 Target ID/version、Manifest ID 与 Scope ID/version，禁止只靠相同版本字符串混合不同目标。
+- rootless Phase 3 Admission 将四个真实 execution plan/registration/outcome 封存为完整 case×analyzer 资格矩阵，再调用既有 M6.3b deterministic reducer。
+- 真实组合测试先证明缺少任一 outcome 与篡改 completed outcome 都在 qualification/evaluation checkpoint 前拒绝，再证明完整四工具矩阵产生 PASS outcome。
+- 单工具 Admission probe 仍独立保留，便于定位 image、DB、wrapper、输出、导入或清理失败；campaign probe 不替代 M6.4 的逐工具隔离证据。
+- M6.6 没有新增 analyzer 参数、网络、Target build、secret scanner、credential、Candidate/Finding promotion、报告状态变化或 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

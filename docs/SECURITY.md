@@ -126,6 +126,11 @@ M6.5 只聚合权威 Docker store 中已完成的 M6.4 执行证明，不启动�
 资格 outcome 只能携带既有 M6.3b gate 结果，不能创建 Candidate/Finding 或改变报告状态。该层没有 Runner、
 Docker、Broker、socket、credential、Target build、secret scanner、Approval 消费或 Submission 字段。
 
+M6.6 在 rootless Admission 中复核完整四工具组合。一个 case 的全部 execution binding 必须共享 Target
+ID/version、Manifest 与 Scope ID/version；任一 analyzer 缺失或 completed outcome 与权威 store 不一致时，
+qualification 和 evaluation store 都必须保持为空。完整组合仍只产出评测指标，不授予工具命中任何
+Candidate/Finding、报告或 Submission 权限。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

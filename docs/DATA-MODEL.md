@@ -334,7 +334,8 @@ registration、Docker outcome、ObservationSet、Target/version/Manifest 与 Sco
 
 `AnalyzerQualificationPlan` 绑定 exact suite/alignment/evaluation plan、显式 required analyzers 和排序后的
 完整执行矩阵。`AnalyzerQualificationOutcome` 只包装既有 M6.3b evaluation outcome、执行数和一致的 gate
-状态；它不包含新的工具调用、Observation 变换或领域状态迁移。
+状态；同一 case 的所有 cell 必须共享 Target ID/version、Manifest 与 Scope ID/version。它不包含新的工具
+调用、Observation 变换或领域状态迁移。
 
 ## 3. 领域事件
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -69,6 +70,7 @@ TRUTH_ID = "b" * 64
 MANIFEST_ID = "c" * 64
 TARGET_VERSION = "d" * 40
 IMAGE = "sha256:" + "e" * 64
+ALL_ANALYZERS = tuple(sorted(AnalyzerKind, key=lambda item: item.value))
 
 
 def _target(scope, now):
@@ -261,7 +263,13 @@ def _execution(kind, target, scope, now, index):
     return registration, plan, outcome, binding, observation_set
 
 
-def _setup(tmp_path, approved_scope, now, *, kinds=(AnalyzerKind.CHECKOV, AnalyzerKind.KUBESEC)):
+def _setup(
+    tmp_path,
+    approved_scope,
+    now,
+    *,
+    kinds=ALL_ANALYZERS,
+):
     target = _target(approved_scope, now)
     executions = tuple(
         _execution(kind, target, approved_scope, now, index)
@@ -370,7 +378,7 @@ def test_completed_execution_matrix_qualifies_and_replays(tmp_path, approved_sco
 
     assert first == second
     assert first.gate_status is BenchmarkGateStatus.PASSED
-    assert first.execution_count == 2
+    assert first.execution_count == 4
     qualification_store.close()
     evaluation_store.close()
     execution_store.close()
@@ -398,6 +406,28 @@ def test_incomplete_matrix_is_rejected_before_any_checkpoint(tmp_path, approved_
     assert evaluation_store.connection.execute(
         "SELECT COUNT(*) FROM analyzer_evaluations"
     ).fetchone()[0] == 0
+    qualification_store.close()
+    evaluation_store.close()
+    execution_store.close()
+
+
+def test_one_case_cannot_mix_target_or_scope_provenance(tmp_path, approved_scope, now):
+    values = _setup(tmp_path, approved_scope, now)
+    _, qualification_store, evaluation_store, execution_store, *inputs = values
+    suite, _, _, _, alignment, evaluation_plan, qualification_plan = inputs
+    mixed = qualification_plan.execution_bindings[1].model_copy(
+        update={"target_id": uuid4()}
+    )
+    with pytest.raises(ValueError, match="share Target and Scope provenance"):
+        AnalyzerQualificationPlan.create(
+            suite=suite,
+            alignment=alignment,
+            evaluation_plan=evaluation_plan,
+            execution_bindings=(qualification_plan.execution_bindings[0], mixed),
+            created_at=now,
+            deadline=now + timedelta(minutes=1),
+            idempotency_key="m6.5:mixed-target",
+        )
     qualification_store.close()
     evaluation_store.close()
     execution_store.close()
