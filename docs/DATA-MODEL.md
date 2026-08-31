@@ -337,6 +337,18 @@ registration、Docker outcome、ObservationSet、Target/version/Manifest 与 Sco
 状态；同一 case 的所有 cell 必须共享 Target ID/version、Manifest 与 Scope ID/version。它不包含新的工具
 调用、Observation 变换或领域状态迁移。
 
+### AgentModelRegistration、AgentRunPlan 与 AgentRunOutcome
+
+`AgentModelRegistration` 是 provider/model/adapter 实现、支持 Worker role 和输出上限的内容摘要；M7.1a
+的 adapter kind 固定为 `offline_replay`，对象没有 endpoint 或 credential 字段。`AgentRunPlan` 绑定完整
+`TaskEnvelope` 及其摘要、registration 摘要、输入引用摘要、固定 decision schema、步数/token/墙钟预算、
+deadline 与幂等键。
+
+`AgentStepRequest` 只包含 plan/task ID、role、上下文摘要、Task 工具白名单和剩余预算。模型临时响应只有在
+通过 `AgentDecisionPayload` 后才能形成 `AgentRunOutcome`。工具提案被归一为 `AgentToolIntent`：保存 tool ID、
+完整 invocation 摘要、逐参数摘要和逻辑工作目录，不保存原始参数，也不表示工具已经执行。终态 outcome 只
+保存摘要、稳定错误码、预算使用与逻辑清理证明；原始模型输出不属于持久化数据模型。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

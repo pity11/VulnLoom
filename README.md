@@ -40,6 +40,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 VulnLoom/
 ├── src/vulnloom/
 │   ├── adapters/           # Model-provider configuration boundary
+│   ├── agent_runtime/      # Typed offline model replay and proposal boundary
 │   ├── analyzers/          # Python AST and optional Semgrep analysis
 │   ├── benchmark/          # Deterministic offline metrics and regression gates
 │   ├── broker/             # Typed tool mediation and HTTP policy enforcement
@@ -61,7 +62,10 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, LLM-backed agent runtime, disclosure submission adapters, and prompts are planned components; they are not present in the current tree. Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites, rules, databases, or images.
+An HTTP API, live model-provider adapter, disclosure submission adapters, and prompts are planned
+components; they are not present in the current tree. M7.1a includes only a deterministic offline
+Agent Runtime replay boundary. Benchmark and analyzer imports consume only sealed, pre-obtained local
+data and never fetch suites, rules, databases, or images.
 
 ## First end-to-end path
 
@@ -255,6 +259,19 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Binds CodeQL 2.26.2 to a Target/version/Manifest and one sealed prebuilt DB/query snapshot. A narrow wrapper copies the DB into bounded tmpfs because CodeQL writes query results, while the original DB and query pack remain read-only and are reverified after cleanup.
 - Does not expose analyzer/package downloads, arbitrary commands, Target builds, Candidate/Finding promotion, or Submission. CodeQL database construction remains separately `RUN_UNTRUSTED_BUILD` Approval-gated.
 
+### M7.1a: offline typed Agent Runtime
+
+- Seals an exact offline replay implementation, provider/model identity, supported Worker roles, and
+  output ceiling in a content-addressed registration.
+- Binds each run to an exact `TaskEnvelope`, context and decision-schema digests, step/token/wall
+  budgets, deadlines, and an idempotency key.
+- Validates untrusted structured decisions and returns only terminal summary digests or a typed,
+  argument-digest-only tool intent. It never executes the proposed tool.
+- Persists transactional STARTED/COMPLETED checkpoints without raw model output or raw tool arguments;
+  interrupted calls require explicit recovery and are not replayed automatically.
+- Uses no model socket, SDK, endpoint, credential, Runner, Broker, Approval, domain transition, or
+  Submission path.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -382,12 +399,12 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Model credential boundary
 
-`ModelProviderConfig.api_key_env` defines how a future Control Plane provider adapter must resolve an API key immediately before making a request. No model-provider HTTP or SDK call is implemented yet. The boundary is designed so keys never appear in `TaskEnvelope`, Worker environments, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
+`ModelProviderConfig.api_key_env` defines how a future Control Plane provider adapter must resolve an API key immediately before making a request. No model-provider HTTP or SDK call is implemented yet. M7.1a accepts only an `offline_replay` registration and persists neither provider configuration nor raw model output. The boundary is designed so keys never appear in `TaskEnvelope`, Worker environments, checkpoints, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, a typed offline Agent Runtime replay boundary, and opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
-Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, a concrete model runtime, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, live model-provider execution, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.

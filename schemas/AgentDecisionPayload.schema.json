@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "AgentDecisionKind": {
+      "enum": [
+        "propose_tool",
+        "complete",
+        "blocked"
+      ],
+      "title": "AgentDecisionKind",
+      "type": "string"
+    },
+    "AgentToolCallPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "arguments": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 128,
+          "title": "Arguments",
+          "type": "array"
+        },
+        "working_directory": {
+          "$ref": "#/$defs/WorkingDirectory"
+        }
+      },
+      "required": [
+        "tool_id",
+        "working_directory"
+      ],
+      "title": "AgentToolCallPayload",
+      "type": "object"
+    },
+    "WorkingDirectory": {
+      "enum": [
+        "source",
+        "output",
+        "temp"
+      ],
+      "title": "WorkingDirectory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/AgentDecisionKind"
+    },
+    "tool_call": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentToolCallPayload"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "summary_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary Digest"
+    },
+    "supporting_ref_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 1024,
+      "title": "Supporting Ref Digests",
+      "type": "array"
+    }
+  },
+  "required": [
+    "kind"
+  ],
+  "title": "AgentDecisionPayload",
+  "type": "object"
+}

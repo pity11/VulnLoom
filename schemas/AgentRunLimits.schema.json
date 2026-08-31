@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_steps": {
+      "default": 2,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Max Steps",
+      "type": "integer"
+    },
+    "max_output_tokens_per_step": {
+      "default": 4096,
+      "exclusiveMinimum": 0,
+      "maximum": 65536,
+      "title": "Max Output Tokens Per Step",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AgentRunLimits",
+  "type": "object"
+}

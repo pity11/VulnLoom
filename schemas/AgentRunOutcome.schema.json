@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "AgentCleanupReport": {
+      "additionalProperties": false,
+      "properties": {
+        "model_request_released": {
+          "title": "Model Request Released",
+          "type": "boolean"
+        },
+        "raw_response_discarded": {
+          "title": "Raw Response Discarded",
+          "type": "boolean"
+        },
+        "no_tool_executed": {
+          "title": "No Tool Executed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model_request_released",
+        "raw_response_discarded",
+        "no_tool_executed"
+      ],
+      "title": "AgentCleanupReport",
+      "type": "object"
+    },
+    "AgentRunStatus": {
+      "enum": [
+        "tool_proposed",
+        "completed",
+        "blocked",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AgentRunStatus",
+      "type": "string"
+    },
+    "AgentToolIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "argument_digests": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Argument Digests",
+          "type": "array"
+        },
+        "working_directory": {
+          "$ref": "#/$defs/WorkingDirectory"
+        }
+      },
+      "required": [
+        "tool_id",
+        "invocation_digest",
+        "argument_digests",
+        "working_directory"
+      ],
+      "title": "AgentToolIntent",
+      "type": "object"
+    },
+    "WorkingDirectory": {
+      "enum": [
+        "source",
+        "output",
+        "temp"
+      ],
+      "title": "WorkingDirectory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "model_registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Registration Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/AgentRunStatus"
+    },
+    "steps": {
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Steps",
+      "type": "integer"
+    },
+    "input_tokens": {
+      "minimum": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "minimum": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "tool_intent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentToolIntent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "summary_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary Digest"
+    },
+    "supporting_ref_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Supporting Ref Digests",
+      "type": "array"
+    },
+    "error_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "cleanup": {
+      "$ref": "#/$defs/AgentCleanupReport"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "task_id",
+    "model_registration_id",
+    "status",
+    "steps",
+    "input_tokens",
+    "output_tokens",
+    "cleanup",
+    "completed_at"
+  ],
+  "title": "AgentRunOutcome",
+  "type": "object"
+}

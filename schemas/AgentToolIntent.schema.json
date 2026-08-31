@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "WorkingDirectory": {
+      "enum": [
+        "source",
+        "output",
+        "temp"
+      ],
+      "title": "WorkingDirectory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invocation Digest",
+      "type": "string"
+    },
+    "argument_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Argument Digests",
+      "type": "array"
+    },
+    "working_directory": {
+      "$ref": "#/$defs/WorkingDirectory"
+    }
+  },
+  "required": [
+    "tool_id",
+    "invocation_digest",
+    "argument_digests",
+    "working_directory"
+  ],
+  "title": "AgentToolIntent",
+  "type": "object"
+}

@@ -348,3 +348,21 @@ provenance and one authoritative execution store. Per-analyzer probes remain sep
 campaign probe verifies missing-cell and outcome-drift rejection before completing the exact
 Checkov/Kubesec/Trivy/CodeQL matrix through M6.5 and M6.3b. This is composition evidence only and
 does not expand any Worker, image, argv, filesystem, network, or workflow authority.
+
+## 23. M7.1a offline typed Agent Runtime boundary
+
+The first Agent Runtime is a trusted Control Plane loop over a deterministic offline replay adapter.
+Its content-addressed registration fixes provider/model identity, supported Worker roles, adapter
+implementation digest, and output ceiling. A run plan binds that registration to an exact
+`TaskEnvelope`, context digest, decision schema, budgets, deadlines, and idempotency key.
+
+Each step exposes only typed digests, the Worker role, Task tool allowlist, and remaining budgets.
+Untrusted output must validate as one exact terminal decision or one typed tool proposal. The Runtime
+never executes that proposal: it reduces raw arguments to digests and returns a `ToolIntent` for a
+future, separately authorized Broker boundary. Unauthorized tools, malformed arguments, identity
+drift, oversized output, exhausted tokens, and elapsed wall budget fail closed.
+
+The checkpoint store persists only STARTED state or a bounded terminal outcome. Raw model output and
+raw tool arguments are discarded, and an interrupted adapter call requires explicit recovery instead
+of automatic replay. There is no live provider, socket, endpoint, credential resolver, Runner,
+Broker call, Approval consumption, domain transition, or Submission path in M7.1a.

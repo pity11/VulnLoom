@@ -5,6 +5,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from vulnloom.agent_runtime import (
+    AgentCleanupReport,
+    AgentDecisionPayload,
+    AgentModelRegistration,
+    AgentModelReply,
+    AgentRunLimits,
+    AgentRunOutcome,
+    AgentRunPlan,
+    AgentStepRequest,
+    AgentToolCallPayload,
+    AgentToolIntent,
+)
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
 from vulnloom.benchmark import (
     AnalyzerCaseBinding,
@@ -123,6 +135,16 @@ from vulnloom.validation import (
 )
 
 MODELS = (
+    AgentModelRegistration,
+    AgentRunLimits,
+    AgentRunPlan,
+    AgentToolCallPayload,
+    AgentDecisionPayload,
+    AgentToolIntent,
+    AgentStepRequest,
+    AgentModelReply,
+    AgentCleanupReport,
+    AgentRunOutcome,
     Scope,
     Artifact,
     TargetManifest,

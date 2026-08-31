@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "AgentAdapterKind": {
+      "enum": [
+        "offline_replay"
+      ],
+      "title": "AgentAdapterKind",
+      "type": "string"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "model": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+      "title": "Model",
+      "type": "string"
+    },
+    "adapter_kind": {
+      "$ref": "#/$defs/AgentAdapterKind",
+      "default": "offline_replay"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "supported_roles": {
+      "items": {
+        "$ref": "#/$defs/WorkerRole"
+      },
+      "minItems": 1,
+      "title": "Supported Roles",
+      "type": "array"
+    },
+    "max_output_tokens": {
+      "exclusiveMinimum": 0,
+      "maximum": 65536,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "registration_id",
+    "provider_id",
+    "model",
+    "adapter_digest",
+    "supported_roles",
+    "max_output_tokens"
+  ],
+  "title": "AgentModelRegistration",
+  "type": "object"
+}

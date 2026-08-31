@@ -1,0 +1,24 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "model_request_released": {
+      "title": "Model Request Released",
+      "type": "boolean"
+    },
+    "raw_response_discarded": {
+      "title": "Raw Response Discarded",
+      "type": "boolean"
+    },
+    "no_tool_executed": {
+      "title": "No Tool Executed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "model_request_released",
+    "raw_response_discarded",
+    "no_tool_executed"
+  ],
+  "title": "AgentCleanupReport",
+  "type": "object"
+}

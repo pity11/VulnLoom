@@ -323,6 +323,22 @@ M6.4d 运行期不下载 CodeQL、数据库或查询包，不执行 Target build
 - 单工具 Admission probe 仍独立保留，便于定位 image、DB、wrapper、输出、导入或清理失败；campaign probe 不替代 M6.4 的逐工具隔离证据。
 - M6.6 没有新增 analyzer 参数、网络、Target build、secret scanner、credential、Candidate/Finding promotion、报告状态变化或 Submission。
 
+## Phase 5：类型化 Agent Runtime
+
+目标：在引入任何实时模型服务前，把模型调用、结构化决策、预算、工具提案与恢复语义固化为可离线测试的可信控制面协议。
+
+### M7.1a：离线类型化 Agent Runtime（已完成首版）
+
+- `AgentModelRegistration` 只准入内容寻址的 `offline_replay` adapter，并固定 provider/model 身份、支持的 Worker role 和单步输出预算；不包含 endpoint、API key 或 token。
+- `AgentRunPlan` 精确绑定 `TaskEnvelope`、模型注册、上下文摘要、决策 schema、步数/token/墙钟预算、deadline 与幂等键；Task 自身继续绑定 Scope/Policy/Profile/Tool Registry。
+- 每一步只向 adapter 暴露摘要、role、显式工具白名单和剩余预算；模型响应必须通过严格 `AgentDecisionPayload`，无效结构只能在总预算内有界重试。
+- 工具决策只生成参数摘要化的 `AgentToolIntent`，Runtime 不调用 Runner/Broker、不执行工具；Task 工具预算或白名单不允许时 fail-closed。
+- 结构化响应有独立字节上限；token、墙钟、model identity、schema、参数大小与 NUL 校验均在完成 checkpoint 前强制执行。
+- SQLite 使用 STARTED/COMPLETED checkpoint；完成结果幂等返回，adapter 中断保留 STARTED 并拒绝自动重放。原始响应和原始工具参数不落库。
+- 常规测试覆盖完成、blocked、越权提案、结构重试、token/超时/输出超限、过期计划、幂等冲突、中断恢复和清理。
+
+M7.1a 不接入公网模型、provider SDK、模型凭据、真实工具执行、Target build、Candidate/Finding 状态变化、Approval 消费或 Submission。后续 live adapter 必须作为独立里程碑增加网络、凭据、速率、响应捕获和 Admission 边界。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "structured_output": {
+      "additionalProperties": true,
+      "title": "Structured Output",
+      "type": "object"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "input_tokens": {
+      "minimum": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "minimum": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "latency_seconds": {
+      "maximum": 600,
+      "minimum": 0,
+      "title": "Latency Seconds",
+      "type": "number"
+    }
+  },
+  "required": [
+    "structured_output",
+    "provider_id",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "latency_seconds"
+  ],
+  "title": "AgentModelReply",
+  "type": "object"
+}

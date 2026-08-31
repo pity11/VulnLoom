@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "step": {
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Step",
+      "type": "integer"
+    },
+    "worker_role": {
+      "$ref": "#/$defs/WorkerRole"
+    },
+    "context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Context Digest",
+      "type": "string"
+    },
+    "allowed_tools": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Allowed Tools",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "decision_schema_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Schema Digest",
+      "type": "string"
+    },
+    "remaining_model_tokens": {
+      "exclusiveMinimum": 0,
+      "title": "Remaining Model Tokens",
+      "type": "integer"
+    },
+    "max_output_tokens": {
+      "exclusiveMinimum": 0,
+      "maximum": 65536,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "plan_id",
+    "task_id",
+    "step",
+    "worker_role",
+    "context_digest",
+    "allowed_tools",
+    "decision_schema_digest",
+    "remaining_model_tokens",
+    "max_output_tokens"
+  ],
+  "title": "AgentStepRequest",
+  "type": "object"
+}

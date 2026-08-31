@@ -131,6 +131,11 @@ ID/version、Manifest 与 Scope ID/version；任一 analyzer 缺失或 completed
 qualification 和 evaluation store 都必须保持为空。完整组合仍只产出评测指标，不授予工具命中任何
 Candidate/Finding、报告或 Submission 权限。
 
+M7.1a 的 Agent Runtime 只接受离线 replay adapter。模型注册和运行计划不携带 endpoint、API key、token
+或任意环境变量；请求只包含摘要、role、显式工具白名单和预算。模型输出被视为不可信数据，必须满足固定
+schema、身份、token、墙钟和字节上限。工具提案只产生参数摘要，不执行 Runner/Broker，也不能消费 Approval
+或触发领域状态。原始响应与原始参数不落 checkpoint；adapter 中断后的 STARTED 记录拒绝自动重放。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

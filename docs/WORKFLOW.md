@@ -282,6 +282,22 @@ One verified Target/Manifest/Scope
 逐工具 probe 与组合 probe 同时保留。组合测试只证明现有能力的真实拼接，不增加下载、联网、构建、secret
 scanner、状态变更测试、Candidate/Finding promotion 或外部提交。
 
+### M7.1a 离线 Agent 决策链
+
+```text
+Exact TaskEnvelope + offline model registration + fixed decision schema
+  → preflight role/registration/deadline/content digests
+  → transactional STARTED checkpoint
+  → bounded offline replay step with remaining token/wall budget
+  → strict terminal decision | typed tool proposal
+  → digest raw tool arguments; execute nothing
+  → discard raw response → completed typed outcome
+```
+
+结构错误只能在 `max_steps` 和同一总 token/墙钟预算内重试。越权工具、超限、身份漂移或无效参数产生稳定
+fail-closed outcome；adapter 异常保留 STARTED，后续调用必须显式恢复而不能静默重放。该链没有 live provider、
+Runner、Broker、领域状态机、Approval 消费或 Submission。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。
