@@ -42,14 +42,17 @@ class AnalyzerToolRegistry:
     @property
     def docker_tools(self) -> tuple[DockerTool, ...]:
         """Materialize Docker entries only from the sealed exact argv."""
+        if any(item.codeql_snapshot is not None for item in self._registrations.values()):
+            raise ValueError(
+                "CodeQL protocol registration cannot materialize a Docker tool before "
+                "bounded mutable-copy admission"
+            )
         return tuple(
             DockerTool(
                 tool_id=item.tool_id,
                 argv_prefix=item.argv,
                 successful_exit_codes=(
-                    frozenset({0, 2})
-                    if item.analyzer.value == "kubesec"
-                    else frozenset({0})
+                    frozenset({0, 2}) if item.analyzer.value == "kubesec" else frozenset({0})
                 ),
             )
             for item in sorted(self._registrations.values(), key=lambda value: value.tool_id)

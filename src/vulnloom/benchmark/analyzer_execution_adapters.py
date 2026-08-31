@@ -7,6 +7,8 @@ from vulnloom.domain.models import StaticFileCategory, TargetSnapshot
 from .analyzer_adapters import (
     CHECKOV_ADAPTER_DIGEST,
     CHECKOV_ADAPTER_ID,
+    CODEQL_ADAPTER_DIGEST,
+    CODEQL_ADAPTER_ID,
     KUBESEC_ADAPTER_DIGEST,
     KUBESEC_ADAPTER_ID,
     TRIVY_ADAPTER_DIGEST,
@@ -17,9 +19,50 @@ from .analyzer_execution_models import (
     AnalyzerToolRegistration,
 )
 from .analyzer_models import AnalyzerKind, AnalyzerResultFile
+from .codeql_snapshot import CODEQL_TOOL_VERSION, CodeQLSnapshot
 from .trivy_database import TrivyDatabaseSnapshot
 
 TRIVY_TOOL_VERSION = "0.73.0"
+
+
+def codeql_registration(
+    *,
+    tool_version: str,
+    image_digest: str,
+    snapshot: CodeQLSnapshot,
+) -> AnalyzerToolRegistration:
+    """Build the sealed M6.4d protocol registration.
+
+    Real Docker admission intentionally rejects this registration until the Runner owns a
+    bounded, disposable database copy: CodeQL writes query results into its database.
+    """
+    if tool_version != CODEQL_TOOL_VERSION or snapshot.tool_version != CODEQL_TOOL_VERSION:
+        raise ValueError(f"only CodeQL {CODEQL_TOOL_VERSION} is admitted")
+    return AnalyzerToolRegistration.create(
+        tool_id="analyzer.codeql",
+        analyzer=AnalyzerKind.CODEQL,
+        tool_version=tool_version,
+        image_digest=image_digest,
+        rules_digest=snapshot.snapshot_id,
+        adapter_id=CODEQL_ADAPTER_ID,
+        adapter_digest=CODEQL_ADAPTER_DIGEST,
+        argv=(
+            "/opt/codeql/codeql",
+            "database",
+            "analyze",
+            "/workspace/analyzer-data/database",
+            f"/workspace/analyzer-data/{snapshot.query_suite_path}",
+            "--format",
+            "sarifv2.1.0",
+            "--output",
+            "/workspace/output/output.json",
+            "--threads=1",
+            "--common-caches=/tmp/codeql-cache",
+        ),
+        environment={"HOME": "/tmp", "TMPDIR": "/tmp"},
+        output_mode=AnalyzerOutputMode.FILE,
+        codeql_snapshot=snapshot,
+    )
 
 
 def checkov_registration(

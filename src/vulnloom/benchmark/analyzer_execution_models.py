@@ -23,11 +23,13 @@ from vulnloom.runners import SandboxRunRequest, SandboxRunResult, SandboxRunStat
 from vulnloom.runners.environment import build_worker_environment
 from vulnloom.runners.models import Digest, ImageDigest, ToolId
 
+from .codeql_snapshot import CodeQLSnapshot
 from .trivy_database import TrivyDatabaseSnapshot
 
 
 class AnalyzerExecutionMode(StrEnum):
     SOURCE_ONLY = "source_only"
+    PREBUILT_DATABASE_QUERY_ONLY = "prebuilt_database_query_only"
 
 
 class AnalyzerOutputMode(StrEnum):
@@ -51,6 +53,7 @@ class AnalyzerToolRegistration(DomainModel):
     output_path: str | None = "/workspace/output/output.json"
     cwe_map: AnalyzerResultFile | None = None
     trivy_database: TrivyDatabaseSnapshot | None = None
+    codeql_snapshot: CodeQLSnapshot | None = None
     mode: AnalyzerExecutionMode = AnalyzerExecutionMode.SOURCE_ONLY
 
     @field_validator("argv")
@@ -122,8 +125,20 @@ class AnalyzerToolRegistration(DomainModel):
             or self.trivy_database.tool_version != self.tool_version
             or self.rules_digest != self.trivy_database.snapshot_id
             or self.cwe_map is not None
+            or self.codeql_snapshot is not None
         ):
             raise ValueError("Trivy registration database or rules binding mismatch")
+        if self.codeql_snapshot is not None and (
+            self.analyzer is not AnalyzerKind.CODEQL
+            or self.codeql_snapshot.tool_version != self.tool_version
+            or self.rules_digest != self.codeql_snapshot.snapshot_id
+            or self.cwe_map is not None
+            or self.trivy_database is not None
+            or self.mode is not AnalyzerExecutionMode.PREBUILT_DATABASE_QUERY_ONLY
+        ):
+            raise ValueError("CodeQL registration snapshot or rules binding mismatch")
+        if self.codeql_snapshot is None and self.mode is not AnalyzerExecutionMode.SOURCE_ONLY:
+            raise ValueError("prebuilt database query mode is reserved for CodeQL")
         if self.registration_id != analyzer_tool_registration_digest(self):
             raise ValueError("analyzer tool registration content digest mismatch")
         return self
@@ -145,6 +160,7 @@ class AnalyzerToolRegistration(DomainModel):
         output_mode: AnalyzerOutputMode = AnalyzerOutputMode.FILE,
         cwe_map: AnalyzerResultFile | None = None,
         trivy_database: TrivyDatabaseSnapshot | None = None,
+        codeql_snapshot: CodeQLSnapshot | None = None,
     ) -> AnalyzerToolRegistration:
         values = {
             "tool_id": tool_id,
@@ -159,19 +175,25 @@ class AnalyzerToolRegistration(DomainModel):
             "environment": environment or {},
             "output_mode": output_mode,
             "output_path": (
-                "/workspace/output/output.json"
-                if output_mode is AnalyzerOutputMode.FILE
-                else None
+                "/workspace/output/output.json" if output_mode is AnalyzerOutputMode.FILE else None
             ),
             "cwe_map": cwe_map,
             "trivy_database": trivy_database,
-            "mode": AnalyzerExecutionMode.SOURCE_ONLY,
+            "codeql_snapshot": codeql_snapshot,
+            "mode": (
+                AnalyzerExecutionMode.PREBUILT_DATABASE_QUERY_ONLY
+                if codeql_snapshot is not None
+                else AnalyzerExecutionMode.SOURCE_ONLY
+            ),
         }
         digest_values = {
             **values,
             "cwe_map": cwe_map.model_dump(mode="python") if cwe_map is not None else None,
             "trivy_database": (
                 trivy_database.model_dump(mode="python") if trivy_database is not None else None
+            ),
+            "codeql_snapshot": (
+                codeql_snapshot.model_dump(mode="python") if codeql_snapshot is not None else None
             ),
         }
         return cls(registration_id=canonical_digest(digest_values), **values)
@@ -319,10 +341,8 @@ class DockerAnalyzerExecutionOutcome(DomainModel):
             runner_output = self.runner_result.outputs[0]
             if (
                 self.analyzer_result_snapshot.output.sha256 != runner_output.sha256
-                or self.analyzer_result_snapshot.output.size
-                != runner_output.size
-                or self.import_outcome.snapshot_id
-                != self.analyzer_result_snapshot.snapshot_id
+                or self.analyzer_result_snapshot.output.size != runner_output.size
+                or self.import_outcome.snapshot_id != self.analyzer_result_snapshot.snapshot_id
                 or self.import_outcome.observation_set.target_id != self.target_id
                 or self.import_outcome.observation_set.target_version != self.target_version
                 or self.import_outcome.observation_set.analyzer

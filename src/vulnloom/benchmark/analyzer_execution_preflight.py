@@ -93,6 +93,9 @@ def validate_analyzer_execution(
     if registration.trivy_database is not None:
         expected_data_id = registration.trivy_database.snapshot_id
         expected_refs.append(f"analyzer-data:{expected_data_id}")
+    elif registration.codeql_snapshot is not None:
+        expected_data_id = registration.codeql_snapshot.snapshot_id
+        expected_refs.append(f"analyzer-data:{expected_data_id}")
     data_mounts = tuple(
         mount for mount in request.profile.mounts if mount.kind is MountKind.ANALYZER_DATA
     )

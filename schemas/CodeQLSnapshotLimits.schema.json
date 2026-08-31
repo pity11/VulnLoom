@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_files": {
+      "default": 100000,
+      "exclusiveMinimum": 0,
+      "maximum": 500000,
+      "title": "Max Files",
+      "type": "integer"
+    },
+    "max_single_file_bytes": {
+      "default": 2147483648,
+      "exclusiveMinimum": 0,
+      "maximum": 10737418240,
+      "title": "Max Single File Bytes",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 8589934592,
+      "exclusiveMinimum": 0,
+      "maximum": 10737418240,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 120.0,
+      "exclusiveMinimum": 0,
+      "maximum": 1800,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "CodeQLSnapshotLimits",
+  "type": "object"
+}

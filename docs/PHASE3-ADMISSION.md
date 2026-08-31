@@ -11,6 +11,12 @@ The baseline admission run is GitHub Actions
 [`33307142076`](https://github.com/pity11/VulnLoom/actions/runs/33307142076). Both completed
 successfully on 2026-08-30.
 
+The M6.4c analyzer admission run is GitHub Actions
+[`33323829710`](https://github.com/pity11/VulnLoom/actions/runs/33323829710) for commit
+`3452eca44520d9ca977de9d4021c2ca5347c8900`. The standard Python CI for the same commit is
+[`33323829695`](https://github.com/pity11/VulnLoom/actions/runs/33323829695). Both completed
+successfully on 2026-08-31 and qualify the M6.4c analyzer rows below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -23,8 +29,8 @@ successfully on 2026-08-30.
 | DNS rebinding | Redirect hop is re-resolved; metadata-address drift is denied before a second socket | PASS |
 | Timeout and cleanup | Timed-out Worker is killed; container and anonymous storage absence is verified | PASS |
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
-| Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | Enforced for M6.4b/M6.4c runs |
-| Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | Enforced for M6.4c runs |
+| Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
+| Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
 
 ## Reproduction
 
@@ -42,3 +48,8 @@ test phase. M6.4c additionally provisions Trivy 0.73.0 and its DB v2 outside exe
 `DockerAnalyzerExecutionService`. Provisioning may access registries; every tested runtime path
 uses the inspected image ID, `--pull never`, and `network=none`. The historical M4.3 PASS above
 remains unchanged; each analyzer row is PASS only after the updated workflow succeeds.
+
+M6.4d's first CodeQL stage is protocol-only and is not added to the PASS table. The registry
+refuses to materialize it as a Docker tool because CodeQL query evaluation writes inside its
+database. A future admission must separately prove a bounded disposable database copy, immutable
+original inputs, bounded SARIF capture, mandatory M6.3a import, and complete cleanup.

@@ -54,6 +54,7 @@ from .analyzer_evaluator import (
 from .analyzer_execution_adapters import (
     TRIVY_TOOL_VERSION,
     checkov_registration,
+    codeql_registration,
     kubesec_registration,
     trivy_registration,
     validate_admitted_registration,
@@ -99,6 +100,15 @@ from .analyzer_store import (
     AnalyzerImportRecoveryRequired,
     AnalyzerImportStore,
     AnalyzerObservationArtifactStore,
+)
+from .codeql_snapshot import (
+    CODEQL_TOOL_VERSION,
+    CodeQLSnapshot,
+    CodeQLSnapshotFile,
+    CodeQLSnapshotLimits,
+    CodeQLSnapshotRejected,
+    inspect_codeql_snapshot,
+    verify_codeql_snapshot,
 )
 from .evaluator import BenchmarkRejected, evaluate_metrics, evaluate_regressions
 from .external_adapters import (
@@ -247,11 +257,16 @@ __all__ = [
     "CHECKOV_ADAPTER_ID",
     "CODEQL_ADAPTER_DIGEST",
     "CODEQL_ADAPTER_ID",
+    "CODEQL_TOOL_VERSION",
     "CheckovJsonAdapter",
     "DockerAnalyzerExecutionOutcome",
     "DockerAnalyzerExecutionService",
     "DockerAnalyzerExecutionStatus",
     "CodeQLSarifAdapter",
+    "CodeQLSnapshot",
+    "CodeQLSnapshotFile",
+    "CodeQLSnapshotLimits",
+    "CodeQLSnapshotRejected",
     "ExternalBenchmarkAdapter",
     "ExternalBenchmarkArtifact",
     "ExternalBenchmarkArtifactStore",
@@ -286,6 +301,7 @@ __all__ = [
     "TrivyJsonAdapter",
     "create_analyzer_snapshot",
     "checkov_registration",
+    "codeql_registration",
     "create_external_snapshot",
     "default_analyzer_adapters",
     "evaluate_metrics",
@@ -293,10 +309,12 @@ __all__ = [
     "evaluate_analyzer_regressions",
     "evaluate_regressions",
     "inspect_snapshot_directory",
+    "inspect_codeql_snapshot",
     "inspect_trivy_database",
     "kubesec_registration",
     "trivy_registration",
     "validate_admitted_registration",
     "verify_snapshot_directory",
+    "verify_codeql_snapshot",
     "verify_trivy_database",
 ]

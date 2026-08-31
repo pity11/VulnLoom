@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "CodeQLSnapshotFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "sha256"
+      ],
+      "title": "CodeQLSnapshotFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "tool_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "database_language": {
+      "pattern": "^[a-z][a-z0-9-]{0,31}$",
+      "title": "Database Language",
+      "type": "string"
+    },
+    "query_pack_name": {
+      "pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*$",
+      "title": "Query Pack Name",
+      "type": "string"
+    },
+    "query_suite_path": {
+      "title": "Query Suite Path",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/CodeQLSnapshotFile"
+      },
+      "maxItems": 500000,
+      "minItems": 3,
+      "title": "Files",
+      "type": "array"
+    },
+    "total_size": {
+      "exclusiveMinimum": 0,
+      "title": "Total Size",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "tool_version",
+    "database_language",
+    "query_pack_name",
+    "query_suite_path",
+    "files",
+    "total_size"
+  ],
+  "title": "CodeQLSnapshot",
+  "type": "object"
+}

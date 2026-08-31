@@ -292,6 +292,17 @@ M6.4b 不新增 CLI、镜像拉取器、网络能力、Target build、Candidate/
 
 M6.4c 不包含 DB/镜像下载 API、secret scanner、Target build、Broker、Candidate/Finding promotion 或 Submission。CodeQL database construction 仍留待独立且要求 `RUN_UNTRUSTED_BUILD` Approval 的里程碑。
 
+### M6.4d：CodeQL 预建数据库查询协议（已完成协议首版，真实执行未准入）
+
+- 固定 CodeQL CLI 2.26.2，Registration 只表达 `database analyze`、一个密封预编译查询包和 SARIF 输出；不表达 `database create`、查询包下载、Target build、Shell 或网络位置。
+- `CodeQLSnapshot` 将预建 `database/` 与 `queries/` 作为一个只读内容对象密封；固定 database/query-pack marker 与 `.qls`，并对归一化路径、大小/数量、符号链接、特殊文件、权限、内容漂移和超时 fail-closed。
+- snapshot 禁止携带旧 `database/results`，其 ID 同时绑定 Registration `rules_digest`、Task `analyzer-data` 输入与只读挂载。
+- Offline Runner 可以验证完整 Scope/Target/Policy/Profile/Registry 协议，但结果仍明确为 `protocol_completed`，不生成分析结果或 Observation。
+- CodeQL 官方 `database analyze`/`run-queries` 会在 database 的 `results` 子目录写入结果，因此当前 Registry 主动拒绝将该 Registration 物化为 Docker tool；只读挂载不会被伪称为可完成的真实查询执行。
+- 后续真实准入必须先实现 Runner 管理的、有总大小限制的临时数据库副本，并证明原始 DB/查询包保持只读、执行前后摘要一致、临时副本和容器均强制清理、输出有界且成功后强制经过 M6.3a SARIF Observation 导入。
+
+M6.4d 协议首版不下载 CodeQL、数据库或查询包，不执行查询或 Target build，不启用公网、secret scanner、Candidate/Finding promotion 或 Submission。数据库构建继续要求独立 `RUN_UNTRUSTED_BUILD` Approval。
+
 ## 延后事项
 
 - 公网资产自主发现。
