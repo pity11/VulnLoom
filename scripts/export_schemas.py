@@ -17,6 +17,7 @@ from vulnloom.benchmark import (
     AnalyzerEvaluationPolicy,
     AnalyzerEvaluationResult,
     AnalyzerExclusion,
+    AnalyzerExecutionEvidenceBinding,
     AnalyzerExecutionPlan,
     AnalyzerImportLimits,
     AnalyzerImportOutcome,
@@ -26,6 +27,8 @@ from vulnloom.benchmark import (
     AnalyzerObservation,
     AnalyzerObservationArtifact,
     AnalyzerObservationSet,
+    AnalyzerQualificationOutcome,
+    AnalyzerQualificationPlan,
     AnalyzerResultFile,
     AnalyzerResultSnapshot,
     AnalyzerToolRegistration,
@@ -222,6 +225,9 @@ MODELS = (
     AnalyzerEvaluationResult,
     AnalyzerEvaluationArtifact,
     AnalyzerEvaluationOutcome,
+    AnalyzerExecutionEvidenceBinding,
+    AnalyzerQualificationPlan,
+    AnalyzerQualificationOutcome,
 )
 
 

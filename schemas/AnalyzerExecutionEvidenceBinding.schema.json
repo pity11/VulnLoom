@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "AnalyzerKind": {
+      "enum": [
+        "codeql",
+        "trivy",
+        "checkov",
+        "kubesec"
+      ],
+      "title": "AnalyzerKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "analyzer": {
+      "$ref": "#/$defs/AnalyzerKind"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "execution_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Digest",
+      "type": "string"
+    },
+    "registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "registration_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Digest",
+      "type": "string"
+    },
+    "execution_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Outcome Digest",
+      "type": "string"
+    },
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "observation_set_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "analyzer",
+    "target_id",
+    "target_version",
+    "manifest_id",
+    "scope_id",
+    "scope_version",
+    "execution_plan_id",
+    "execution_plan_digest",
+    "registration_id",
+    "registration_digest",
+    "execution_outcome_digest",
+    "observation_set_id",
+    "observation_set_digest"
+  ],
+  "title": "AnalyzerExecutionEvidenceBinding",
+  "type": "object"
+}

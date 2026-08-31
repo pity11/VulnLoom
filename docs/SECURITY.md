@@ -118,6 +118,14 @@ M6.4d 不提供 CodeQL 下载、pack 安装或 database create API。数据库�
 独立 `RUN_UNTRUSTED_BUILD` Approval；Admission 行为 fixture 只证明隔离和清理，不冒充真实 CodeQL
 bundle、许可、query pack 或预建数据库的运营资格。
 
+M6.5 只聚合权威 Docker store 中已完成的 M6.4 执行证明，不启动分析器。资格服务要求完整 case×analyzer 矩阵，并在 checkpoint
+前重新计算 execution plan、registration、outcome、ObservationSet、suite、alignment 与 evaluation plan
+摘要；同时复核 Target/version/Manifest、Scope、完成状态和 cleanup。失败、超时、取消、清理不完整、缺项、
+重复或漂移均拒绝，且不会留下 qualification/evaluation checkpoint。
+
+资格 outcome 只能携带既有 M6.3b gate 结果，不能创建 Candidate/Finding 或改变报告状态。该层没有 Runner、
+Docker、Broker、socket、credential、Target build、secret scanner、Approval 消费或 Submission 字段。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

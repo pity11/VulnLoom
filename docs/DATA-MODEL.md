@@ -326,6 +326,16 @@ case/analyzer 只能绑定一个 set。`AnalyzerTruthMatch` 显式列出 Observa
 baseline、deadline 和幂等键。`AnalyzerEvaluationResult` 使用 plan 派生的稳定 UUID，gate 状态必须与
 violation 列表一致；artifact 只引用本地内容寻址 JSON/Markdown。
 
+### AnalyzerExecutionEvidenceBinding 与 AnalyzerQualificationPlan
+
+`AnalyzerExecutionEvidenceBinding` 封存一个 benchmark case/analyzer cell 的 execution plan、exact
+registration、Docker outcome、ObservationSet、Target/version/Manifest 与 Scope version 摘要。只有
+`COMPLETED`、清理完备且已完成 M6.3a import 的 outcome 可以创建 binding。
+
+`AnalyzerQualificationPlan` 绑定 exact suite/alignment/evaluation plan、显式 required analyzers 和排序后的
+完整执行矩阵。`AnalyzerQualificationOutcome` 只包装既有 M6.3b evaluation outcome、执行数和一致的 gate
+状态；它不包含新的工具调用、Observation 变换或领域状态迁移。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

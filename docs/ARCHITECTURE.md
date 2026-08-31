@@ -327,3 +327,16 @@ output tmpfs with no-follow reads and exact file/entry/byte checks, then invokes
 source contents, snippets, query help, downloads, URLs, shell commands, and runtime arguments are
 not representable. Completed stdout must pass bounded immutable capture and the existing M6.3a
 CodeQL import before the outer transaction completes.
+
+## 21. M6.5 analyzer execution qualification boundary
+
+The qualification layer is a trusted fan-in, not a Worker or executor. It accepts only completed
+M6.4 Docker outcomes recorded in the authoritative completed-execution store and binds each case/analyzer cell to the exact execution plan, registration,
+cleanup proof, imported M6.3a ObservationSet, Target/version/Manifest, and Scope version. The outer
+plan additionally seals the BenchmarkSuite, reviewed truth alignment, M6.3b evaluation plan, and
+required analyzer matrix.
+
+All provenance, digest, lifecycle, matrix, and alignment checks run before a qualification
+checkpoint. The existing M6.3b service remains the only metric reducer and immutable result
+publisher. M6.5 owns no Runner, Docker adapter, network, credentials, domain state transition, or
+Submission path.

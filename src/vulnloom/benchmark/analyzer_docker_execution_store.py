@@ -86,6 +86,17 @@ class AnalyzerDockerExecutionStore:
                 "analyzer Docker STARTED checkpoint is unavailable"
             )
 
+    def read_completed(self, plan_id: str) -> DockerAnalyzerExecutionOutcome:
+        row = self.connection.execute(
+            "SELECT state, outcome_json FROM analyzer_docker_executions WHERE plan_id = ?",
+            (plan_id,),
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise AnalyzerDockerExecutionRecoveryRequired(
+                "completed analyzer Docker execution checkpoint is unavailable"
+            )
+        return DockerAnalyzerExecutionOutcome.model_validate_json(row["outcome_json"])
+
     def close(self) -> None:
         self.connection.close()
 

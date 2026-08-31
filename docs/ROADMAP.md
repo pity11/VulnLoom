@@ -305,6 +305,15 @@ M6.4c 不包含 DB/镜像下载 API、secret scanner、Target build、Broker、C
 
 M6.4d 运行期不下载 CodeQL、数据库或查询包，不执行 Target build，不启用公网、secret scanner、Candidate/Finding promotion 或 Submission。数据库构建继续要求独立 `RUN_UNTRUSTED_BUILD` Approval。
 
+### M6.5：分析器执行资格闭环（已完成首版）
+
+- `AnalyzerExecutionEvidenceBinding` 将 benchmark case 精确绑定到一个已完成的 M6.4 Docker execution plan、admitted registration、清理完备 outcome 与 M6.3a ObservationSet 的完整摘要。
+- `AnalyzerQualificationPlan` 同时封存 exact suite、显式 truth alignment、M6.3b evaluation plan、required-analyzer 集合和完整 case×analyzer 执行矩阵；同一 registration 可跨 case 复用，但 execution plan 与 ObservationSet 不可复用。
+- 资格服务要求 outcome 存在于权威 M6.4 Docker `COMPLETED` checkpoint，并在任何新 checkpoint 前复核全部 Target/version/Manifest、Scope、registration、execution outcome、cleanup、ObservationSet、alignment 和 evaluation 摘要；失败、超时、取消、清理不完整、缺项或内容漂移均 fail-closed。
+- 只有完整执行证明链才能调用既有 M6.3b reducer；评测 PASS/FAILED 均作为类型化资格 outcome 保存，不会把指标失败误报为执行失败。
+- SQLite 使用独立 STARTED/COMPLETED checkpoint；相同计划幂等返回，冲突 key 和未完成 replay 均拒绝。语义拒绝发生在 qualification/evaluation checkpoint 之前。
+- M6.5 不增加 Runner、Docker、Broker、网络、credential、Target build、secret scanner、Candidate/Finding promotion 或 Submission 能力，也不改变 M6.4 的 rootless Phase 3 Admission 结论。
+
 ## 延后事项
 
 - 公网资产自主发现。

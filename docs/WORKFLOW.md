@@ -254,6 +254,21 @@ wrapper 不下载 bundle/pack，不运行 `database create`，不执行 Target b
 snippets 或 query help。真实 CodeQL bundle、许可、query pack 和预建 DB 由 operator 在运行边界外资格审查；
 Phase 3 行为 fixture 只证明 rootless Docker、tmpfs 写边界、原始输入不变、Observation 导入和清理。
 
+### M6.5 分析器执行资格链
+
+```text
+Exact BenchmarkSuite + reviewed truth alignment + M6.3b evaluation plan
+  + authoritative completed M6.4 execution plan/registration/outcome for every case×analyzer cell
+  → reverify lifecycle + cleanup + Target/Manifest/Scope + all content digests
+  → require the exact ObservationSet/alignment matrix
+  → existing M6.3b deterministic reducer and regression policy
+  → PASS|FAILED qualification outcome + transactional checkpoint
+```
+
+缺少一个 cell、失败/超时/取消、清理不完整或任何摘要漂移都会在资格 checkpoint 前拒绝。该链不重跑
+分析器，不修改 alignment，不自动匹配 CWE，也不拥有 Runner、Broker、网络、Target build、Candidate/Finding
+或 Submission 权限。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

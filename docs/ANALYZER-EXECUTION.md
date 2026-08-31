@@ -95,3 +95,18 @@ qualification responsibilities. Database construction and target compilation rem
 
 Analyzer output cannot directly create a Candidate or Finding and cannot replace Validation,
 Critic, Evidence, duplicate, or human Approval gates.
+
+## Execution qualification fan-in
+
+M6.5 connects completed M6.4 execution provenance to the existing M6.3b evaluation gate without
+adding another executor. Each `AnalyzerExecutionEvidenceBinding` covers the exact execution plan,
+registration, authoritative completed Docker checkpoint/outcome, cleanup proof, imported ObservationSet, benchmark case,
+Target/version/Manifest, and Scope version. The qualification plan also binds the exact suite,
+reviewed alignment, evaluation plan, and required case-by-analyzer matrix.
+
+Before either qualification or evaluation writes a checkpoint, the service rejects missing,
+duplicate, failed, timed-out, cancelled, cleanup-incomplete, drifted, cross-Target, or unaligned
+inputs. Only the complete matrix is passed to M6.3b. A regression-gate failure is preserved as a
+typed failed gate, while lifecycle or provenance failures remain hard rejections. This layer has no
+Runner, Docker, Broker, network, credential, analyzer-installation, Target-build, Candidate/Finding,
+or Submission capability.
