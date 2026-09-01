@@ -35,6 +35,12 @@ The M7.5 provider transport admission run is GitHub Actions
 [`33465813515`](https://github.com/pity11/VulnLoom/actions/runs/33465813515). Both completed
 successfully on 2026-09-01 and qualify the M7.5 provider transport row below.
 
+The M7.6 provider egress lifecycle admission run is GitHub Actions
+[`33474110739`](https://github.com/pity11/VulnLoom/actions/runs/33474110739) for commit
+`e43b1b9e0a0ce1ee796d01b4fc62e14b26019440`. The standard Python CI for the same commit is
+[`33474110527`](https://github.com/pity11/VulnLoom/actions/runs/33474110527). Both completed
+successfully on 2026-09-01 and qualify the M7.6 provider egress lifecycle row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -52,6 +58,7 @@ successfully on 2026-09-01 and qualify the M7.5 provider transport row below.
 | CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | PASS (`33354872312`) |
 | Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | PASS (`33397257470`) |
 | Provider transport | Fixed isolated subprocess inherits no parent secret/proxy environment, pins a numeric loopback peer while verifying admitted-host TLS, bounds output, kills on timeout, and composes through the typed Runtime without exposing raw credential or response data | PASS (`33465813508`) |
+| Provider egress lifecycle | A trusted local issuer policy creates a content-addressed active loopback grant bound into registration; the Runtime reopens and verifies it before DNS/credential/process use, while offline tests enforce expiry, revocation, unfinished-checkpoint, tamper, and cleanup refusal | PASS (`33474110739`) |
 
 ## Reproduction
 
@@ -92,3 +99,10 @@ forcibly reaped on timeout. A full Runtime composition probe also verifies crede
 cleanup and digest-only attempt/receipt persistence. This PASS proves the subprocess and TLS boundary;
 it neither contacts nor qualifies a public model provider, provider-specific protocol, or production
 credential.
+
+M7.6 extends the full Runtime composition probe by issuing the loopback transport grant through the
+trusted local Authority, atomically publishing its read-only object, completing its lifecycle
+checkpoint, and binding its exact ID into model registration before the TLS call. The ordinary CI
+suite separately proves that revoked, expired, unfinished, linked, writable, malformed, conflicting,
+or Admission-drifted grants stop before DNS and credential acquisition. This remains a local
+Control Plane lifecycle proof, not a public-provider call or cryptographic remote-signer qualification.
