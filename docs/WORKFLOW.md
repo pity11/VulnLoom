@@ -344,6 +344,26 @@ Verified AgentRunPlan + reloaded context snapshot + builtin role template
 模板、system、JSON shape、control、Task/Scope/Target、fragment ordinal/trust 或摘要任一漂移都拒绝。模型仍只能
 返回工具提案；prompt 文字不能执行工具、授予 Approval 或触发 Candidate/Finding/Submission 状态变化。
 
+### M7.4 Provider 传输 Admission 链
+
+```text
+Exact StepRequest + Message Envelope + model registration
+  → sealed provider transport admission
+     ├─ exact DNS hostname / TLS 443 / canonical path
+     ├─ redirects=false / proxy=false / DNS revalidation=true
+     └─ network_enabled=false / one attempt / byte + wall limits
+  → transient provider-shaped request buffer + scoped credential lease
+  → in-memory admission fake (no DNS/socket/HTTP/SDK)
+  → bounded raw response buffer
+  → strict JSON + exact identity + typed reply
+  → zero request/response/credential buffers
+  → digest-only attempt and receipt
+```
+
+Admission、registration、credential、StepRequest 或 Envelope 任一摘要/语义漂移都 fail-closed。响应超限、畸形、
+身份不一致和 timeout 分别产生稳定拒绝或超时 outcome；原始消息、响应与凭据不进入 checkpoint。真实 HTTPS
+传输尚不可表示，后续必须另行证明隔离出口、DNS rebinding、TLS、流式捕获、速率和日志边界。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

@@ -62,10 +62,11 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, live model-provider adapter, disclosure submission adapters, and prompts are planned
-components; they are not present in the current tree. M7.1a-b include deterministic replay and a
-credential-isolated, no-socket local fake provider. Benchmark and analyzer imports consume only
-sealed, pre-obtained local data and never fetch suites, rules, databases, or images.
+An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
+they are not present in the current tree. M7.1a-M7.4 include deterministic replay, fixed provider
+messages, scoped credentials, and no-network fake adapters for the provider transport boundary.
+Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
+rules, databases, or images.
 
 ## First end-to-end path
 
@@ -309,6 +310,19 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Passes messages transiently to offline adapters while checkpoints and adapter audit lists retain
   only digests. Prompt text remains non-authoritative; Runtime/Broker enforce permissions.
 
+### M7.4: provider transport admission protocol
+
+- Adds a content-addressed admission object for one exact provider hostname, TLS port, canonical
+  path, credential reference, adapter digest, request/response limits, and timeout.
+- Fixes redirects and proxies off, DNS revalidation on, raw-response persistence off, one attempt,
+  and `network_enabled=false`; schema validation rejects any relaxation.
+- Derives a digest-only transport request from the exact StepRequest and Message Envelope, while the
+  serialized message body exists only in a zeroed transient buffer.
+- Exercises credential acquisition, bounded response capture, strict JSON parsing, identity checks,
+  typed rejection/timeout outcomes, receipts, and cleanup through an in-memory admission fake.
+- Stores only request/response digests, counts, identities, stable status, and cleanup proof. It opens
+  no DNS, socket, HTTP, SDK, proxy, tool, Approval, or Submission path.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -436,11 +450,11 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Model credential boundary
 
-`ModelProviderConfig.credential_reference` identifies one explicit Control Plane environment variable without containing its value. M7.1b resolves it into a short-lived, zeroed byte lease used only by the no-socket local fake adapter. No model-provider HTTP or SDK call is implemented yet. Keys never appear in `TaskEnvelope`, Worker environments, Agent requests, checkpoints, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
+`ModelProviderConfig.credential_reference` identifies one explicit Control Plane environment variable without containing its value. M7.1b and M7.4 resolve it into a short-lived, zeroed byte lease used only by no-socket fake adapters. No model-provider HTTP or SDK call is implemented yet. Keys never appear in `TaskEnvelope`, Worker environments, Agent requests, checkpoints, event logs, or Evidence summaries. `.env.example` lists variable names only, and real `.env` files are ignored by Git.
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, typed offline Agent Runtime adapters with scoped credential leases, sealed context, and fixed provider-message envelopes, plus opt-in probes for real containers, analyzers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, and a typed offline Agent Runtime with scoped credential leases, sealed context, fixed provider messages, and a no-network transport Admission fake, plus opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
 Live Docker/Broker validation and the report workflow are exposed through typed library and offline CLI paths, not a production HTTP API. The rootless Linux and OS-level egress admission gate passes. External disclosure/CVE submission workflows, live model-provider execution, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

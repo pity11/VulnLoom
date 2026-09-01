@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "receipt_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "transport_request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Transport Request Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "response_body_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Response Body Digest",
+      "type": "string"
+    },
+    "response_bytes": {
+      "exclusiveMinimum": 0,
+      "maximum": 2097152,
+      "title": "Response Bytes",
+      "type": "integer"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "input_tokens": {
+      "minimum": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "minimum": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "latency_seconds": {
+      "maximum": 600,
+      "minimum": 0,
+      "title": "Latency Seconds",
+      "type": "number"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "transport_request_id",
+    "attempt_id",
+    "response_body_digest",
+    "response_bytes",
+    "provider_id",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "latency_seconds"
+  ],
+  "title": "AgentProviderTransportReceipt",
+  "type": "object"
+}

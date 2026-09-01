@@ -418,3 +418,22 @@ For context-bound runs, the Runtime rebuilds the first envelope before its START
 seals the envelope ID into the step request. Retries render a new envelope for their step and
 remaining output budget. Offline adapters receive the transient envelope but retain only its ID.
 M7.3 adds no live transport, SDK, socket, tool execution, domain reducer, or Submission path.
+
+## 27. M7.4 provider transport admission protocol
+
+The M7.4 boundary separates serializable admission metadata from transient provider bytes. A sealed
+admission names one exact canonical DNS hostname, TLS port 443, canonical request path, credential
+reference, adapter implementation, request/response ceilings, and timeout. Redirects and proxies are
+disabled, DNS revalidation is required, raw responses are never persistent, the attempt limit is one,
+and `network_enabled` is fixed false.
+
+For one exact StepRequest/Message Envelope pair, trusted code derives a digest-only transport request.
+The provider-shaped request body, credential lease, and raw response use mutable transient buffers
+that are zeroed before return. Strict JSON, exact response shape, provider/model identity, byte and
+wall limits are checked before an `AgentModelReply` exists. Attempts and successful receipts contain
+only digests, counts, stable status, and cleanup evidence.
+
+The admitted adapter is an in-memory behavior fake: it deliberately has no DNS, socket, HTTP client,
+SDK, proxy, or retry implementation. This proves the protocol and lifecycle only. A real HTTPS adapter
+requires a later production Admission proving process isolation, exact egress, DNS/rebinding and TLS
+behavior, bounded streaming capture, rate limits, and redacted operational logging.

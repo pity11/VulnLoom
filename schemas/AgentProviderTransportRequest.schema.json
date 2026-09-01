@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "transport_request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Transport Request Id",
+      "type": "string"
+    },
+    "step_request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Step Request Id",
+      "type": "string"
+    },
+    "message_envelope_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Message Envelope Id",
+      "type": "string"
+    },
+    "transport_admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Transport Admission Id",
+      "type": "string"
+    },
+    "model_registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Registration Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "credential_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Reference Id",
+      "type": "string"
+    },
+    "request_body_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Body Digest",
+      "type": "string"
+    },
+    "request_bytes": {
+      "exclusiveMinimum": 0,
+      "maximum": 2162688,
+      "title": "Request Bytes",
+      "type": "integer"
+    },
+    "max_response_bytes": {
+      "exclusiveMinimum": 0,
+      "maximum": 2097152,
+      "title": "Max Response Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "attempt_limit": {
+      "maximum": 1,
+      "minimum": 1,
+      "title": "Attempt Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "transport_request_id",
+    "step_request_id",
+    "message_envelope_id",
+    "transport_admission_id",
+    "model_registration_id",
+    "provider_id",
+    "model",
+    "credential_reference_id",
+    "request_body_digest",
+    "request_bytes",
+    "max_response_bytes",
+    "timeout_seconds",
+    "attempt_limit"
+  ],
+  "title": "AgentProviderTransportRequest",
+  "type": "object"
+}

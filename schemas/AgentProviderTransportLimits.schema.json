@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_request_bytes": {
+      "default": 1048576,
+      "exclusiveMinimum": 0,
+      "maximum": 2162688,
+      "title": "Max Request Bytes",
+      "type": "integer"
+    },
+    "max_response_bytes": {
+      "default": 1048576,
+      "exclusiveMinimum": 0,
+      "maximum": 2097152,
+      "title": "Max Response Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 1,
+      "maximum": 1,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "AgentProviderTransportLimits",
+  "type": "object"
+}

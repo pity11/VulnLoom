@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "AgentProviderTransportLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_request_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2162688,
+          "title": "Max Request Bytes",
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2097152,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "AgentProviderTransportLimits",
+      "type": "object"
+    },
+    "AgentProviderTransportMode": {
+      "enum": [
+        "admission_fake"
+      ],
+      "title": "AgentProviderTransportMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "hostname": {
+      "maxLength": 253,
+      "minLength": 3,
+      "title": "Hostname",
+      "type": "string"
+    },
+    "port": {
+      "default": 443,
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "Port",
+      "type": "integer"
+    },
+    "request_path": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Request Path",
+      "type": "string"
+    },
+    "credential_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Reference Id",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/AgentProviderTransportMode",
+      "default": "admission_fake"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentProviderTransportLimits"
+    },
+    "tls_required": {
+      "default": true,
+      "title": "Tls Required",
+      "type": "boolean"
+    },
+    "redirects_allowed": {
+      "default": false,
+      "title": "Redirects Allowed",
+      "type": "boolean"
+    },
+    "proxy_allowed": {
+      "default": false,
+      "title": "Proxy Allowed",
+      "type": "boolean"
+    },
+    "dns_revalidation_required": {
+      "default": true,
+      "title": "Dns Revalidation Required",
+      "type": "boolean"
+    },
+    "raw_response_persisted": {
+      "default": false,
+      "title": "Raw Response Persisted",
+      "type": "boolean"
+    },
+    "network_enabled": {
+      "default": false,
+      "title": "Network Enabled",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "admission_id",
+    "provider_id",
+    "hostname",
+    "request_path",
+    "credential_reference_id",
+    "adapter_digest",
+    "limits"
+  ],
+  "title": "AgentProviderTransportAdmission",
+  "type": "object"
+}

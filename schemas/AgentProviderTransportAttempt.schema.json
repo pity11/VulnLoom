@@ -1,0 +1,76 @@
+{
+  "$defs": {
+    "AgentProviderTransportStatus": {
+      "enum": [
+        "completed",
+        "rejected",
+        "timed_out"
+      ],
+      "title": "AgentProviderTransportStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attempt_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "transport_request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Transport Request Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/AgentProviderTransportStatus"
+    },
+    "captured_response_bytes": {
+      "maximum": 2097152,
+      "minimum": 0,
+      "title": "Captured Response Bytes",
+      "type": "integer"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9_]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Code"
+    },
+    "credential_released": {
+      "title": "Credential Released",
+      "type": "boolean"
+    },
+    "request_body_released": {
+      "title": "Request Body Released",
+      "type": "boolean"
+    },
+    "raw_response_discarded": {
+      "title": "Raw Response Discarded",
+      "type": "boolean"
+    },
+    "network_opened": {
+      "default": false,
+      "title": "Network Opened",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "transport_request_id",
+    "status",
+    "captured_response_bytes",
+    "credential_released",
+    "request_body_released",
+    "raw_response_discarded"
+  ],
+  "title": "AgentProviderTransportAttempt",
+  "type": "object"
+}

@@ -30,6 +30,7 @@ from .models import (
 )
 from .replay import AgentModelAdapter
 from .store import AgentRunStore
+from .transport import AgentProviderTransportRejected, AgentProviderTransportTimedOut
 
 
 class AgentRuntimeRejected(ValueError):
@@ -68,6 +69,7 @@ class OfflineAgentRuntime:
             not in {
                 AgentAdapterKind.OFFLINE_REPLAY,
                 AgentAdapterKind.LOCAL_FAKE_PROVIDER,
+                AgentAdapterKind.ADMISSION_FAKE_TRANSPORT,
             }
             or plan.task.worker_role not in self.registration.supported_roles
         ):
@@ -153,6 +155,26 @@ class OfflineAgentRuntime:
             try:
                 reply = self.adapter.complete(
                     request, message_envelope=message_envelope
+                )
+            except AgentProviderTransportTimedOut:
+                return self._finish(
+                    plan,
+                    now=now,
+                    status=AgentRunStatus.TIMED_OUT,
+                    steps=step,
+                    input_tokens=total_input,
+                    output_tokens=total_output,
+                    error_codes=("provider_transport_timeout",),
+                )
+            except AgentProviderTransportRejected:
+                return self._finish(
+                    plan,
+                    now=now,
+                    status=AgentRunStatus.FAILED,
+                    steps=step,
+                    input_tokens=total_input,
+                    output_tokens=total_output,
+                    error_codes=("provider_transport_rejected",),
                 )
             except Exception as exc:
                 raise AgentRuntimeAdapterFailure(

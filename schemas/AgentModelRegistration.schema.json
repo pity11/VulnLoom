@@ -3,7 +3,8 @@
     "AgentAdapterKind": {
       "enum": [
         "offline_replay",
-        "local_fake_provider"
+        "local_fake_provider",
+        "admission_fake_transport"
       ],
       "title": "AgentAdapterKind",
       "type": "string"
@@ -60,6 +61,19 @@
       ],
       "default": null,
       "title": "Credential Reference Id"
+    },
+    "transport_admission_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transport Admission Id"
     },
     "supported_roles": {
       "items": {

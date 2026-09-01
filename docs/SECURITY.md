@@ -157,6 +157,17 @@ M7.3 的 system message 来自固定内置模板，user message 是重复键拒�
 真正权限边界。renderer 对 system/user/总字节和墙钟分别设限，并在 checkpoint 前拒绝首步渲染失败。
 adapter 和 SQLite 只保留 envelope digest，不持久化 message/context 正文。
 
+M7.4 将 provider 出口配置收缩为内容寻址的 Admission 对象：exact canonical DNS hostname、TLS 443、单一
+path、credential reference、adapter digest、请求/响应上限和 timeout。当前 schema 固定
+`network_enabled=false`、redirect/proxy 关闭、DNS revalidation 开启、raw response 不持久化且只允许一个
+attempt。StepRequest 与 Message Envelope 的 Task/step/context/schema/tools/output 任一绑定漂移，都在凭据读取
+前拒绝。瞬时 provider request、credential lease 和 raw response 使用可归零缓冲；正常、拒绝和超时路径均
+强制清理。attempt/receipt 与 SQLite 只含摘要、计数、稳定错误码和清理证明。
+
+M7.4 的 `admission_fake` 不解析或连接 hostname，不创建 DNS/socket/HTTP/SDK/proxy，也不声称真实 TLS、DNS
+rebinding、速率限制或进程级隔离已经通过生产准入。真实 provider 出口仍必须通过独立 Admission；不得通过
+修改 schema 或替换 adapter 绕过该里程碑。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

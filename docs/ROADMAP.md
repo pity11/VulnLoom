@@ -376,6 +376,17 @@ M7.2 不读取原始 Evidence Store 正文、不自动选择上下文、不把�
 
 M7.3 不把 system prompt 当安全边界；它没有 live provider、HTTP/SDK、网络、凭据扩散、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。实时 adapter 仍需独立出口与响应捕获 Admission。
 
+### M7.4：Provider 传输 Admission 协议（已完成首版）
+
+- `AgentProviderTransportAdmission` 内容寻址绑定 exact provider hostname、TLS 443、canonical path、credential reference、adapter digest、请求/响应字节上限和墙钟。
+- 当前 mode 只能是 `admission_fake`，并强制 redirect/proxy 关闭、DNS revalidation 开启、raw response 不持久化、单次 attempt 和 `network_enabled=false`；任何放宽都在 schema 层拒绝。
+- `AgentProviderTransportRequest` 只保存 StepRequest/Envelope/admission/registration/credential reference 和瞬时请求正文的摘要、字节数与预算；不保存 endpoint URL、header、token 或正文。
+- no-network adapter 从 exact Message Envelope 构造瞬时请求缓冲，完成凭据租约、响应字节捕获、strict JSON、provider/model identity 和类型化 reply 校验，并在所有路径归零请求/响应/credential 缓冲。
+- `AgentProviderTransportAttempt` 与成功 receipt 只记录内容摘要、计数、稳定状态和 cleanup 证明；Runtime 将传输拒绝/超时分别归一为 FAILED/TIMED_OUT outcome。
+- 测试覆盖成功、network/redirect/proxy 放宽、registration/admission/credential 漂移、StepRequest/Envelope 漂移、超限、畸形响应、身份漂移、超时、清理和 SQLite 无正文/密钥。
+
+M7.4 是 live transport 的离线 Admission 协议，不是实时 provider 实现；没有 DNS、socket、HTTP、SDK、proxy、自动 retry、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。真实 HTTPS 出口仍需独立进程/网络隔离、DNS/rebinding、TLS 和生产日志 Admission。
+
 ## 延后事项
 
 - 公网资产自主发现。

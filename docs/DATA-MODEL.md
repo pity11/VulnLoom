@@ -376,6 +376,18 @@ user 固定包含 untrusted context。
 model registration、template、decision schema、工具白名单、tool-call/output 预算、消息和总字节。
 `AgentStepRequest.message_envelope_id` 只保存 envelope 摘要；消息正文不属于运行 checkpoint/outcome。
 
+### AgentProviderTransportAdmission、Request、Attempt 与 Receipt
+
+`AgentProviderTransportAdmission` 内容寻址绑定 provider、canonical hostname、TLS 443、单一路径、credential
+reference、adapter digest 和传输上限。M7.4 只允许 `admission_fake`，且固定无网络、无 redirect/proxy、要求
+DNS revalidation、不持久化 raw response、attempt limit 为一。
+
+`AgentProviderTransportRequest` 绑定 exact StepRequest、Message Envelope、admission、model registration 与
+credential reference，并只保存瞬时请求 body 的 SHA-256、字节数、响应上限和 timeout。它没有 header、token、
+正文或可执行 endpoint。`AgentProviderTransportAttempt` 保存终态、稳定错误码、捕获字节数和 request/response/
+credential 清理证明；`AgentProviderTransportReceipt` 仅在成功时保存响应摘要、identity、token 计数和 latency。
+原始请求、credential lease、raw response 与 fake turn 都不是持久化数据模型。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
