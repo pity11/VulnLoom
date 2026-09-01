@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "raw_agent_arguments_absent": {
+      "title": "Raw Agent Arguments Absent",
+      "type": "boolean"
+    },
+    "raw_tool_response_absent": {
+      "title": "Raw Tool Response Absent",
+      "type": "boolean"
+    },
+    "authorization_enforced": {
+      "title": "Authorization Enforced",
+      "type": "boolean"
+    },
+    "no_vulnloom_domain_state_changed": {
+      "title": "No Vulnloom Domain State Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "raw_agent_arguments_absent",
+    "raw_tool_response_absent",
+    "authorization_enforced",
+    "no_vulnloom_domain_state_changed"
+  ],
+  "title": "AgentToolHandoffCleanup",
+  "type": "object"
+}

@@ -1,0 +1,840 @@
+{
+  "$defs": {
+    "AgentRunLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "default": 2,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "max_output_tokens_per_step": {
+          "default": 4096,
+          "exclusiveMinimum": 0,
+          "maximum": 65536,
+          "title": "Max Output Tokens Per Step",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentRunLimits",
+      "type": "object"
+    },
+    "AgentRunPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskEnvelope"
+        },
+        "task_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Task Digest",
+          "type": "string"
+        },
+        "model_registration_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Registration Id",
+          "type": "string"
+        },
+        "model_registration_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Registration Digest",
+          "type": "string"
+        },
+        "context_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Context Digest",
+          "type": "string"
+        },
+        "context_snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Snapshot Id"
+        },
+        "decision_schema_digest": {
+          "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Decision Schema Digest",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentRunLimits"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "task",
+        "task_digest",
+        "model_registration_id",
+        "model_registration_digest",
+        "context_digest",
+        "limits",
+        "created_at",
+        "deadline",
+        "idempotency_key"
+      ],
+      "title": "AgentRunPlan",
+      "type": "object"
+    },
+    "AgentToolHandoffLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_attempts": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 2,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentToolHandoffLimits",
+      "type": "object"
+    },
+    "BrokerCall": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "format": "uuid",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskEnvelope"
+        },
+        "profile": {
+          "$ref": "#/$defs/SandboxProfile"
+        },
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "http": {
+          "$ref": "#/$defs/HttpRequestPlan"
+        },
+        "idempotency_key": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task",
+        "profile",
+        "tool_id",
+        "http",
+        "idempotency_key"
+      ],
+      "title": "BrokerCall",
+      "type": "object"
+    },
+    "HttpHeader": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 4096,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "HttpHeader",
+      "type": "object"
+    },
+    "HttpLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "connect_seconds": {
+          "default": 3.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Connect Seconds",
+          "type": "number"
+        },
+        "read_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Read Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 15.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Total Seconds",
+          "type": "number"
+        },
+        "max_response_bytes": {
+          "default": 2097152,
+          "exclusiveMinimum": 0,
+          "maximum": 20971520,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "max_redirects": {
+          "default": 0,
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Max Redirects",
+          "type": "integer"
+        },
+        "max_requests": {
+          "default": 1,
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Max Requests",
+          "type": "integer"
+        }
+      },
+      "title": "HttpLimits",
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "title": "HttpMethod",
+      "type": "string"
+    },
+    "HttpRequestPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "url": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "test_class": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Test Class",
+          "type": "string"
+        },
+        "headers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HttpHeader"
+          },
+          "maxItems": 64,
+          "title": "Headers",
+          "type": "array"
+        },
+        "credential_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credential Ref"
+        },
+        "body_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body Ref"
+        },
+        "body_bytes": {
+          "default": 0,
+          "maximum": 20971520,
+          "minimum": 0,
+          "title": "Body Bytes",
+          "type": "integer"
+        },
+        "follow_redirects": {
+          "default": false,
+          "title": "Follow Redirects",
+          "type": "boolean"
+        },
+        "limits": {
+          "$ref": "#/$defs/HttpLimits"
+        }
+      },
+      "required": [
+        "method",
+        "url",
+        "test_class"
+      ],
+      "title": "HttpRequestPlan",
+      "type": "object"
+    },
+    "MountKind": {
+      "enum": [
+        "snapshot",
+        "analyzer_data",
+        "evidence",
+        "output",
+        "temp"
+      ],
+      "title": "MountKind",
+      "type": "string"
+    },
+    "NetworkGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Host",
+          "type": "string"
+        },
+        "ports": {
+          "items": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Ports",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "schemes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Schemes",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "host",
+        "ports",
+        "schemes"
+      ],
+      "title": "NetworkGrant",
+      "type": "object"
+    },
+    "NetworkMode": {
+      "enum": [
+        "none",
+        "target_only"
+      ],
+      "title": "NetworkMode",
+      "type": "string"
+    },
+    "SandboxLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "cpu_millis": {
+          "exclusiveMinimum": 0,
+          "maximum": 57600000,
+          "title": "Cpu Millis",
+          "type": "integer"
+        },
+        "memory_bytes": {
+          "maximum": 17179869184,
+          "minimum": 16777216,
+          "title": "Memory Bytes",
+          "type": "integer"
+        },
+        "pids": {
+          "exclusiveMinimum": 0,
+          "maximum": 4096,
+          "title": "Pids",
+          "type": "integer"
+        },
+        "open_files": {
+          "exclusiveMinimum": 0,
+          "maximum": 65536,
+          "title": "Open Files",
+          "type": "integer"
+        },
+        "file_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 10737418240,
+          "title": "File Bytes",
+          "type": "integer"
+        },
+        "tmp_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 10737418240,
+          "title": "Tmp Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "cpu_millis",
+        "memory_bytes",
+        "pids",
+        "open_files",
+        "file_bytes",
+        "tmp_bytes"
+      ],
+      "title": "SandboxLimits",
+      "type": "object"
+    },
+    "SandboxMount": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/MountKind"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Id"
+        },
+        "read_only": {
+          "title": "Read Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "read_only"
+      ],
+      "title": "SandboxMount",
+      "type": "object"
+    },
+    "SandboxProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/SandboxProfileKind"
+        },
+        "image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Image Digest",
+          "type": "string"
+        },
+        "run_as_uid": {
+          "exclusiveMinimum": 0,
+          "maximum": 2147483647,
+          "title": "Run As Uid",
+          "type": "integer"
+        },
+        "run_as_gid": {
+          "exclusiveMinimum": 0,
+          "maximum": 2147483647,
+          "title": "Run As Gid",
+          "type": "integer"
+        },
+        "read_only_root": {
+          "default": true,
+          "title": "Read Only Root",
+          "type": "boolean"
+        },
+        "no_new_privileges": {
+          "default": true,
+          "title": "No New Privileges",
+          "type": "boolean"
+        },
+        "capabilities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "network_mode": {
+          "$ref": "#/$defs/NetworkMode",
+          "default": "none"
+        },
+        "network_grants": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NetworkGrant"
+          },
+          "title": "Network Grants",
+          "type": "array"
+        },
+        "mounts": {
+          "items": {
+            "$ref": "#/$defs/SandboxMount"
+          },
+          "title": "Mounts",
+          "type": "array"
+        },
+        "writable_paths": {
+          "default": [
+            "/tmp",
+            "/workspace/output"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Writable Paths",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_tools": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "execute_target_code": {
+          "default": false,
+          "title": "Execute Target Code",
+          "type": "boolean"
+        },
+        "max_attempts": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "limits": {
+          "$ref": "#/$defs/SandboxLimits"
+        }
+      },
+      "required": [
+        "kind",
+        "image_digest",
+        "run_as_uid",
+        "run_as_gid",
+        "mounts",
+        "allowed_tools",
+        "limits"
+      ],
+      "title": "SandboxProfile",
+      "type": "object"
+    },
+    "SandboxProfileKind": {
+      "enum": [
+        "static",
+        "validation",
+        "report"
+      ],
+      "title": "SandboxProfileKind",
+      "type": "string"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "model_tokens": {
+          "minimum": 0,
+          "title": "Model Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "model_tokens",
+        "tool_calls"
+      ],
+      "title": "TaskBudget",
+      "type": "object"
+    },
+    "TaskEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "engagement_id": {
+          "format": "uuid",
+          "title": "Engagement Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "worker_role": {
+          "$ref": "#/$defs/WorkerRole"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "tool_registry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tool Registry Digest",
+          "type": "string"
+        },
+        "input_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Refs",
+          "type": "array"
+        },
+        "allowed_tools": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "budget": {
+          "$ref": "#/$defs/TaskBudget"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "engagement_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "worker_role",
+        "scope_version",
+        "policy_digest",
+        "sandbox_profile_digest",
+        "tool_registry_digest",
+        "input_refs",
+        "allowed_tools",
+        "budget",
+        "deadline",
+        "idempotency_key"
+      ],
+      "title": "TaskEnvelope",
+      "type": "object"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "handoff_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "agent_plan": {
+      "$ref": "#/$defs/AgentRunPlan"
+    },
+    "agent_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Agent Plan Digest",
+      "type": "string"
+    },
+    "agent_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Agent Outcome Digest",
+      "type": "string"
+    },
+    "broker_call": {
+      "$ref": "#/$defs/BrokerCall"
+    },
+    "broker_call_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Broker Call Digest",
+      "type": "string"
+    },
+    "call_commitment": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Call Commitment",
+      "type": "string"
+    },
+    "expected_intent_invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Intent Invocation Digest",
+      "type": "string"
+    },
+    "attempt": {
+      "default": 1,
+      "maximum": 2,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "previous_handoff_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Handoff Id"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentToolHandoffLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "agent_plan",
+    "agent_plan_digest",
+    "agent_outcome_digest",
+    "broker_call",
+    "broker_call_digest",
+    "call_commitment",
+    "expected_intent_invocation_digest",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentToolHandoffPlan",
+  "type": "object"
+}

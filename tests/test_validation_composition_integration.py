@@ -12,6 +12,22 @@ from uuid import uuid4
 
 import pytest
 
+from vulnloom.agent_runtime import (
+    AgentModelRegistration,
+    AgentRunLimits,
+    AgentRunPlan,
+    AgentRunStore,
+    AgentStepRequest,
+    AgentToolHandoffLimits,
+    AgentToolHandoffPlan,
+    AgentToolHandoffService,
+    AgentToolHandoffStatus,
+    AgentToolHandoffStore,
+    OfflineAgentRuntime,
+    OfflineReplayModelAdapter,
+    ReplayTurn,
+    agent_broker_call_commitment,
+)
 from vulnloom.broker import (
     BrokerCall,
     BrokerStatus,
@@ -22,6 +38,7 @@ from vulnloom.broker import (
     ToolBroker,
     pinned_http_tool_registry,
 )
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     Candidate,
     CandidateState,
@@ -170,7 +187,17 @@ def _candidate(scope: Scope) -> Candidate:
     )
 
 
-def _task(now, scope, candidate, profile, registry_digest, *, key, allowed_tools):
+def _task(
+    now,
+    scope,
+    candidate,
+    profile,
+    registry_digest,
+    *,
+    key,
+    allowed_tools,
+    model_tokens=0,
+):
     return TaskEnvelope(
         engagement_id=scope.engagement_id,
         target_id=candidate.target_id,
@@ -183,7 +210,7 @@ def _task(now, scope, candidate, profile, registry_digest, *, key, allowed_tools
         tool_registry_digest=registry_digest,
         input_refs=(f"candidate:{candidate_content_digest(candidate)}",),
         allowed_tools=allowed_tools,
-        budget=TaskBudget(wall_seconds=30, model_tokens=0, tool_calls=2),
+        budget=TaskBudget(wall_seconds=30, model_tokens=model_tokens, tool_calls=2),
         deadline=now + timedelta(seconds=45),
         idempotency_key=key,
     )
@@ -435,3 +462,157 @@ def test_live_redirect_rechecks_dns_and_stops_rebinding_before_second_socket(
     assert resolver.calls == 2
     assert _RedirectHandler.first_requests == 1
     assert _RedirectHandler.second_requests == 0
+
+
+@pytest.mark.composition_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
+    reason="set VULNLOOM_COMPOSITION_INTEGRATION=1 to run the full local composition probe",
+)
+def test_agent_tool_handoff_composes_with_live_pinned_broker_and_evidence(
+    tmp_path: Path, request: pytest.FixtureRequest
+):
+    address = _safe_local_ipv4()
+    if address is None:
+        pytest.skip("no non-loopback local IPv4 address is available for the Broker policy probe")
+    server = ThreadingHTTPServer((address, 0), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    def stop_server() -> None:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    request.addfinalizer(stop_server)
+    port = server.server_address[1]
+    now = datetime.now(UTC)
+    scope = Scope(
+        engagement_id=uuid4(),
+        authority_reference="agent-handoff-composition-fixture",
+        valid_from=now - timedelta(minutes=1),
+        valid_until=now + timedelta(minutes=2),
+        network_targets=(
+            NetworkTargetScope(
+                host=HOST,
+                ports=frozenset({port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+        allowed_test_classes=frozenset({"read_only"}),
+        state=ScopeState.APPROVED,
+        approved_by="integration-test",
+        approved_at=now,
+    )
+    candidate = _candidate(scope)
+    registry = pinned_http_tool_registry()
+    profile = validation_profile(
+        image_digest="sha256:" + "f" * 64,
+        snapshot_id=SNAPSHOT,
+        network_grants=(
+            NetworkGrant(
+                host=HOST,
+                ports=frozenset({port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+    )
+    task = _task(
+        now,
+        scope,
+        candidate,
+        profile,
+        registry.digest,
+        key="composition:agent-handoff-task",
+        allowed_tools=frozenset({"http.request"}),
+        model_tokens=100,
+    )
+    call = BrokerCall(
+        task=task,
+        profile=profile,
+        tool_id="http.request",
+        http=HttpRequestPlan(
+            method="GET",
+            url=f"http://{HOST}:{port}/objects/7",
+            test_class="read_only",
+        ),
+        idempotency_key="composition:agent-handoff-broker",
+    )
+    registration = AgentModelRegistration.create(
+        provider_id="offline",
+        model="composition-replay-v1",
+        adapter_digest=canonical_digest("m7.8-composition-replay"),
+        supported_roles=(WorkerRole.VALIDATOR,),
+        max_output_tokens=64,
+    )
+    agent_plan = AgentRunPlan.create(
+        task=task,
+        registration=registration,
+        limits=AgentRunLimits(
+            max_steps=1,
+            max_output_tokens_per_step=64,
+            timeout_seconds=20,
+        ),
+        created_at=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="composition:agent-handoff-runtime",
+    )
+    step = AgentStepRequest.create(
+        plan=agent_plan,
+        step=1,
+        remaining_model_tokens=task.budget.model_tokens,
+    )
+    replay = ReplayTurn(
+        expected_request_digest=canonical_digest(step.model_dump(mode="python")),
+        structured_output={
+            "kind": "propose_tool",
+            "tool_call": {
+                "tool_id": call.tool_id,
+                "arguments": [agent_broker_call_commitment(call)],
+                "working_directory": "source",
+            },
+        },
+        input_tokens=3,
+        output_tokens=2,
+        latency_seconds=0.1,
+    )
+    evidence_store = EvidenceStore(tmp_path / "evidence")
+    broker = ToolBroker(
+        scope=scope,
+        registry=registry,
+        resolver=_PinnedFixtureResolver(address),
+        http_transport=PinnedHttpTransport(
+            EvidenceStoreHttpSink(evidence_store, target_version=candidate.target_version)
+        ),
+    )
+    with AgentRunStore(tmp_path / "agent-runs.sqlite3") as agent_store:
+        agent_outcome = OfflineAgentRuntime(
+            store=agent_store,
+            registration=registration,
+            adapter=OfflineReplayModelAdapter(
+                registration=registration,
+                turns=(replay,),
+            ),
+        ).execute(agent_plan, now=now)
+        handoff_plan = AgentToolHandoffPlan.create(
+            agent_plan=agent_plan,
+            agent_outcome=agent_outcome,
+            broker_call=call,
+            limits=AgentToolHandoffLimits(),
+            created_at=now,
+            deadline=now + timedelta(seconds=40),
+            idempotency_key="composition:agent-handoff",
+        )
+        with AgentToolHandoffStore(tmp_path / "handoffs.sqlite3") as handoff_store:
+            outcome = AgentToolHandoffService(
+                agent_store=agent_store,
+                handoff_store=handoff_store,
+                broker=broker,
+            ).execute(handoff_plan, now=now + timedelta(seconds=1))
+
+    assert outcome.status is AgentToolHandoffStatus.COMPLETED
+    assert outcome.observation is not None
+    assert outcome.observation.response_body_sha256 == hashlib.sha256(BODY).hexdigest()
+    assert all(evidence_store.contains(item) for item in outcome.observation.evidence_refs)
+    assert BODY not in (tmp_path / "handoffs.sqlite3").read_bytes()
+    assert _Handler.observed_host == f"{HOST}:{port}"

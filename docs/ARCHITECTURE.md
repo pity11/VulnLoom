@@ -501,3 +501,25 @@ inert Control Plane intent, never a provider-native tool execution. Request and 
 the M7.5 zeroing/cleanup lifecycle. Tests use golden JSON and loopback TLS only; no public-provider
 qualification, SDK, production credential, streaming, session continuation, Approval or Submission
 path is added.
+
+## 31. M7.8 typed Agent intent handoff to Tool Broker
+
+M7.8 introduces a trusted Control Plane handoff service rather than giving the model an execution
+adapter. The Agent proposes one opaque commitment for a preconstructed typed `BrokerCall`; its
+persisted `AgentToolIntent` contains only invocation and argument digests. The handoff plan binds that
+commitment to the complete Agent plan/outcome provenance and the full immutable Broker call. No code
+reconstructs HTTP parameters from model prose or recovers the original Agent arguments.
+
+Before a STARTED checkpoint, the service reopens the authoritative Agent run, requires a cleaned
+`tool_proposed` outcome, compares the exact intent commitment, and calls the Broker's static
+preflight. The Broker then independently enforces Scope, Policy, Sandbox Profile, Tool Registry,
+network grants, DNS/peer pinning, budgets, credential admission and action-bound Approval. Thus the
+handoff is orchestration only; Tool Broker and Sandbox remain the permission boundaries.
+
+The separate SQLite lifecycle supports idempotent completed replay and fail-closed conflict/recovery.
+One Agent intent gets one attempt, except that an `approval_required` result may authorize one exact
+second attempt bound to the prior handoff. A completed Broker response must become an
+`AgentToolObservation` containing only typed metadata, content digests and Evidence refs. It cannot
+change Candidate/Finding state. Phase 3 composes the service with a real pinned Broker socket and
+Evidence Store against a temporary authorized fixture, without adding public egress or Agent-owned
+network capability.

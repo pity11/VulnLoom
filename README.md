@@ -367,6 +367,21 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Uses offline golden fixtures and the existing opt-in loopback TLS process probe; CI does not call a
   public provider or use a real provider credential.
 
+### M7.8: typed Agent intent handoff to Tool Broker
+
+- Binds one authoritative completed Agent run and digest-only tool intent to an independently built,
+  exact typed `BrokerCall`; no model text is translated into executable parameters.
+- Restricts handoff to Validator tasks and rechecks Task, Scope, Policy, Sandbox Profile, Tool
+  Registry, tool budget, call commitment, deadline, and Agent checkpoint before dispatch.
+- Leaves all network, DNS pinning, credentials, side-effect, and Approval enforcement inside the
+  existing Tool Broker. The Agent never receives a socket, Docker handle, secret, or adapter.
+- Adds transactional STARTED/COMPLETED handoff checkpoints. Only an approval-required first attempt
+  can be retried once with a new exact Broker call and independently verified Approval.
+- Converts every completed Broker result into a digest-only `AgentToolObservation` containing typed
+  counts and Evidence references, never raw Agent arguments, URLs, credentials, or response bodies.
+- Tests both offline state-machine paths and an opt-in live pinned-Broker composition against a
+  temporary authorized service; no public target, Candidate/Finding transition, or Submission is added.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

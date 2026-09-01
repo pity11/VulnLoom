@@ -204,6 +204,20 @@ call、annotation、多输出、重复 JSON key、未知字段、超限与超时
 归零、bounded capture 和 digest-only receipt。该里程碑不授权公网 Provider、真实密钥、SDK、流式会话或
 Submission。
 
+M7.8 不把模型输出提升为可执行调用。Agent 只能提交一个预承诺 Broker call 的 digest；可信 Control Plane
+独立构造完整 typed `BrokerCall`，handoff 在 checkpoint 前从权威 Agent store 重读 `tool_proposed` outcome，
+验证 exact Task/Scope/Policy/Profile/Registry/tool/budget/deadline 和 commitment。任何摘要、role、call 或
+checkpoint 漂移都在 DNS、凭据与 transport 前拒绝。
+
+实际执行继续进入既有 Tool Broker，因此 network grant、DNS/peer pinning、metadata 拒绝、credential admission、
+状态变化 Approval 与请求预算不会由 Agent 绕过。handoff 不接收 socket、Docker、adapter 或 secret。首次
+`approval_required` 仅允许一次绑定前序结果的重试；completed、denied、failed、timed-out 或遗留 STARTED
+均不能自动重放。
+
+成功只产生 digest-only `AgentToolObservation` 和 Evidence refs；URL、header、body、credential、完整响应与
+Agent 原始参数不进入 handoff checkpoint。Observation 没有 Candidate/Finding/Submission 字段，不能改变领域
+状态。Phase 3 的 live composition 只连接临时授权 fixture，不增加公网能力。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

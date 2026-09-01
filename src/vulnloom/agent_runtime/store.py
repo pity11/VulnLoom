@@ -87,6 +87,19 @@ class AgentRunStore:
         if changed != 1:
             raise AgentRunRecoveryRequired("Agent run STARTED checkpoint is unavailable")
 
+    def require_completed(self, plan: AgentRunPlan) -> AgentRunOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM agent_runs WHERE plan_id = ?", (plan.plan_id,)
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise AgentRunRecoveryRequired(
+                "Agent run does not have an authoritative completed checkpoint"
+            )
+        outcome = AgentRunOutcome.model_validate_json(row["outcome_json"])
+        if outcome.plan_id != plan.plan_id or outcome.task_id != plan.task.task_id:
+            raise AgentRunRecoveryRequired("Agent run checkpoint binding mismatch")
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

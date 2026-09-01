@@ -426,6 +426,27 @@ incomplete、refusal、native tool call、annotation、多输出、重复 key、
 codec wall timeout 全部拒绝。codec 不执行结构化 `propose_tool`；它仍必须经过 Runtime 的预算/白名单检查和
 Broker/Sandbox 权限边界。常规测试完全离线，Admission 只连接 loopback TLS fixture。
 
+### M7.8 Agent Tool Intent Handoff
+
+```text
+Authoritative completed Agent run (`tool_proposed`, cleanup complete)
+  + digest-only AgentToolIntent
+  + independently constructed exact BrokerCall
+  → verify precommitted call digest and invocation digest
+  → verify Validator Task / Scope / Policy / Profile / Registry / budget / deadline
+  → Broker static preflight
+  → STARTED handoff checkpoint
+  → Tool Broker execute (Scope + DNS pin + credential + Approval enforced again)
+  ├─ approval_required → one exact, prior-bound retry allowed
+  ├─ denied / timed_out / failed → terminal, no Observation
+  └─ completed → digest-only AgentToolObservation + Evidence refs
+  → COMPLETED handoff checkpoint
+```
+
+同一 intent 不能并发或无限重放；只有首次 `approval_required` 可以形成 attempt 2。遗留 STARTED 必须人工恢复，
+不会自动再次触发外部动作。Observation 不含 URL/response/credential/原始参数，也不能触发 Candidate/Finding
+转换。Agent 始终不持有 Broker transport、Runner、Docker socket 或 Approval 决策权。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

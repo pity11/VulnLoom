@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_attempts": {
+      "default": 2,
+      "maximum": 2,
+      "minimum": 2,
+      "title": "Max Attempts",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 120,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AgentToolHandoffLimits",
+  "type": "object"
+}

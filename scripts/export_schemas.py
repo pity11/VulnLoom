@@ -34,7 +34,12 @@ from vulnloom.agent_runtime import (
     AgentRunPlan,
     AgentStepRequest,
     AgentToolCallPayload,
+    AgentToolHandoffCleanup,
+    AgentToolHandoffLimits,
+    AgentToolHandoffOutcome,
+    AgentToolHandoffPlan,
     AgentToolIntent,
+    AgentToolObservation,
 )
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
 from vulnloom.benchmark import (
@@ -177,6 +182,11 @@ MODELS = (
     AgentRunLimits,
     AgentRunPlan,
     AgentToolCallPayload,
+    AgentToolHandoffLimits,
+    AgentToolHandoffPlan,
+    AgentToolHandoffCleanup,
+    AgentToolObservation,
+    AgentToolHandoffOutcome,
     AgentDecisionPayload,
     AgentToolIntent,
     AgentStepRequest,

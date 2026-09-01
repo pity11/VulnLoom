@@ -422,6 +422,18 @@ M7.6 不增加 cryptographic remote signer、provider SDK/codec、默认 live CL
 
 M7.7 不提供默认 live CLI/API、provider SDK、流式输出、会话续接、任意 provider 参数、真实工具执行、Approval 消费、Candidate/Finding 转换或 Submission。公网 provider 资格、数据驻留、配额与生产 credential 仍需独立运营 Admission。
 
+### M7.8：Agent Tool Intent → Tool Broker 类型化 Handoff（已完成首版）
+
+- `AgentToolHandoffPlan` 内容寻址绑定权威 `AgentRunPlan`/completed outcome 摘要、exact typed `BrokerCall`、call commitment、attempt、deadline、预算和幂等键；只准入 `VALIDATOR` Worker。
+- Agent 不提供 Broker 参数映射器。模型只能返回一个预承诺 call digest；handoff 从权威 Agent checkpoint 重读 digest-only `AgentToolIntent`，并要求它与控制面独立构造的 Broker call 在 Task/Scope/Policy/Profile/Registry/tool/HTTP 语义上精确一致。
+- 静态 Broker preflight 在 handoff STARTED checkpoint 前完成；实际执行仍完全由 Tool Broker 重新实施 Scope、network grant、DNS pinning、tool budget、credential 与 Approval Gate，不把 prompt 或 Agent 输出当权限。
+- 独立 SQLite checkpoint 提供完成幂等返回、冲突拒绝和遗留 STARTED 恢复拒绝。同一 intent 默认只允许一次 handoff；仅 `approval_required` 结果可绑定前序 handoff 进行一次且仅一次重试。
+- `AgentToolHandoffOutcome` 显式映射 Broker completed/denied/approval-required/timed-out/failed 状态。成功必须同时生成 digest-only `AgentToolObservation`，只包含 Target/Scope、状态码、URL/body 摘要、字节数和 Evidence refs，不包含 URL、响应正文、credential 或 Agent 原始参数。
+- 常规测试覆盖真实离线 Agent Runtime 产出 intent 后的成功、Scope 拒绝、Approval 重试、timeout、transport failure、commitment drift、checkpoint 冲突/恢复、重试上限、清理和无原文持久化。
+- Phase 3 composition 使用临时授权测试服务、真实 pinned Broker transport 和 Evidence Store，证明 handoff 后仍由 Broker 连接精确 Scope 目标并只把 Evidence 摘要导入 Observation。
+
+M7.8 不允许 Agent 直接调用 Runner、socket、Docker 或工具 adapter，不新增 Provider 公网调用、任意 URL、自动 Approval、Target build、Candidate/Finding 状态变化、报告导出或 Submission。Observation 只是后续可信工作流输入，不能自行提升为 Candidate/Finding。
+
 ## 延后事项
 
 - 公网资产自主发现。

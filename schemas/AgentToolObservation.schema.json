@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "broker_result_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Broker Result Digest",
+      "type": "string"
+    },
+    "status_code": {
+      "maximum": 599,
+      "minimum": 100,
+      "title": "Status Code",
+      "type": "integer"
+    },
+    "final_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Url Digest",
+      "type": "string"
+    },
+    "response_bytes": {
+      "maximum": 20971520,
+      "minimum": 0,
+      "title": "Response Bytes",
+      "type": "integer"
+    },
+    "response_body_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Response Body Sha256",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "handoff_id",
+    "task_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "tool_id",
+    "broker_result_digest",
+    "status_code",
+    "final_url_digest",
+    "response_bytes",
+    "response_body_sha256",
+    "evidence_refs",
+    "observed_at"
+  ],
+  "title": "AgentToolObservation",
+  "type": "object"
+}

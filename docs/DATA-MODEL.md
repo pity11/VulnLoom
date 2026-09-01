@@ -420,6 +420,20 @@ wire request/response 都是瞬时可归零缓冲，不进入 Pydantic checkpoin
 `AgentModelReply`：typed structured output、provider/model identity、token counts 与 latency；response ID、
 provider message ID、raw text、annotation、refusal 和 provider-native tool call 都不持久化。
 
+### AgentToolHandoffPlan、Outcome 与 Observation
+
+M7.8 的 handoff plan 内容寻址封存完整 `AgentRunPlan`、权威 Agent outcome 摘要、exact `BrokerCall` 与摘要、
+call commitment、预期 intent invocation 摘要、固定最多两次 attempt、前序 handoff、deadline 和幂等键。
+attempt 1 不得有前序；attempt 2 必须由 store 证明唯一前序为 completed `approval_required`。
+
+handoff checkpoint 只保存 handoff/Agent outcome ID、attempt、前序、状态、时间和 typed outcome，不保存 plan、
+Broker URL、Agent commitment 原文或响应正文。`AgentToolHandoffOutcome` 包含现有 digest-only `BrokerResult`、
+明确终态与 cleanup；只有 completed 才允许且必须携带一个 `AgentToolObservation`。
+
+`AgentToolObservation` 内容寻址绑定 handoff、Task/Target/version、Scope、tool、Broker result 摘要、HTTP 状态、
+final URL 摘要、response byte/body SHA-256 和排序去重的 Evidence refs。它没有 URL、header、credential、body、
+Agent 原始参数、Candidate/Finding 字段或状态转换能力。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
