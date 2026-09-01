@@ -89,6 +89,19 @@
       "default": null,
       "title": "Egress Grant Id"
     },
+    "provider_codec_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Codec Id"
+    },
     "supported_roles": {
       "items": {
         "$ref": "#/$defs/WorkerRole"

@@ -194,6 +194,16 @@ live adapter 在每次 DNS、速率计数、凭据读取和子进程创建之前
 本地 SQLite authority 是可信 Control Plane 状态，不是跨主机密码学签名系统；M7.6 不引入远程 signer key、
 provider SDK、公开调用入口或新的 Worker 权限。
 
+M7.7 把 live wire protocol 收缩到内容寻址的 `openai-responses-v1` codec。live registration 必须绑定 exact
+codec ID 和 Admission path；offline/fake adapter 不能携带 codec。encoder 没有任意参数入口，固定关闭 store、
+stream 与 provider tools，并只发送已验证的 system/user envelope 和 strict decision schema。
+
+decoder 只接受 exact model 的 completed assistant `output_text`，并拒绝 incomplete、refusal、native tool
+call、annotation、多输出、重复 JSON key、未知字段、超限与超时。嵌套文本必须再次通过
+`AgentDecisionPayload`；任何工具提案仍无执行权。codec 不记录 raw request/response，继续复用 M7.5 的缓冲
+归零、bounded capture 和 digest-only receipt。该里程碑不授权公网 Provider、真实密钥、SDK、流式会话或
+Submission。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

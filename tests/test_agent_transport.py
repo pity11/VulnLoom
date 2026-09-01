@@ -23,6 +23,7 @@ from vulnloom.agent_runtime import (
     AgentContextStore,
     AgentMessageRenderer,
     AgentModelRegistration,
+    AgentProviderCodecRegistration,
     AgentProviderEgressAuthority,
     AgentProviderEgressIssuerPolicy,
     AgentProviderEgressPurpose,
@@ -39,6 +40,7 @@ from vulnloom.agent_runtime import (
     AgentRuntimeAdapterFailure,
     AgentStepRequest,
     OfflineAgentRuntime,
+    OpenAIResponsesV1Codec,
     ProviderProcessExecutionError,
     ProviderProcessResult,
     SubprocessHttpsProviderAdapter,
@@ -225,15 +227,27 @@ class _ProcessRunner:
         body = bytearray(
             json.dumps(
                 {
-                    "input_tokens": 3,
-                    "latency_seconds": 0.1,
+                    "id": "resp_test",
                     "model": self.fixture["registration"].model,
-                    "output_tokens": 2,
-                    "provider_id": self.fixture["registration"].provider_id,
-                    "structured_output": {
-                        "kind": "complete",
-                        "summary_digest": "f" * 64,
-                    },
+                    "object": "response",
+                    "output": [{
+                        "content": [{
+                            "annotations": [],
+                            "text": json.dumps({
+                                "kind": "complete",
+                                "summary_digest": "f" * 64,
+                                "supporting_ref_digests": [],
+                                "tool_call": None,
+                            }, separators=(",", ":"), sort_keys=True),
+                            "type": "output_text",
+                        }],
+                        "id": "msg_test",
+                        "role": "assistant",
+                        "status": "completed",
+                        "type": "message",
+                    }],
+                    "status": "completed",
+                    "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5},
                 },
                 separators=(",", ":"),
                 sort_keys=True,
@@ -276,6 +290,7 @@ def _live_fixture(tmp_path, now, *, limits=None):
         deadline=now + timedelta(seconds=10),
         idempotency_key="provider-egress:live-fixture:1",
     )
+    codec_registration = AgentProviderCodecRegistration.create(provider_id="provider")
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="provider",
         model="sealed-model-v1",
@@ -283,6 +298,7 @@ def _live_fixture(tmp_path, now, *, limits=None):
         credential_reference_id=fixture["credential_reference"].reference_id,
         transport_admission_id=admission.admission_id,
         egress_grant_id=egress_grant.grant_id,
+        provider_codec_id=codec_registration.codec_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -321,6 +337,7 @@ def _live_fixture(tmp_path, now, *, limits=None):
         egress_authority=egress_authority,
         egress_grant=egress_grant,
         issuer_policy=issuer_policy,
+        provider_codec=OpenAIResponsesV1Codec(codec_registration),
     )
     return fixture
 
@@ -521,6 +538,7 @@ def test_subprocess_https_adapter_pins_dns_and_persists_only_network_proof(
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
         egress_store=fixture["egress_store"],
+        provider_codec=fixture["provider_codec"],
         resolver=resolver,
         process_runner=runner,
     )
@@ -585,6 +603,7 @@ def test_live_https_rechecks_egress_lifecycle_before_dns_or_credential(
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
         egress_store=fixture["egress_store"],
+        provider_codec=fixture["provider_codec"],
         resolver=resolver,
         process_runner=runner,
         now=lambda: current_time,
@@ -651,6 +670,7 @@ def test_live_https_rejects_forbidden_or_empty_dns_before_credential(
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
         egress_store=fixture["egress_store"],
+        provider_codec=fixture["provider_codec"],
         resolver=_Resolver(addresses),
         process_runner=runner,
     )
@@ -680,6 +700,7 @@ def test_subprocess_timeout_maps_to_typed_runtime_outcome_and_cleanup(tmp_path, 
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
         egress_store=fixture["egress_store"],
+        provider_codec=fixture["provider_codec"],
         resolver=_Resolver(),
         process_runner=runner,
     )
@@ -717,6 +738,7 @@ def test_subprocess_https_rate_limit_is_enforced_before_second_credential(tmp_pa
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
         egress_store=fixture["egress_store"],
+        provider_codec=fixture["provider_codec"],
         resolver=_Resolver(),
         process_runner=runner,
         clock=lambda: 10.0,
@@ -765,6 +787,7 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
         deadline=now + timedelta(seconds=10),
         idempotency_key="provider-egress:loopback-ca:1",
     )
+    codec_registration = AgentProviderCodecRegistration.create(provider_id="provider")
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="provider",
         model="sealed-model-v1",
@@ -772,6 +795,7 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
         credential_reference_id=fixture["credential_reference"].reference_id,
         transport_admission_id=admission.admission_id,
         egress_grant_id=egress_grant.grant_id,
+        provider_codec_id=codec_registration.codec_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -783,6 +807,7 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
             credential_reference=fixture["credential_reference"],
             credential_provider=fixture["provider"],
             egress_store=egress_store,
+            provider_codec=OpenAIResponsesV1Codec(codec_registration),
             ca_bundle=b"wrong-ca",
             resolver=_Resolver(("127.0.0.1",)),
             process_runner=_ProcessRunner(fixture, peer_ip="127.0.0.1"),

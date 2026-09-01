@@ -353,6 +353,20 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Keeps the authority local and library-only. It adds no remote signer, provider SDK/codec, public
   provider call, arbitrary URL, tool execution, Approval consumption, or Submission capability.
 
+### M7.7: sealed OpenAI Responses codec
+
+- Adds a content-addressed `openai-responses-v1` codec bound into every subprocess HTTPS model
+  registration and to the exact admitted `/v1/responses` path.
+- Emits only fixed non-streaming, non-stored requests with disabled truncation and the registered
+  strict Agent decision JSON Schema; callers cannot add tools, metadata, sessions, or parameters.
+- Accepts only one completed assistant `output_text` with exact model identity and typed usage, then
+  strictly parses it as `AgentDecisionPayload`. Incomplete, refusal, tool-call, duplicate-key,
+  oversized, timed-out, and protocol-drift responses fail closed.
+- Keeps provider-native tool execution disabled. A structured tool proposal remains an inert intent
+  that must pass the existing Runtime and Broker enforcement boundaries.
+- Uses offline golden fixtures and the existing opt-in loopback TLS process probe; CI does not call a
+  public provider or use a real provider credential.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

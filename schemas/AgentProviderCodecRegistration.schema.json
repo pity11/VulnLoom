@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    },
+    "AgentProviderWireProtocol": {
+      "enum": [
+        "openai-responses-v1"
+      ],
+      "title": "AgentProviderWireProtocol",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Codec Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/$defs/AgentProviderWireProtocol",
+      "default": "openai-responses-v1"
+    },
+    "request_path": {
+      "default": "/v1/responses",
+      "title": "Request Path",
+      "type": "string"
+    },
+    "decision_schema_digest": {
+      "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Schema Digest",
+      "type": "string"
+    },
+    "implementation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentProviderCodecLimits"
+    },
+    "streaming_allowed": {
+      "default": false,
+      "title": "Streaming Allowed",
+      "type": "boolean"
+    },
+    "storage_allowed": {
+      "default": false,
+      "title": "Storage Allowed",
+      "type": "boolean"
+    },
+    "tools_allowed": {
+      "default": false,
+      "title": "Tools Allowed",
+      "type": "boolean"
+    },
+    "arbitrary_parameters_allowed": {
+      "default": false,
+      "title": "Arbitrary Parameters Allowed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "codec_id",
+    "provider_id",
+    "implementation_digest",
+    "limits"
+  ],
+  "title": "AgentProviderCodecRegistration",
+  "type": "object"
+}

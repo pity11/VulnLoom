@@ -411,6 +411,17 @@ M7.5 不提供 provider-specific SDK/response mapping、CLI/API 默认入口、�
 
 M7.6 不增加 cryptographic remote signer、provider SDK/codec、默认 live CLI/API、公网 provider 调用、任意 URL、Target 网络访问、工具执行、Approval 消费或 Submission。issuer policy 与 lifecycle ledger 属于可信本地 Control Plane；跨主机签名和密钥管理必须另立里程碑。
 
+### M7.7：密封 OpenAI Responses 协议编解码（已完成首版）
+
+- `AgentProviderCodecRegistration` 内容寻址绑定 provider、固定 `openai-responses-v1` 实现摘要、exact `/v1/responses` path、decision schema 与独立字节/墙钟上限；live model registration 必须绑定 exact codec ID，offline/fake registration 禁止绑定。
+- 请求只由已验证 Message Envelope 构造，固定 `store=false`、`stream=false`、`truncation=disabled` 和 strict JSON Schema；调用方不能增加 metadata、tools、tool choice、previous response、任意参数或 provider SDK 行为。
+- 响应只接受 `status=completed`、exact model、单个 completed assistant message 和单个无 annotation 的 `output_text`；incomplete、refusal、provider-native tool call、多输出、身份漂移、未知字段和重复 JSON key 全部 fail-closed。
+- `output_text` 再次通过 strict JSON 与既有 `AgentDecisionPayload` 校验；provider-native tool execution 不可表示，结构化 `propose_tool` 仍只是由 Runtime/Broker 独立验证的意图。
+- live adapter 在 DNS 前编码瞬时请求，在有界 subprocess capture 后解码响应；请求、raw response 和 credential 缓冲继续在成功、拒绝与超时路径归零，持久层仍只接收摘要、计数与 cleanup proof。
+- 常规 CI 使用离线 golden fixtures 验证协议形状、内容摘要、漂移拒绝、大小和 codec timeout；Phase 3 仍只使用 loopback TLS fixture，不连接公网 Provider 或使用真实密钥。
+
+M7.7 不提供默认 live CLI/API、provider SDK、流式输出、会话续接、任意 provider 参数、真实工具执行、Approval 消费、Candidate/Finding 转换或 Submission。公网 provider 资格、数据驻留、配额与生产 credential 仍需独立运营 Admission。
+
 ## 延后事项
 
 - 公网资产自主发现。

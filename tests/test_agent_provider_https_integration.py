@@ -24,6 +24,7 @@ from vulnloom.agent_runtime import (
     AgentContextStore,
     AgentMessageRenderer,
     AgentModelRegistration,
+    AgentProviderCodecRegistration,
     AgentProviderEgressAuthority,
     AgentProviderEgressIssuerPolicy,
     AgentProviderEgressPurpose,
@@ -36,6 +37,7 @@ from vulnloom.agent_runtime import (
     AgentRunStatus,
     AgentRunStore,
     OfflineAgentRuntime,
+    OpenAIResponsesV1Codec,
     ProviderProcessExecutionError,
     SubprocessHttpsProviderAdapter,
     SubprocessProviderTransportRunner,
@@ -56,15 +58,27 @@ class _ProviderHandler(BaseHTTPRequestHandler):
             time.sleep(type(self).delay_seconds)
         response = json.dumps(
             {
-                "input_tokens": 3,
-                "latency_seconds": 0.01,
+                "id": "resp_loopback",
                 "model": "loopback-model-v1",
-                "output_tokens": 2,
-                "provider_id": "loopback",
-                "structured_output": {
-                    "kind": "complete",
-                    "summary_digest": "f" * 64,
-                },
+                "object": "response",
+                "output": [{
+                    "content": [{
+                        "annotations": [],
+                        "text": json.dumps({
+                            "kind": "complete",
+                            "summary_digest": "f" * 64,
+                            "supporting_ref_digests": [],
+                            "tool_call": None,
+                        }, separators=(",", ":"), sort_keys=True),
+                        "type": "output_text",
+                    }],
+                    "id": "msg_loopback",
+                    "role": "assistant",
+                    "status": "completed",
+                    "type": "message",
+                }],
+                "status": "completed",
+                "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5},
             },
             separators=(",", ":"),
             sort_keys=True,
@@ -171,7 +185,7 @@ def test_real_subprocess_uses_pinned_loopback_tls_and_empty_environment(
     assert _ProviderHandler.observed_authorization == "Bearer loopback-provider-secret"
     assert _ProviderHandler.observed_body == request
     payload = json.loads(result.response_body)
-    assert payload["provider_id"] == "loopback"
+    assert payload["object"] == "response"
     assert b"loopback-provider-secret" not in result.response_body
 
 
@@ -279,6 +293,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
         deadline=now + timedelta(seconds=10),
         idempotency_key="provider-egress:phase3-loopback:1",
     )
+    codec_registration = AgentProviderCodecRegistration.create(provider_id="loopback")
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="loopback",
         model="loopback-model-v1",
@@ -286,6 +301,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
         credential_reference_id=reference.reference_id,
         transport_admission_id=admission.admission_id,
         egress_grant_id=egress_grant.grant_id,
+        provider_codec_id=codec_registration.codec_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -314,6 +330,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
             allowed_references=(reference,),
         ),
         egress_store=egress_store,
+        provider_codec=OpenAIResponsesV1Codec(codec_registration),
         ca_bundle=ca_bundle,
         resolver=_LoopbackResolver(),
     )

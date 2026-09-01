@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_structured_output_bytes": {
+      "default": 262144,
+      "exclusiveMinimum": 0,
+      "maximum": 1048576,
+      "title": "Max Structured Output Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 2.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "AgentProviderCodecLimits",
+  "type": "object"
+}

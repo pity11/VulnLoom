@@ -30,6 +30,11 @@ from .provider_admission import (
     AgentProviderEgressRejected,
     AgentProviderEgressStore,
 )
+from .provider_codec import (
+    AgentProviderCodecRejected,
+    AgentProviderCodecTimedOut,
+    OpenAIResponsesV1Codec,
+)
 from .provider_process import (
     SUBPROCESS_HTTPS_ADAPTER_DIGEST,
     ProviderProcessExecutionError,
@@ -45,8 +50,6 @@ from .transport import (
     AgentProviderTransportRequest,
     AgentProviderTransportStatus,
     AgentProviderTransportTimedOut,
-    _parse_provider_response,
-    _provider_request_body,
     _transport_request,
     _zero,
 )
@@ -81,6 +84,7 @@ class SubprocessHttpsProviderAdapter:
         credential_reference: ModelCredentialReference,
         credential_provider: ModelCredentialProvider,
         egress_store: AgentProviderEgressStore,
+        provider_codec: OpenAIResponsesV1Codec,
         ca_bundle: bytes | None = None,
         resolver: ProviderResolver | None = None,
         process_runner: ProviderProcessRunner | None = None,
@@ -95,6 +99,9 @@ class SubprocessHttpsProviderAdapter:
             or registration.provider_id != admission.provider_id
             or registration.adapter_digest != SUBPROCESS_HTTPS_ADAPTER_DIGEST
             or admission.adapter_digest != SUBPROCESS_HTTPS_ADAPTER_DIGEST
+            or registration.provider_codec_id != provider_codec.registration.codec_id
+            or registration.provider_id != provider_codec.registration.provider_id
+            or admission.request_path != provider_codec.registration.request_path
             or not admission.network_enabled
             or not admission.process_isolation_required
             or admission.ip_policy is AgentProviderIpPolicy.NONE
@@ -114,6 +121,7 @@ class SubprocessHttpsProviderAdapter:
         self.credential_reference = credential_reference
         self.credential_provider = credential_provider
         self.egress_store = egress_store
+        self.provider_codec = provider_codec
         self.ca_bundle = ca_bundle
         self.resolver = resolver or SystemResolver()
         self.process_runner = process_runner or SubprocessProviderTransportRunner()
@@ -140,7 +148,15 @@ class SubprocessHttpsProviderAdapter:
             raise AgentProviderTransportRejected(
                 "provider transport request/envelope binding mismatch"
             )
-        request_body = _provider_request_body(self.registration, message_envelope)
+        try:
+            request_body = self.provider_codec.encode(
+                model_registration=self.registration,
+                envelope=message_envelope,
+            )
+        except AgentProviderCodecTimedOut as exc:
+            raise AgentProviderTransportTimedOut("provider request encoding timed out") from exc
+        except AgentProviderCodecRejected as exc:
+            raise AgentProviderTransportRejected("provider request encoding rejected") from exc
         try:
             transport_request = _transport_request(
                 request=request,
@@ -232,15 +248,23 @@ class SubprocessHttpsProviderAdapter:
                 peer_ip_digest = canonical_digest(process_result.peer_ip)
                 tls_version = process_result.tls_version
                 response_digest = hashlib.sha256(response_body).hexdigest()
-                reply = _parse_provider_response(response_body)
-                if (
-                    reply.provider_id != self.registration.provider_id
-                    or reply.model != self.registration.model
-                ):
-                    error_code = "provider_response_identity_mismatch"
-                    raise AgentProviderTransportRejected(
-                        "provider response identity mismatch"
+                try:
+                    reply = self.provider_codec.decode(
+                        response_body,
+                        model_registration=self.registration,
+                        latency_seconds=process_result.latency_seconds,
                     )
+                except AgentProviderCodecTimedOut as exc:
+                    status = AgentProviderTransportStatus.TIMED_OUT
+                    error_code = "provider_codec_timeout"
+                    raise AgentProviderTransportTimedOut(
+                        "provider response decoding timed out"
+                    ) from exc
+                except AgentProviderCodecRejected as exc:
+                    error_code = "provider_codec_rejected"
+                    raise AgentProviderTransportRejected(
+                        "provider response decoding rejected"
+                    ) from exc
                 status = AgentProviderTransportStatus.COMPLETED
                 error_code = ""
         except AgentProviderTransportTimedOut:

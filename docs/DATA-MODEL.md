@@ -408,6 +408,18 @@ Grant 与 `AgentProviderEgressRevocation` 是只读内容寻址对象。SQLite l
 幂等键、STARTED/COMPLETED 和 active/revoked 状态，不保存 hostname、credential、消息或响应。`expired` 由 grant
 的不可变时间窗在读取时计算；任何未决 revocation 会让 active 读取 fail-closed。
 
+### AgentProviderCodecRegistration
+
+M7.7 的 codec registration 内容寻址绑定 provider、`openai-responses-v1` protocol、exact
+`/v1/responses` path、固定 implementation/decision-schema digest 和 codec byte/wall limits，并将
+streaming、storage、provider tools 与 arbitrary parameters 固定为 false。
+`AgentModelRegistration.provider_codec_id` 对 subprocess HTTPS adapter 必填，对 offline/fake adapter 禁止。
+codec registration 不包含 endpoint hostname、credential、消息、响应或可执行代码。
+
+wire request/response 都是瞬时可归零缓冲，不进入 Pydantic checkpoint schema。解码后只产生既有
+`AgentModelReply`：typed structured output、provider/model identity、token counts 与 latency；response ID、
+provider message ID、raw text、annotation、refusal 和 provider-native tool call 都不持久化。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

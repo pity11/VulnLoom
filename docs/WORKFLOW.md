@@ -407,6 +407,25 @@ Exact issuer + active grant
 可写/链接/畸形对象或 Admission 漂移均 fail-closed。grant/revocation 不包含 secret；该 lifecycle 不签发任意 URL，
 也不提供公网调用入口。
 
+### M7.7 密封 Responses 编解码链
+
+```text
+Exact codec registration + model registration + Message Envelope
+  → verify provider / codec ID / exact request path binding
+  → fixed Responses JSON: store=false, stream=false, truncation=disabled
+  → strict AgentDecision JSON Schema; no tools or arbitrary parameters
+  → existing egress grant → DNS pin → credential lease → fixed HTTPS child
+  → bounded raw response capture
+  → completed + exact model + one assistant output_text
+  → strict nested JSON → AgentDecisionPayload
+  → zero request/response/credential buffers
+  → digest-only attempt and receipt
+```
+
+incomplete、refusal、native tool call、annotation、多输出、重复 key、未知协议字段、identity drift、大小或
+codec wall timeout 全部拒绝。codec 不执行结构化 `propose_tool`；它仍必须经过 Runtime 的预算/白名单检查和
+Broker/Sandbox 权限边界。常规测试完全离线，Admission 只连接 loopback TLS fixture。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

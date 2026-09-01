@@ -481,3 +481,23 @@ DNS, rate accounting, credential acquisition, or process creation. Thus a regist
 constructed in memory cannot itself authorize egress, and completed revocation takes effect before
 another external action. This is a local trusted-Control-Plane authority, not a cryptographic remote
 signer; M7.6 adds no public provider call, provider codec/SDK, tool execution, or Submission path.
+
+## 30. M7.7 sealed OpenAI Responses codec
+
+M7.7 replaces the temporary VulnLoom-shaped live wire body with one content-addressed
+`openai-responses-v1` codec. Its registration binds the provider identity, exact `/v1/responses`
+path, implementation digest, Agent decision schema, and codec byte/wall limits. The subprocess model
+registration must bind that exact codec ID, while offline and fake adapters cannot bind one.
+
+The encoder has no arbitrary-parameter input. It maps only the trusted two-message envelope and
+registered model/output budget, fixes storage and streaming off, disables truncation, and requests a
+strict JSON Schema response without advertising provider tools. The decoder accepts only one
+completed assistant `output_text`, exact model identity, bounded usage and strict JSON. Refusals,
+incomplete responses, native tool calls, annotations, multiple outputs, duplicate keys and unknown
+protocol fields are rejected before an `AgentModelReply` exists.
+
+The output text is validated again as the existing typed decision. Thus `propose_tool` remains an
+inert Control Plane intent, never a provider-native tool execution. Request and response buffers keep
+the M7.5 zeroing/cleanup lifecycle. Tests use golden JSON and loopback TLS only; no public-provider
+qualification, SDK, production credential, streaming, session continuation, Approval or Submission
+path is added.
