@@ -461,6 +461,19 @@ M7.9 不增加公网 provider/目标能力、任意 provider 参数、Agent 直�
 
 M7.10 不增加公网 provider/目标能力、动态 URL 或参数、Agent 直连网络/Runner/Docker、自动 Approval、写目标、Target build、任意 shell、无限循环、Candidate/Finding 状态变化、报告导出或 Submission。固定双工具上限不是权限来源；每次执行仍由独立的 Scope、Policy、Broker、network grant、credential 与 Approval 边界重新裁决。
 
+### M7.11：会话审计封包与确定性终态投影（规划）
+
+- 新增内容寻址、只读的 `AgentSessionAuditBundle`，精确绑定 Session Plan/outcome、各轮 Agent outcome、Authorized Call Set、handoff、Observation、Evidence refs、Approval 决定、累计预算与 cleanup proof；封包只从权威 store 重建，不接受调用方提供 transcript 或模型摘要。
+- 独立纯验证器按 round 顺序重算全部对象摘要、唯一消费、call commitment、预算单调性、deadline、Scope/Target/version、Approval 和 cleanup 链；任何缺失、额外对象、分叉、循环、跨会话重放、可写/链接 artifact 或内容漂移都 fail-closed。
+- 只允许把终态投影为受限的 `AgentSessionRecommendation`：`completed`、`blocked`、`failed` 或 `timed_out`，并携带稳定 reason code、已验证 Observation/Evidence 引用和预算摘要；模型 prose、置信度或未绑定引用不能决定领域状态。
+- recommendation 只是后续确定性 Validation/Critic 工作流的输入，不创建或迁移 Candidate/Finding/Report，不排队工具，不消费 Approval，也不执行网络、Runner、Docker、Target build 或 Submission。
+- 审计 JSON/Markdown 使用固定 schema 与模板，内容先脱敏且不得复制 Evidence 正文、URL、credential、provider request/response 或工具参数；只输出 digest、计数、稳定状态和可追溯 Evidence ID。
+- SQLite 使用独立 `STARTED/COMPLETED` checkpoint；相同计划幂等返回，冲突 key、遗留 STARTED、写入中断和 artifact 发布失败拒绝自动重放并清理临时文件。
+- 常规测试覆盖完整双工具封包、blocked/failed/timed-out、Approval retry、缺失/重复/乱序轮次、预算回增、引用/Scope/Target/version 漂移、symlink/可写/超限 artifact、幂等冲突、失败清理和 SQLite/导出无正文。
+- Phase 3 Admission 从 M7.10 真实 loopback 会话生成审计封包和 recommendation，并通过篡改一个 handoff、Observation、预算或 cleanup proof 证明投影前拒绝；该准入不新增任何运行期权限。
+
+M7.11 用可独立复核的不可变审计链收束 Phase 5 首版。它不把 Agent 输出升级为授权或事实，不增加公网 provider/目标、动态工具、自动 Approval、Target build、Candidate/Finding 转换、报告导出或 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

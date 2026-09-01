@@ -59,6 +59,12 @@ The M7.9 sealed Tool Observation continuation admission run is GitHub Actions
 [`33493614682`](https://github.com/pity11/VulnLoom/actions/runs/33493614682). Both completed
 successfully on 2026-09-01 and qualify the M7.9 Agent Observation continuation row below.
 
+The M7.10 sealed fixed two-tool Agent session admission run is GitHub Actions
+[`33509298034`](https://github.com/pity11/VulnLoom/actions/runs/33509298034) for commit
+`ed5d55831cd28cfc881629de759a9f316adb757d`. The standard Python CI for the same commit is
+[`33509297870`](https://github.com/pity11/VulnLoom/actions/runs/33509297870). Both completed
+successfully on 2026-09-01 and qualify the M7.10 Agent session row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -80,6 +86,7 @@ successfully on 2026-09-01 and qualify the M7.9 Agent Observation continuation r
 | Provider Responses codec | A content-addressed codec emits the fixed non-streaming/non-stored strict-schema request and accepts only one completed assistant output text; the real isolated loopback TLS subprocess proves bounded transport, nested typed decoding, identity checks, and transient-buffer cleanup | PASS (`33477673827`) |
 | Agent tool handoff | An authoritative completed Validator Agent intent is bound to an independently constructed exact Broker call; the real pinned Broker re-enforces Scope/Policy/network and imports only digest-bound Evidence metadata into an Observation, while checkpoint, Approval retry, timeout, drift, and no-raw-persistence paths remain fail-closed | PASS (`33481732221`) |
 | Agent Observation continuation | Exact completed handoff and Evidence refs are reopened into redacted untrusted context; a derived Validator Task inherits authority and deadline but has no tools and zero tool-call budget, while the real loopback provider and pinned Broker prove one bounded continuation, terminal decision, and cleanup | PASS (`33493614664`) |
+| Agent fixed two-tool session | One sealed Session Ledger monotonically accounts for at most three provider turns and two exact read-only Broker commitments; every Observation is rebuilt from verified Evidence, Approval pauses require an explicit one-shot retry, and a third tool proposal, budget drift, or incomplete cleanup fails closed | PASS (`33509298034`) |
 
 ## Reproduction
 
@@ -158,3 +165,14 @@ Evidence; exhausted budgets and deadlines; recursive tool proposals; provider fa
 conflicts; recovery refusal; and absence of raw content in SQLite. This PASS does not qualify recursive
 tool execution, public providers or targets, automatic Approval, state changes, Target construction,
 Candidate/Finding promotion, report export, or Submission.
+
+M7.10 replaces the single continuation limit with one sealed, fixed-shape session: the already
+completed first tool round may be followed by at most one further exact call selected from a
+content-addressed authorized call set and one terminal provider turn. The same loopback composition
+proves two read-only Broker requests, two Evidence-backed Observations, monotonic cumulative budgets,
+and complete provider/Broker cleanup. A separate Admission case proves that a third tool proposal is
+rejected before another Broker call. Ordinary CI covers Approval pause and explicit retry, unlisted or
+repeated commitments, cross-round provenance drift, exhausted budgets, deadlines, transport failure,
+checkpoint conflict, recovery refusal, and absence of raw content in SQLite. This PASS does not qualify
+dynamic URLs or arguments, public providers or targets, automatic Approval, write tools, Target builds,
+arbitrary recursion, Candidate/Finding state changes, report export, or Submission.
