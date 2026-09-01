@@ -474,6 +474,23 @@ M7.10 不增加公网 provider/目标能力、动态 URL 或参数、Agent 直�
 
 M7.11 用可独立复核的不可变审计链收束 Phase 5 首版。它不把 Agent 输出升级为授权或事实，不增加公网 provider/目标、动态工具、自动 Approval、Target build、Candidate/Finding 转换、报告导出或 Submission。
 
+## Phase 6：Agent 建议的确定性工作流接入
+
+目标：在不把模型输出当作授权或事实的前提下，将已审计的 Agent recommendation 接入现有人工选择、Validation、Critic 与报告闭环。
+
+### M8.1：人工 Validation Intake 与密封计划绑定（规划）
+
+- 新增内容寻址的 `AgentValidationIntakePlan`，精确绑定一个已完成且通过完整性复核的 M7.11 Audit Bundle/recommendation、一个不可变 Candidate/CandidateSet、当前 Scope/Target 版本，以及由可信控制面预构造的 exact `ValidationPlan` 摘要。
+- Intake 不从 Agent summary、tool intent 或 Evidence 正文生成 Runner request、BrokerCall、URL、HTTP 参数、assertion、credential 或 Approval；完整 `ValidationPlan` 必须作为独立 typed 对象输入，并继续满足现有 M4.4/M4.5 preflight。
+- 显式 `AgentValidationIntakeCommand` 只允许人工 `accept`、`reject` 或 `defer`，绑定 reviewer、decision time、plan digest、Audit Bundle 和 Candidate digest；`completed` recommendation 也不能自动 accept，blocked/failed/timed-out recommendation 不得进入 accepted 状态。
+- accepted 只生成不可变 `AgentValidationIntakeRecord`，表示人工允许该 exact ValidationPlan 进入后续现有执行入口；它不调用 `ValidationService`，不把 Candidate 从 `PROPOSED` 改为 `VALIDATION_PENDING`，也不产生 ValidationRun、EvidenceBundle、Finding 或 Report。
+- 执行前从权威 Audit artifact store、CandidateSet store 和当前 Scope 重新读取全部对象，复核 no-follow、只读、大小、摘要、Target/version/Scope、recommendation、Candidate 状态和 ValidationPlan provenance；任一漂移、跨 Candidate/Target/Scope 重放或过期决定均 fail-closed。
+- SQLite 使用独立 `STARTED/COMPLETED` checkpoint；相同决定幂等返回，冲突决定、重复消费、遗留 STARTED 与写入中断拒绝自动重放。持久层只保存 digest、稳定 decision/reason code 和 reviewer identity，不复制 Evidence 正文、Agent prose、URL、credential 或工具参数。
+- 常规测试覆盖 accept/reject/defer、非 completed recommendation、Candidate/Set/Audit/Scope/ValidationPlan 漂移、过期、幂等冲突、重复消费、恢复拒绝、失败清理及 schema/SQLite 无敏感内容。
+- Phase 3 Admission 使用 M7.11 loopback 审计产物和本地不可执行 Validation fixture，证明 accepted record 仅绑定计划且 Runner/Broker 调用计数保持为零；篡改 Candidate 或 ValidationPlan 时在 Intake checkpoint 前拒绝。
+
+M8.1 是人工选择记录，不是 Validation 执行器或新的 Approval。后续执行仍必须显式调用既有 `ValidationService`，并重新通过 Scope、Policy、Sandbox、Tool Broker、预算、Evidence 与必要 Approval 门禁。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -65,6 +65,12 @@ The M7.10 sealed fixed two-tool Agent session admission run is GitHub Actions
 [`33509297870`](https://github.com/pity11/VulnLoom/actions/runs/33509297870). Both completed
 successfully on 2026-09-01 and qualify the M7.10 Agent session row below.
 
+The M7.11 immutable Agent session audit admission run is GitHub Actions
+[`33517750165`](https://github.com/pity11/VulnLoom/actions/runs/33517750165) for commit
+`d2acbcc0225168627b459dbc62e4aaf98ccb52c7`. The standard Python CI for the same commit is
+[`33517750294`](https://github.com/pity11/VulnLoom/actions/runs/33517750294). Both completed
+successfully on 2026-09-01 and qualify the M7.11 Agent session audit row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -87,6 +93,7 @@ successfully on 2026-09-01 and qualify the M7.10 Agent session row below.
 | Agent tool handoff | An authoritative completed Validator Agent intent is bound to an independently constructed exact Broker call; the real pinned Broker re-enforces Scope/Policy/network and imports only digest-bound Evidence metadata into an Observation, while checkpoint, Approval retry, timeout, drift, and no-raw-persistence paths remain fail-closed | PASS (`33481732221`) |
 | Agent Observation continuation | Exact completed handoff and Evidence refs are reopened into redacted untrusted context; a derived Validator Task inherits authority and deadline but has no tools and zero tool-call budget, while the real loopback provider and pinned Broker prove one bounded continuation, terminal decision, and cleanup | PASS (`33493614664`) |
 | Agent fixed two-tool session | One sealed Session Ledger monotonically accounts for at most three provider turns and two exact read-only Broker commitments; every Observation is rebuilt from verified Evidence, Approval pauses require an explicit one-shot retry, and a third tool proposal, budget drift, or incomplete cleanup fails closed | PASS (`33509298034`) |
+| Agent session audit | A completed fixed-shape Session is reopened from authoritative Agent, handoff, continuation and Evidence stores; ordered commitments and cumulative budgets are recomputed before a digest-only, read-only audit bundle and deterministic non-authoritative recommendation are published | PASS (`33517750165`) |
 
 ## Reproduction
 
@@ -176,3 +183,14 @@ repeated commitments, cross-round provenance drift, exhausted budgets, deadlines
 checkpoint conflict, recovery refusal, and absence of raw content in SQLite. This PASS does not qualify
 dynamic URLs or arguments, public providers or targets, automatic Approval, write tools, Target builds,
 arbitrary recursion, Candidate/Finding state changes, report export, or Submission.
+
+M7.11 extends the same real loopback composition after the completed M7.10 Session. The audit service
+reopens the authoritative Session, Agent run, handoff, continuation and Evidence checkpoints, verifies
+two ordered Observations, recomputes the final token/step/tool/provider/Broker budget, and publishes a
+bounded read-only JSON/Markdown object containing only IDs, digests, typed counts and a deterministic
+recommendation. The Admission probe also tampers with the supplied Session-plan binding and proves
+rejection before replay or artifact replacement. Ordinary CI covers completed, blocked, failed and
+timed-out projections; Evidence drift; early/expired plans; writable artifacts; checkpoint conflicts;
+publication cleanup; and absence of URL, credential, provider wire data, tool arguments and Evidence
+body content from audit schemas and persistence. This PASS adds no provider or target authority and
+does not qualify Candidate/Finding transitions, Validation execution, report export or Submission.
