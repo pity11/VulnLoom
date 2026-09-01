@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "evidence_buffers_released": {
+      "title": "Evidence Buffers Released",
+      "type": "boolean"
+    },
+    "context_reverified": {
+      "title": "Context Reverified",
+      "type": "boolean"
+    },
+    "raw_provider_response_absent": {
+      "title": "Raw Provider Response Absent",
+      "type": "boolean"
+    },
+    "no_tool_executed": {
+      "title": "No Tool Executed",
+      "type": "boolean"
+    },
+    "no_vulnloom_domain_state_changed": {
+      "title": "No Vulnloom Domain State Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "evidence_buffers_released",
+    "context_reverified",
+    "raw_provider_response_absent",
+    "no_tool_executed",
+    "no_vulnloom_domain_state_changed"
+  ],
+  "title": "AgentContinuationCleanup",
+  "type": "object"
+}

@@ -434,6 +434,23 @@ Broker URL、Agent commitment 原文或响应正文。`AgentToolHandoffOutcome` 
 final URL 摘要、response byte/body SHA-256 和排序去重的 Evidence refs。它没有 URL、header、credential、body、
 Agent 原始参数、Candidate/Finding 字段或状态转换能力。
 
+### AgentContinuationPlan、BudgetLedger 与 Outcome
+
+M7.9 的 `AgentContinuationPlan` 内容寻址绑定 root `AgentRunPlan`/tool-proposed outcome、completed
+`AgentToolHandoffOutcome`、exact `AgentToolObservation`、派生 continuation `AgentRunPlan`、只读 context
+snapshot 和累计 `AgentContinuationBudgetLedger`。派生 Task 使用新 identity，但 engagement、Target/version、
+Scope/version、Policy/Profile/Registry、Validator role、model registration 与绝对 deadline 必须继承；input refs
+固定来自 Observation/Evidence，allowed tools 为空且 tool-call budget 为零。
+
+budget ledger 保存原始/已用/剩余 model tokens、已用 Agent steps、Broker tool calls 和剩余 wall seconds，不保存
+prompt、Evidence 或 provider 内容。SQLite continuation checkpoint 只保存 continuation/root/Observation/child-run
+ID、幂等键、状态、时间和 typed outcome；Observation ID 与 child plan ID 均唯一，防止同一工具结果被并发或
+重复消费。
+
+`AgentContinuationOutcome` 只能映射 child Agent run 的 completed、blocked、failed 或 timed-out 状态，且不允许
+tool intent。cleanup 显式证明 Evidence 临时缓冲释放、context 复核、raw provider response 缺失、未执行工具和
+未改变 VulnLoom 领域状态。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import os
 import shutil
+import socket
 import ssl
 import subprocess
 import threading
 import time
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -22,6 +25,9 @@ from vulnloom.agent_runtime import (
     AgentContextSource,
     AgentContextSourceKind,
     AgentContextStore,
+    AgentContinuationService,
+    AgentContinuationStatus,
+    AgentContinuationStore,
     AgentMessageRenderer,
     AgentModelRegistration,
     AgentProviderCodecRegistration,
@@ -36,19 +42,42 @@ from vulnloom.agent_runtime import (
     AgentRunPlan,
     AgentRunStatus,
     AgentRunStore,
+    AgentToolHandoffLimits,
+    AgentToolHandoffPlan,
+    AgentToolHandoffService,
+    AgentToolHandoffStatus,
+    AgentToolHandoffStore,
     OfflineAgentRuntime,
     OpenAIResponsesV1Codec,
     ProviderProcessExecutionError,
     SubprocessHttpsProviderAdapter,
     SubprocessProviderTransportRunner,
+    agent_broker_call_commitment,
 )
+from vulnloom.broker import (
+    BrokerCall,
+    EvidenceStoreHttpSink,
+    HttpRequestPlan,
+    PinnedHttpTransport,
+    ToolBroker,
+    pinned_http_tool_registry,
+)
+from vulnloom.domain.models import NetworkTargetScope, Scope, ScopeState
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
+from vulnloom.evidence import EvidenceStore
+from vulnloom.policy import PolicyEngine
+from vulnloom.runners import (
+    NetworkGrant,
+    sandbox_profile_digest,
+    validation_profile,
+)
 
 
 class _ProviderHandler(BaseHTTPRequestHandler):
     observed_authorization = None
     observed_body = None
     delay_seconds = 0.0
+    decision_payloads = []
 
     def do_POST(self):
         length = int(self.headers["Content-Length"])
@@ -56,6 +85,16 @@ class _ProviderHandler(BaseHTTPRequestHandler):
         type(self).observed_body = self.rfile.read(length)
         if type(self).delay_seconds:
             time.sleep(type(self).delay_seconds)
+        decision = (
+            type(self).decision_payloads.pop(0)
+            if type(self).decision_payloads
+            else {
+                "kind": "complete",
+                "summary_digest": "f" * 64,
+                "supporting_ref_digests": [],
+                "tool_call": None,
+            }
+        )
         response = json.dumps(
             {
                 "id": "resp_loopback",
@@ -64,12 +103,9 @@ class _ProviderHandler(BaseHTTPRequestHandler):
                 "output": [{
                     "content": [{
                         "annotations": [],
-                        "text": json.dumps({
-                            "kind": "complete",
-                            "summary_digest": "f" * 64,
-                            "supporting_ref_digests": [],
-                            "tool_call": None,
-                        }, separators=(",", ":"), sort_keys=True),
+                        "text": json.dumps(
+                            decision, separators=(",", ":"), sort_keys=True
+                        ),
                         "type": "output_text",
                     }],
                     "id": "msg_loopback",
@@ -129,6 +165,7 @@ def _certificate(tmp_path):
 
 
 def _server(tmp_path):
+    _ProviderHandler.decision_payloads = []
     certificate, private_key = _certificate(tmp_path)
     server = ThreadingHTTPServer(("127.0.0.1", 0), _ProviderHandler)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -144,6 +181,53 @@ class _LoopbackResolver:
     def resolve(self, hostname):
         assert hostname == "provider.test"
         return ("127.0.0.1",)
+
+
+_TARGET_HOST = "authorized.example.test"
+_TARGET_BODY = b'{"fixture":"continuation","object_id":7}'
+
+
+class _TargetHandler(BaseHTTPRequestHandler):
+    requests = 0
+
+    def do_GET(self):
+        type(self).requests += 1
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(_TARGET_BODY)))
+        self.end_headers()
+        self.wfile.write(_TARGET_BODY)
+
+    def log_message(self, format, *args):
+        return
+
+
+class _PinnedTargetResolver:
+    implementation_digest = PinnedHttpTransport.implementation_digest
+
+    def __init__(self, address: str):
+        self.address = address
+
+    def resolve(self, hostname: str) -> tuple[str, ...]:
+        return (self.address,) if hostname == _TARGET_HOST else ()
+
+
+def _safe_local_ipv4() -> str | None:
+    try:
+        records = socket.getaddrinfo(socket.gethostname(), None, family=socket.AF_INET)
+    except OSError:
+        return None
+    for record in records:
+        value = record[4][0]
+        address = ipaddress.ip_address(value)
+        if not (
+            address.is_loopback
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            return str(address)
+    return None
 
 
 @pytest.mark.provider_integration
@@ -358,3 +442,268 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
     assert b"loopback-provider-secret" not in (tmp_path / "loopback-runs.sqlite3").read_bytes()
     store.close()
     egress_store.close()
+
+
+@pytest.mark.provider_integration
+@pytest.mark.composition_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1"
+    or os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
+    reason="set both provider and composition integration flags for the M7.9 probe",
+)
+def test_live_provider_broker_observation_continuation_chain(
+    tmp_path: Path, monkeypatch
+):
+    address = _safe_local_ipv4()
+    if address is None:
+        pytest.skip("no non-loopback local IPv4 address is available for the Broker probe")
+    monkeypatch.setenv("PARENT_PROVIDER_SECRET", "must-not-enter-provider-process")
+    _TargetHandler.requests = 0
+    target_server = ThreadingHTTPServer((address, 0), _TargetHandler)
+    target_thread = threading.Thread(target=target_server.serve_forever, daemon=True)
+    target_thread.start()
+    provider_server, provider_thread, ca_bundle = _server(tmp_path)
+    now = datetime.now(UTC)
+    target_port = target_server.server_address[1]
+    scope = Scope(
+        engagement_id=uuid4(),
+        authority_reference="m7.9-full-chain-fixture",
+        valid_from=now - timedelta(minutes=1),
+        valid_until=now + timedelta(minutes=2),
+        network_targets=(
+            NetworkTargetScope(
+                host=_TARGET_HOST,
+                ports=frozenset({target_port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+        allowed_test_classes=frozenset({"read_only"}),
+        state=ScopeState.APPROVED,
+        approved_by="integration-test",
+        approved_at=now,
+    )
+    registry = pinned_http_tool_registry()
+    profile = validation_profile(
+        image_digest="sha256:" + "f" * 64,
+        snapshot_id="a" * 64,
+        network_grants=(
+            NetworkGrant(
+                host=_TARGET_HOST,
+                ports=frozenset({target_port}),
+                schemes=frozenset({"http"}),
+            ),
+        ),
+    )
+    source_ref = "candidate:" + "c" * 64
+    task = TaskEnvelope(
+        engagement_id=scope.engagement_id,
+        target_id=uuid4(),
+        target_version="b" * 40,
+        scope_id=scope.scope_id,
+        worker_role=WorkerRole.VALIDATOR,
+        scope_version=scope.version,
+        policy_digest=PolicyEngine(scope).policy_digest,
+        sandbox_profile_digest=sandbox_profile_digest(profile),
+        tool_registry_digest=registry.digest,
+        input_refs=(source_ref,),
+        allowed_tools=frozenset({"http.request"}),
+        budget=TaskBudget(wall_seconds=30, model_tokens=100, tool_calls=1),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="m7.9:root-task",
+    )
+    root_snapshot = AgentContextAssembler().assemble(
+        task=task,
+        sources=(
+            AgentContextSource(
+                source_ref=source_ref,
+                kind=AgentContextSourceKind.OBSERVATION_SUMMARY,
+                text="Authorized fixture object 7 requires one read-only validation.",
+            ),
+        ),
+        limits=AgentContextLimits(),
+        now=now,
+        deadline=now + timedelta(seconds=20),
+    )
+    call = BrokerCall(
+        task=task,
+        profile=profile,
+        tool_id="http.request",
+        http=HttpRequestPlan(
+            method="GET",
+            url=f"http://{_TARGET_HOST}:{target_port}/objects/7",
+            test_class="read_only",
+        ),
+        idempotency_key="m7.9:broker-call",
+    )
+    reference = ModelCredentialReference.create(
+        environment_variable="VULNLOOM_M79_PROVIDER_KEY"
+    )
+    admission = AgentProviderTransportAdmission.create_loopback_probe(
+        provider_id="loopback",
+        hostname="provider.test",
+        port=provider_server.server_address[1],
+        request_path="/v1/responses",
+        credential_reference_id=reference.reference_id,
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        ca_bundle_digest=hashlib.sha256(ca_bundle).hexdigest(),
+        limits=AgentProviderTransportLimits(timeout_seconds=5),
+    )
+    issuer_policy = AgentProviderEgressIssuerPolicy.create(
+        issuer_id="phase3-security-operator",
+        allowed_provider_ids=(admission.provider_id,),
+        allowed_modes=(AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE,),
+        max_lifetime_seconds=3600,
+    )
+    egress_store = AgentProviderEgressStore(tmp_path / "provider-egress-m79")
+    grant = AgentProviderEgressAuthority(
+        store=egress_store, issuer_policies=(issuer_policy,)
+    ).issue(
+        admission=admission,
+        issuer_policy_id=issuer_policy.policy_id,
+        purpose=AgentProviderEgressPurpose.LOOPBACK_ADMISSION_PROBE,
+        now=now,
+        expires_at=now + timedelta(minutes=30),
+        deadline=now + timedelta(seconds=10),
+        idempotency_key="m7.9:egress",
+    )
+    codec_registration = AgentProviderCodecRegistration.create(provider_id="loopback")
+    registration = AgentModelRegistration.create_subprocess_https(
+        provider_id="loopback",
+        model="loopback-model-v1",
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        credential_reference_id=reference.reference_id,
+        transport_admission_id=admission.admission_id,
+        egress_grant_id=grant.grant_id,
+        provider_codec_id=codec_registration.codec_id,
+        supported_roles=(WorkerRole.VALIDATOR,),
+        max_output_tokens=64,
+    )
+    root_plan = AgentRunPlan.create(
+        task=task,
+        registration=registration,
+        limits=AgentRunLimits(
+            max_steps=1, max_output_tokens_per_step=64, timeout_seconds=20
+        ),
+        created_at=now,
+        deadline=now + timedelta(seconds=40),
+        idempotency_key="m7.9:root-run",
+        context_snapshot=root_snapshot,
+    )
+    _ProviderHandler.decision_payloads = [
+        {
+            "kind": "propose_tool",
+            "summary_digest": None,
+            "supporting_ref_digests": [],
+            "tool_call": {
+                "arguments": [agent_broker_call_commitment(call)],
+                "tool_id": "http.request",
+                "working_directory": "source",
+            },
+        },
+        {
+            "kind": "complete",
+            "summary_digest": "e" * 64,
+            "supporting_ref_digests": [],
+            "tool_call": None,
+        },
+    ]
+    context_store = AgentContextStore(tmp_path / "m79-context")
+    context_store.publish(root_snapshot)
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=registration,
+        admission=admission,
+        credential_reference=reference,
+        credential_provider=EnvironmentModelCredentialProvider(
+            {reference.environment_variable: "m79-loopback-provider-secret"},
+            allowed_references=(reference,),
+        ),
+        egress_store=egress_store,
+        provider_codec=OpenAIResponsesV1Codec(codec_registration),
+        ca_bundle=ca_bundle,
+        resolver=_LoopbackResolver(),
+    )
+    evidence_store = EvidenceStore(tmp_path / "m79-evidence")
+    broker = ToolBroker(
+        scope=scope,
+        registry=registry,
+        resolver=_PinnedTargetResolver(address),
+        http_transport=PinnedHttpTransport(
+            EvidenceStoreHttpSink(evidence_store, target_version=task.target_version)
+        ),
+    )
+    try:
+        with (
+            AgentRunStore(tmp_path / "m79-root-runs.sqlite3") as root_store,
+            AgentToolHandoffStore(tmp_path / "m79-handoffs.sqlite3") as handoff_store,
+            AgentRunStore(tmp_path / "m79-continuation-runs.sqlite3") as next_store,
+            AgentContinuationStore(
+                tmp_path / "m79-continuations.sqlite3"
+            ) as continuation_store,
+        ):
+            root_outcome = OfflineAgentRuntime(
+                store=root_store,
+                registration=registration,
+                adapter=adapter,
+                context_store=context_store,
+                message_renderer=AgentMessageRenderer(),
+            ).execute(root_plan, now=now + timedelta(seconds=1))
+            handoff_plan = AgentToolHandoffPlan.create(
+                agent_plan=root_plan,
+                agent_outcome=root_outcome,
+                broker_call=call,
+                limits=AgentToolHandoffLimits(),
+                created_at=now + timedelta(seconds=1),
+                deadline=now + timedelta(seconds=35),
+                idempotency_key="m7.9:handoff",
+            )
+            handoff_outcome = AgentToolHandoffService(
+                agent_store=root_store,
+                handoff_store=handoff_store,
+                broker=broker,
+            ).execute(handoff_plan, now=now + timedelta(seconds=2))
+            continuation_service = AgentContinuationService(
+                root_agent_store=root_store,
+                handoff_store=handoff_store,
+                continuation_store=continuation_store,
+                continuation_runtime=OfflineAgentRuntime(
+                    store=next_store,
+                    registration=registration,
+                    adapter=adapter,
+                    context_store=context_store,
+                    message_renderer=AgentMessageRenderer(),
+                ),
+                evidence_store=evidence_store,
+                context_store=context_store,
+            )
+            continuation_plan = continuation_service.prepare(
+                root_plan=root_plan,
+                handoff_id=handoff_plan.handoff_id,
+                now=now + timedelta(seconds=3),
+                idempotency_key="m7.9:continuation",
+                continuation_run_key="m7.9:continuation-run",
+            )
+            continuation_outcome = continuation_service.execute(
+                continuation_plan, now=now + timedelta(seconds=4)
+            )
+    finally:
+        target_server.shutdown()
+        target_server.server_close()
+        target_thread.join(timeout=2)
+        provider_server.shutdown()
+        provider_server.server_close()
+        provider_thread.join(timeout=2)
+        egress_store.close()
+
+    assert root_outcome.status is AgentRunStatus.TOOL_PROPOSED
+    assert handoff_outcome.status is AgentToolHandoffStatus.COMPLETED
+    assert continuation_outcome.status is AgentContinuationStatus.COMPLETED
+    assert _TargetHandler.requests == 1
+    assert len(adapter.attempts) == 2
+    assert all(item.process_terminated for item in adapter.attempts)
+    assert all(item.network_opened for item in adapter.attempts)
+    assert continuation_plan.continuation_plan.task.allowed_tools == frozenset()
+    assert continuation_plan.continuation_plan.task.budget.tool_calls == 0
+    assert _TARGET_BODY not in (tmp_path / "m79-continuations.sqlite3").read_bytes()
+    assert b"m79-loopback-provider-secret" not in (
+        tmp_path / "m79-continuations.sqlite3"
+    ).read_bytes()

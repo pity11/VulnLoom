@@ -218,6 +218,17 @@ checkpoint 漂移都在 DNS、凭据与 transport 前拒绝。
 Agent 原始参数不进入 handoff checkpoint。Observation 没有 Candidate/Finding/Submission 字段，不能改变领域
 状态。Phase 3 的 live composition 只连接临时授权 fixture，不增加公网能力。
 
+M7.9 只允许 completed handoff 的 Observation 进入一次后续 Agent run。可信服务从 root Agent store、handoff
+store、Evidence Store 和只读 context store 逐项重读；调用方不能提供 transcript、Evidence 正文或新的授权
+字段。派生 Task 继承 exact engagement/Target/Scope/Policy/Profile/Registry/model/deadline，allowed tools 为空、
+tool-call budget 为零，model/wall budget 只能减少。
+
+Evidence 按 exact ref 使用 no-follow、大小和 SHA-256 校验读取，并再次经过固定脱敏器；即使响应正文包含
+prompt injection，它仍只作为 `untrusted_context`。缺失/链接/摘要漂移、context 可写或漂移、预算耗尽、
+deadline、非 completed handoff、cleanup 不完整、Observation 重放和遗留 STARTED 都在 provider 调用前
+fail-closed。continuation 不能产生可执行 tool intent、Approval、Candidate/Finding 或 Submission；再次工具提案
+只会形成稳定失败。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

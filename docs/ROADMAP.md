@@ -434,7 +434,7 @@ M7.7 不提供默认 live CLI/API、provider SDK、流式输出、会话续接�
 
 M7.8 不允许 Agent 直接调用 Runner、socket、Docker 或工具 adapter，不新增 Provider 公网调用、任意 URL、自动 Approval、Target build、Candidate/Finding 状态变化、报告导出或 Submission。Observation 只是后续可信工作流输入，不能自行提升为 Candidate/Finding。
 
-### M7.9：密封 Tool Observation 续跑状态机（规划）
+### M7.9：密封 Tool Observation 续跑状态机（已完成首版）
 
 - 新增内容寻址的 `AgentContinuationPlan`，精确绑定原始 `AgentRunPlan`/completed `tool_proposed` outcome、completed handoff outcome、`AgentToolObservation`、后续 context snapshot、model registration 和派生 continuation Task；所有对象都从权威 store 重读，不接受调用方拼接的 transcript。
 - continuation Task 使用新 task/idempotency identity，但必须继承 exact engagement、Target/version、Scope/version、Policy/Profile/Registry、Validator role 和绝对 deadline；其 `input_refs` 只能是绑定的 Observation/Evidence refs，`allowed_tools` 固定为空且 `tool_calls=0`，model/wall budget 只能收缩。

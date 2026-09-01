@@ -1,0 +1,1185 @@
+{
+  "$defs": {
+    "AgentCleanupReport": {
+      "additionalProperties": false,
+      "properties": {
+        "model_request_released": {
+          "title": "Model Request Released",
+          "type": "boolean"
+        },
+        "raw_response_discarded": {
+          "title": "Raw Response Discarded",
+          "type": "boolean"
+        },
+        "no_tool_executed": {
+          "title": "No Tool Executed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model_request_released",
+        "raw_response_discarded",
+        "no_tool_executed"
+      ],
+      "title": "AgentCleanupReport",
+      "type": "object"
+    },
+    "AgentContextFragment": {
+      "additionalProperties": false,
+      "properties": {
+        "ordinal": {
+          "maximum": 1023,
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "source_ref_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Ref Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AgentContextSourceKind"
+        },
+        "redacted_text": {
+          "title": "Redacted Text",
+          "type": "string"
+        },
+        "text_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Text Digest",
+          "type": "string"
+        },
+        "byte_size": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "untrusted": {
+          "default": true,
+          "title": "Untrusted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ordinal",
+        "source_ref_digest",
+        "kind",
+        "redacted_text",
+        "text_digest",
+        "byte_size"
+      ],
+      "title": "AgentContextFragment",
+      "type": "object"
+    },
+    "AgentContextSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Task Digest",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "input_refs_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Refs Digest",
+          "type": "string"
+        },
+        "input_ref_digests": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Input Ref Digests",
+          "type": "array"
+        },
+        "redaction_policy": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Redaction Policy",
+          "type": "string"
+        },
+        "redaction_policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Redaction Policy Digest",
+          "type": "string"
+        },
+        "fragments": {
+          "items": {
+            "$ref": "#/$defs/AgentContextFragment"
+          },
+          "maxItems": 1024,
+          "title": "Fragments",
+          "type": "array"
+        },
+        "total_bytes": {
+          "maximum": 4194304,
+          "minimum": 0,
+          "title": "Total Bytes",
+          "type": "integer"
+        },
+        "assembled_at": {
+          "format": "date-time",
+          "title": "Assembled At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "task_id",
+        "task_digest",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "input_refs_digest",
+        "input_ref_digests",
+        "redaction_policy",
+        "redaction_policy_digest",
+        "fragments",
+        "total_bytes",
+        "assembled_at"
+      ],
+      "title": "AgentContextSnapshot",
+      "type": "object"
+    },
+    "AgentContextSourceKind": {
+      "enum": [
+        "task_summary",
+        "evidence_summary",
+        "observation_summary"
+      ],
+      "title": "AgentContextSourceKind",
+      "type": "string"
+    },
+    "AgentContinuationBudgetLedger": {
+      "additionalProperties": false,
+      "properties": {
+        "original_model_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Original Model Tokens",
+          "type": "integer"
+        },
+        "consumed_model_tokens": {
+          "minimum": 0,
+          "title": "Consumed Model Tokens",
+          "type": "integer"
+        },
+        "remaining_model_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Remaining Model Tokens",
+          "type": "integer"
+        },
+        "consumed_agent_steps": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Consumed Agent Steps",
+          "type": "integer"
+        },
+        "consumed_tool_calls": {
+          "minimum": 1,
+          "title": "Consumed Tool Calls",
+          "type": "integer"
+        },
+        "remaining_wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Remaining Wall Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "original_model_tokens",
+        "consumed_model_tokens",
+        "remaining_model_tokens",
+        "consumed_agent_steps",
+        "consumed_tool_calls",
+        "remaining_wall_seconds"
+      ],
+      "title": "AgentContinuationBudgetLedger",
+      "type": "object"
+    },
+    "AgentRunLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "default": 2,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "max_output_tokens_per_step": {
+          "default": 4096,
+          "exclusiveMinimum": 0,
+          "maximum": 65536,
+          "title": "Max Output Tokens Per Step",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentRunLimits",
+      "type": "object"
+    },
+    "AgentRunOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "model_registration_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Registration Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AgentRunStatus"
+        },
+        "steps": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Steps",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "tool_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentToolIntent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary Digest"
+        },
+        "supporting_ref_digests": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Supporting Ref Digests",
+          "type": "array"
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "cleanup": {
+          "$ref": "#/$defs/AgentCleanupReport"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "task_id",
+        "model_registration_id",
+        "status",
+        "steps",
+        "input_tokens",
+        "output_tokens",
+        "cleanup",
+        "completed_at"
+      ],
+      "title": "AgentRunOutcome",
+      "type": "object"
+    },
+    "AgentRunPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskEnvelope"
+        },
+        "task_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Task Digest",
+          "type": "string"
+        },
+        "model_registration_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Registration Id",
+          "type": "string"
+        },
+        "model_registration_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Registration Digest",
+          "type": "string"
+        },
+        "context_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Context Digest",
+          "type": "string"
+        },
+        "context_snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Snapshot Id"
+        },
+        "decision_schema_digest": {
+          "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Decision Schema Digest",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentRunLimits"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "task",
+        "task_digest",
+        "model_registration_id",
+        "model_registration_digest",
+        "context_digest",
+        "limits",
+        "created_at",
+        "deadline",
+        "idempotency_key"
+      ],
+      "title": "AgentRunPlan",
+      "type": "object"
+    },
+    "AgentRunStatus": {
+      "enum": [
+        "tool_proposed",
+        "completed",
+        "blocked",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AgentRunStatus",
+      "type": "string"
+    },
+    "AgentToolHandoffCleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "raw_agent_arguments_absent": {
+          "title": "Raw Agent Arguments Absent",
+          "type": "boolean"
+        },
+        "raw_tool_response_absent": {
+          "title": "Raw Tool Response Absent",
+          "type": "boolean"
+        },
+        "authorization_enforced": {
+          "title": "Authorization Enforced",
+          "type": "boolean"
+        },
+        "no_vulnloom_domain_state_changed": {
+          "title": "No Vulnloom Domain State Changed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw_agent_arguments_absent",
+        "raw_tool_response_absent",
+        "authorization_enforced",
+        "no_vulnloom_domain_state_changed"
+      ],
+      "title": "AgentToolHandoffCleanup",
+      "type": "object"
+    },
+    "AgentToolHandoffOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "handoff_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "agent_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Agent Plan Id",
+          "type": "string"
+        },
+        "agent_outcome_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Agent Outcome Digest",
+          "type": "string"
+        },
+        "broker_call_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Broker Call Digest",
+          "type": "string"
+        },
+        "attempt": {
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/AgentToolHandoffStatus"
+        },
+        "broker_result": {
+          "$ref": "#/$defs/BrokerResult"
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentToolObservation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cleanup": {
+          "$ref": "#/$defs/AgentToolHandoffCleanup"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "handoff_id",
+        "agent_plan_id",
+        "agent_outcome_digest",
+        "broker_call_digest",
+        "attempt",
+        "status",
+        "broker_result",
+        "cleanup",
+        "completed_at"
+      ],
+      "title": "AgentToolHandoffOutcome",
+      "type": "object"
+    },
+    "AgentToolHandoffStatus": {
+      "enum": [
+        "completed",
+        "denied",
+        "approval_required",
+        "timed_out",
+        "failed"
+      ],
+      "title": "AgentToolHandoffStatus",
+      "type": "string"
+    },
+    "AgentToolIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "argument_digests": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Argument Digests",
+          "type": "array"
+        },
+        "working_directory": {
+          "$ref": "#/$defs/WorkingDirectory"
+        }
+      },
+      "required": [
+        "tool_id",
+        "invocation_digest",
+        "argument_digests",
+        "working_directory"
+      ],
+      "title": "AgentToolIntent",
+      "type": "object"
+    },
+    "AgentToolObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "handoff_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Handoff Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "broker_result_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Broker Result Digest",
+          "type": "string"
+        },
+        "status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "final_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Url Digest",
+          "type": "string"
+        },
+        "response_bytes": {
+          "maximum": 20971520,
+          "minimum": 0,
+          "title": "Response Bytes",
+          "type": "integer"
+        },
+        "response_body_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Response Body Sha256",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "handoff_id",
+        "task_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "tool_id",
+        "broker_result_digest",
+        "status_code",
+        "final_url_digest",
+        "response_bytes",
+        "response_body_sha256",
+        "evidence_refs",
+        "observed_at"
+      ],
+      "title": "AgentToolObservation",
+      "type": "object"
+    },
+    "BrokerResult": {
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "format": "uuid",
+          "title": "Call Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/BrokerStatus"
+        },
+        "registry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Registry Digest",
+          "type": "string"
+        },
+        "call_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Call Digest",
+          "type": "string"
+        },
+        "tool_calls_used": {
+          "minimum": 0,
+          "title": "Tool Calls Used",
+          "type": "integer"
+        },
+        "policy_records": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PolicyRecord"
+          },
+          "title": "Policy Records",
+          "type": "array"
+        },
+        "http": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "task_id",
+        "tool_id",
+        "status",
+        "registry_digest",
+        "call_digest",
+        "tool_calls_used",
+        "completed_at"
+      ],
+      "title": "BrokerResult",
+      "type": "object"
+    },
+    "BrokerStatus": {
+      "enum": [
+        "completed",
+        "denied",
+        "approval_required",
+        "timed_out",
+        "failed"
+      ],
+      "title": "BrokerStatus",
+      "type": "string"
+    },
+    "DecisionEffect": {
+      "enum": [
+        "allow",
+        "deny",
+        "approval_required"
+      ],
+      "title": "DecisionEffect",
+      "type": "string"
+    },
+    "HttpToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "final_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "response_bytes": {
+          "minimum": 0,
+          "title": "Response Bytes",
+          "type": "integer"
+        },
+        "response_body_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Response Body Sha256",
+          "type": "string"
+        },
+        "redirects": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RedirectRecord"
+          },
+          "title": "Redirects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status_code",
+        "final_url_digest",
+        "peer_ip",
+        "response_bytes",
+        "response_body_sha256",
+        "evidence_refs"
+      ],
+      "title": "HttpToolResult",
+      "type": "object"
+    },
+    "PolicyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "action_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Digest",
+          "type": "string"
+        },
+        "effect": {
+          "$ref": "#/$defs/DecisionEffect"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "obligations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Obligations",
+          "type": "array"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_digest",
+        "effect",
+        "reasons",
+        "obligations",
+        "policy_digest"
+      ],
+      "title": "PolicyRecord",
+      "type": "object"
+    },
+    "RedirectRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "status_code": {
+          "maximum": 399,
+          "minimum": 300,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "from_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "From Url Digest",
+          "type": "string"
+        },
+        "to_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "To Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status_code",
+        "from_url_digest",
+        "to_url_digest",
+        "peer_ip"
+      ],
+      "title": "RedirectRecord",
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "model_tokens": {
+          "minimum": 0,
+          "title": "Model Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "model_tokens",
+        "tool_calls"
+      ],
+      "title": "TaskBudget",
+      "type": "object"
+    },
+    "TaskEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "engagement_id": {
+          "format": "uuid",
+          "title": "Engagement Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "worker_role": {
+          "$ref": "#/$defs/WorkerRole"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "tool_registry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tool Registry Digest",
+          "type": "string"
+        },
+        "input_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Refs",
+          "type": "array"
+        },
+        "allowed_tools": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "budget": {
+          "$ref": "#/$defs/TaskBudget"
+        },
+        "deadline": {
+          "format": "date-time",
+          "title": "Deadline",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "engagement_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "worker_role",
+        "scope_version",
+        "policy_digest",
+        "sandbox_profile_digest",
+        "tool_registry_digest",
+        "input_refs",
+        "allowed_tools",
+        "budget",
+        "deadline",
+        "idempotency_key"
+      ],
+      "title": "TaskEnvelope",
+      "type": "object"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    },
+    "WorkingDirectory": {
+      "enum": [
+        "source",
+        "output",
+        "temp"
+      ],
+      "title": "WorkingDirectory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "continuation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Continuation Id",
+      "type": "string"
+    },
+    "root_plan": {
+      "$ref": "#/$defs/AgentRunPlan"
+    },
+    "root_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Root Plan Digest",
+      "type": "string"
+    },
+    "root_outcome": {
+      "$ref": "#/$defs/AgentRunOutcome"
+    },
+    "root_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Root Outcome Digest",
+      "type": "string"
+    },
+    "handoff_outcome": {
+      "$ref": "#/$defs/AgentToolHandoffOutcome"
+    },
+    "handoff_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Outcome Digest",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "context_snapshot": {
+      "$ref": "#/$defs/AgentContextSnapshot"
+    },
+    "continuation_plan": {
+      "$ref": "#/$defs/AgentRunPlan"
+    },
+    "continuation_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Continuation Plan Digest",
+      "type": "string"
+    },
+    "budget": {
+      "$ref": "#/$defs/AgentContinuationBudgetLedger"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "continuation_id",
+    "root_plan",
+    "root_plan_digest",
+    "root_outcome",
+    "root_outcome_digest",
+    "handoff_outcome",
+    "handoff_outcome_digest",
+    "observation_id",
+    "context_snapshot",
+    "continuation_plan",
+    "continuation_plan_digest",
+    "budget",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentContinuationPlan",
+  "type": "object"
+}

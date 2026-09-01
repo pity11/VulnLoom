@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
+import json
 import os
 import socket
 import threading
@@ -13,7 +14,13 @@ from uuid import uuid4
 import pytest
 
 from vulnloom.agent_runtime import (
+    AgentContextStore,
+    AgentContinuationService,
+    AgentContinuationStatus,
+    AgentContinuationStore,
+    AgentMessageRenderer,
     AgentModelRegistration,
+    AgentModelReply,
     AgentRunLimits,
     AgentRunPlan,
     AgentRunStore,
@@ -97,6 +104,26 @@ class _Handler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         return
+
+
+class _ContinuationAdapter:
+    def __init__(self, registration: AgentModelRegistration):
+        self.registration = registration
+        self.envelopes = []
+
+    def complete(self, request, *, message_envelope=None):
+        self.envelopes.append(message_envelope)
+        return AgentModelReply(
+            structured_output={
+                "kind": "complete",
+                "summary_digest": "9" * 64,
+            },
+            provider_id=self.registration.provider_id,
+            model=self.registration.model,
+            input_tokens=4,
+            output_tokens=3,
+            latency_seconds=0.1,
+        )
 
 
 class _RedirectHandler(BaseHTTPRequestHandler):
@@ -469,7 +496,7 @@ def test_live_redirect_rechecks_dns_and_stops_rebinding_before_second_socket(
     os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
     reason="set VULNLOOM_COMPOSITION_INTEGRATION=1 to run the full local composition probe",
 )
-def test_agent_tool_handoff_composes_with_live_pinned_broker_and_evidence(
+def test_agent_tool_handoff_and_continuation_compose_with_live_pinned_broker(
     tmp_path: Path, request: pytest.FixtureRequest
 ):
     address = _safe_local_ipv4()
@@ -609,10 +636,54 @@ def test_agent_tool_handoff_composes_with_live_pinned_broker_and_evidence(
                 handoff_store=handoff_store,
                 broker=broker,
             ).execute(handoff_plan, now=now + timedelta(seconds=1))
+            context_store = AgentContextStore(tmp_path / "agent-context")
+            continuation_adapter = _ContinuationAdapter(registration)
+            with (
+                AgentRunStore(tmp_path / "continuation-runs.sqlite3") as continuation_runs,
+                AgentContinuationStore(
+                    tmp_path / "continuations.sqlite3"
+                ) as continuation_store,
+            ):
+                continuation_service = AgentContinuationService(
+                    root_agent_store=agent_store,
+                    handoff_store=handoff_store,
+                    continuation_store=continuation_store,
+                    continuation_runtime=OfflineAgentRuntime(
+                        store=continuation_runs,
+                        registration=registration,
+                        adapter=continuation_adapter,
+                        context_store=context_store,
+                        message_renderer=AgentMessageRenderer(),
+                    ),
+                    evidence_store=evidence_store,
+                    context_store=context_store,
+                )
+                continuation_plan = continuation_service.prepare(
+                    root_plan=agent_plan,
+                    handoff_id=handoff_plan.handoff_id,
+                    now=now + timedelta(seconds=2),
+                    idempotency_key="composition:agent-continuation",
+                    continuation_run_key="composition:agent-continuation-runtime",
+                )
+                continuation = continuation_service.execute(
+                    continuation_plan, now=now + timedelta(seconds=3)
+                )
 
     assert outcome.status is AgentToolHandoffStatus.COMPLETED
     assert outcome.observation is not None
     assert outcome.observation.response_body_sha256 == hashlib.sha256(BODY).hexdigest()
     assert all(evidence_store.contains(item) for item in outcome.observation.evidence_refs)
+    assert continuation.status is AgentContinuationStatus.COMPLETED
+    assert continuation_plan.continuation_plan.task.allowed_tools == frozenset()
+    assert continuation_plan.continuation_plan.task.budget.tool_calls == 0
+    assert len(continuation_adapter.envelopes) == 1
+    continuation_payload = json.loads(
+        continuation_adapter.envelopes[0].messages[1].content
+    )
+    assert any(
+        BODY.decode() in item["text"]
+        for item in continuation_payload["untrusted_context"]
+    )
     assert BODY not in (tmp_path / "handoffs.sqlite3").read_bytes()
+    assert BODY not in (tmp_path / "continuations.sqlite3").read_bytes()
     assert _Handler.observed_host == f"{HOST}:{port}"

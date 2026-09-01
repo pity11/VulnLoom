@@ -135,6 +135,26 @@ class AgentToolHandoffStore:
                 "Agent handoff STARTED checkpoint is unavailable"
             )
 
+    def require_completed(self, handoff_id: str) -> AgentToolHandoffOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM agent_tool_handoffs WHERE handoff_id = ?", (handoff_id,)
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise AgentToolHandoffRecoveryRequired(
+                "Agent handoff does not have an authoritative completed checkpoint"
+            )
+        outcome = AgentToolHandoffOutcome.model_validate_json(row["outcome_json"])
+        if (
+            outcome.handoff_id != handoff_id
+            or outcome.agent_outcome_digest != row["agent_outcome_digest"]
+            or outcome.attempt != row["attempt"]
+            or outcome.status.value != row["status"]
+        ):
+            raise AgentToolHandoffRecoveryRequired(
+                "Agent handoff checkpoint binding mismatch"
+            )
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

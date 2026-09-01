@@ -76,6 +76,11 @@ class EvidenceStore:
             raise ValueError("Evidence content_ref does not match its object identity")
         return self._read_object(evidence.evidence_id).decode("utf-8")
 
+    def read_text_ref(self, evidence_ref: str) -> str:
+        """Read one content-addressed object without trusting caller metadata."""
+
+        return self._read_object(evidence_ref).decode("utf-8")
+
     def contains(self, evidence_ref: str) -> bool:
         try:
             self._read_object(evidence_ref)

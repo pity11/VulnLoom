@@ -382,6 +382,25 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Tests both offline state-machine paths and an opt-in live pinned-Broker composition against a
   temporary authorized service; no public target, Candidate/Finding transition, or Submission is added.
 
+### M7.9: sealed Tool Observation continuation
+
+- Derives one new Validator Task from an authoritative completed Agent → Broker chain while
+  preserving the exact engagement, Target/version, Scope/version, Policy, Profile, Registry, model,
+  and absolute deadline bindings.
+- Fixes the derived Task to an empty tool allowlist and `tool_calls=0`; the one-step continuation may
+  finish as complete or blocked, while another tool proposal becomes a terminal failure.
+- Reopens each exact Evidence ref through the content-addressed Evidence Store, re-redacts it, and
+  rebuilds the same bounded read-only context snapshot before any provider call. Observation and
+  Evidence text remain explicitly untrusted model context.
+- Accounts for tokens, prior steps, the consumed Broker call, and remaining wall time in a typed
+  budget ledger. Exhaustion, expiry, authority drift, missing Evidence, or incomplete cleanup fails
+  before the continuation checkpoint.
+- Adds a unique-Observation STARTED/COMPLETED SQLite lifecycle with idempotent completed replay and
+  fail-closed conflict/recovery. Its rows contain only typed outcomes and digests, never Evidence,
+  provider response, URL, credential, Candidate/Finding, or Submission content.
+- Phase 3 composes the real isolated loopback TLS provider, real pinned Broker, redacted Evidence
+  Store, and zero-tool continuation against a temporary authorized target; no public egress is used.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

@@ -447,6 +447,28 @@ Authoritative completed Agent run (`tool_proposed`, cleanup complete)
 不会自动再次触发外部动作。Observation 不含 URL/response/credential/原始参数，也不能触发 Candidate/Finding
 转换。Agent 始终不持有 Broker transport、Runner、Docker socket 或 Approval 决策权。
 
+### M7.9 Tool Observation Continuation
+
+```text
+Authoritative root Agent run (`tool_proposed`)
+  + authoritative completed handoff + AgentToolObservation
+  → reread exact Evidence refs (no-follow + size + SHA-256)
+  → fixed redaction + bounded untrusted Observation/Evidence context
+  → derive new Validator Task with inherited authority/deadline
+  → allowed_tools = [] and tool_calls = 0
+  → verify cumulative token/step/tool/wall budget
+  → re-open root/handoff/context/Evidence before STARTED checkpoint
+  → run exactly one Agent step
+  ├─ complete / blocked → terminal continuation
+  ├─ provider timeout / rejection → typed timed_out / failed
+  └─ propose_tool → terminal tool_proposal_not_allowed failure
+  → COMPLETED continuation checkpoint
+```
+
+同一 Observation 只能被唯一 continuation 消费；completed 可幂等读取，冲突或遗留 STARTED 不会自动重放
+provider/Broker 动作。context object 可以保存已脱敏的 untrusted fragment，但 continuation SQLite 只保存摘要和
+typed outcome，不保存 Evidence 正文、URL、credential 或 raw provider response。该闭环不触发领域状态变化。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

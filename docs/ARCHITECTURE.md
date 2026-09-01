@@ -523,3 +523,25 @@ second attempt bound to the prior handoff. A completed Broker response must beco
 change Candidate/Finding state. Phase 3 composes the service with a real pinned Broker socket and
 Evidence Store against a temporary authorized fixture, without adding public egress or Agent-owned
 network capability.
+
+## 32. M7.9 sealed Tool Observation continuation
+
+M7.9 closes one bounded feedback cycle without turning the Agent into an autonomous tool runner. A
+content-addressed `AgentContinuationPlan` binds the authoritative root plan/outcome, completed handoff
+outcome and Observation, rebuilt context snapshot, cumulative budget ledger, and a derived Agent run.
+The derived Validator Task receives a new identity but must inherit every authorization and provenance
+field. Its tool allowlist is empty, its tool-call budget is zero, and its model/wall budgets can only
+shrink.
+
+The trusted service reads only the Observation's exact Evidence refs through the content-addressed
+Evidence Store. It applies no-follow, size and digest verification, runs the fixed redactor again, and
+assembles each response as bounded untrusted context. Before its STARTED checkpoint, execution reopens
+the root Agent and handoff checkpoints, reopens the read-only context object, rereads all Evidence, and
+requires an identical snapshot. Callers cannot inject a transcript or substitute a context source.
+
+The continuation ledger uniquely consumes one Observation. Completed replay is idempotent; conflicting
+keys, duplicate consumption and unfinished STARTED rows fail closed. The child Runtime is limited to
+one step. `complete` and `blocked` remain terminal; a second tool proposal is rejected by the zero-tool
+Task and stored as a stable failure. The Admission composition joins the isolated loopback provider,
+pinned Broker and temporary authorized target, but adds no public network authority or domain-state
+transition.

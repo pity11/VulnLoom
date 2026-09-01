@@ -12,6 +12,27 @@ from .context import (
     AgentContextTimedOut,
     agent_context_snapshot_digest,
 )
+from .continuation import (
+    AgentContinuationRejected,
+    AgentContinuationService,
+    AgentContinuationTimedOut,
+)
+from .continuation_models import (
+    AgentContinuationBudgetLedger,
+    AgentContinuationCleanup,
+    AgentContinuationOutcome,
+    AgentContinuationPlan,
+    AgentContinuationStatus,
+    agent_continuation_input_refs,
+    agent_continuation_outcome_digest,
+    agent_continuation_plan_digest,
+)
+from .continuation_store import (
+    AgentContinuationIdempotencyConflict,
+    AgentContinuationObservationConflict,
+    AgentContinuationRecoveryRequired,
+    AgentContinuationStore,
+)
 from .live_provider import ProviderProcessRunner, ProviderResolver, SubprocessHttpsProviderAdapter
 from .local_fake import (
     LocalFakeModelAdapter,
@@ -138,6 +159,18 @@ __all__ = [
     "SUBPROCESS_HTTPS_ADAPTER_DIGEST",
     "AgentAdapterKind",
     "AgentCleanupReport",
+    "AgentContinuationBudgetLedger",
+    "AgentContinuationCleanup",
+    "AgentContinuationIdempotencyConflict",
+    "AgentContinuationObservationConflict",
+    "AgentContinuationOutcome",
+    "AgentContinuationPlan",
+    "AgentContinuationRecoveryRequired",
+    "AgentContinuationRejected",
+    "AgentContinuationService",
+    "AgentContinuationStatus",
+    "AgentContinuationStore",
+    "AgentContinuationTimedOut",
     "AgentContextAssembler",
     "AgentContextFragment",
     "AgentContextLimits",
@@ -230,6 +263,9 @@ __all__ = [
     "SubprocessHttpsProviderAdapter",
     "SubprocessProviderTransportRunner",
     "agent_context_snapshot_digest",
+    "agent_continuation_input_refs",
+    "agent_continuation_outcome_digest",
+    "agent_continuation_plan_digest",
     "agent_broker_call_commitment",
     "agent_message_envelope_digest",
     "agent_prompt_template_digest",
