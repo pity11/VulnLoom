@@ -63,8 +63,9 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M7.4 include deterministic replay, fixed provider
-messages, scoped credentials, and no-network fake adapters for the provider transport boundary.
+they are not present in the current tree. M7.1a-M7.10 include deterministic replay, fixed provider
+messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
+two-tool Session ledger.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
 rules, databases, or images.
 
@@ -401,6 +402,27 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Phase 3 composes the real isolated loopback TLS provider, real pinned Broker, redacted Evidence
   Store, and zero-tool continuation against a temporary authorized target; no public egress is used.
 
+### M7.10: sealed fixed two-tool Agent session
+
+- Adds a content-addressed `AgentSessionPlan`, cumulative token/step/tool/provider/Broker budget
+  ledger, and SQLite lifecycle around one already completed tool round, one optional second tool
+  round, and one mandatory zero-tool terminal continuation.
+- Derives the second Validator Task with the exact inherited Target/Scope/Policy/Profile/Registry,
+  model, and absolute deadline, while shrinking all budgets and fixing the total session to at most
+  three provider turns and two consumed tool calls.
+- Exposes only a trusted, content-addressed `AgentAuthorizedCallSet` in message control. Each option
+  is a Control-Plane-built exact read-only `BrokerCall` commitment; the model cannot construct or
+  alter URL, method, headers, body, credential, network, or authorization fields.
+- Reopens every Agent, handoff, Observation, Evidence, and context checkpoint before the next
+  action. Unlisted or duplicate commitments, drift, exhausted budgets, missing cleanup, and a third
+  tool proposal fail closed without another Broker call.
+- Pauses an Approval-required second handoff without polling or approving it. One explicit,
+  Approval-bound M7.8 retry may resume the session; its extra Broker attempt is counted even though
+  the total successful tool-call budget remains exactly two.
+- Phase 3 uses three isolated loopback provider subprocesses and two exact pinned-Broker reads of a
+  temporary authorized target. No public target/provider, arbitrary loop, target build, domain-state
+  transition, report export, or Submission path is introduced.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -532,7 +554,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 ## Safety status
 
-VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, and a typed Agent Runtime with scoped credential leases, sealed context/messages, no-network fakes, subprocess-pinned HTTPS transport, and operator-issued egress lifecycle enforcement, plus opt-in probes for real containers, analyzers, sockets, and full validation composition.
+VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, and a typed Agent Runtime with scoped credential leases, sealed context/messages, subprocess-pinned HTTPS transport, operator-issued egress lifecycle enforcement, exact Agent-to-Broker handoff, sealed Observation continuation, and a fixed two-tool Session ledger, plus opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
 Live Docker/Broker validation, the report workflow, and provider transport are exposed through typed library paths, not a production HTTP API or provider CLI. The rootless Linux and OS-level egress admission gate passes; provider transport is qualified only against a local TLS fixture, not a public provider. External disclosure/CVE submission workflows, provider-specific response adapters, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 

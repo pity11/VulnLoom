@@ -67,6 +67,29 @@
       "type": "array",
       "uniqueItems": true
     },
+    "authorized_call_set_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorized Call Set Id"
+    },
+    "authorized_call_commitments": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Authorized Call Commitments",
+      "type": "array"
+    },
     "decision_schema_digest": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Decision Schema Digest",

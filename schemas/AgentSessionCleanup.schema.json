@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "evidence_buffers_released": {
+      "title": "Evidence Buffers Released",
+      "type": "boolean"
+    },
+    "context_reverified": {
+      "title": "Context Reverified",
+      "type": "boolean"
+    },
+    "raw_provider_responses_absent": {
+      "title": "Raw Provider Responses Absent",
+      "type": "boolean"
+    },
+    "broker_authorization_enforced": {
+      "title": "Broker Authorization Enforced",
+      "type": "boolean"
+    },
+    "no_vulnloom_domain_state_changed": {
+      "title": "No Vulnloom Domain State Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "evidence_buffers_released",
+    "context_reverified",
+    "raw_provider_responses_absent",
+    "broker_authorization_enforced",
+    "no_vulnloom_domain_state_changed"
+  ],
+  "title": "AgentSessionCleanup",
+  "type": "object"
+}

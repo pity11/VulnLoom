@@ -451,6 +451,23 @@ ID、幂等键、状态、时间和 typed outcome；Observation ID 与 child pla
 tool intent。cleanup 显式证明 Evidence 临时缓冲释放、context 复核、raw provider response 缺失、未执行工具和
 未改变 VulnLoom 领域状态。
 
+### AgentSessionPlan、AuthorizedCallSet 与 SessionBudgetLedger
+
+M7.10 的 `AgentSessionPlan` 内容寻址绑定已完成的首个 Agent/handoff/Observation 链、第二轮 context snapshot、
+派生 `AgentRunPlan`、`AgentAuthorizedCallSet`、累计预算、固定轮次上限、绝对 deadline 和幂等键。派生 Task
+继承 exact engagement、Target/version、Scope/version、Policy/Profile/Registry/model，且只保留一个 tool-call
+budget。
+
+`AgentAuthorizedCallSet` 最多包含八个排序去重的 opaque commitment；每项都封存控制面预构造的 exact read-only
+`BrokerCall`，并绑定派生 Task 摘要。commitment 进入可信 message control，但完整 URL/HTTP 参数不进入 Session
+checkpoint 或模型生成字段。
+
+`AgentSessionBudgetLedger` 累计原始/已用/剩余 model token、Agent step、tool call、provider attempt、Broker
+attempt 和 wall time。总成功 tool call 固定不超过二；Approval-required 的显式 attempt-2 retry 作为额外 Broker
+attempt 计数。SQLite Session 状态为 started、waiting-approval、resuming 或 completed；遗留 started/resuming
+拒绝自动恢复。typed outcome 只保存摘要、计数、handoff/continuation outcome 与 cleanup proof，不保存 Evidence
+正文、URL、credential、provider raw response 或领域状态命令。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

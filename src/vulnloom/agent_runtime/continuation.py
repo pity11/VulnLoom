@@ -344,6 +344,16 @@ class AgentContinuationService:
     def _sources(
         self, observation: AgentToolObservation
     ) -> tuple[AgentContextSource, ...]:
+        return agent_observation_context_sources(
+            evidence_store=self.evidence_store, observation=observation
+        )
+
+
+def agent_observation_context_sources(
+    *, evidence_store: EvidenceStore, observation: AgentToolObservation
+) -> tuple[AgentContextSource, ...]:
+    """Reopen one typed Observation and its exact redacted Evidence refs."""
+    try:
         observation_text = json.dumps(
             observation.model_dump(mode="json"),
             ensure_ascii=False,
@@ -357,17 +367,16 @@ class AgentContinuationService:
                 text=observation_text,
             )
         ]
-        try:
-            for evidence_ref in observation.evidence_refs:
-                sources.append(
-                    AgentContextSource(
-                        source_ref=f"evidence:{evidence_ref}",
-                        kind=AgentContextSourceKind.EVIDENCE_SUMMARY,
-                        text=self.evidence_store.read_text_ref(evidence_ref),
-                    )
+        for evidence_ref in observation.evidence_refs:
+            sources.append(
+                AgentContextSource(
+                    source_ref=f"evidence:{evidence_ref}",
+                    kind=AgentContextSourceKind.EVIDENCE_SUMMARY,
+                    text=evidence_store.read_text_ref(evidence_ref),
                 )
-        except (UnicodeDecodeError, ValueError) as exc:
-            raise AgentContinuationRejected(
-                "Agent continuation Evidence is unavailable or unsafe"
-            ) from exc
-        return tuple(sources)
+            )
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise AgentContinuationRejected(
+            "Agent continuation Evidence is unavailable or unsafe"
+        ) from exc
+    return tuple(sources)

@@ -469,6 +469,29 @@ Authoritative root Agent run (`tool_proposed`)
 provider/Broker 动作。context object 可以保存已脱敏的 untrusted fragment，但 continuation SQLite 只保存摘要和
 typed outcome，不保存 Evidence 正文、URL、credential 或 raw provider response。该闭环不触发领域状态变化。
 
+### M7.10 固定双工具 Session
+
+```text
+Authoritative completed tool round 1 + Observation 1
+  → claim Session + cumulative budget ledger
+  → derive Validator Task 2 with one tool call remaining
+  → bind finite exact read-only AgentAuthorizedCallSet into trusted control
+  → provider turn 2
+  ├─ complete / blocked / failed / timed_out → terminal Session
+  ├─ unlisted commitment → failed, no Broker call
+  └─ listed commitment → ordinary M7.8 handoff 2
+       ├─ approval_required → durable wait; one explicit Approval-bound retry
+       ├─ denied / failed / timed_out → terminal Session
+       └─ completed → Observation 2 → ordinary M7.9 zero-tool continuation
+            ├─ complete / blocked → terminal Session
+            └─ propose_tool → terminal tool_proposal_not_allowed failure
+```
+
+Session 最多产生三个 provider turn、两个成功 tool call；显式 Approval retry 的额外 Broker attempt 单独计入账本。
+每轮都重新验证 Scope/Policy/Profile/Registry、Evidence/context、deadline、cleanup 和剩余预算。completed 可幂等
+读取，遗留 STARTED/RESUMING 不自动重放。模型不能构造调用参数，Session 也不能改变 Candidate/Finding、导出
+报告或触发 Submission。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

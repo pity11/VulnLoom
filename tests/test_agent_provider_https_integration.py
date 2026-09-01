@@ -26,7 +26,6 @@ from vulnloom.agent_runtime import (
     AgentContextSourceKind,
     AgentContextStore,
     AgentContinuationService,
-    AgentContinuationStatus,
     AgentContinuationStore,
     AgentMessageRenderer,
     AgentModelRegistration,
@@ -42,6 +41,10 @@ from vulnloom.agent_runtime import (
     AgentRunPlan,
     AgentRunStatus,
     AgentRunStore,
+    AgentSessionCallTemplate,
+    AgentSessionService,
+    AgentSessionStatus,
+    AgentSessionStore,
     AgentToolHandoffLimits,
     AgentToolHandoffPlan,
     AgentToolHandoffService,
@@ -449,9 +452,9 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1"
     or os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
-    reason="set both provider and composition integration flags for the M7.9 probe",
+    reason="set both provider and composition integration flags for the M7.10 probe",
 )
-def test_live_provider_broker_observation_continuation_chain(
+def test_live_provider_fixed_two_tool_session_chain(
     tmp_path: Path, monkeypatch
 ):
     address = _safe_local_ipv4()
@@ -467,7 +470,7 @@ def test_live_provider_broker_observation_continuation_chain(
     target_port = target_server.server_address[1]
     scope = Scope(
         engagement_id=uuid4(),
-        authority_reference="m7.9-full-chain-fixture",
+        authority_reference="m7.10-full-chain-fixture",
         valid_from=now - timedelta(minutes=1),
         valid_until=now + timedelta(minutes=2),
         network_targets=(
@@ -507,9 +510,9 @@ def test_live_provider_broker_observation_continuation_chain(
         tool_registry_digest=registry.digest,
         input_refs=(source_ref,),
         allowed_tools=frozenset({"http.request"}),
-        budget=TaskBudget(wall_seconds=30, model_tokens=100, tool_calls=1),
+        budget=TaskBudget(wall_seconds=30, model_tokens=100, tool_calls=2),
         deadline=now + timedelta(minutes=1),
-        idempotency_key="m7.9:root-task",
+        idempotency_key="m7.10:root-task",
     )
     root_snapshot = AgentContextAssembler().assemble(
         task=task,
@@ -533,10 +536,10 @@ def test_live_provider_broker_observation_continuation_chain(
             url=f"http://{_TARGET_HOST}:{target_port}/objects/7",
             test_class="read_only",
         ),
-        idempotency_key="m7.9:broker-call",
+        idempotency_key="m7.10:broker-call-1",
     )
     reference = ModelCredentialReference.create(
-        environment_variable="VULNLOOM_M79_PROVIDER_KEY"
+        environment_variable="VULNLOOM_M710_PROVIDER_KEY"
     )
     admission = AgentProviderTransportAdmission.create_loopback_probe(
         provider_id="loopback",
@@ -554,7 +557,7 @@ def test_live_provider_broker_observation_continuation_chain(
         allowed_modes=(AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE,),
         max_lifetime_seconds=3600,
     )
-    egress_store = AgentProviderEgressStore(tmp_path / "provider-egress-m79")
+    egress_store = AgentProviderEgressStore(tmp_path / "provider-egress-m710")
     grant = AgentProviderEgressAuthority(
         store=egress_store, issuer_policies=(issuer_policy,)
     ).issue(
@@ -564,7 +567,7 @@ def test_live_provider_broker_observation_continuation_chain(
         now=now,
         expires_at=now + timedelta(minutes=30),
         deadline=now + timedelta(seconds=10),
-        idempotency_key="m7.9:egress",
+        idempotency_key="m7.10:egress",
     )
     codec_registration = AgentProviderCodecRegistration.create(provider_id="loopback")
     registration = AgentModelRegistration.create_subprocess_https(
@@ -586,7 +589,7 @@ def test_live_provider_broker_observation_continuation_chain(
         ),
         created_at=now,
         deadline=now + timedelta(seconds=40),
-        idempotency_key="m7.9:root-run",
+        idempotency_key="m7.10:root-run",
         context_snapshot=root_snapshot,
     )
     _ProviderHandler.decision_payloads = [
@@ -600,21 +603,15 @@ def test_live_provider_broker_observation_continuation_chain(
                 "working_directory": "source",
             },
         },
-        {
-            "kind": "complete",
-            "summary_digest": "e" * 64,
-            "supporting_ref_digests": [],
-            "tool_call": None,
-        },
     ]
-    context_store = AgentContextStore(tmp_path / "m79-context")
+    context_store = AgentContextStore(tmp_path / "m710-context")
     context_store.publish(root_snapshot)
     adapter = SubprocessHttpsProviderAdapter(
         registration=registration,
         admission=admission,
         credential_reference=reference,
         credential_provider=EnvironmentModelCredentialProvider(
-            {reference.environment_variable: "m79-loopback-provider-secret"},
+            {reference.environment_variable: "m710-loopback-provider-secret"},
             allowed_references=(reference,),
         ),
         egress_store=egress_store,
@@ -622,7 +619,7 @@ def test_live_provider_broker_observation_continuation_chain(
         ca_bundle=ca_bundle,
         resolver=_LoopbackResolver(),
     )
-    evidence_store = EvidenceStore(tmp_path / "m79-evidence")
+    evidence_store = EvidenceStore(tmp_path / "m710-evidence")
     broker = ToolBroker(
         scope=scope,
         registry=registry,
@@ -633,12 +630,13 @@ def test_live_provider_broker_observation_continuation_chain(
     )
     try:
         with (
-            AgentRunStore(tmp_path / "m79-root-runs.sqlite3") as root_store,
-            AgentToolHandoffStore(tmp_path / "m79-handoffs.sqlite3") as handoff_store,
-            AgentRunStore(tmp_path / "m79-continuation-runs.sqlite3") as next_store,
+            AgentRunStore(tmp_path / "m710-root-runs.sqlite3") as root_store,
+            AgentToolHandoffStore(tmp_path / "m710-handoffs.sqlite3") as handoff_store,
+            AgentRunStore(tmp_path / "m710-session-runs.sqlite3") as next_store,
             AgentContinuationStore(
-                tmp_path / "m79-continuations.sqlite3"
+                tmp_path / "m710-continuations.sqlite3"
             ) as continuation_store,
+            AgentSessionStore(tmp_path / "m710-sessions.sqlite3") as session_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -654,36 +652,92 @@ def test_live_provider_broker_observation_continuation_chain(
                 limits=AgentToolHandoffLimits(),
                 created_at=now + timedelta(seconds=1),
                 deadline=now + timedelta(seconds=35),
-                idempotency_key="m7.9:handoff",
+                idempotency_key="m7.10:handoff-1",
             )
             handoff_outcome = AgentToolHandoffService(
                 agent_store=root_store,
                 handoff_store=handoff_store,
                 broker=broker,
             ).execute(handoff_plan, now=now + timedelta(seconds=2))
+            next_runtime = OfflineAgentRuntime(
+                store=next_store,
+                registration=registration,
+                adapter=adapter,
+                context_store=context_store,
+                message_renderer=AgentMessageRenderer(),
+            )
+            next_handoff_service = AgentToolHandoffService(
+                agent_store=next_store,
+                handoff_store=handoff_store,
+                broker=broker,
+            )
             continuation_service = AgentContinuationService(
-                root_agent_store=root_store,
+                root_agent_store=next_store,
                 handoff_store=handoff_store,
                 continuation_store=continuation_store,
-                continuation_runtime=OfflineAgentRuntime(
-                    store=next_store,
-                    registration=registration,
-                    adapter=adapter,
-                    context_store=context_store,
-                    message_renderer=AgentMessageRenderer(),
-                ),
+                continuation_runtime=next_runtime,
                 evidence_store=evidence_store,
                 context_store=context_store,
             )
-            continuation_plan = continuation_service.prepare(
-                root_plan=root_plan,
-                handoff_id=handoff_plan.handoff_id,
-                now=now + timedelta(seconds=3),
-                idempotency_key="m7.9:continuation",
-                continuation_run_key="m7.9:continuation-run",
+            session_service = AgentSessionService(
+                root_agent_store=root_store,
+                handoff_store=handoff_store,
+                session_store=session_store,
+                round_runtime=next_runtime,
+                round_handoff_service=next_handoff_service,
+                terminal_continuation_service=continuation_service,
+                evidence_store=evidence_store,
+                context_store=context_store,
             )
-            continuation_outcome = continuation_service.execute(
-                continuation_plan, now=now + timedelta(seconds=4)
+            session_plan = session_service.prepare(
+                root_plan=root_plan,
+                first_handoff_id=handoff_plan.handoff_id,
+                call_templates=(
+                    AgentSessionCallTemplate.create(
+                        profile=profile,
+                        tool_id="http.request",
+                        http=HttpRequestPlan(
+                            method="GET",
+                            url=(
+                                f"http://{_TARGET_HOST}:{target_port}/objects/8"
+                            ),
+                            test_class="read_only",
+                        ),
+                        idempotency_key="m7.10:broker-call-2",
+                    ),
+                ),
+                now=now + timedelta(seconds=3),
+                idempotency_key="m7.10:session",
+                round_run_key="m7.10:round-2-run",
+            )
+            second_commitment = (
+                session_plan.authorized_calls.options[0].call_commitment
+            )
+            _ProviderHandler.decision_payloads.extend(
+                [
+                    {
+                        "kind": "propose_tool",
+                        "summary_digest": None,
+                        "supporting_ref_digests": [],
+                        "tool_call": {
+                            "arguments": [second_commitment],
+                            "tool_id": "http.request",
+                            "working_directory": "source",
+                        },
+                    },
+                    {
+                        "kind": "complete",
+                        "summary_digest": "e" * 64,
+                        "supporting_ref_digests": [],
+                        "tool_call": None,
+                    },
+                ]
+            )
+            session_outcome = session_service.execute(
+                session_plan,
+                now=now + timedelta(seconds=4),
+                terminal_continuation_key="m7.10:terminal-continuation",
+                terminal_run_key="m7.10:terminal-run",
             )
     finally:
         target_server.shutdown()
@@ -696,14 +750,16 @@ def test_live_provider_broker_observation_continuation_chain(
 
     assert root_outcome.status is AgentRunStatus.TOOL_PROPOSED
     assert handoff_outcome.status is AgentToolHandoffStatus.COMPLETED
-    assert continuation_outcome.status is AgentContinuationStatus.COMPLETED
-    assert _TargetHandler.requests == 1
-    assert len(adapter.attempts) == 2
+    assert session_outcome.status is AgentSessionStatus.COMPLETED
+    assert session_outcome.budget.consumed_tool_calls == 2
+    assert session_outcome.budget.provider_attempts == 3
+    assert _TargetHandler.requests == 2
+    assert len(adapter.attempts) == 3
     assert all(item.process_terminated for item in adapter.attempts)
     assert all(item.network_opened for item in adapter.attempts)
-    assert continuation_plan.continuation_plan.task.allowed_tools == frozenset()
-    assert continuation_plan.continuation_plan.task.budget.tool_calls == 0
-    assert _TARGET_BODY not in (tmp_path / "m79-continuations.sqlite3").read_bytes()
-    assert b"m79-loopback-provider-secret" not in (
-        tmp_path / "m79-continuations.sqlite3"
+    assert session_outcome.terminal_continuation is not None
+    assert session_outcome.terminal_continuation.agent_outcome.tool_intent is None
+    assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
+    assert b"m710-loopback-provider-secret" not in (
+        tmp_path / "m710-sessions.sqlite3"
     ).read_bytes()

@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_tool_rounds": {
+      "default": 2,
+      "maximum": 2,
+      "minimum": 2,
+      "title": "Max Tool Rounds",
+      "type": "integer"
+    },
+    "max_provider_turns": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 3,
+      "title": "Max Provider Turns",
+      "type": "integer"
+    },
+    "max_authorized_calls_per_round": {
+      "default": 8,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Max Authorized Calls Per Round",
+      "type": "integer"
+    }
+  },
+  "title": "AgentSessionLimits",
+  "type": "object"
+}

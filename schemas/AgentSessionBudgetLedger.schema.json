@@ -1,0 +1,75 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "original_model_tokens": {
+      "exclusiveMinimum": 0,
+      "title": "Original Model Tokens",
+      "type": "integer"
+    },
+    "original_tool_calls": {
+      "maximum": 2,
+      "minimum": 2,
+      "title": "Original Tool Calls",
+      "type": "integer"
+    },
+    "consumed_model_tokens": {
+      "minimum": 0,
+      "title": "Consumed Model Tokens",
+      "type": "integer"
+    },
+    "remaining_model_tokens": {
+      "minimum": 0,
+      "title": "Remaining Model Tokens",
+      "type": "integer"
+    },
+    "consumed_agent_steps": {
+      "maximum": 24,
+      "minimum": 1,
+      "title": "Consumed Agent Steps",
+      "type": "integer"
+    },
+    "consumed_tool_calls": {
+      "maximum": 2,
+      "minimum": 1,
+      "title": "Consumed Tool Calls",
+      "type": "integer"
+    },
+    "remaining_tool_calls": {
+      "minimum": 0,
+      "title": "Remaining Tool Calls",
+      "type": "integer"
+    },
+    "provider_attempts": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Provider Attempts",
+      "type": "integer"
+    },
+    "broker_attempts": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Broker Attempts",
+      "type": "integer"
+    },
+    "remaining_wall_seconds": {
+      "maximum": 86400,
+      "minimum": 0,
+      "title": "Remaining Wall Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "original_model_tokens",
+    "original_tool_calls",
+    "consumed_model_tokens",
+    "remaining_model_tokens",
+    "consumed_agent_steps",
+    "consumed_tool_calls",
+    "remaining_tool_calls",
+    "provider_attempts",
+    "broker_attempts",
+    "remaining_wall_seconds"
+  ],
+  "title": "AgentSessionBudgetLedger",
+  "type": "object"
+}

@@ -447,7 +447,7 @@ M7.8 不允许 Agent 直接调用 Runner、socket、Docker 或工具 adapter，�
 
 M7.9 不增加公网 provider/目标能力、任意 provider 参数、Agent 直连工具、自动 Approval、无限 Agent loop、Target build、Candidate/Finding 转换、报告导出或 Submission。它只完成一次有界、可审计的 Observation 反馈闭环；任何领域状态变化仍由后续独立的确定性服务和门禁负责。
 
-### M7.10：跨轮次密封 Session Ledger 与固定双工具闭环（规划）
+### M7.10：跨轮次密封 Session Ledger 与固定双工具闭环（已完成首版）
 
 - 新增内容寻址的 `AgentSessionPlan` 与权威 Session Ledger，绑定根 Validator Task、model/context registration、绝对 deadline、总 token/step/tool/provider-attempt/Broker-attempt 预算，以及有序的 round identity；所有后续轮次只能从权威 store 重读前序 outcome、handoff、Observation 和 cleanup proof。
 - 首版 session 固定最多两个工具轮次和三个 provider turn，不提供通用递归循环。每个工具轮次仍最多一个 `propose_tool`；第二次成功 handoff 后的 provider turn 必须终止为 `complete` 或 `blocked`，第三次提议、round fork/cycle、重复 Observation 或重复 call commitment 一律 fail-closed。

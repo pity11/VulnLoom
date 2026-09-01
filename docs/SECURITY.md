@@ -229,6 +229,16 @@ deadline、非 completed handoff、cleanup 不完整、Observation 重放和遗�
 fail-closed。continuation 不能产生可执行 tool intent、Approval、Candidate/Finding 或 Submission；再次工具提案
 只会形成稳定失败。
 
+M7.10 只在 M7.9 之外增加一个固定第二工具轮次，不提供通用 Agent loop。第二轮 Task 的权限、绝对 deadline
+和剩余预算从权威首轮链派生；模型只看到可信 control 中有限、内容寻址的 opaque call commitments。每个
+commitment 对应控制面预构造且经 Broker preflight 的 exact read-only 调用，模型不能生成 URL、HTTP 参数、
+credential、Scope 或 network grant。
+
+Session 在每个外部动作前重读 Agent/handoff/Observation/Evidence/context checkpoint 并扣减累计预算；未列
+commitment、重复消费、跨轮漂移、第三次工具提议、超时、清理不完整和遗留 STARTED/RESUMING 均 fail-closed。
+Approval-required 只进入持久等待，不自动审批或轮询；唯一恢复路径是带有效 Approval 的 M7.8 attempt-2，且
+不会扩大两次成功 tool-call 上限。Session outcome 没有 Candidate/Finding/Report/Submission 状态转换能力。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

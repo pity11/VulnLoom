@@ -107,6 +107,8 @@ class AgentMessageEnvelope(DomainModel):
     prompt_template_id: Digest
     decision_schema_digest: Digest
     allowed_tools: frozenset[ToolId]
+    authorized_call_set_id: Digest | None = None
+    authorized_call_commitments: Annotated[tuple[Digest, ...], Field(max_length=8)] = ()
     tool_call_budget: int = Field(ge=0)
     max_output_tokens: int = Field(gt=0, le=65_536)
     messages: Annotated[tuple[AgentProviderMessage, ...], Field(min_length=2, max_length=2)]
@@ -166,6 +168,9 @@ class AgentMessageRenderer:
             or request.worker_role is not plan.task.worker_role
             or request.context_digest != snapshot.snapshot_id
             or request.allowed_tools != plan.task.allowed_tools
+            or request.authorized_call_set_id != plan.authorized_call_set_id
+            or request.authorized_call_commitments
+            != plan.authorized_call_commitments
             or request.decision_schema_digest != plan.decision_schema_digest
             or request.message_envelope_id is not None
         ):
@@ -194,15 +199,29 @@ class AgentMessageRenderer:
                     "untrusted": True,
                 }
             )
+        control = {
+            "allowed_tools": sorted(plan.task.allowed_tools),
+            "can_execute_tools": False,
+            "decision_schema_digest": plan.decision_schema_digest,
+            "max_output_tokens": request.max_output_tokens,
+            "tool_call_budget": plan.task.budget.tool_calls,
+        }
+        if plan.authorized_call_set_id is not None:
+            control.update(
+                {
+                    "authorized_call_set_id": plan.authorized_call_set_id,
+                    "authorized_call_commitments": list(
+                        plan.authorized_call_commitments
+                    ),
+                }
+            )
         user_payload = {
-            "contract": "vulnloom.agent-user-message.v1",
-            "control": {
-                "allowed_tools": sorted(plan.task.allowed_tools),
-                "can_execute_tools": False,
-                "decision_schema_digest": plan.decision_schema_digest,
-                "max_output_tokens": request.max_output_tokens,
-                "tool_call_budget": plan.task.budget.tool_calls,
-            },
+            "contract": (
+                "vulnloom.agent-user-message.v2"
+                if plan.authorized_call_set_id is not None
+                else "vulnloom.agent-user-message.v1"
+            ),
+            "control": control,
             "task": {
                 "context_snapshot_id": snapshot.snapshot_id,
                 "scope_binding_digest": canonical_digest(
@@ -245,6 +264,8 @@ class AgentMessageRenderer:
             "prompt_template_id": template.template_id,
             "decision_schema_digest": plan.decision_schema_digest,
             "allowed_tools": plan.task.allowed_tools,
+            "authorized_call_set_id": plan.authorized_call_set_id,
+            "authorized_call_commitments": plan.authorized_call_commitments,
             "tool_call_budget": plan.task.budget.tool_calls,
             "max_output_tokens": request.max_output_tokens,
             "messages": (system, user),
@@ -307,15 +328,30 @@ def _validate_user_message(envelope: AgentMessageEnvelope) -> None:
     control = payload["control"]
     task = payload["task"]
     context = payload["untrusted_context"]
-    if payload["contract"] != "vulnloom.agent-user-message.v1":
+    expected_contract = (
+        "vulnloom.agent-user-message.v2"
+        if envelope.authorized_call_set_id is not None
+        else "vulnloom.agent-user-message.v1"
+    )
+    if payload["contract"] != expected_contract:
         raise ValueError("Agent user message contract mismatch")
-    if not isinstance(control, dict) or control != {
+    expected_control = {
         "allowed_tools": sorted(envelope.allowed_tools),
         "can_execute_tools": False,
         "decision_schema_digest": envelope.decision_schema_digest,
         "max_output_tokens": envelope.max_output_tokens,
         "tool_call_budget": envelope.tool_call_budget,
-    }:
+    }
+    if envelope.authorized_call_set_id is not None:
+        expected_control.update(
+            {
+                "authorized_call_set_id": envelope.authorized_call_set_id,
+                "authorized_call_commitments": list(
+                    envelope.authorized_call_commitments
+                ),
+            }
+        )
+    if not isinstance(control, dict) or control != expected_control:
         raise ValueError("Agent user message control binding mismatch")
     if (
         not isinstance(task, dict)

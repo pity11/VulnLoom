@@ -24,239 +24,106 @@
       "title": "AgentCleanupReport",
       "type": "object"
     },
-    "AgentContextFragment": {
+    "AgentContinuationCleanup": {
       "additionalProperties": false,
       "properties": {
-        "ordinal": {
-          "maximum": 1023,
-          "minimum": 0,
-          "title": "Ordinal",
-          "type": "integer"
+        "evidence_buffers_released": {
+          "title": "Evidence Buffers Released",
+          "type": "boolean"
         },
-        "source_ref_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Source Ref Digest",
-          "type": "string"
+        "context_reverified": {
+          "title": "Context Reverified",
+          "type": "boolean"
         },
-        "kind": {
-          "$ref": "#/$defs/AgentContextSourceKind"
+        "raw_provider_response_absent": {
+          "title": "Raw Provider Response Absent",
+          "type": "boolean"
         },
-        "redacted_text": {
-          "title": "Redacted Text",
-          "type": "string"
+        "no_tool_executed": {
+          "title": "No Tool Executed",
+          "type": "boolean"
         },
-        "text_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Text Digest",
-          "type": "string"
-        },
-        "byte_size": {
-          "maximum": 1048576,
-          "minimum": 0,
-          "title": "Byte Size",
-          "type": "integer"
-        },
-        "untrusted": {
-          "default": true,
-          "title": "Untrusted",
+        "no_vulnloom_domain_state_changed": {
+          "title": "No Vulnloom Domain State Changed",
           "type": "boolean"
         }
       },
       "required": [
-        "ordinal",
-        "source_ref_digest",
-        "kind",
-        "redacted_text",
-        "text_digest",
-        "byte_size"
+        "evidence_buffers_released",
+        "context_reverified",
+        "raw_provider_response_absent",
+        "no_tool_executed",
+        "no_vulnloom_domain_state_changed"
       ],
-      "title": "AgentContextFragment",
+      "title": "AgentContinuationCleanup",
       "type": "object"
     },
-    "AgentContextSnapshot": {
+    "AgentContinuationOutcome": {
       "additionalProperties": false,
       "properties": {
-        "snapshot_id": {
+        "outcome_id": {
           "pattern": "^[0-9a-f]{64}$",
-          "title": "Snapshot Id",
+          "title": "Outcome Id",
           "type": "string"
         },
-        "task_id": {
-          "format": "uuid",
-          "title": "Task Id",
-          "type": "string"
-        },
-        "task_digest": {
+        "continuation_id": {
           "pattern": "^[0-9a-f]{64}$",
-          "title": "Task Digest",
+          "title": "Continuation Id",
           "type": "string"
         },
-        "target_id": {
-          "format": "uuid",
-          "title": "Target Id",
-          "type": "string"
-        },
-        "target_version": {
-          "minLength": 1,
-          "title": "Target Version",
-          "type": "string"
-        },
-        "scope_id": {
-          "format": "uuid",
-          "title": "Scope Id",
-          "type": "string"
-        },
-        "scope_version": {
-          "minimum": 1,
-          "title": "Scope Version",
-          "type": "integer"
-        },
-        "input_refs_digest": {
+        "root_plan_id": {
           "pattern": "^[0-9a-f]{64}$",
-          "title": "Input Refs Digest",
+          "title": "Root Plan Id",
           "type": "string"
         },
-        "input_ref_digests": {
-          "items": {
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "title": "Input Ref Digests",
-          "type": "array"
-        },
-        "redaction_policy": {
-          "maxLength": 128,
-          "minLength": 1,
-          "title": "Redaction Policy",
-          "type": "string"
-        },
-        "redaction_policy_digest": {
+        "observation_id": {
           "pattern": "^[0-9a-f]{64}$",
-          "title": "Redaction Policy Digest",
+          "title": "Observation Id",
           "type": "string"
         },
-        "fragments": {
-          "items": {
-            "$ref": "#/$defs/AgentContextFragment"
-          },
-          "maxItems": 1024,
-          "title": "Fragments",
-          "type": "array"
+        "continuation_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Continuation Plan Id",
+          "type": "string"
         },
-        "total_bytes": {
-          "maximum": 4194304,
-          "minimum": 0,
-          "title": "Total Bytes",
-          "type": "integer"
+        "status": {
+          "$ref": "#/$defs/AgentContinuationStatus"
         },
-        "assembled_at": {
+        "agent_outcome": {
+          "$ref": "#/$defs/AgentRunOutcome"
+        },
+        "cleanup": {
+          "$ref": "#/$defs/AgentContinuationCleanup"
+        },
+        "completed_at": {
           "format": "date-time",
-          "title": "Assembled At",
+          "title": "Completed At",
           "type": "string"
         }
       },
       "required": [
-        "snapshot_id",
-        "task_id",
-        "task_digest",
-        "target_id",
-        "target_version",
-        "scope_id",
-        "scope_version",
-        "input_refs_digest",
-        "input_ref_digests",
-        "redaction_policy",
-        "redaction_policy_digest",
-        "fragments",
-        "total_bytes",
-        "assembled_at"
+        "outcome_id",
+        "continuation_id",
+        "root_plan_id",
+        "observation_id",
+        "continuation_plan_id",
+        "status",
+        "agent_outcome",
+        "cleanup",
+        "completed_at"
       ],
-      "title": "AgentContextSnapshot",
+      "title": "AgentContinuationOutcome",
       "type": "object"
     },
-    "AgentContextSourceKind": {
+    "AgentContinuationStatus": {
       "enum": [
-        "task_summary",
-        "evidence_summary",
-        "observation_summary"
+        "completed",
+        "blocked",
+        "failed",
+        "timed_out"
       ],
-      "title": "AgentContextSourceKind",
+      "title": "AgentContinuationStatus",
       "type": "string"
-    },
-    "AgentContinuationBudgetLedger": {
-      "additionalProperties": false,
-      "properties": {
-        "original_model_tokens": {
-          "exclusiveMinimum": 0,
-          "title": "Original Model Tokens",
-          "type": "integer"
-        },
-        "consumed_model_tokens": {
-          "minimum": 0,
-          "title": "Consumed Model Tokens",
-          "type": "integer"
-        },
-        "remaining_model_tokens": {
-          "exclusiveMinimum": 0,
-          "title": "Remaining Model Tokens",
-          "type": "integer"
-        },
-        "consumed_agent_steps": {
-          "maximum": 8,
-          "minimum": 1,
-          "title": "Consumed Agent Steps",
-          "type": "integer"
-        },
-        "consumed_tool_calls": {
-          "minimum": 1,
-          "title": "Consumed Tool Calls",
-          "type": "integer"
-        },
-        "remaining_wall_seconds": {
-          "exclusiveMinimum": 0,
-          "maximum": 86400,
-          "title": "Remaining Wall Seconds",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "original_model_tokens",
-        "consumed_model_tokens",
-        "remaining_model_tokens",
-        "consumed_agent_steps",
-        "consumed_tool_calls",
-        "remaining_wall_seconds"
-      ],
-      "title": "AgentContinuationBudgetLedger",
-      "type": "object"
-    },
-    "AgentRunLimits": {
-      "additionalProperties": false,
-      "properties": {
-        "max_steps": {
-          "default": 2,
-          "maximum": 8,
-          "minimum": 1,
-          "title": "Max Steps",
-          "type": "integer"
-        },
-        "max_output_tokens_per_step": {
-          "default": 4096,
-          "exclusiveMinimum": 0,
-          "maximum": 65536,
-          "title": "Max Output Tokens Per Step",
-          "type": "integer"
-        },
-        "timeout_seconds": {
-          "default": 60.0,
-          "exclusiveMinimum": 0,
-          "maximum": 600,
-          "title": "Timeout Seconds",
-          "type": "number"
-        }
-      },
-      "title": "AgentRunLimits",
-      "type": "object"
     },
     "AgentRunOutcome": {
       "additionalProperties": false,
@@ -359,114 +226,6 @@
       "title": "AgentRunOutcome",
       "type": "object"
     },
-    "AgentRunPlan": {
-      "additionalProperties": false,
-      "properties": {
-        "plan_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Plan Id",
-          "type": "string"
-        },
-        "task": {
-          "$ref": "#/$defs/TaskEnvelope"
-        },
-        "task_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Task Digest",
-          "type": "string"
-        },
-        "model_registration_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Model Registration Id",
-          "type": "string"
-        },
-        "model_registration_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Model Registration Digest",
-          "type": "string"
-        },
-        "context_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Context Digest",
-          "type": "string"
-        },
-        "context_snapshot_id": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Context Snapshot Id"
-        },
-        "authorized_call_set_id": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Authorized Call Set Id"
-        },
-        "authorized_call_commitments": {
-          "default": [],
-          "items": {
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "maxItems": 8,
-          "title": "Authorized Call Commitments",
-          "type": "array"
-        },
-        "decision_schema_digest": {
-          "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Decision Schema Digest",
-          "type": "string"
-        },
-        "limits": {
-          "$ref": "#/$defs/AgentRunLimits"
-        },
-        "created_at": {
-          "format": "date-time",
-          "title": "Created At",
-          "type": "string"
-        },
-        "deadline": {
-          "format": "date-time",
-          "title": "Deadline",
-          "type": "string"
-        },
-        "idempotency_key": {
-          "maxLength": 256,
-          "minLength": 1,
-          "title": "Idempotency Key",
-          "type": "string"
-        }
-      },
-      "required": [
-        "plan_id",
-        "task",
-        "task_digest",
-        "model_registration_id",
-        "model_registration_digest",
-        "context_digest",
-        "limits",
-        "created_at",
-        "deadline",
-        "idempotency_key"
-      ],
-      "title": "AgentRunPlan",
-      "type": "object"
-    },
     "AgentRunStatus": {
       "enum": [
         "tool_proposed",
@@ -476,6 +235,127 @@
         "timed_out"
       ],
       "title": "AgentRunStatus",
+      "type": "string"
+    },
+    "AgentSessionBudgetLedger": {
+      "additionalProperties": false,
+      "properties": {
+        "original_model_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Original Model Tokens",
+          "type": "integer"
+        },
+        "original_tool_calls": {
+          "maximum": 2,
+          "minimum": 2,
+          "title": "Original Tool Calls",
+          "type": "integer"
+        },
+        "consumed_model_tokens": {
+          "minimum": 0,
+          "title": "Consumed Model Tokens",
+          "type": "integer"
+        },
+        "remaining_model_tokens": {
+          "minimum": 0,
+          "title": "Remaining Model Tokens",
+          "type": "integer"
+        },
+        "consumed_agent_steps": {
+          "maximum": 24,
+          "minimum": 1,
+          "title": "Consumed Agent Steps",
+          "type": "integer"
+        },
+        "consumed_tool_calls": {
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Consumed Tool Calls",
+          "type": "integer"
+        },
+        "remaining_tool_calls": {
+          "minimum": 0,
+          "title": "Remaining Tool Calls",
+          "type": "integer"
+        },
+        "provider_attempts": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Provider Attempts",
+          "type": "integer"
+        },
+        "broker_attempts": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Broker Attempts",
+          "type": "integer"
+        },
+        "remaining_wall_seconds": {
+          "maximum": 86400,
+          "minimum": 0,
+          "title": "Remaining Wall Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "original_model_tokens",
+        "original_tool_calls",
+        "consumed_model_tokens",
+        "remaining_model_tokens",
+        "consumed_agent_steps",
+        "consumed_tool_calls",
+        "remaining_tool_calls",
+        "provider_attempts",
+        "broker_attempts",
+        "remaining_wall_seconds"
+      ],
+      "title": "AgentSessionBudgetLedger",
+      "type": "object"
+    },
+    "AgentSessionCleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_buffers_released": {
+          "title": "Evidence Buffers Released",
+          "type": "boolean"
+        },
+        "context_reverified": {
+          "title": "Context Reverified",
+          "type": "boolean"
+        },
+        "raw_provider_responses_absent": {
+          "title": "Raw Provider Responses Absent",
+          "type": "boolean"
+        },
+        "broker_authorization_enforced": {
+          "title": "Broker Authorization Enforced",
+          "type": "boolean"
+        },
+        "no_vulnloom_domain_state_changed": {
+          "title": "No Vulnloom Domain State Changed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidence_buffers_released",
+        "context_reverified",
+        "raw_provider_responses_absent",
+        "broker_authorization_enforced",
+        "no_vulnloom_domain_state_changed"
+      ],
+      "title": "AgentSessionCleanup",
+      "type": "object"
+    },
+    "AgentSessionStatus": {
+      "enum": [
+        "completed",
+        "blocked",
+        "denied",
+        "approval_required",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AgentSessionStatus",
       "type": "string"
     },
     "AgentToolHandoffCleanup": {
@@ -968,147 +848,6 @@
       "title": "RedirectRecord",
       "type": "object"
     },
-    "TaskBudget": {
-      "additionalProperties": false,
-      "properties": {
-        "wall_seconds": {
-          "exclusiveMinimum": 0,
-          "maximum": 86400,
-          "title": "Wall Seconds",
-          "type": "integer"
-        },
-        "model_tokens": {
-          "minimum": 0,
-          "title": "Model Tokens",
-          "type": "integer"
-        },
-        "tool_calls": {
-          "minimum": 0,
-          "title": "Tool Calls",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "wall_seconds",
-        "model_tokens",
-        "tool_calls"
-      ],
-      "title": "TaskBudget",
-      "type": "object"
-    },
-    "TaskEnvelope": {
-      "additionalProperties": false,
-      "properties": {
-        "task_id": {
-          "format": "uuid",
-          "title": "Task Id",
-          "type": "string"
-        },
-        "engagement_id": {
-          "format": "uuid",
-          "title": "Engagement Id",
-          "type": "string"
-        },
-        "target_id": {
-          "format": "uuid",
-          "title": "Target Id",
-          "type": "string"
-        },
-        "target_version": {
-          "minLength": 1,
-          "title": "Target Version",
-          "type": "string"
-        },
-        "scope_id": {
-          "format": "uuid",
-          "title": "Scope Id",
-          "type": "string"
-        },
-        "worker_role": {
-          "$ref": "#/$defs/WorkerRole"
-        },
-        "scope_version": {
-          "minimum": 1,
-          "title": "Scope Version",
-          "type": "integer"
-        },
-        "policy_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Policy Digest",
-          "type": "string"
-        },
-        "sandbox_profile_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Sandbox Profile Digest",
-          "type": "string"
-        },
-        "tool_registry_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Tool Registry Digest",
-          "type": "string"
-        },
-        "input_refs": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Input Refs",
-          "type": "array"
-        },
-        "allowed_tools": {
-          "items": {
-            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
-            "type": "string"
-          },
-          "title": "Allowed Tools",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "budget": {
-          "$ref": "#/$defs/TaskBudget"
-        },
-        "deadline": {
-          "format": "date-time",
-          "title": "Deadline",
-          "type": "string"
-        },
-        "idempotency_key": {
-          "minLength": 1,
-          "title": "Idempotency Key",
-          "type": "string"
-        }
-      },
-      "required": [
-        "engagement_id",
-        "target_id",
-        "target_version",
-        "scope_id",
-        "worker_role",
-        "scope_version",
-        "policy_digest",
-        "sandbox_profile_digest",
-        "tool_registry_digest",
-        "input_refs",
-        "allowed_tools",
-        "budget",
-        "deadline",
-        "idempotency_key"
-      ],
-      "title": "TaskEnvelope",
-      "type": "object"
-    },
-    "WorkerRole": {
-      "enum": [
-        "scope_interpreter",
-        "source_mapper",
-        "hypothesis",
-        "analyzer",
-        "validator",
-        "critic",
-        "reporter"
-      ],
-      "title": "WorkerRole",
-      "type": "string"
-    },
     "WorkingDirectory": {
       "enum": [
         "source",
@@ -1121,88 +860,126 @@
   },
   "additionalProperties": false,
   "properties": {
-    "continuation_id": {
+    "outcome_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Continuation Id",
+      "title": "Outcome Id",
       "type": "string"
     },
-    "root_plan": {
-      "$ref": "#/$defs/AgentRunPlan"
-    },
-    "root_plan_digest": {
+    "session_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Root Plan Digest",
+      "title": "Session Id",
       "type": "string"
     },
-    "root_outcome": {
+    "root_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Root Plan Id",
+      "type": "string"
+    },
+    "first_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "First Observation Id",
+      "type": "string"
+    },
+    "round_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Round Plan Id",
+      "type": "string"
+    },
+    "authorized_call_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorized Call Set Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/AgentSessionStatus"
+    },
+    "round_agent_outcome": {
       "$ref": "#/$defs/AgentRunOutcome"
     },
-    "root_outcome_digest": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Root Outcome Digest",
-      "type": "string"
+    "selected_call_commitment": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Call Commitment"
     },
-    "handoff_outcome": {
-      "$ref": "#/$defs/AgentToolHandoffOutcome"
+    "selected_broker_call_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Broker Call Digest"
     },
-    "handoff_outcome_digest": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Handoff Outcome Digest",
-      "type": "string"
+    "approval_handoff_outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentToolHandoffOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
-    "observation_id": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Observation Id",
-      "type": "string"
+    "second_handoff_outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentToolHandoffOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
-    "context_snapshot": {
-      "$ref": "#/$defs/AgentContextSnapshot"
-    },
-    "continuation_plan": {
-      "$ref": "#/$defs/AgentRunPlan"
-    },
-    "continuation_plan_digest": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Continuation Plan Digest",
-      "type": "string"
+    "terminal_continuation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentContinuationOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "budget": {
-      "$ref": "#/$defs/AgentContinuationBudgetLedger"
+      "$ref": "#/$defs/AgentSessionBudgetLedger"
     },
-    "created_at": {
+    "cleanup": {
+      "$ref": "#/$defs/AgentSessionCleanup"
+    },
+    "completed_at": {
       "format": "date-time",
-      "title": "Created At",
-      "type": "string"
-    },
-    "deadline": {
-      "format": "date-time",
-      "title": "Deadline",
-      "type": "string"
-    },
-    "idempotency_key": {
-      "maxLength": 256,
-      "minLength": 1,
-      "title": "Idempotency Key",
+      "title": "Completed At",
       "type": "string"
     }
   },
   "required": [
-    "continuation_id",
-    "root_plan",
-    "root_plan_digest",
-    "root_outcome",
-    "root_outcome_digest",
-    "handoff_outcome",
-    "handoff_outcome_digest",
-    "observation_id",
-    "context_snapshot",
-    "continuation_plan",
-    "continuation_plan_digest",
+    "outcome_id",
+    "session_id",
+    "root_plan_id",
+    "first_observation_id",
+    "round_plan_id",
+    "authorized_call_set_id",
+    "status",
+    "round_agent_outcome",
     "budget",
-    "created_at",
-    "deadline",
-    "idempotency_key"
+    "cleanup",
+    "completed_at"
   ],
-  "title": "AgentContinuationPlan",
+  "title": "AgentSessionOutcome",
   "type": "object"
 }

@@ -545,3 +545,24 @@ one step. `complete` and `blocked` remain terminal; a second tool proposal is re
 Task and stored as a stable failure. The Admission composition joins the isolated loopback provider,
 pinned Broker and temporary authorized target, but adds no public network authority or domain-state
 transition.
+
+## 33. M7.10 fixed two-tool Session ledger
+
+M7.10 composes the existing Runtime, handoff, Evidence and continuation boundaries under one
+content-addressed `AgentSessionPlan`. The plan begins only after an authoritative completed first
+tool round. It derives one new Validator Task with a single remaining tool call, a bounded redacted
+Observation context, inherited authority and deadline, and a content-addressed finite set of exact
+read-only Broker-call commitments. Those commitments appear only in trusted message control; context
+fragments remain untrusted and cannot add options.
+
+The Session store claims the first Observation before another provider action and records cumulative
+tokens, steps, consumed tool calls, provider turns, Broker attempts and remaining wall time. A listed
+second proposal still enters the ordinary M7.8 handoff and Broker. A successful second Observation
+enters the ordinary M7.9 zero-tool continuation; a third proposal therefore becomes a stable failure.
+An Approval-required second handoff moves the Session to a durable wait state. Only one explicit
+M7.8 attempt-2 retry with an independently valid Approval may resume it, and crash recovery never
+replays provider or Broker actions automatically.
+
+The fixed shape permits at most three provider turns and two successful tool calls. It introduces no
+general recursion, model-built request parameters, Agent-owned transport, public target/provider,
+target build, Candidate/Finding transition, report export or Submission capability.

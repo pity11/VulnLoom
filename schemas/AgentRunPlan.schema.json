@@ -213,6 +213,29 @@
       "default": null,
       "title": "Context Snapshot Id"
     },
+    "authorized_call_set_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorized Call Set Id"
+    },
+    "authorized_call_commitments": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Authorized Call Commitments",
+      "type": "array"
+    },
     "decision_schema_digest": {
       "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
       "pattern": "^[0-9a-f]{64}$",

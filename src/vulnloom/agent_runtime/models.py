@@ -232,6 +232,8 @@ class AgentRunPlan(DomainModel):
     model_registration_digest: Digest
     context_digest: Digest
     context_snapshot_id: Digest | None = None
+    authorized_call_set_id: Digest | None = None
+    authorized_call_commitments: Annotated[tuple[Digest, ...], Field(max_length=8)] = ()
     decision_schema_digest: Digest = AGENT_DECISION_SCHEMA_DIGEST
     limits: AgentRunLimits
     created_at: AwareDatetime
@@ -251,6 +253,18 @@ class AgentRunPlan(DomainModel):
         )
         if self.context_digest != expected_context:
             raise ValueError("Agent context digest mismatch")
+        if (self.authorized_call_set_id is None) != (
+            not self.authorized_call_commitments
+        ):
+            raise ValueError("Agent authorized call-set binding is incomplete")
+        if self.authorized_call_commitments and (
+            self.task.worker_role is not WorkerRole.VALIDATOR
+            or self.task.budget.tool_calls != 1
+            or not self.task.allowed_tools
+            or self.authorized_call_commitments
+            != tuple(sorted(set(self.authorized_call_commitments)))
+        ):
+            raise ValueError("Agent authorized call set violates the Validator boundary")
         if self.decision_schema_digest != AGENT_DECISION_SCHEMA_DIGEST:
             raise ValueError("Agent decision schema is not trusted")
         if self.plan_id != agent_run_plan_digest(self):
@@ -268,6 +282,8 @@ class AgentRunPlan(DomainModel):
         deadline: datetime,
         idempotency_key: str,
         context_snapshot: AgentContextSnapshot | None = None,
+        authorized_call_set_id: str | None = None,
+        authorized_call_commitments: tuple[str, ...] = (),
     ) -> AgentRunPlan:
         if task.worker_role not in registration.supported_roles:
             raise ValueError("Agent model registration does not support the Worker role")
@@ -277,6 +293,7 @@ class AgentRunPlan(DomainModel):
             raise ValueError("Agent step output limit exceeds the model registration")
         if context_snapshot is not None:
             context_snapshot.assert_for_task(task)
+        commitments = tuple(sorted(set(authorized_call_commitments)))
         values = {
             "task": task,
             "task_digest": canonical_digest(task.model_dump(mode="python")),
@@ -292,6 +309,8 @@ class AgentRunPlan(DomainModel):
             "context_snapshot_id": (
                 None if context_snapshot is None else context_snapshot.snapshot_id
             ),
+            "authorized_call_set_id": authorized_call_set_id,
+            "authorized_call_commitments": commitments,
             "decision_schema_digest": AGENT_DECISION_SCHEMA_DIGEST,
             "limits": limits,
             "created_at": created_at,
@@ -364,6 +383,8 @@ class AgentStepRequest(DomainModel):
     context_digest: Digest
     message_envelope_id: Digest | None = None
     allowed_tools: frozenset[ToolId]
+    authorized_call_set_id: Digest | None = None
+    authorized_call_commitments: Annotated[tuple[Digest, ...], Field(max_length=8)] = ()
     decision_schema_digest: Digest
     remaining_model_tokens: int = Field(gt=0)
     max_output_tokens: int = Field(gt=0, le=65_536)
@@ -394,6 +415,8 @@ class AgentStepRequest(DomainModel):
             "context_digest": plan.context_digest,
             "message_envelope_id": message_envelope_id,
             "allowed_tools": plan.task.allowed_tools,
+            "authorized_call_set_id": plan.authorized_call_set_id,
+            "authorized_call_commitments": plan.authorized_call_commitments,
             "decision_schema_digest": plan.decision_schema_digest,
             "remaining_model_tokens": remaining_model_tokens,
             "max_output_tokens": min(
