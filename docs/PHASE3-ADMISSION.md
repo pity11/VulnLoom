@@ -83,6 +83,12 @@ The M8.2 completed Validation outcome binding admission run is GitHub Actions
 [`33529822053`](https://github.com/pity11/VulnLoom/actions/runs/33529822053). Both completed
 successfully on 2026-09-02 and qualify the M8.2 Agent Validation outcome binding row below.
 
+The M8.3 human Critic Intake admission run is GitHub Actions
+[`33536352834`](https://github.com/pity11/VulnLoom/actions/runs/33536352834) for commit
+`38a7635b8803d9c609996dc054347b953af15f9a`. The standard Python CI for the same commit is
+[`33536352814`](https://github.com/pity11/VulnLoom/actions/runs/33536352814). Both completed
+successfully on 2026-09-02 and qualify the M8.3 human Critic Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -108,6 +114,7 @@ successfully on 2026-09-02 and qualify the M8.2 Agent Validation outcome binding
 | Agent session audit | A completed fixed-shape Session is reopened from authoritative Agent, handoff, continuation and Evidence stores; ordered commitments and cumulative budgets are recomputed before a digest-only, read-only audit bundle and deterministic non-authoritative recommendation are published | PASS (`33517750165`) |
 | Agent Validation Intake | A human accepts one exact Control-Plane-built ValidationPlan bound to an immutable completed Audit recommendation and CandidateSet; tampering is rejected before checkpoint and Runner, Broker, provider and target call counts remain unchanged | PASS (`33524481072`) |
 | Agent Validation outcome binding | One explicitly completed Validation is reopened with its accepted Intake, Audit, Candidate, exact plan, run and Evidence provenance; outcome tampering is rejected before checkpoint and read-only binding leaves Runner, Broker, provider and target call counts unchanged | PASS (`33529822161`) |
+| Agent Critic Intake | A human selects one exact independently constructed CriticPlan bound to a reproduced M8.2 outcome, immutable Audit/Candidate provenance and verified Evidence; Intake adds no Critic execution, Candidate mutation, Runner, Broker, provider or target call | PASS (`33536352834`) |
 
 ## Reproduction
 
@@ -230,3 +237,13 @@ drift, duplicate consumption, unfinished recovery and SQLite/schema absence of r
 This PASS qualifies only provenance binding for an already completed Validation; it does not qualify
 automatic Validation, retry, Approval, Candidate mutation, Critic verdict, Finding creation, public
 egress, Target build or Submission.
+
+M8.3 extends the same composition by making the explicit local Validation deterministically reproduced,
+binding that completed outcome through M8.2, constructing an independent four-angle CriticPlan, and
+recording one human `accept`. Critic Intake reopens the Audit artifact, CandidateSet, binding,
+Validation checkpoint and Evidence, but never calls `DeterministicCritic`. Runner calls remain at one,
+target requests remain at two, provider attempts remain at three, and the original Candidate remains
+`PROPOSED`. Ordinary CI covers accept/reject/defer, non-reproduced outcomes, plan drift, Evidence
+integrity, duplicate consumption, unfinished recovery and digest-only schema/SQLite persistence. This
+PASS qualifies only human selection of an exact CriticPlan; it does not qualify Critic execution,
+automatic verdict acceptance, Candidate/Finding promotion, public egress, report export or Submission.
