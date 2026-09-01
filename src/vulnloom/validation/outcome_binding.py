@@ -5,11 +5,15 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from vulnloom.agent_runtime import AgentSessionAuditArtifact, AgentSessionAuditArtifactStore
+from vulnloom.broker import BrokerStatus
+from vulnloom.broker.models import broker_call_digest
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import CandidateState, Scope, ScopeState, ValidationResult
 from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
+from vulnloom.runners import SandboxRunStatus
+from vulnloom.runners.models import invocation_digest, sandbox_profile_digest
 
 from .intake_models import AgentValidationIntakeDecision, agent_validation_intake_record_digest
 from .intake_store import AgentValidationIntakeStore
@@ -170,6 +174,46 @@ class AgentValidationOutcomeBindingService:
             else CandidateState.INCONCLUSIVE
         )
         evidence_bundle = outcome.evidence_bundle
+        collected_refs = self._collected_evidence_refs(outcome)
+        expected_forced_result = self._forced_result(outcome)
+        expected_run_plan = (
+            f"plan:{stored_plan.plan_id}",
+            f"runner:{stored_plan.runner_request.invocation.tool_id}",
+            *(
+                f"broker:{call.tool_id}:{index}"
+                for index, call in enumerate(stored_plan.broker_calls)
+            ),
+        )
+        expected_side_effects = tuple(
+            f"broker:{call.tool_id}:{call.http.method.value}"
+            for call, result in zip(stored_plan.broker_calls, outcome.broker_results, strict=False)
+            if result.status is BrokerStatus.COMPLETED and call.http.method.mutates_state
+        )
+        expected_resource_usage = {
+            "wall_seconds": outcome.runner_result.usage.wall_seconds,
+            "cpu_millis": outcome.runner_result.usage.cpu_millis,
+            "peak_memory_bytes": outcome.runner_result.usage.peak_memory_bytes,
+            "broker_calls": len(outcome.broker_results),
+            "tool_calls": outcome.runner_result.budget_used.tool_calls
+            + sum(item.tool_calls_used for item in outcome.broker_results),
+        }
+        broker_bindings_valid = all(
+            result.call_id == call.call_id
+            and result.task_id == call.task.task_id
+            and result.tool_id == call.tool_id
+            and result.registry_digest == call.task.tool_registry_digest
+            and result.call_digest == broker_call_digest(call)
+            and result.completed_at <= outcome.completed_at
+            for call, result in zip(stored_plan.broker_calls, outcome.broker_results, strict=False)
+        )
+        broker_sequence_complete = (
+            len(outcome.broker_results) == len(stored_plan.broker_calls)
+            or (
+                bool(outcome.broker_results)
+                and outcome.broker_results[-1].status is not BrokerStatus.COMPLETED
+            )
+            or outcome.runner_result.status is not SandboxRunStatus.COMPLETED
+        )
         if (
             self.scope.state is not ScopeState.APPROVED
             or not self.scope.valid_from <= now < self.scope.valid_until
@@ -196,26 +240,85 @@ class AgentValidationOutcomeBindingService:
             or bundle.scope_id != self.scope.scope_id
             or bundle.scope_version != self.scope.version
             or outcome.plan_id != stored_plan.plan_id
+            or outcome.completed_at != outcome.validation_run.finished_at
+            or outcome.validation_run.started_at != outcome.validation_run.finished_at
             or outcome.candidate.candidate_id != candidate.candidate_id
             or outcome.candidate.target_id != candidate.target_id
             or outcome.candidate.target_version != candidate.target_version
             or outcome.candidate.scope_id != self.scope.scope_id
             or outcome.candidate.scope_version != self.scope.version
             or outcome.candidate.state is not expected_state
+            or outcome.candidate.model_copy(update={"state": CandidateState.PROPOSED}) != candidate
             or outcome.validation_run.candidate_id != candidate.candidate_id
             or outcome.validation_run.target_version != candidate.target_version
             or outcome.validation_run.scope_version != self.scope.version
             or outcome.validation_run.result is not outcome.verdict.result
             or tuple(sorted(outcome.validation_run.evidence_refs)) != refs
+            or outcome.validation_run.sandbox_image_digest
+            != stored_plan.runner_request.profile.image_digest
+            or outcome.validation_run.policy_digest != stored_plan.runner_request.task.policy_digest
+            or outcome.validation_run.plan != expected_run_plan
+            or outcome.validation_run.side_effects != expected_side_effects
+            or outcome.validation_run.resource_usage != expected_resource_usage
+            or outcome.runner_result.run_id != stored_plan.runner_request.run_id
+            or outcome.runner_result.task_id != stored_plan.runner_request.task.task_id
+            or outcome.runner_result.sandbox_profile_digest
+            != sandbox_profile_digest(stored_plan.runner_request.profile)
+            or outcome.runner_result.invocation_digest
+            != invocation_digest(stored_plan.runner_request.invocation)
+            or (
+                outcome.runner_result.status is not SandboxRunStatus.COMPLETED
+                and outcome.broker_results
+            )
+            or len(outcome.broker_results) > len(stored_plan.broker_calls)
+            or not broker_bindings_valid
+            or not broker_sequence_complete
+            or not set(refs) <= set(collected_refs)
+            or (
+                expected_forced_result is not None
+                and outcome.verdict.result is not expected_forced_result
+            )
+            or (
+                expected_forced_result is None
+                and outcome.verdict.result
+                in {ValidationResult.POLICY_STOPPED, ValidationResult.TIMED_OUT}
+            )
             or (
                 evidence_bundle is not None
                 and (
                     evidence_bundle.candidate_id != candidate.candidate_id
                     or tuple(sorted(evidence_bundle.evidence_refs)) != refs
+                    or evidence_bundle.sealed_at != outcome.completed_at
                 )
             )
             or (refs and evidence_bundle is None)
-            or any(not self.evidence_store.contains(ref) for ref in refs)
+            or (not refs and evidence_bundle is not None)
+            or any(not self.evidence_store.contains(ref) for ref in collected_refs)
         ):
             raise AgentValidationOutcomeBindingRejected("Validation outcome provenance drifted")
         return record, bundle, candidate_set, candidate, stored_plan, outcome
+
+    @staticmethod
+    def _collected_evidence_refs(outcome) -> tuple[str, ...]:
+        refs = list(outcome.runner_result.evidence_refs)
+        for result in outcome.broker_results:
+            if result.http is not None:
+                refs.extend(result.http.evidence_refs)
+        return tuple(dict.fromkeys(refs))
+
+    @staticmethod
+    def _forced_result(outcome) -> ValidationResult | None:
+        if outcome.runner_result.status is SandboxRunStatus.TIMED_OUT or any(
+            item.status is BrokerStatus.TIMED_OUT for item in outcome.broker_results
+        ):
+            return ValidationResult.TIMED_OUT
+        if outcome.runner_result.status is not SandboxRunStatus.COMPLETED:
+            return ValidationResult.INCONCLUSIVE
+        if any(
+            item.status in {BrokerStatus.DENIED, BrokerStatus.APPROVAL_REQUIRED}
+            for item in outcome.broker_results
+        ):
+            return ValidationResult.POLICY_STOPPED
+        if any(item.status is BrokerStatus.FAILED for item in outcome.broker_results):
+            return ValidationResult.INCONCLUSIVE
+        return None

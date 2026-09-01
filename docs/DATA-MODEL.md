@@ -493,6 +493,19 @@ BrokerCall、URL、HTTP 参数、credential、assertion 或 Approval。
 决定；accepted 不代表已执行、已批准副作用或已改变 Candidate。SQLite checkpoint 只保存摘要、稳定决定、
 reason code 和 reviewer，不保存 Agent prose、Evidence 正文、URL、credential 或工具参数。
 
+### AgentValidationOutcomeBindingPlan 与 Binding
+
+M8.2 的 `AgentValidationOutcomeBindingPlan` 只保存 accepted Intake Record、Audit Bundle、CandidateSet/Candidate、
+Target/version、Scope/version、exact ValidationPlan、已完成 ValidationOutcome/ValidationRun、typed result 与排序
+Evidence refs 的 ID 和摘要。完整 ValidationPlan 与 ValidationOutcome 仍是瞬时 typed 输入，并从各自权威 store
+重读；Binding plan 不包含 Runner/Broker request、URL、HTTP body、credential、Approval 或 Evidence 正文。
+
+`AgentValidationOutcomeBinding` 保存同一来源链的摘要、最终 Candidate 状态/摘要、ValidationRun ID、可选
+EvidenceBundle ID/摘要和完成时间。`reproduced` 必须对应 `VALIDATED`，其余结果必须对应 `INCONCLUSIVE`；这只是
+已发生 Validation 的不可变来源证明，不会迁移权威 CandidateSet 中仍为 `PROPOSED` 的原始 Candidate。独立
+SQLite checkpoint 唯一消费 Intake Record、ValidationPlan 和 outcome digest，并只保存 digest-only binding；
+遗留 STARTED、重复消费或冲突 key 不会触发 Validation 重放。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

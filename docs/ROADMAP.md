@@ -491,7 +491,7 @@ M7.11 用可独立复核的不可变审计链收束 Phase 5 首版。它不把 A
 
 M8.1 是人工选择记录，不是 Validation 执行器或新的 Approval。后续执行仍必须显式调用既有 `ValidationService`，并重新通过 Scope、Policy、Sandbox、Tool Broker、预算、Evidence 与必要 Approval 门禁。
 
-### M8.2：accepted Intake 与完成 Validation Outcome 的确定性绑定（开发中）
+### M8.2：accepted Intake 与完成 Validation Outcome 的确定性绑定（已完成首版）
 
 - 新增内容寻址的 `AgentValidationOutcomeBindingPlan`，精确绑定一个仍有效的 accepted M8.1 Intake Record、原始 Audit/CandidateSet/Candidate、exact `ValidationPlan`，以及同一 plan 在权威 `ValidationStore` 中已经完成的 `ValidationOutcome` 摘要。
 - Binding Service 只在 Validation 已由现有显式入口完成后运行；它不得调用 `ValidationService`、Runner、Broker、Docker、网络或 Approval，不得排队、恢复或重放 Validation，也不得再次改变 Candidate。

@@ -40,6 +40,8 @@ class AgentValidationOutcomeBindingPlan(DomainModel):
     def sealed_plan(self) -> Self:
         if not self.created_at < self.deadline:
             raise ValueError("Agent Validation outcome binding window is invalid")
+        if "\x00" in self.idempotency_key:
+            raise ValueError("Agent Validation outcome binding idempotency key contains NUL")
         if self.evidence_refs != tuple(sorted(set(self.evidence_refs))):
             raise ValueError("Agent Validation outcome Evidence refs must be unique and sorted")
         if self.binding_plan_id != agent_validation_outcome_binding_plan_digest(self):

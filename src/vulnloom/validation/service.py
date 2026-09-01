@@ -269,8 +269,7 @@ class ValidationService:
         if runner.status is not SandboxRunStatus.COMPLETED:
             return ValidationResult.INCONCLUSIVE
         if any(
-            item.status in {BrokerStatus.DENIED, BrokerStatus.APPROVAL_REQUIRED}
-            for item in brokers
+            item.status in {BrokerStatus.DENIED, BrokerStatus.APPROVAL_REQUIRED} for item in brokers
         ):
             return ValidationResult.POLICY_STOPPED
         if any(item.status is BrokerStatus.FAILED for item in brokers):
@@ -278,9 +277,7 @@ class ValidationService:
         return None
 
     @staticmethod
-    def _side_effects(
-        plan: ValidationPlan, results: tuple[BrokerResult, ...]
-    ) -> tuple[str, ...]:
+    def _side_effects(plan: ValidationPlan, results: tuple[BrokerResult, ...]) -> tuple[str, ...]:
         return tuple(
             f"broker:{call.tool_id}:{call.http.method.value}"
             for call, result in zip(plan.broker_calls, results, strict=False)

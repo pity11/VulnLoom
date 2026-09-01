@@ -77,6 +77,7 @@ from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     NetworkGrant,
+    OfflineSandboxRunner,
     ToolInvocation,
     sandbox_profile_digest,
     validation_profile,
@@ -89,10 +90,25 @@ from vulnloom.validation import (
     AgentValidationIntakeRejected,
     AgentValidationIntakeService,
     AgentValidationIntakeStore,
+    AgentValidationOutcomeBindingRejected,
+    AgentValidationOutcomeBindingService,
+    AgentValidationOutcomeBindingStore,
     ValidationPlan,
+    ValidationService,
+    ValidationStore,
     agent_validation_intake_plan_digest,
     candidate_content_digest,
 )
+
+
+class _CountingOfflineSandboxRunner:
+    def __init__(self):
+        self.delegate = OfflineSandboxRunner(frozenset({"sandbox.test"}))
+        self.calls = 0
+
+    def execute(self, request, *, now):
+        self.calls += 1
+        return self.delegate.execute(request, now=now)
 
 
 class _ProviderHandler(BaseHTTPRequestHandler):
@@ -122,19 +138,21 @@ class _ProviderHandler(BaseHTTPRequestHandler):
                 "id": "resp_loopback",
                 "model": "loopback-model-v1",
                 "object": "response",
-                "output": [{
-                    "content": [{
-                        "annotations": [],
-                        "text": json.dumps(
-                            decision, separators=(",", ":"), sort_keys=True
-                        ),
-                        "type": "output_text",
-                    }],
-                    "id": "msg_loopback",
-                    "role": "assistant",
-                    "status": "completed",
-                    "type": "message",
-                }],
+                "output": [
+                    {
+                        "content": [
+                            {
+                                "annotations": [],
+                                "text": json.dumps(decision, separators=(",", ":"), sort_keys=True),
+                                "type": "output_text",
+                            }
+                        ],
+                        "id": "msg_loopback",
+                        "role": "assistant",
+                        "status": "completed",
+                        "type": "message",
+                    }
+                ],
                 "status": "completed",
                 "usage": {"input_tokens": 3, "output_tokens": 2, "total_tokens": 5},
             },
@@ -257,9 +275,7 @@ def _safe_local_ipv4() -> str | None:
     os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1",
     reason="set VULNLOOM_PROVIDER_INTEGRATION=1 for the loopback TLS process probe",
 )
-def test_real_subprocess_uses_pinned_loopback_tls_and_empty_environment(
-    tmp_path, monkeypatch
-):
+def test_real_subprocess_uses_pinned_loopback_tls_and_empty_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("PARENT_PROVIDER_SECRET", "must-not-enter-provider-process")
     monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:1")
     _ProviderHandler.delay_seconds = 0
@@ -414,9 +430,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
     plan = AgentRunPlan.create(
         task=task,
         registration=registration,
-        limits=AgentRunLimits(
-            max_steps=1, max_output_tokens_per_step=64, timeout_seconds=10
-        ),
+        limits=AgentRunLimits(max_steps=1, max_output_tokens_per_step=64, timeout_seconds=10),
         created_at=now,
         deadline=now + timedelta(minutes=1),
         idempotency_key="agent:loopback-provider:1",
@@ -471,9 +485,9 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1"
     or os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
-    reason="set both provider and composition integration flags for the M7.10-M8.1 probe",
+    reason="set both provider and composition integration flags for the M7.10-M8.2 probe",
 )
-def test_live_provider_session_audit_and_validation_intake_chain(
+def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain(
     tmp_path: Path, monkeypatch
 ):
     address = _safe_local_ipv4()
@@ -557,9 +571,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
         ),
         idempotency_key="m7.10:broker-call-1",
     )
-    reference = ModelCredentialReference.create(
-        environment_variable="VULNLOOM_M710_PROVIDER_KEY"
-    )
+    reference = ModelCredentialReference.create(environment_variable="VULNLOOM_M710_PROVIDER_KEY")
     admission = AgentProviderTransportAdmission.create_loopback_probe(
         provider_id="loopback",
         hostname="provider.test",
@@ -603,9 +615,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
     root_plan = AgentRunPlan.create(
         task=task,
         registration=registration,
-        limits=AgentRunLimits(
-            max_steps=1, max_output_tokens_per_step=64, timeout_seconds=20
-        ),
+        limits=AgentRunLimits(max_steps=1, max_output_tokens_per_step=64, timeout_seconds=20),
         created_at=now,
         deadline=now + timedelta(seconds=40),
         idempotency_key="m7.10:root-run",
@@ -647,21 +657,18 @@ def test_live_provider_session_audit_and_validation_intake_chain(
             EvidenceStoreHttpSink(evidence_store, target_version=task.target_version)
         ),
     )
+    validation_runner = _CountingOfflineSandboxRunner()
     try:
         with (
             AgentRunStore(tmp_path / "m710-root-runs.sqlite3") as root_store,
             AgentToolHandoffStore(tmp_path / "m710-handoffs.sqlite3") as handoff_store,
             AgentRunStore(tmp_path / "m710-session-runs.sqlite3") as next_store,
-            AgentContinuationStore(
-                tmp_path / "m710-continuations.sqlite3"
-            ) as continuation_store,
+            AgentContinuationStore(tmp_path / "m710-continuations.sqlite3") as continuation_store,
             AgentSessionStore(tmp_path / "m710-sessions.sqlite3") as session_store,
-            AgentSessionAuditStore(
-                tmp_path / "m711-audits.sqlite3"
-            ) as audit_store,
-            AgentValidationIntakeStore(
-                tmp_path / "m81-intakes.sqlite3"
-            ) as intake_store,
+            AgentSessionAuditStore(tmp_path / "m711-audits.sqlite3") as audit_store,
+            AgentValidationIntakeStore(tmp_path / "m81-intakes.sqlite3") as intake_store,
+            ValidationStore(tmp_path / "m82-validations.sqlite3") as validation_store,
+            AgentValidationOutcomeBindingStore(tmp_path / "m82-bindings.sqlite3") as binding_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -723,9 +730,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
                         tool_id="http.request",
                         http=HttpRequestPlan(
                             method="GET",
-                            url=(
-                                f"http://{_TARGET_HOST}:{target_port}/objects/8"
-                            ),
+                            url=(f"http://{_TARGET_HOST}:{target_port}/objects/8"),
                             test_class="read_only",
                         ),
                         idempotency_key="m7.10:broker-call-2",
@@ -735,9 +740,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
                 idempotency_key="m7.10:session",
                 round_run_key="m7.10:round-2-run",
             )
-            second_commitment = (
-                session_plan.authorized_calls.options[0].call_commitment
-            )
+            second_commitment = session_plan.authorized_calls.options[0].call_commitment
             _ProviderHandler.decision_payloads.extend(
                 [
                     {
@@ -764,9 +767,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
                 terminal_continuation_key="m7.10:terminal-continuation",
                 terminal_run_key="m7.10:terminal-run",
             )
-            audit_artifact_store = AgentSessionAuditArtifactStore(
-                tmp_path / "m711-audit-artifacts"
-            )
+            audit_artifact_store = AgentSessionAuditArtifactStore(tmp_path / "m711-audit-artifacts")
             audit_service = AgentSessionAuditService(
                 session_store=session_store,
                 root_agent_store=root_store,
@@ -829,9 +830,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
                 candidates=(candidate,),
             )
             candidate_set = candidate_set_partial.model_copy(
-                update={
-                    "candidate_set_id": candidate_set_digest(candidate_set_partial)
-                }
+                update={"candidate_set_id": candidate_set_digest(candidate_set_partial)}
             )
             candidate_store = CandidateSetStore(tmp_path / "m81-candidates")
             candidate_store.put(candidate_set)
@@ -858,9 +857,7 @@ def test_live_provider_session_audit_and_validation_intake_chain(
             runner_request = SandboxRunRequest(
                 task=intake_task,
                 profile=intake_profile,
-                invocation=ToolInvocation(
-                    tool_id="sandbox.test", working_directory="source"
-                ),
+                invocation=ToolInvocation(tool_id="sandbox.test", working_directory="source"),
                 environment={},
                 idempotency_key="m8.1:runner-request",
             )
@@ -923,6 +920,81 @@ def test_live_provider_session_audit_and_validation_intake_chain(
                 validation_plan=validation_plan,
                 now=now + timedelta(seconds=8),
             )
+            validation_outcome = ValidationService(
+                scope=scope,
+                runner=validation_runner,
+                broker=broker,
+                store=validation_store,
+                evidence_store=evidence_store,
+            ).execute(
+                candidate,
+                validation_plan,
+                now=now + timedelta(seconds=9),
+            )
+            binding_service = AgentValidationOutcomeBindingService(
+                scope=scope,
+                audit_store=audit_artifact_store,
+                candidate_store=candidate_store,
+                intake_store=intake_store,
+                validation_store=validation_store,
+                evidence_store=evidence_store,
+                binding_store=binding_store,
+            )
+            binding_plan = binding_service.prepare(
+                intake_plan_id=intake_plan.intake_plan_id,
+                audit_artifact=audit_outcome.artifact,
+                candidate_set_id=candidate_set.candidate_set_id,
+                candidate_id=candidate.candidate_id,
+                validation_plan=validation_plan,
+                now=now + timedelta(seconds=10),
+                idempotency_key="m8.2:binding",
+            )
+            tampered_outcome = validation_outcome.model_copy(
+                update={
+                    "runner_result": validation_outcome.runner_result.model_copy(
+                        update={"run_id": uuid4()}
+                    )
+                }
+            )
+            with validation_store.connection:
+                validation_store.connection.execute(
+                    "UPDATE validation_executions SET outcome_json=? WHERE plan_id=?",
+                    (tampered_outcome.model_dump_json(), validation_plan.plan_id),
+                )
+            with pytest.raises(AgentValidationOutcomeBindingRejected):
+                binding_service.execute(
+                    binding_plan,
+                    audit_artifact=audit_outcome.artifact,
+                    validation_plan=validation_plan,
+                    now=now + timedelta(seconds=11),
+                )
+            assert (
+                binding_store.connection.execute(
+                    "SELECT count(*) FROM agent_validation_outcome_bindings"
+                ).fetchone()[0]
+                == 0
+            )
+            with validation_store.connection:
+                validation_store.connection.execute(
+                    "UPDATE validation_executions SET outcome_json=? WHERE plan_id=?",
+                    (validation_outcome.model_dump_json(), validation_plan.plan_id),
+                )
+            calls_before_binding = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
+            outcome_binding = binding_service.execute(
+                binding_plan,
+                audit_artifact=audit_outcome.artifact,
+                validation_plan=validation_plan,
+                now=now + timedelta(seconds=11),
+            )
+            calls_after_binding = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -948,12 +1020,15 @@ def test_live_provider_session_audit_and_validation_intake_chain(
     assert len(audit_outcome.bundle.evidence_refs) == 2
     assert audit_outcome.bundle.budget == session_outcome.budget
     assert intake_record.decision is AgentValidationIntakeDecision.ACCEPT
+    assert validation_runner.calls == 1
+    assert validation_outcome.verdict.result.value == "inconclusive"
+    assert outcome_binding.validation_run_id == validation_outcome.validation_run.run_id
+    assert calls_after_binding == calls_before_binding
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
     assert len(adapter.attempts) == 3
     assert _TARGET_BODY not in (tmp_path / "m711-audits.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m81-intakes.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m82-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
-    assert b"m710-loopback-provider-secret" not in (
-        tmp_path / "m710-sessions.sqlite3"
-    ).read_bytes()
+    assert b"m710-loopback-provider-secret" not in (tmp_path / "m710-sessions.sqlite3").read_bytes()

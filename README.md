@@ -450,6 +450,19 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Uses an independent STARTED/COMPLETED SQLite ledger; drift, expiry, duplicate consumption,
   conflicting decisions and unfinished recovery fail closed.
 
+### M8.2: completed Validation outcome provenance binding
+
+- Runs only after an explicit existing Validation entry point has completed; it cannot execute,
+  resume, retry, queue, approve, or alter that Validation.
+- Reopens the accepted Intake, Audit artifact, CandidateSet, exact Validation checkpoint, current
+  Scope and every referenced Evidence object before creating a binding checkpoint.
+- Recomputes Runner/Broker identities, ordered calls, forced timeout/policy results, run accounting,
+  final Candidate state and EvidenceBundle consistency; drift fails closed.
+- Persists only IDs, digests, typed result/state and timestamps in a unique STARTED/COMPLETED ledger.
+  Idempotent replay is read-only and conflicting Intake/plan/outcome consumption is rejected.
+- Does not call a Runner, Broker, provider, Docker, network, Approval, Target build, Critic, Finding,
+  report export, public target, or Submission path.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

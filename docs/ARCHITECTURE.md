@@ -607,3 +607,25 @@ reason code, reviewer, and the digest-only record. Reused recommendations or Val
 conflicting commands, unfinished checkpoints, expired decisions, Scope drift, Candidate drift, and
 ValidationPlan drift fail closed. The later caller must still invoke `ValidationService` explicitly
 and pass all existing M4.4/M4.5 Scope, Policy, Profile, Broker, budget, Evidence, and Approval gates.
+
+## 36. M8.2 completed Validation outcome provenance binding
+
+M8.2 is an offline verifier over one Validation that has already completed through the existing
+explicit `ValidationService` entry point. Its content-addressed plan binds the accepted M8.1 record,
+Audit bundle, immutable CandidateSet/Candidate, exact ValidationPlan, completed outcome digest,
+ValidationRun, typed result, and sorted Evidence refs. The service has no Runner, Broker, provider,
+Docker, network, Approval, target-build, or Submission dependency.
+
+Before claiming a binding checkpoint, the service reopens every authoritative object and recomputes
+the complete Validation provenance chain: Scope and Target version, original `PROPOSED` Candidate,
+Runner request/result identity, ordered Broker call/result identities, forced timeout/policy result,
+run plan and resource accounting, final Candidate state, Evidence collection and bundle sealing. A
+missing or unfinished Validation, expired or non-accepted Intake, replaced outcome, foreign Evidence,
+cross-target replay, or internally inconsistent completed row fails closed.
+
+The resulting `AgentValidationOutcomeBinding` contains only IDs, digests, typed result/state and
+completion time. Its independent STARTED/COMPLETED ledger uniquely consumes the Intake record,
+Validation plan and outcome. Completed replay is idempotent; conflicting consumption and unfinished
+recovery are refused without replaying Validation or performing cleanup actions against external
+systems. This binding is provenance for a later Critic milestone, not a Critic verdict or authority
+to create a Finding.

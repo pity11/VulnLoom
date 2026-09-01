@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -16,14 +17,28 @@ from vulnloom.agent_runtime import (
     AgentSessionRecommendationReason,
     agent_session_audit_bundle_digest,
 )
-from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
+from vulnloom.broker import (
+    BrokerCall,
+    HttpRequestPlan,
+    OfflineHttpTransport,
+    StaticResolver,
+    ToolBroker,
+    default_tool_registry,
+)
 from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.models import EvidenceBundle, EvidenceKind, ValidationResult
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
-from vulnloom.runners import OfflineSandboxRunner, ToolInvocation, validation_profile
+from vulnloom.runners import (
+    NetworkGrant,
+    OfflineSandboxRunner,
+    OfflineScenario,
+    ToolInvocation,
+    validation_profile,
+)
 from vulnloom.runners.models import SandboxRunRequest, sandbox_profile_digest
 from vulnloom.validation import (
     AgentValidationIntakeCommand,
@@ -36,6 +51,9 @@ from vulnloom.validation import (
     AgentValidationIntakeService,
     AgentValidationIntakeStore,
     AgentValidationIntakeTimedOut,
+    AgentValidationOutcomeBinding,
+    AgentValidationOutcomeBindingConflict,
+    AgentValidationOutcomeBindingPlan,
     AgentValidationOutcomeBindingRecoveryRequired,
     AgentValidationOutcomeBindingRejected,
     AgentValidationOutcomeBindingService,
@@ -43,6 +61,7 @@ from vulnloom.validation import (
     ValidationPlan,
     ValidationService,
     ValidationStore,
+    ValidationVerdict,
     agent_validation_intake_plan_digest,
     candidate_content_digest,
 )
@@ -174,7 +193,7 @@ def _audit_bundle(now, scope, candidate, *, completed=True):
     return AgentSessionAuditBundle(bundle_id=agent_session_audit_bundle_digest(partial), **values)
 
 
-def _fixture(tmp_path, now, scope, candidate, *, completed=True):
+def _fixture(tmp_path, now, scope, candidate, *, completed=True, validation_plan=None):
     candidate_set = _candidate_set(candidate)
     candidate_store = CandidateSetStore(tmp_path / "candidates")
     candidate_store.put(candidate_set)
@@ -189,7 +208,7 @@ def _fixture(tmp_path, now, scope, candidate, *, completed=True):
         candidate_set_store=candidate_store,
         store=store,
     )
-    validation_plan = _validation_plan(now, scope, candidate)
+    validation_plan = validation_plan or _validation_plan(now, scope, candidate)
     intake_plan = service.prepare(
         audit_artifact=artifact,
         candidate_set_id=candidate_set.candidate_set_id,
@@ -220,6 +239,178 @@ def _command(plan, now, decision):
         reason_code=reason,
         reviewer="human-reviewer",
         decided_at=now,
+    )
+
+
+def _validation_plan_with_approval_gate(now, scope, candidate):
+    base = _validation_plan(now, scope, candidate, key="validation:m8.2-policy")
+    profile = validation_profile(
+        image_digest="sha256:" + "1" * 64,
+        snapshot_id="2" * 64,
+        network_grants=(
+            NetworkGrant(
+                host="app.example.test",
+                ports=frozenset({443}),
+                schemes=frozenset({"https"}),
+            ),
+        ),
+    )
+    task = TaskEnvelope(
+        engagement_id=scope.engagement_id,
+        target_id=candidate.target_id,
+        target_version=candidate.target_version,
+        scope_id=scope.scope_id,
+        worker_role=WorkerRole.VALIDATOR,
+        scope_version=scope.version,
+        policy_digest=PolicyEngine(scope).policy_digest,
+        sandbox_profile_digest=sandbox_profile_digest(profile),
+        tool_registry_digest=default_tool_registry().digest,
+        input_refs=(f"candidate:{candidate_content_digest(candidate)}",),
+        allowed_tools=frozenset({"http.request"}),
+        budget=TaskBudget(wall_seconds=60, model_tokens=0, tool_calls=1),
+        deadline=now + timedelta(minutes=5),
+        idempotency_key="validation:m8.2-policy:broker-task",
+    )
+    call = BrokerCall(
+        task=task,
+        profile=profile,
+        tool_id="http.request",
+        http=HttpRequestPlan(
+            method="POST",
+            url="https://app.example.test/items/7",
+            test_class="idor",
+        ),
+        idempotency_key="validation:m8.2-policy:broker",
+    )
+    return ValidationPlan.create(
+        candidate_id=base.candidate_id,
+        candidate_digest=base.candidate_digest,
+        target_id=base.target_id,
+        target_version=base.target_version,
+        scope_id=base.scope_id,
+        scope_version=base.scope_version,
+        selected_by=base.selected_by,
+        selected_at=base.selected_at,
+        selection_reason=base.selection_reason,
+        runner_request=base.runner_request,
+        broker_calls=(call,),
+        idempotency_key="validation:m8.2-policy",
+    )
+
+
+class _CountingScenarioRunner:
+    def __init__(self, scenario=None):
+        self.delegate = OfflineSandboxRunner(frozenset({"sandbox.test"}))
+        self.scenario = scenario
+        self.calls = 0
+
+    def execute(self, request, *, now):
+        self.calls += 1
+        return self.delegate.execute(request, now=now, scenario=self.scenario)
+
+
+class _FixedResultJudge:
+    def __init__(self, result):
+        self.result = result
+
+    def evaluate(self, *, evidence_refs, **_):
+        return ValidationVerdict(
+            result=self.result,
+            rationale_code=f"m8_2_{self.result.value}",
+            evidence_refs=evidence_refs,
+        )
+
+
+def _completed_binding_case(
+    tmp_path,
+    now,
+    scope,
+    candidate,
+    result,
+    *,
+    decision=AgentValidationIntakeDecision.ACCEPT,
+):
+    validation_plan = (
+        _validation_plan_with_approval_gate(now, scope, candidate)
+        if result is ValidationResult.POLICY_STOPPED
+        else _validation_plan(now, scope, candidate, key=f"validation:m8.2:{result.value}")
+    )
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path,
+        now,
+        scope,
+        candidate,
+        validation_plan=validation_plan,
+    )
+    command = _command(intake_plan, now + timedelta(seconds=1), decision)
+    intake_record = intake_service.decide(
+        intake_plan,
+        command,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+    )
+    evidence_store = EvidenceStore(tmp_path / "validation-evidence")
+    evidence_refs = ()
+    if result is ValidationResult.REPRODUCED:
+        evidence = evidence_store.capture_text(
+            "redacted M8.2 deterministic fixture",
+            kind=EvidenceKind.TEST,
+            source_ref="m8.2-local-fixture",
+            producer="test.m8.2",
+            target_version=candidate.target_version,
+            summary="M8.2 deterministic fixture",
+        )
+        evidence_refs = (evidence.evidence_id,)
+    scenario = OfflineScenario(
+        wall_seconds=120 if result is ValidationResult.TIMED_OUT else 0.01,
+        evidence_refs=evidence_refs,
+    )
+    runner = _CountingScenarioRunner(scenario)
+    transport = OfflineHttpTransport({})
+    broker = ToolBroker(
+        scope=scope,
+        registry=default_tool_registry(),
+        resolver=StaticResolver({"app.example.test": ("192.0.2.10",)}),
+        http_transport=transport,
+    )
+    judge = (
+        _FixedResultJudge(result)
+        if result in {ValidationResult.REPRODUCED, ValidationResult.NOT_REPRODUCED}
+        else None
+    )
+    validation_store = ValidationStore(tmp_path / "validation.sqlite3")
+    outcome = ValidationService(
+        scope=scope,
+        runner=runner,
+        broker=broker,
+        store=validation_store,
+        evidence_store=evidence_store,
+        judge=judge,
+    ).execute(candidate, validation_plan, now=now + timedelta(seconds=2))
+    binding_store = AgentValidationOutcomeBindingStore(tmp_path / "bindings.sqlite3")
+    binding_service = AgentValidationOutcomeBindingService(
+        scope=scope,
+        audit_store=intake_service.audit_artifact_store,
+        candidate_store=intake_service.candidate_set_store,
+        intake_store=intake_store,
+        validation_store=validation_store,
+        evidence_store=evidence_store,
+        binding_store=binding_store,
+    )
+    return (
+        intake_service,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        outcome,
+        evidence_store,
+        binding_store,
+        binding_service,
+        runner,
+        transport,
     )
 
 
@@ -347,6 +538,385 @@ def test_completed_validation_is_bound_read_only_after_accepted_intake(
     intake_store.close()
 
 
+@pytest.mark.parametrize("result", tuple(ValidationResult))
+def test_outcome_binding_accepts_all_authoritative_validation_results_without_execution(
+    tmp_path, now, approved_scope, candidate, result
+):
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        outcome,
+        _,
+        binding_store,
+        binding_service,
+        runner,
+        transport,
+    ) = _completed_binding_case(tmp_path, now, approved_scope, candidate, result)
+    assert outcome.verdict.result is result
+    calls_before_binding = (runner.calls, len(transport.calls))
+    plan = binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key=f"binding:m8.2:{result.value}",
+    )
+    binding = binding_service.execute(
+        plan,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=4),
+    )
+
+    assert binding.result is result
+    assert binding.validation_run_id == outcome.validation_run.run_id
+    assert binding.validation_outcome_digest == canonical_digest(outcome.model_dump(mode="python"))
+    assert (runner.calls, len(transport.calls)) == calls_before_binding
+    assert candidate.state.value == "proposed"
+    assert not hasattr(binding_service, "runner")
+    assert not hasattr(binding_service, "broker")
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()
+
+
+@pytest.mark.parametrize(
+    "drift",
+    ("plan", "candidate_target", "candidate_scope", "runner", "control", "evidence"),
+)
+def test_outcome_binding_rejects_authoritative_validation_provenance_drift_before_checkpoint(
+    tmp_path, now, approved_scope, candidate, drift
+):
+    case_root = tmp_path / drift
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        outcome,
+        _,
+        binding_store,
+        binding_service,
+        _,
+        _,
+    ) = _completed_binding_case(
+        case_root, now, approved_scope, candidate, ValidationResult.INCONCLUSIVE
+    )
+    if drift == "plan":
+        tampered = outcome.model_copy(update={"plan_id": "0" * 64})
+    elif drift == "candidate_target":
+        tampered = outcome.model_copy(
+            update={"candidate": outcome.candidate.model_copy(update={"target_version": "f" * 40})}
+        )
+    elif drift == "candidate_scope":
+        tampered = outcome.model_copy(
+            update={
+                "candidate": outcome.candidate.model_copy(
+                    update={"scope_version": outcome.candidate.scope_version + 1}
+                )
+            }
+        )
+    elif drift == "runner":
+        tampered = outcome.model_copy(
+            update={"runner_result": outcome.runner_result.model_copy(update={"run_id": uuid4()})}
+        )
+    elif drift == "control":
+        tampered = outcome.model_copy(
+            update={
+                "validation_run": outcome.validation_run.model_copy(
+                    update={"result": ValidationResult.POLICY_STOPPED}
+                ),
+                "verdict": ValidationVerdict(
+                    result=ValidationResult.POLICY_STOPPED,
+                    rationale_code="manufactured_policy_stop",
+                ),
+            }
+        )
+    else:
+        foreign_ref = "f" * 64
+        tampered = outcome.model_copy(
+            update={
+                "validation_run": outcome.validation_run.model_copy(
+                    update={"evidence_refs": (foreign_ref,)}
+                ),
+                "verdict": ValidationVerdict(
+                    result=ValidationResult.INCONCLUSIVE,
+                    rationale_code="foreign_evidence",
+                    evidence_refs=(foreign_ref,),
+                ),
+                "evidence_bundle": EvidenceBundle(
+                    candidate_id=candidate.candidate_id,
+                    evidence_refs=(foreign_ref,),
+                    sealed_at=outcome.completed_at,
+                ),
+            }
+        )
+    with validation_store.connection:
+        validation_store.connection.execute(
+            "UPDATE validation_executions SET outcome_json = ? WHERE plan_id = ?",
+            (tampered.model_dump_json(), validation_plan.plan_id),
+        )
+
+    with pytest.raises(AgentValidationOutcomeBindingRejected):
+        binding_service.prepare(
+            intake_plan_id=intake_record.intake_plan_id,
+            audit_artifact=artifact,
+            candidate_set_id=intake_record.candidate_set_id,
+            candidate_id=candidate.candidate_id,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=3),
+            idempotency_key=f"binding:m8.2:drift:{drift}",
+        )
+    assert (
+        binding_store.connection.execute(
+            "SELECT count(*) FROM agent_validation_outcome_bindings"
+        ).fetchone()[0]
+        == 0
+    )
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()
+
+
+@pytest.mark.parametrize("case", ("nonaccepted", "expired", "missing", "started"))
+def test_outcome_binding_requires_current_accepted_intake_and_completed_validation(
+    tmp_path, now, approved_scope, candidate, case
+):
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        _,
+        _,
+        binding_store,
+        binding_service,
+        _,
+        _,
+    ) = _completed_binding_case(
+        tmp_path / case,
+        now,
+        approved_scope,
+        candidate,
+        ValidationResult.INCONCLUSIVE,
+        decision=(
+            AgentValidationIntakeDecision.REJECT
+            if case == "nonaccepted"
+            else AgentValidationIntakeDecision.ACCEPT
+        ),
+    )
+    if case == "missing":
+        with validation_store.connection:
+            validation_store.connection.execute(
+                "DELETE FROM validation_executions WHERE plan_id = ?",
+                (validation_plan.plan_id,),
+            )
+    elif case == "started":
+        with validation_store.connection:
+            validation_store.connection.execute(
+                "UPDATE validation_executions SET state='started', outcome_json=NULL "
+                "WHERE plan_id = ?",
+                (validation_plan.plan_id,),
+            )
+    binding_time = now + timedelta(minutes=3) if case == "expired" else now + timedelta(seconds=3)
+    with pytest.raises(AgentValidationOutcomeBindingRejected):
+        binding_service.prepare(
+            intake_plan_id=intake_record.intake_plan_id,
+            audit_artifact=artifact,
+            candidate_set_id=intake_record.candidate_set_id,
+            candidate_id=candidate.candidate_id,
+            validation_plan=validation_plan,
+            now=binding_time,
+            idempotency_key=f"binding:m8.2:{case}",
+        )
+    assert (
+        binding_store.connection.execute(
+            "SELECT count(*) FROM agent_validation_outcome_bindings"
+        ).fetchone()[0]
+        == 0
+    )
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()
+
+
+def test_outcome_binding_rejects_post_prepare_drift_and_duplicate_consumption(
+    tmp_path, now, approved_scope, candidate
+):
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        outcome,
+        _,
+        binding_store,
+        binding_service,
+        _,
+        _,
+    ) = _completed_binding_case(
+        tmp_path, now, approved_scope, candidate, ValidationResult.INCONCLUSIVE
+    )
+    plan = binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key="binding:m8.2:original",
+    )
+    drifted_time = outcome.completed_at + timedelta(microseconds=1)
+    drifted = outcome.model_copy(
+        update={
+            "validation_run": outcome.validation_run.model_copy(
+                update={"started_at": drifted_time, "finished_at": drifted_time}
+            ),
+            "completed_at": drifted_time,
+        }
+    )
+    with validation_store.connection:
+        validation_store.connection.execute(
+            "UPDATE validation_executions SET completed_at=?, outcome_json=? WHERE plan_id=?",
+            (drifted_time.isoformat(), drifted.model_dump_json(), validation_plan.plan_id),
+        )
+    with pytest.raises(AgentValidationOutcomeBindingRejected, match="drifted"):
+        binding_service.execute(
+            plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=4),
+        )
+    assert (
+        binding_store.connection.execute(
+            "SELECT count(*) FROM agent_validation_outcome_bindings"
+        ).fetchone()[0]
+        == 0
+    )
+    with validation_store.connection:
+        validation_store.connection.execute(
+            "UPDATE validation_executions SET completed_at=?, outcome_json=? WHERE plan_id=?",
+            (outcome.completed_at.isoformat(), outcome.model_dump_json(), validation_plan.plan_id),
+        )
+    binding = binding_service.execute(
+        plan,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=4),
+    )
+    assert (
+        binding_service.execute(
+            plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=5),
+        )
+        == binding
+    )
+    conflicting = binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key="binding:m8.2:conflict",
+    )
+    with pytest.raises(AgentValidationOutcomeBindingConflict):
+        binding_service.execute(
+            conflicting,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=4),
+        )
+    with binding_store.connection:
+        binding_store.connection.execute(
+            "UPDATE agent_validation_outcome_bindings SET completed_at=? "
+            "WHERE binding_plan_id=?",
+            ((now - timedelta(days=1)).isoformat(), plan.binding_plan_id),
+        )
+    with pytest.raises(AgentValidationOutcomeBindingRecoveryRequired, match="drifted"):
+        binding_service.execute(
+            plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=5),
+        )
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()
+
+
+def test_outcome_binding_completion_failure_leaves_started_recovery_checkpoint(
+    tmp_path, now, approved_scope, candidate, monkeypatch
+):
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        _,
+        _,
+        binding_store,
+        binding_service,
+        _,
+        _,
+    ) = _completed_binding_case(
+        tmp_path, now, approved_scope, candidate, ValidationResult.INCONCLUSIVE
+    )
+    plan = binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key="binding:m8.2:completion-failure",
+    )
+    monkeypatch.setattr(
+        binding_store,
+        "complete",
+        lambda _binding: (_ for _ in ()).throw(RuntimeError("injected persistence failure")),
+    )
+    with pytest.raises(RuntimeError, match="injected persistence failure"):
+        binding_service.execute(
+            plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=4),
+        )
+    with pytest.raises(AgentValidationOutcomeBindingRecoveryRequired):
+        binding_service.execute(
+            plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=5),
+        )
+    assert (
+        binding_store.connection.execute(
+            "SELECT state FROM agent_validation_outcome_bindings"
+        ).fetchone()[0]
+        == "started"
+    )
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()
+
+
 def test_accept_rejects_non_completed_recommendation_before_checkpoint(
     tmp_path, now, approved_scope, candidate
 ):
@@ -451,3 +1021,71 @@ def test_intake_schema_and_sqlite_are_digest_only(tmp_path, now, approved_scope,
     for forbidden in (b"https://", b"Authorization", b"Bearer", b"sandbox.test"):
         assert forbidden not in persisted
     store.close()
+
+
+def test_outcome_binding_schema_and_sqlite_are_digest_only(
+    tmp_path, now, approved_scope, candidate
+):
+    schemas = " ".join(
+        json.dumps(model.model_json_schema()).lower()
+        for model in (
+            AgentValidationOutcomeBindingPlan,
+            AgentValidationOutcomeBinding,
+        )
+    )
+    for forbidden in (
+        '"runner_request"',
+        '"runner_result"',
+        '"broker_calls"',
+        '"broker_results"',
+        '"url"',
+        '"credential"',
+        '"approval"',
+        '"evidence_body"',
+        '"agent_summary"',
+        '"submission"',
+    ):
+        assert forbidden not in schemas
+    (
+        _,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        _,
+        _,
+        binding_store,
+        binding_service,
+        _,
+        _,
+    ) = _completed_binding_case(
+        tmp_path, now, approved_scope, candidate, ValidationResult.REPRODUCED
+    )
+    plan = binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key="binding:m8.2:digest-only",
+    )
+    binding_service.execute(
+        plan,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=4),
+    )
+    persisted = (tmp_path / "bindings.sqlite3").read_bytes()
+    for forbidden in (
+        b"https://",
+        b"Authorization",
+        b"Bearer",
+        b"sandbox.test",
+        b"redacted M8.2 deterministic fixture",
+    ):
+        assert forbidden not in persisted
+    binding_store.close()
+    validation_store.close()
+    intake_store.close()

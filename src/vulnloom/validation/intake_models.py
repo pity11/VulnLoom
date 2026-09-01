@@ -26,8 +26,7 @@ class AgentValidationIntakeReason(StrEnum):
 
 
 _DECISION_REASONS = {
-    AgentValidationIntakeDecision.ACCEPT:
-        AgentValidationIntakeReason.HUMAN_ACCEPTED_EXACT_PLAN,
+    AgentValidationIntakeDecision.ACCEPT: AgentValidationIntakeReason.HUMAN_ACCEPTED_EXACT_PLAN,
     AgentValidationIntakeDecision.REJECT: AgentValidationIntakeReason.HUMAN_REJECTED,
     AgentValidationIntakeDecision.DEFER: AgentValidationIntakeReason.HUMAN_DEFERRED,
 }

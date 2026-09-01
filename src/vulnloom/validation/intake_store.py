@@ -95,9 +95,7 @@ class AgentValidationIntakeStore:
                     )
                 return AgentValidationIntakeClaim(
                     created=False,
-                    record=AgentValidationIntakeRecord.model_validate_json(
-                        row["record_json"]
-                    ),
+                    record=AgentValidationIntakeRecord.model_validate_json(row["record_json"]),
                 )
             if row["idempotency_key"] == plan.idempotency_key:
                 raise AgentValidationIntakeIdempotencyConflict(
@@ -160,8 +158,7 @@ class AgentValidationIntakeStore:
 
     def load_completed(self, intake_plan_id: str) -> AgentValidationIntakeRecord:
         row = self.connection.execute(
-            "SELECT state, record_json FROM agent_validation_intakes "
-            "WHERE intake_plan_id = ?",
+            "SELECT state, record_json FROM agent_validation_intakes WHERE intake_plan_id = ?",
             (intake_plan_id,),
         ).fetchone()
         if row is None:

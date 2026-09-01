@@ -13,9 +13,7 @@ class DeterministicHttpJudge:
     """Compare one exact precommitted HTTP status/body digest assertion."""
 
     def __init__(self, *, trusted_registry_digest: str | None = None):
-        self.trusted_registry_digest = (
-            trusted_registry_digest or pinned_http_tool_registry().digest
-        )
+        self.trusted_registry_digest = trusted_registry_digest or pinned_http_tool_registry().digest
 
     def evaluate(
         self,

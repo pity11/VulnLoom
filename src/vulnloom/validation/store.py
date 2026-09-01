@@ -100,18 +100,21 @@ class ValidationStore:
 
     def load_completed(self, plan_id: str) -> tuple[ValidationPlan, ValidationOutcome]:
         row = self.connection.execute(
-            "SELECT plan_json, state, outcome_json FROM validation_executions WHERE plan_id = ?",
+            "SELECT plan_json, state, completed_at, outcome_json "
+            "FROM validation_executions WHERE plan_id = ?",
             (plan_id,),
         ).fetchone()
         if row is None:
             raise ValueError("validation checkpoint is unavailable")
         if row["state"] != "completed" or row["outcome_json"] is None:
-            raise ValidationRecoveryRequired(
-                "validation has an unfinished STARTED checkpoint"
-            )
+            raise ValidationRecoveryRequired("validation has an unfinished STARTED checkpoint")
         plan = ValidationPlan.model_validate_json(row["plan_json"])
         outcome = ValidationOutcome.model_validate_json(row["outcome_json"])
-        if plan.plan_id != plan_id or outcome.plan_id != plan_id:
+        if (
+            plan.plan_id != plan_id
+            or outcome.plan_id != plan_id
+            or row["completed_at"] != outcome.completed_at.isoformat()
+        ):
             raise ValidationRecoveryRequired("validation checkpoint binding mismatch")
         return plan, outcome
 

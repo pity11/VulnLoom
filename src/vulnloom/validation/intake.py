@@ -82,13 +82,9 @@ class AgentValidationIntakeService:
         values = {
             "audit_bundle_id": bundle.bundle_id,
             "audit_bundle_digest": agent_session_audit_bundle_digest(bundle),
-            "audit_artifact_digest": canonical_digest(
-                audit_artifact.model_dump(mode="python")
-            ),
+            "audit_artifact_digest": canonical_digest(audit_artifact.model_dump(mode="python")),
             "recommendation_id": bundle.recommendation.recommendation_id,
-            "recommendation_digest": agent_session_recommendation_digest(
-                bundle.recommendation
-            ),
+            "recommendation_digest": agent_session_recommendation_digest(bundle.recommendation),
             "candidate_set_id": candidate_set.candidate_set_id,
             "candidate_set_digest": candidate_set_digest(candidate_set),
             "candidate_id": candidate.candidate_id,
@@ -163,9 +159,7 @@ class AgentValidationIntakeService:
             "decided_at": command.decided_at,
             "expires_at": plan.decision_deadline,
         }
-        record = AgentValidationIntakeRecord(
-            record_id=canonical_digest(values), **values
-        )
+        record = AgentValidationIntakeRecord(record_id=canonical_digest(values), **values)
         self.store.complete(record)
         return record
 
@@ -242,8 +236,7 @@ class AgentValidationIntakeService:
         if (
             request.profile.kind is not SandboxProfileKind.VALIDATION
             or request.profile.network_mode is not NetworkMode.NONE
-            or request.task.sandbox_profile_digest
-            != sandbox_profile_digest(request.profile)
+            or request.task.sandbox_profile_digest != sandbox_profile_digest(request.profile)
             or any(
                 call.profile.kind is not SandboxProfileKind.VALIDATION
                 for call in validation_plan.broker_calls
@@ -259,8 +252,7 @@ class AgentValidationIntakeService:
             plan.intake_plan_id != agent_validation_intake_plan_digest(plan)
             or plan.audit_bundle_id != bundle.bundle_id
             or plan.audit_bundle_digest != agent_session_audit_bundle_digest(bundle)
-            or plan.audit_artifact_digest
-            != canonical_digest(artifact.model_dump(mode="python"))
+            or plan.audit_artifact_digest != canonical_digest(artifact.model_dump(mode="python"))
             or plan.recommendation_id != bundle.recommendation.recommendation_id
             or plan.recommendation_digest
             != agent_session_recommendation_digest(bundle.recommendation)
@@ -275,9 +267,7 @@ class AgentValidationIntakeService:
             or plan.validation_plan_id != validation_plan.plan_id
             or plan.validation_plan_digest != validation_plan_digest(validation_plan)
         ):
-            raise AgentValidationIntakeRejected(
-                "Agent Validation Intake plan binding drifted"
-            )
+            raise AgentValidationIntakeRejected("Agent Validation Intake plan binding drifted")
 
     @staticmethod
     def _verify_command(plan, command, now):
@@ -293,6 +283,4 @@ class AgentValidationIntakeService:
             or not plan.created_at <= command.decided_at < plan.decision_deadline
             or command.decided_at > now
         ):
-            raise AgentValidationIntakeRejected(
-                "Agent Validation Intake command binding drifted"
-            )
+            raise AgentValidationIntakeRejected("Agent Validation Intake command binding drifted")

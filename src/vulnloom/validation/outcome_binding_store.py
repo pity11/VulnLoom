@@ -68,9 +68,24 @@ class AgentValidationOutcomeBindingStore:
                     raise AgentValidationOutcomeBindingRecoveryRequired(
                         "Agent Validation outcome binding has unfinished STARTED checkpoint"
                     )
+                binding = AgentValidationOutcomeBinding.model_validate_json(row["binding_json"])
+                if (
+                    row["idempotency_key"] != plan.idempotency_key
+                    or row["intake_record_id"] != plan.intake_record_id
+                    or row["validation_plan_id"] != plan.validation_plan_id
+                    or row["validation_outcome_digest"] != plan.validation_outcome_digest
+                    or row["completed_at"] != binding.completed_at.isoformat()
+                    or binding.binding_plan_id != plan.binding_plan_id
+                    or binding.intake_record_id != plan.intake_record_id
+                    or binding.validation_plan_id != plan.validation_plan_id
+                    or binding.validation_outcome_digest != plan.validation_outcome_digest
+                ):
+                    raise AgentValidationOutcomeBindingRecoveryRequired(
+                        "Agent Validation outcome binding checkpoint drifted"
+                    )
                 return AgentValidationOutcomeBindingClaim(
                     False,
-                    AgentValidationOutcomeBinding.model_validate_json(row["binding_json"]),
+                    binding,
                 )
             raise AgentValidationOutcomeBindingConflict(
                 "Agent Validation Intake or outcome was already bound"
