@@ -504,6 +504,18 @@ M8.1 是人工选择记录，不是 Validation 执行器或新的 Approval。后
 
 M8.2 是已发生 Validation 的来源证明，不是执行授权、自动重试或 Critic verdict。后续 Critic 接入仍需独立里程碑，并继续从权威 Evidence/Validation store 重读全部对象。
 
+### M8.3：人工 Critic Intake 与密封计划绑定（已完成首版）
+
+- 新增内容寻址的 `AgentCriticIntakePlan`，绑定一个已完成且 result 为 `reproduced` 的 M8.2 Outcome Binding、原始 Audit/CandidateSet/Candidate、权威 ValidationRun/EvidenceBundle，以及可信控制面独立构造的 exact `CriticPlan`。
+- Intake 不从 Agent prose、recommendation、Evidence 正文或 Validation rationale 生成 Critic assessment；四个反证角度、独立 context/producer 和 Evidence refs 必须已在 typed `CriticPlan` 中封存。
+- 人工命令只允许 `accept`、`reject` 或 `defer`；accepted 仅生成 digest-only record，不调用 `DeterministicCritic`，不迁移 Candidate，不产生 CriticReview、Finding、Report 或 Submission。
+- 决策前重读 M8.2 binding、Audit artifact、CandidateSet、Validation checkpoint、当前 Scope 与 Evidence objects；非 reproduced、缺失 bundle、Scope/Target/Candidate/run/plan/Evidence 漂移或过期均 fail-closed。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 binding 和 CriticPlan；相同决定幂等返回，冲突与遗留 STARTED 拒绝自动恢复。
+- 常规测试覆盖三类人工决定、非 reproduced、CriticPlan 漂移、超时、重复消费、恢复和 schema/SQLite 无执行参数或正文。
+- Phase 3 Admission 从真实 M8.2 reproduced outcome 构造 CriticPlan 并记录人工 accept，证明 Critic Intake 前后 Runner、Broker、provider、target 调用计数与 Candidate 状态不变。
+
+M8.3 是进入独立反证审查前的人工选择记录，不是 Critic verdict。后续 M8.4 只读绑定已完成 Critic Outcome，仍不得自动创建 Finding。
+
 ## 延后事项
 
 - 公网资产自主发现。

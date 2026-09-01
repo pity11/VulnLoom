@@ -121,6 +121,30 @@ class AgentValidationOutcomeBindingStore:
                 "Agent Validation outcome binding STARTED checkpoint is unavailable"
             )
 
+    def load_completed(self, binding_plan_id: str) -> AgentValidationOutcomeBinding:
+        row = self.connection.execute(
+            "SELECT * FROM agent_validation_outcome_bindings WHERE binding_plan_id=?",
+            (binding_plan_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Agent Validation outcome binding is unavailable")
+        if row["state"] != "completed" or row["binding_json"] is None:
+            raise AgentValidationOutcomeBindingRecoveryRequired(
+                "Agent Validation outcome binding has unfinished STARTED checkpoint"
+            )
+        binding = AgentValidationOutcomeBinding.model_validate_json(row["binding_json"])
+        if (
+            binding.binding_plan_id != binding_plan_id
+            or binding.intake_record_id != row["intake_record_id"]
+            or binding.validation_plan_id != row["validation_plan_id"]
+            or binding.validation_outcome_digest != row["validation_outcome_digest"]
+            or binding.completed_at.isoformat() != row["completed_at"]
+        ):
+            raise AgentValidationOutcomeBindingRecoveryRequired(
+                "Agent Validation outcome binding checkpoint drifted"
+            )
+        return binding
+
     def close(self) -> None:
         self.connection.close()
 

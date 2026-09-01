@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "AgentCriticIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentCriticIntakeDecision",
+      "type": "string"
+    },
+    "AgentCriticIntakeReason": {
+      "enum": [
+        "human_accepted_exact_plan",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentCriticIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Digest",
+      "type": "string"
+    },
+    "outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "critic_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Plan Id",
+      "type": "string"
+    },
+    "critic_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Plan Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentCriticIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentCriticIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "intake_plan_id",
+    "intake_plan_digest",
+    "outcome_binding_id",
+    "candidate_id",
+    "critic_plan_id",
+    "critic_plan_digest",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at"
+  ],
+  "title": "AgentCriticIntakeCommand",
+  "type": "object"
+}

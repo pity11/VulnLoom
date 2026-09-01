@@ -463,6 +463,15 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Does not call a Runner, Broker, provider, Docker, network, Approval, Target build, Critic, Finding,
   report export, public target, or Submission path.
 
+### M8.3: human Critic Intake and sealed plan binding
+
+- Reopens a reproduced M8.2 binding, Audit artifact, CandidateSet, completed Validation checkpoint
+  and Evidence before binding one independently constructed exact `CriticPlan`.
+- Accepts only explicit human accept, reject or defer commands. Acceptance records selection but does
+  not execute the Critic, mutate Candidate state, create a review/Finding, or export a report.
+- Persists only IDs, digests, typed decisions and timestamps; conflict, expiry, drift and unfinished
+  recovery fail closed without Runner, Broker, provider, network, Approval or Submission access.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

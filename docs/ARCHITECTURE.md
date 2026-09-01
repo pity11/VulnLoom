@@ -629,3 +629,17 @@ Validation plan and outcome. Completed replay is idempotent; conflicting consump
 recovery are refused without replaying Validation or performing cleanup actions against external
 systems. This binding is provenance for a later Critic milestone, not a Critic verdict or authority
 to create a Finding.
+
+## 37. M8.3 human Critic Intake and sealed plan binding
+
+M8.3 places an offline human decision boundary between a reproduced M8.2 provenance binding and the
+existing deterministic Critic. It reopens the immutable Audit and CandidateSet, completed Validation
+checkpoint, M8.2 binding and every referenced Evidence object, then binds them to one independently
+constructed exact `CriticPlan`. Agent text and Validation rationale cannot construct assessments,
+contexts, producers or Evidence references.
+
+The only commands are `accept`, `reject` and `defer`. Even an accepted record does not invoke the
+Critic, create a CriticReview, or mutate the authoritative Candidate; it only records selection of the
+exact plan. A separate digest-only STARTED/COMPLETED ledger provides idempotent completed reads and
+refuses conflicting consumption or unfinished recovery. Runner, Broker, provider, Docker, network,
+Approval, Finding, report and Submission capabilities are absent from this service.

@@ -1,5 +1,22 @@
 """Deterministic independent counterevidence review."""
 
+from .intake import AgentCriticIntakeRejected, AgentCriticIntakeService, AgentCriticIntakeTimedOut
+from .intake_models import (
+    AgentCriticIntakeCommand,
+    AgentCriticIntakeDecision,
+    AgentCriticIntakePlan,
+    AgentCriticIntakeReason,
+    AgentCriticIntakeRecord,
+    agent_critic_intake_command_digest,
+    agent_critic_intake_plan_digest,
+    agent_critic_intake_record_digest,
+)
+from .intake_store import (
+    AgentCriticIntakeClaim,
+    AgentCriticIntakeConflict,
+    AgentCriticIntakeRecoveryRequired,
+    AgentCriticIntakeStore,
+)
 from .models import (
     CRITIC_RULESET_DIGEST,
     REQUIRED_ANGLES,
@@ -20,6 +37,18 @@ from .store import (
 )
 
 __all__ = [
+    "AgentCriticIntakeClaim",
+    "AgentCriticIntakeCommand",
+    "AgentCriticIntakeConflict",
+    "AgentCriticIntakeDecision",
+    "AgentCriticIntakePlan",
+    "AgentCriticIntakeReason",
+    "AgentCriticIntakeRecord",
+    "AgentCriticIntakeRecoveryRequired",
+    "AgentCriticIntakeRejected",
+    "AgentCriticIntakeService",
+    "AgentCriticIntakeStore",
+    "AgentCriticIntakeTimedOut",
     "CRITIC_RULESET_DIGEST",
     "REQUIRED_ANGLES",
     "CounterevidenceAngle",
@@ -35,4 +64,7 @@ __all__ = [
     "DeterministicCritic",
     "critic_plan_digest",
     "domain_object_digest",
+    "agent_critic_intake_command_digest",
+    "agent_critic_intake_plan_digest",
+    "agent_critic_intake_record_digest",
 ]

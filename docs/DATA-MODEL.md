@@ -506,6 +506,18 @@ EvidenceBundle ID/摘要和完成时间。`reproduced` 必须对应 `VALIDATED`�
 SQLite checkpoint 唯一消费 Intake Record、ValidationPlan 和 outcome digest，并只保存 digest-only binding；
 遗留 STARTED、重复消费或冲突 key 不会触发 Validation 重放。
 
+### AgentCriticIntakePlan、Command 与 Record
+
+M8.3 的 `AgentCriticIntakePlan` 内容寻址绑定 M8.2 binding、Audit Bundle、原始 `PROPOSED` Candidate、完成后的
+`VALIDATED` Candidate、reproduced ValidationRun、EvidenceBundle、Scope/version 与 exact `CriticPlan` 摘要。
+完整 Validation outcome、CriticPlan 和 artifact 是瞬时 typed 输入；持久化计划不包含 Evidence 正文、Agent
+prose、Runner/Broker 参数、URL、credential 或 Approval。
+
+`AgentCriticIntakeCommand` 只允许人工 `accept|reject|defer`，绑定 exact binding/Candidate/CriticPlan、reviewer
+和 decision time。`AgentCriticIntakeRecord` 只记录 digest、typed decision、稳定 reason code 和 expiry；accepted
+不表示 Critic 已执行或 Candidate 已迁移。独立 SQLite 唯一消费 binding 与 CriticPlan，遗留 STARTED 不会重放
+Critic。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -125,6 +125,9 @@ from vulnloom.broker import (
     ToolRegistration,
 )
 from vulnloom.critic import (
+    AgentCriticIntakeCommand,
+    AgentCriticIntakePlan,
+    AgentCriticIntakeRecord,
     CounterevidenceAssessment,
     CriticOutcome,
     CriticPlan,
@@ -239,6 +242,9 @@ MODELS = (
     AgentValidationIntakeRecord,
     AgentValidationOutcomeBindingPlan,
     AgentValidationOutcomeBinding,
+    AgentCriticIntakePlan,
+    AgentCriticIntakeCommand,
+    AgentCriticIntakeRecord,
     Scope,
     Artifact,
     TargetManifest,

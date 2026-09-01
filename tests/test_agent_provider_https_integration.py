@@ -69,6 +69,19 @@ from vulnloom.broker import (
     ToolBroker,
     pinned_http_tool_registry,
 )
+from vulnloom.critic import (
+    REQUIRED_ANGLES,
+    AgentCriticIntakeCommand,
+    AgentCriticIntakeDecision,
+    AgentCriticIntakeReason,
+    AgentCriticIntakeService,
+    AgentCriticIntakeStore,
+    CounterevidenceAssessment,
+    CounterevidenceDisposition,
+    CriticPlan,
+    agent_critic_intake_plan_digest,
+    domain_object_digest,
+)
 from vulnloom.domain.models import Candidate, NetworkTargetScope, Scope, ScopeState, SourceLocation
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
@@ -78,6 +91,7 @@ from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     NetworkGrant,
     OfflineSandboxRunner,
+    OfflineScenario,
     ToolInvocation,
     sandbox_profile_digest,
     validation_profile,
@@ -96,6 +110,7 @@ from vulnloom.validation import (
     ValidationPlan,
     ValidationService,
     ValidationStore,
+    ValidationVerdict,
     agent_validation_intake_plan_digest,
     candidate_content_digest,
 )
@@ -105,10 +120,22 @@ class _CountingOfflineSandboxRunner:
     def __init__(self):
         self.delegate = OfflineSandboxRunner(frozenset({"sandbox.test"}))
         self.calls = 0
+        self.evidence_refs = ()
 
     def execute(self, request, *, now):
         self.calls += 1
-        return self.delegate.execute(request, now=now)
+        return self.delegate.execute(
+            request, now=now, scenario=OfflineScenario(evidence_refs=self.evidence_refs)
+        )
+
+
+class _ReproducedJudge:
+    def evaluate(self, *, evidence_refs, **_):
+        return ValidationVerdict(
+            result="reproduced",
+            rationale_code="m8_3_admission_reproduced",
+            evidence_refs=evidence_refs,
+        )
 
 
 class _ProviderHandler(BaseHTTPRequestHandler):
@@ -669,6 +696,7 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             AgentValidationIntakeStore(tmp_path / "m81-intakes.sqlite3") as intake_store,
             ValidationStore(tmp_path / "m82-validations.sqlite3") as validation_store,
             AgentValidationOutcomeBindingStore(tmp_path / "m82-bindings.sqlite3") as binding_store,
+            AgentCriticIntakeStore(tmp_path / "m83-critic-intakes.sqlite3") as critic_intake_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -920,12 +948,14 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 validation_plan=validation_plan,
                 now=now + timedelta(seconds=8),
             )
+            validation_runner.evidence_refs = (audit_outcome.bundle.evidence_refs[0],)
             validation_outcome = ValidationService(
                 scope=scope,
                 runner=validation_runner,
                 broker=broker,
                 store=validation_store,
                 evidence_store=evidence_store,
+                judge=_ReproducedJudge(),
             ).execute(
                 candidate,
                 validation_plan,
@@ -995,6 +1025,78 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            evidence_bundle = validation_outcome.evidence_bundle
+            assert evidence_bundle is not None
+            critic_assessments = tuple(
+                CounterevidenceAssessment(
+                    angle=angle,
+                    disposition=CounterevidenceDisposition.RULED_OUT,
+                    evidence_refs=(evidence_bundle.evidence_refs[0],),
+                    rationale_code=f"{angle.value}_ruled_out",
+                )
+                for angle in sorted(REQUIRED_ANGLES, key=lambda item: item.value)
+            )
+            critic_plan = CriticPlan.create(
+                candidate_id=validation_outcome.candidate.candidate_id,
+                candidate_digest=domain_object_digest(validation_outcome.candidate),
+                validation_run_id=validation_outcome.validation_run.run_id,
+                validation_run_digest=domain_object_digest(validation_outcome.validation_run),
+                evidence_bundle_id=evidence_bundle.bundle_id,
+                evidence_bundle_digest=domain_object_digest(evidence_bundle),
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                validation_context_id="4" * 64,
+                review_context_id="5" * 64,
+                validation_producer="deterministic-validator/v1",
+                review_producer="deterministic-critic/v1",
+                assessments=critic_assessments,
+                created_at=now + timedelta(seconds=12),
+                deadline=now + timedelta(seconds=40),
+                idempotency_key="m8.3:critic-plan",
+            )
+            critic_intake_service = AgentCriticIntakeService(
+                scope=scope,
+                audit_store=audit_artifact_store,
+                candidate_store=candidate_store,
+                outcome_binding_store=binding_store,
+                validation_store=validation_store,
+                evidence_store=evidence_store,
+                store=critic_intake_store,
+            )
+            critic_intake_plan = critic_intake_service.prepare(
+                outcome_binding_plan=binding_plan,
+                audit_artifact=audit_outcome.artifact,
+                critic_plan=critic_plan,
+                now=now + timedelta(seconds=12),
+                decision_deadline=now + timedelta(seconds=30),
+                idempotency_key="m8.3:critic-intake",
+            )
+            critic_command = AgentCriticIntakeCommand.create(
+                intake_plan_id=critic_intake_plan.intake_plan_id,
+                intake_plan_digest=agent_critic_intake_plan_digest(critic_intake_plan),
+                outcome_binding_id=critic_intake_plan.outcome_binding_id,
+                candidate_id=candidate.candidate_id,
+                critic_plan_id=critic_plan.plan_id,
+                critic_plan_digest=critic_intake_plan.critic_plan_digest,
+                decision=AgentCriticIntakeDecision.ACCEPT,
+                reason_code=AgentCriticIntakeReason.HUMAN_ACCEPTED_EXACT_PLAN,
+                reviewer="phase3-human-critic-reviewer",
+                decided_at=now + timedelta(seconds=13),
+            )
+            calls_before_critic_intake = calls_after_binding
+            critic_intake_record = critic_intake_service.decide(
+                critic_intake_plan,
+                critic_command,
+                outcome_binding_plan=binding_plan,
+                audit_artifact=audit_outcome.artifact,
+                critic_plan=critic_plan,
+                now=critic_command.decided_at,
+            )
+            calls_after_critic_intake = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1021,14 +1123,17 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert audit_outcome.bundle.budget == session_outcome.budget
     assert intake_record.decision is AgentValidationIntakeDecision.ACCEPT
     assert validation_runner.calls == 1
-    assert validation_outcome.verdict.result.value == "inconclusive"
+    assert validation_outcome.verdict.result.value == "reproduced"
     assert outcome_binding.validation_run_id == validation_outcome.validation_run.run_id
     assert calls_after_binding == calls_before_binding
+    assert critic_intake_record.decision is AgentCriticIntakeDecision.ACCEPT
+    assert calls_after_critic_intake == calls_before_critic_intake
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
     assert len(adapter.attempts) == 3
     assert _TARGET_BODY not in (tmp_path / "m711-audits.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m81-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m82-bindings.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m83-critic-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (tmp_path / "m710-sessions.sqlite3").read_bytes()

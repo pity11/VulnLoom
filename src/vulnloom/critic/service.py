@@ -70,8 +70,7 @@ class DeterministicCritic:
             verdict = CriticVerdict.REJECTED
             rationale_code = "counterevidence_confirmed"
         elif any(
-            item.disposition is CounterevidenceDisposition.INCONCLUSIVE
-            for item in plan.assessments
+            item.disposition is CounterevidenceDisposition.INCONCLUSIVE for item in plan.assessments
         ):
             verdict = CriticVerdict.INCONCLUSIVE
             rationale_code = "counterevidence_review_inconclusive"
@@ -80,9 +79,7 @@ class DeterministicCritic:
             rationale_code = "all_counterevidence_angles_ruled_out"
 
         # Force a final no-follow integrity read immediately before the state decision.
-        for ref in dict.fromkeys(
-            ref for item in plan.assessments for ref in item.evidence_refs
-        ):
+        for ref in dict.fromkeys(ref for item in plan.assessments for ref in item.evidence_refs):
             self.evidence_store.read_text(catalog[ref])
 
         review = CriticReview(
