@@ -478,7 +478,7 @@ M7.11 用可独立复核的不可变审计链收束 Phase 5 首版。它不把 A
 
 目标：在不把模型输出当作授权或事实的前提下，将已审计的 Agent recommendation 接入现有人工选择、Validation、Critic 与报告闭环。
 
-### M8.1：人工 Validation Intake 与密封计划绑定（规划）
+### M8.1：人工 Validation Intake 与密封计划绑定（已完成首版）
 
 - 新增内容寻址的 `AgentValidationIntakePlan`，精确绑定一个已完成且通过完整性复核的 M7.11 Audit Bundle/recommendation、一个不可变 Candidate/CandidateSet、当前 Scope/Target 版本，以及由可信控制面预构造的 exact `ValidationPlan` 摘要。
 - Intake 不从 Agent summary、tool intent 或 Evidence 正文生成 Runner request、BrokerCall、URL、HTTP 参数、assertion、credential 或 Approval；完整 `ValidationPlan` 必须作为独立 typed 对象输入，并继续满足现有 M4.4/M4.5 preflight。

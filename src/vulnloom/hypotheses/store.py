@@ -69,7 +69,11 @@ class CandidateSetStore:
             raise ValueError("CandidateSet object is unavailable or unsafe") from exc
         with os.fdopen(descriptor, "rb") as handle:
             metadata = os.fstat(handle.fileno())
-            if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > self.max_set_bytes:
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or metadata.st_mode & 0o222
+                or metadata.st_size > self.max_set_bytes
+            ):
                 raise ValueError("CandidateSet object is unavailable or unsafe")
             content = handle.read(self.max_set_bytes + 1)
         if len(content) > self.max_set_bytes:

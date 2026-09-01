@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "AgentValidationIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentValidationIntakeDecision",
+      "type": "string"
+    },
+    "AgentValidationIntakeReason": {
+      "enum": [
+        "human_accepted_exact_plan",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentValidationIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "audit_bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Bundle Id",
+      "type": "string"
+    },
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentValidationIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentValidationIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "intake_plan_id",
+    "command_id",
+    "audit_bundle_id",
+    "recommendation_id",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "validation_plan_id",
+    "validation_plan_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at",
+    "expires_at"
+  ],
+  "title": "AgentValidationIntakeRecord",
+  "type": "object"
+}

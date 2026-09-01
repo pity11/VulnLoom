@@ -63,9 +63,9 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M7.11 include deterministic replay, fixed provider
+they are not present in the current tree. M7.1a-M8.1 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
-two-tool Session ledger.
+two-tool Session ledger, plus digest-only human Validation Intake.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
 rules, databases, or images.
 
@@ -438,6 +438,17 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
   conflict/recovery. Artifact failure cleans temporary files and refuses automatic replay.
 - Extends the loopback Phase 3 composition by creating the audit from the real M7.10 session and
   proving a tampered chain is rejected without adding runtime network or execution authority.
+
+### M8.1: human Validation Intake and sealed plan binding
+
+- Reopens the immutable M7.11 Audit artifact and CandidateSet, then binds their exact digests to a
+  Control-Plane-built typed `ValidationPlan`; no Agent prose or Evidence body becomes a request.
+- Accepts only a human `accept`, `reject`, or `defer` command bound to the exact Audit, Candidate and
+  Validation plan. A blocked, failed or timed-out recommendation cannot be accepted.
+- Produces only a digest-only immutable decision record. The service has no Runner or Broker and
+  does not queue Validation, mutate Candidate state, consume Approval, build a Target or submit data.
+- Uses an independent STARTED/COMPLETED SQLite ledger; drift, expiry, duplicate consumption,
+  conflicting decisions and unfinished recovery fail closed.
 
 ## Local development
 

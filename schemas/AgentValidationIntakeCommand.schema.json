@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "AgentValidationIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentValidationIntakeDecision",
+      "type": "string"
+    },
+    "AgentValidationIntakeReason": {
+      "enum": [
+        "human_accepted_exact_plan",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentValidationIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Digest",
+      "type": "string"
+    },
+    "audit_bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Bundle Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentValidationIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentValidationIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "intake_plan_id",
+    "intake_plan_digest",
+    "audit_bundle_id",
+    "candidate_id",
+    "candidate_digest",
+    "validation_plan_id",
+    "validation_plan_digest",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at"
+  ],
+  "title": "AgentValidationIntakeCommand",
+  "type": "object"
+}

@@ -481,6 +481,18 @@ decision digest、预算单调性、deadline 与 cleanup 链。
 URL、credential、provider request/response 或工具参数。独立 SQLite 只保存 plan/outcome 与摘要化 bundle；遗留
 STARTED 拒绝自动重放。
 
+### AgentValidationIntakePlan、Command 与 Record
+
+M8.1 的 `AgentValidationIntakePlan` 只保存 M7.11 Audit Bundle/artifact/recommendation、CandidateSet/Candidate、
+Target/version、Scope/version 与一个由可信控制面独立构造的完整 `ValidationPlan` 的 ID 和摘要。完整
+`ValidationPlan` 是瞬时 typed 输入；Agent summary、tool intent、Evidence 正文不能进入或派生 Runner request、
+BrokerCall、URL、HTTP 参数、credential、assertion 或 Approval。
+
+`AgentValidationIntakeCommand` 只允许人工 `accept|reject|defer`，并以固定 reason code、reviewer、decision time
+绑定 exact Intake/Audit/Candidate/ValidationPlan。`AgentValidationIntakeRecord` 是同一绑定的不可变、digest-only
+决定；accepted 不代表已执行、已批准副作用或已改变 Candidate。SQLite checkpoint 只保存摘要、稳定决定、
+reason code 和 reviewer，不保存 Agent prose、Evidence 正文、URL、credential 或工具参数。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

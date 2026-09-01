@@ -508,6 +508,20 @@ Authoritative completed M7.10 Session
 digest、ID、typed count/status 和 Evidence ref；recommendation 只是后续确定性服务的输入，不触发工具、Approval、
 Candidate/Finding、Report 或 Submission 状态变化。发布失败清理临时文件并留下需显式处理的 STARTED checkpoint。
 
+### M8.1 人工 Validation Intake
+
+```text
+read-only M7.11 Audit artifact + immutable CandidateSet + current Scope
+  + independently constructed typed ValidationPlan
+  → verify exact Target/version/Scope/Candidate/task provenance
+  → human accept | reject | defer
+  → digest-only immutable Intake record
+```
+
+accepted 只表示人工选择了 exact ValidationPlan，不调用 ValidationService、不排队 Runner/Broker、不改变 Candidate，
+也不是 Approval。后续执行必须由独立入口显式发起，并重新通过原有 Validation、Scope、Policy、Sandbox、Broker、
+Evidence、预算和 Approval 门禁。非 completed recommendation、对象漂移、过期决定、重复消费和遗留 STARTED 均拒绝。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

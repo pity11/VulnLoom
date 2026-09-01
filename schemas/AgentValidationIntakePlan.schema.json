@@ -1,0 +1,124 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "audit_bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Bundle Id",
+      "type": "string"
+    },
+    "audit_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Bundle Digest",
+      "type": "string"
+    },
+    "audit_artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Artifact Digest",
+      "type": "string"
+    },
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "recommendation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Digest",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_set_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "decision_deadline": {
+      "format": "date-time",
+      "title": "Decision Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intake_plan_id",
+    "audit_bundle_id",
+    "audit_bundle_digest",
+    "audit_artifact_digest",
+    "recommendation_id",
+    "recommendation_digest",
+    "candidate_set_id",
+    "candidate_set_digest",
+    "candidate_id",
+    "candidate_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "validation_plan_id",
+    "validation_plan_digest",
+    "created_at",
+    "decision_deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentValidationIntakePlan",
+  "type": "object"
+}

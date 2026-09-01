@@ -317,3 +317,7 @@ M1 实现采用逐成员解压，不调用 `extractall()`；拒绝符号链接�
 - Prompt Injection 不能改变工具白名单或 Approval 状态。
 - 超时会终止整个进程组并清理容器、网络和 volume。
 - 原始凭据不进入日志、FTS、报告或错误消息。
+
+M8.1 的人工 Validation Intake 只持久化 Audit/Candidate/ValidationPlan 摘要、稳定决定和 reviewer identity。
+它不依赖 Runner 或 Broker，不能从 Agent summary、tool intent 或 Evidence 正文生成执行参数，也不能把 accepted
+解释为 Approval、Candidate 状态迁移或已执行 Validation。所有权威对象在 checkpoint 前重新打开并复核。

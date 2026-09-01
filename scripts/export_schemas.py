@@ -170,6 +170,9 @@ from vulnloom.runners import (
     ToolInvocation,
 )
 from vulnloom.validation import (
+    AgentValidationIntakeCommand,
+    AgentValidationIntakePlan,
+    AgentValidationIntakeRecord,
     HttpResponseAssertion,
     ValidationOutcome,
     ValidationPlan,
@@ -229,6 +232,9 @@ MODELS = (
     AgentSessionAuditBundle,
     AgentSessionAuditArtifact,
     AgentSessionAuditOutcome,
+    AgentValidationIntakePlan,
+    AgentValidationIntakeCommand,
+    AgentValidationIntakeRecord,
     Scope,
     Artifact,
     TargetManifest,

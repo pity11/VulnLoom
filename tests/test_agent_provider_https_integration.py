@@ -69,14 +69,29 @@ from vulnloom.broker import (
     ToolBroker,
     pinned_http_tool_registry,
 )
-from vulnloom.domain.models import NetworkTargetScope, Scope, ScopeState
+from vulnloom.domain.models import Candidate, NetworkTargetScope, Scope, ScopeState, SourceLocation
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
+from vulnloom.hypotheses import CandidateSet, CandidateSetStore
+from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     NetworkGrant,
+    ToolInvocation,
     sandbox_profile_digest,
     validation_profile,
+)
+from vulnloom.runners.models import SandboxRunRequest
+from vulnloom.validation import (
+    AgentValidationIntakeCommand,
+    AgentValidationIntakeDecision,
+    AgentValidationIntakeReason,
+    AgentValidationIntakeRejected,
+    AgentValidationIntakeService,
+    AgentValidationIntakeStore,
+    ValidationPlan,
+    agent_validation_intake_plan_digest,
+    candidate_content_digest,
 )
 
 
@@ -456,9 +471,9 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1"
     or os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
-    reason="set both provider and composition integration flags for the M7.10 probe",
+    reason="set both provider and composition integration flags for the M7.10-M8.1 probe",
 )
-def test_live_provider_fixed_two_tool_session_chain(
+def test_live_provider_session_audit_and_validation_intake_chain(
     tmp_path: Path, monkeypatch
 ):
     address = _safe_local_ipv4()
@@ -644,6 +659,9 @@ def test_live_provider_fixed_two_tool_session_chain(
             AgentSessionAuditStore(
                 tmp_path / "m711-audits.sqlite3"
             ) as audit_store,
+            AgentValidationIntakeStore(
+                tmp_path / "m81-intakes.sqlite3"
+            ) as intake_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -746,6 +764,9 @@ def test_live_provider_fixed_two_tool_session_chain(
                 terminal_continuation_key="m7.10:terminal-continuation",
                 terminal_run_key="m7.10:terminal-run",
             )
+            audit_artifact_store = AgentSessionAuditArtifactStore(
+                tmp_path / "m711-audit-artifacts"
+            )
             audit_service = AgentSessionAuditService(
                 session_store=session_store,
                 root_agent_store=root_store,
@@ -754,9 +775,7 @@ def test_live_provider_fixed_two_tool_session_chain(
                 continuation_store=continuation_store,
                 evidence_store=evidence_store,
                 audit_store=audit_store,
-                artifact_store=AgentSessionAuditArtifactStore(
-                    tmp_path / "m711-audit-artifacts"
-                ),
+                artifact_store=audit_artifact_store,
             )
             audit_plan = audit_service.prepare(
                 session_plan=session_plan,
@@ -777,6 +796,133 @@ def test_live_provider_fixed_two_tool_session_chain(
                     session_plan=tampered_session_plan,
                     now=now + timedelta(seconds=7),
                 )
+
+            candidate = Candidate(
+                target_id=task.target_id,
+                target_version=task.target_version,
+                source_graph_id="8" * 64,
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                title="Human-selected local Validation fixture",
+                cwe="CWE-639",
+                entry_point=SourceLocation(path="app.py", line=1, symbol="read"),
+                sink=SourceLocation(path="store.py", line=2, symbol="get"),
+                code_path=(
+                    SourceLocation(path="app.py", line=1, symbol="read"),
+                    SourceLocation(path="store.py", line=2, symbol="get"),
+                ),
+                security_invariant="Only authorized fixture objects are readable",
+                hypothesis="The local fixture may omit an ownership check",
+                signal_ids=("9" * 64,),
+                cheapest_disproof="Run the separately sealed local Validation plan",
+                duplicate_fingerprint="a" * 64,
+                confidence=0.5,
+            )
+            candidate_set_partial = CandidateSet(
+                candidate_set_id="0" * 64,
+                source_graph_id=candidate.source_graph_id,
+                target_id=candidate.target_id,
+                target_version=candidate.target_version,
+                scope_id=candidate.scope_id,
+                scope_version=candidate.scope_version,
+                generator_version="m8.1-admission",
+                candidates=(candidate,),
+            )
+            candidate_set = candidate_set_partial.model_copy(
+                update={
+                    "candidate_set_id": candidate_set_digest(candidate_set_partial)
+                }
+            )
+            candidate_store = CandidateSetStore(tmp_path / "m81-candidates")
+            candidate_store.put(candidate_set)
+            intake_profile = validation_profile(
+                image_digest="sha256:" + "f" * 64,
+                snapshot_id="a" * 64,
+            )
+            intake_task = TaskEnvelope(
+                engagement_id=scope.engagement_id,
+                target_id=candidate.target_id,
+                target_version=candidate.target_version,
+                scope_id=scope.scope_id,
+                worker_role=WorkerRole.VALIDATOR,
+                scope_version=scope.version,
+                policy_digest=PolicyEngine(scope).policy_digest,
+                sandbox_profile_digest=sandbox_profile_digest(intake_profile),
+                tool_registry_digest=registry.digest,
+                input_refs=(f"candidate:{candidate_content_digest(candidate)}",),
+                allowed_tools=intake_profile.allowed_tools,
+                budget=TaskBudget(wall_seconds=20, model_tokens=0, tool_calls=1),
+                deadline=now + timedelta(seconds=50),
+                idempotency_key="m8.1:validation-task",
+            )
+            runner_request = SandboxRunRequest(
+                task=intake_task,
+                profile=intake_profile,
+                invocation=ToolInvocation(
+                    tool_id="sandbox.test", working_directory="source"
+                ),
+                environment={},
+                idempotency_key="m8.1:runner-request",
+            )
+            validation_plan = ValidationPlan.create(
+                candidate_id=candidate.candidate_id,
+                candidate_digest=candidate_content_digest(candidate),
+                target_id=candidate.target_id,
+                target_version=candidate.target_version,
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                selected_by="phase3-human-reviewer",
+                selected_at=now + timedelta(seconds=7),
+                selection_reason="Bind only; do not execute the local fixture",
+                runner_request=runner_request,
+                idempotency_key="m8.1:validation-plan",
+            )
+            intake_service = AgentValidationIntakeService(
+                scope=scope,
+                audit_artifact_store=audit_artifact_store,
+                candidate_set_store=candidate_store,
+                store=intake_store,
+            )
+            intake_plan = intake_service.prepare(
+                audit_artifact=audit_outcome.artifact,
+                candidate_set_id=candidate_set.candidate_set_id,
+                candidate_id=candidate.candidate_id,
+                validation_plan=validation_plan,
+                now=now + timedelta(seconds=7),
+                decision_deadline=now + timedelta(seconds=45),
+                idempotency_key="m8.1:intake",
+            )
+            command = AgentValidationIntakeCommand.create(
+                intake_plan_id=intake_plan.intake_plan_id,
+                intake_plan_digest=agent_validation_intake_plan_digest(intake_plan),
+                audit_bundle_id=intake_plan.audit_bundle_id,
+                candidate_id=candidate.candidate_id,
+                candidate_digest=candidate_content_digest(candidate),
+                validation_plan_id=validation_plan.plan_id,
+                validation_plan_digest=intake_plan.validation_plan_digest,
+                decision=AgentValidationIntakeDecision.ACCEPT,
+                reason_code=AgentValidationIntakeReason.HUMAN_ACCEPTED_EXACT_PLAN,
+                reviewer="phase3-human-reviewer",
+                decided_at=now + timedelta(seconds=8),
+            )
+            tampered_validation_plan = validation_plan.model_copy(
+                update={"candidate_digest": "0" * 64}
+            )
+            with pytest.raises(AgentValidationIntakeRejected):
+                intake_service.decide(
+                    intake_plan,
+                    command,
+                    audit_artifact=audit_outcome.artifact,
+                    validation_plan=tampered_validation_plan,
+                    now=now + timedelta(seconds=8),
+                )
+            intake_record = intake_service.decide(
+                intake_plan,
+                command,
+                audit_artifact=audit_outcome.artifact,
+                validation_plan=validation_plan,
+                now=now + timedelta(seconds=8),
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -801,7 +947,12 @@ def test_live_provider_fixed_two_tool_session_chain(
     assert len(audit_outcome.bundle.observation_ids) == 2
     assert len(audit_outcome.bundle.evidence_refs) == 2
     assert audit_outcome.bundle.budget == session_outcome.budget
+    assert intake_record.decision is AgentValidationIntakeDecision.ACCEPT
+    assert candidate.state.value == "proposed"
+    assert _TargetHandler.requests == 2
+    assert len(adapter.attempts) == 3
     assert _TARGET_BODY not in (tmp_path / "m711-audits.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m81-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (
         tmp_path / "m710-sessions.sqlite3"

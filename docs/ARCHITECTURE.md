@@ -587,3 +587,23 @@ Evidence content, URLs, credentials, provider wire data or tool arguments. The s
 STARTED/COMPLETED lifecycle permits idempotent completed reads but refuses conflict and unfinished
 recovery. This layer performs no provider, Broker, Runner, Docker, target-build, Candidate/Finding,
 report-export or Submission action.
+
+## 35. M8.1 human Validation Intake and sealed plan binding
+
+M8.1 adds an offline Control Plane decision boundary between an audited Agent recommendation and the
+existing Validation Orchestrator. A digest-only `AgentValidationIntakePlan` binds the exact read-only
+M7.11 Audit artifact and recommendation, immutable CandidateSet/Candidate, current Target/Scope, and
+an independently constructed typed `ValidationPlan`. The service reopens the Audit artifact and
+CandidateSet through their authoritative stores before both plan creation and decision recording.
+
+The human command is limited to `accept`, `reject`, or `defer` with a fixed reason code and exact
+digest bindings. A non-completed recommendation cannot be accepted. An accepted record means only
+that a reviewer selected that exact plan for a later explicit Validation entry point; the Intake
+service has no Runner or Broker dependency and does not queue or mutate the Candidate, consume an
+Approval, create Evidence, or execute any request.
+
+The separate SQLite STARTED/COMPLETED ledger persists only identities, digests, the stable decision,
+reason code, reviewer, and the digest-only record. Reused recommendations or Validation plans,
+conflicting commands, unfinished checkpoints, expired decisions, Scope drift, Candidate drift, and
+ValidationPlan drift fail closed. The later caller must still invoke `ValidationService` explicitly
+and pass all existing M4.4/M4.5 Scope, Policy, Profile, Broker, budget, Evidence, and Approval gates.
