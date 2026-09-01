@@ -53,6 +53,12 @@ The M7.8 typed Agent-to-Broker handoff admission run is GitHub Actions
 [`33481732208`](https://github.com/pity11/VulnLoom/actions/runs/33481732208). Both completed
 successfully on 2026-09-01 and qualify the M7.8 Agent tool handoff row below.
 
+The M7.9 sealed Tool Observation continuation admission run is GitHub Actions
+[`33493614664`](https://github.com/pity11/VulnLoom/actions/runs/33493614664) for commit
+`ad6c88302a2e89b8c6f46aebf575dbe3fb8abc44`. The standard Python CI for the same commit is
+[`33493614682`](https://github.com/pity11/VulnLoom/actions/runs/33493614682). Both completed
+successfully on 2026-09-01 and qualify the M7.9 Agent Observation continuation row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -73,6 +79,7 @@ successfully on 2026-09-01 and qualify the M7.8 Agent tool handoff row below.
 | Provider egress lifecycle | A trusted local issuer policy creates a content-addressed active loopback grant bound into registration; the Runtime reopens and verifies it before DNS/credential/process use, while offline tests enforce expiry, revocation, unfinished-checkpoint, tamper, and cleanup refusal | PASS (`33474110739`) |
 | Provider Responses codec | A content-addressed codec emits the fixed non-streaming/non-stored strict-schema request and accepts only one completed assistant output text; the real isolated loopback TLS subprocess proves bounded transport, nested typed decoding, identity checks, and transient-buffer cleanup | PASS (`33477673827`) |
 | Agent tool handoff | An authoritative completed Validator Agent intent is bound to an independently constructed exact Broker call; the real pinned Broker re-enforces Scope/Policy/network and imports only digest-bound Evidence metadata into an Observation, while checkpoint, Approval retry, timeout, drift, and no-raw-persistence paths remain fail-closed | PASS (`33481732221`) |
+| Agent Observation continuation | Exact completed handoff and Evidence refs are reopened into redacted untrusted context; a derived Validator Task inherits authority and deadline but has no tools and zero tool-call budget, while the real loopback provider and pinned Broker prove one bounded continuation, terminal decision, and cleanup | PASS (`33493614664`) |
 
 ## Reproduction
 
@@ -140,3 +147,14 @@ stores the redacted response in the Evidence Store. The resulting `AgentToolObse
 only typed counts, digests, and Evidence refs. This PASS does not qualify Agent-owned sockets,
 arbitrary URLs, automatic Approval, public targets, recursive tool loops, Candidate/Finding promotion,
 report export, or Submission.
+
+M7.9 extends that composition through exactly one sealed Observation continuation. After the real
+loopback provider proposes the precommitted call, the pinned Broker connects only to the temporary
+authorized service, Evidence Store captures the redacted content, and the continuation reopens the
+authoritative stores to rebuild bounded untrusted context for a second provider turn. The fixture
+observes exactly one target request, the continuation terminates without tools, and both child
+processes are reaped. Ordinary CI separately covers missing, linked, writable, oversized, or drifted
+Evidence; exhausted budgets and deadlines; recursive tool proposals; provider failures; checkpoint
+conflicts; recovery refusal; and absence of raw content in SQLite. This PASS does not qualify recursive
+tool execution, public providers or targets, automatic Approval, state changes, Target construction,
+Candidate/Finding promotion, report export, or Submission.

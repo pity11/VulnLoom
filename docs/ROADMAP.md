@@ -447,6 +447,20 @@ M7.8 不允许 Agent 直接调用 Runner、socket、Docker 或工具 adapter，�
 
 M7.9 不增加公网 provider/目标能力、任意 provider 参数、Agent 直连工具、自动 Approval、无限 Agent loop、Target build、Candidate/Finding 转换、报告导出或 Submission。它只完成一次有界、可审计的 Observation 反馈闭环；任何领域状态变化仍由后续独立的确定性服务和门禁负责。
 
+### M7.10：跨轮次密封 Session Ledger 与固定双工具闭环（规划）
+
+- 新增内容寻址的 `AgentSessionPlan` 与权威 Session Ledger，绑定根 Validator Task、model/context registration、绝对 deadline、总 token/step/tool/provider-attempt/Broker-attempt 预算，以及有序的 round identity；所有后续轮次只能从权威 store 重读前序 outcome、handoff、Observation 和 cleanup proof。
+- 首版 session 固定最多两个工具轮次和三个 provider turn，不提供通用递归循环。每个工具轮次仍最多一个 `propose_tool`；第二次成功 handoff 后的 provider turn 必须终止为 `complete` 或 `blocked`，第三次提议、round fork/cycle、重复 Observation 或重复 call commitment 一律 fail-closed。
+- 可信控制面为每轮构造有限、内容寻址的 `AgentAuthorizedCallSet`。每个选项都是已经通过静态 preflight 的 exact typed `BrokerCall` commitment；模型只能选择被展示的 opaque commitment，不能生成或修改 URL、方法、header、body、credential、Scope、Policy、Profile、Registry 或网络参数。
+- 每次 provider/Broker 动作前，Session Ledger 事务性保留对应 attempt 并计算累计消耗与剩余预算；token、step、tool-call、attempt 和 wall-time 只能单调减少。预算不足、deadline 到期、前序 cleanup 不完整、未完成 handoff、未决 Approval 或账本漂移必须在下一外部动作前拒绝。
+- 每个 completed Broker result 都必须经既有 Evidence Store 与 `AgentToolObservation` 路径落盘，再以 no-follow、摘要校验、二次脱敏和有界 `OBSERVATION_SUMMARY` 进入下一轮 untrusted context；模型文本、provider transcript 或调用方拼接对象不得成为轮次权威状态。
+- Approval-required 只把 session 停在显式等待状态；后续必须由既有 Approval Gate 提供有效决定并走既有一次性 handoff retry，Session 不得自动批准、轮询、扩权或重放 provider/Broker 外部动作。
+- SQLite checkpoint 记录 session/round 的 `STARTED`、等待和终态，提供完成幂等返回、唯一消费、冲突拒绝和遗留 STARTED 恢复拒绝；恢复只允许读取已完成结果，不自动重放可能已产生外部效果的 provider 或 Broker 调用。
+- 常规测试覆盖双工具成功、首轮/次轮 blocked、第三次提议、未列 commitment、重复调用、跨轮 Observation/Task/Scope/Target/version 漂移、累计预算耗尽、deadline、Approval 等待、provider/Broker timeout/failure、checkpoint 冲突、崩溃恢复、清理和 SQLite 无正文。
+- Phase 3 composition 仅使用隔离 loopback provider 和临时授权 Broker 服务，证明三个 provider turn 最多触发两个 exact read-only 请求、两个 Observation 都从 Evidence Store 重建、第三次工具调用被拒绝，且 provider/Broker 子进程与临时资源全部清理。
+
+M7.10 不增加公网 provider/目标能力、动态 URL 或参数、Agent 直连网络/Runner/Docker、自动 Approval、写目标、Target build、任意 shell、无限循环、Candidate/Finding 状态变化、报告导出或 Submission。固定双工具上限不是权限来源；每次执行仍由独立的 Scope、Policy、Broker、network grant、credential 与 Approval 边界重新裁决。
+
 ## 延后事项
 
 - 公网资产自主发现。
