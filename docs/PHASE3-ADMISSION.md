@@ -29,6 +29,12 @@ The M6.6 four-analyzer qualification admission run is GitHub Actions
 [`33397257608`](https://github.com/pity11/VulnLoom/actions/runs/33397257608). Both completed
 successfully on 2026-08-31 and qualify the M6.6 fan-in row below.
 
+The M7.5 provider transport admission run is GitHub Actions
+[`33465813508`](https://github.com/pity11/VulnLoom/actions/runs/33465813508) for commit
+`5b82317640d70dffca50b877cb466b425d36fb03`. The standard Python CI for the same commit is
+[`33465813515`](https://github.com/pity11/VulnLoom/actions/runs/33465813515). Both completed
+successfully on 2026-09-01 and qualify the M7.5 provider transport row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -45,6 +51,7 @@ successfully on 2026-08-31 and qualify the M6.6 fan-in row below.
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |
 | CodeQL writable-copy boundary | Target-bound DB/query snapshot remains read-only; exact wrapper writes only a bounded tmpfs copy, captures SARIF, imports M6.3a Observations, and cleans the container | PASS (`33354872312`) |
 | Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | PASS (`33397257470`) |
+| Provider transport | Fixed isolated subprocess inherits no parent secret/proxy environment, pins a numeric loopback peer while verifying admitted-host TLS, bounds output, kills on timeout, and composes through the typed Runtime without exposing raw credential or response data | PASS (`33465813508`) |
 
 ## Reproduction
 
@@ -76,3 +83,12 @@ store, confirms that incomplete and drifted matrices leave both qualification an
 stores empty, then requires a complete four-analyzer M6.5 qualification and M6.3b PASS. It adds no
 new runtime permission; the existing rootless, exact-image, `--pull never`, `network=none`, bounded
 output, mandatory Observation import, immutable analyzer-data, and cleanup checks remain in force.
+
+M7.5 adds a separately marked provider transport probe to the same workflow. It generates an
+ephemeral self-signed CA and starts only a loopback TLS fixture for an admitted `.test` hostname.
+The real fixed child process receives a minimal environment, connects to the pre-resolved numeric
+loopback address, verifies SNI/hostname and peer/TLS evidence, captures a bounded response, and is
+forcibly reaped on timeout. A full Runtime composition probe also verifies credential/request/response
+cleanup and digest-only attempt/receipt persistence. This PASS proves the subprocess and TLS boundary;
+it neither contacts nor qualifies a public model provider, provider-specific protocol, or production
+credential.
