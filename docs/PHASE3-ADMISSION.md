@@ -41,6 +41,12 @@ The M7.6 provider egress lifecycle admission run is GitHub Actions
 [`33474110527`](https://github.com/pity11/VulnLoom/actions/runs/33474110527). Both completed
 successfully on 2026-09-01 and qualify the M7.6 provider egress lifecycle row below.
 
+The M7.7 sealed Responses codec admission run is GitHub Actions
+[`33477673827`](https://github.com/pity11/VulnLoom/actions/runs/33477673827) for commit
+`c89616f2686a7937118ece6620c3aac5d6331183`. The standard Python CI for the same commit is
+[`33477673808`](https://github.com/pity11/VulnLoom/actions/runs/33477673808). Both completed
+successfully on 2026-09-01 and qualify the M7.7 provider codec row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -59,6 +65,7 @@ successfully on 2026-09-01 and qualify the M7.6 provider egress lifecycle row be
 | Four-analyzer qualification fan-in | One Target/Manifest/Scope produces authoritative completed Checkov/Kubesec/Trivy/CodeQL outcomes; missing or drifted cells are rejected before the complete matrix enters M6.3b | PASS (`33397257470`) |
 | Provider transport | Fixed isolated subprocess inherits no parent secret/proxy environment, pins a numeric loopback peer while verifying admitted-host TLS, bounds output, kills on timeout, and composes through the typed Runtime without exposing raw credential or response data | PASS (`33465813508`) |
 | Provider egress lifecycle | A trusted local issuer policy creates a content-addressed active loopback grant bound into registration; the Runtime reopens and verifies it before DNS/credential/process use, while offline tests enforce expiry, revocation, unfinished-checkpoint, tamper, and cleanup refusal | PASS (`33474110739`) |
+| Provider Responses codec | A content-addressed codec emits the fixed non-streaming/non-stored strict-schema request and accepts only one completed assistant output text; the real isolated loopback TLS subprocess proves bounded transport, nested typed decoding, identity checks, and transient-buffer cleanup | PASS (`33477673827`) |
 
 ## Reproduction
 
@@ -106,3 +113,13 @@ checkpoint, and binding its exact ID into model registration before the TLS call
 suite separately proves that revoked, expired, unfinished, linked, writable, malformed, conflicting,
 or Admission-drifted grants stop before DNS and credential acquisition. This remains a local
 Control Plane lifecycle proof, not a public-provider call or cryptographic remote-signer qualification.
+
+M7.7 replaces the temporary test-shaped live wire body with the content-addressed
+`openai-responses-v1` codec. The same real loopback TLS composition now verifies a fixed
+`/v1/responses` request with storage and streaming disabled, a strict Agent decision schema, and no
+provider tools or caller parameters. The bounded child response must decode as one completed
+assistant `output_text`, exact model identity, typed usage, strict nested JSON, and the existing
+`AgentDecisionPayload`; ordinary CI covers incomplete, refusal, native tool-call, duplicate-key,
+oversize, timeout, drift, and cleanup refusals. This qualifies the codec and local subprocess
+composition only. It does not contact or qualify a public provider, production credential, SDK,
+streaming/session behavior, data-residency policy, quota, or operational egress authorization.
