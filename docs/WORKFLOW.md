@@ -364,6 +364,26 @@ Admission、registration、credential、StepRequest 或 Envelope 任一摘要/�
 身份不一致和 timeout 分别产生稳定拒绝或超时 outcome；原始消息、响应与凭据不进入 checkpoint。真实 HTTPS
 传输尚不可表示，后续必须另行证明隔离出口、DNS rebinding、TLS、流式捕获、速率和日志边界。
 
+### M7.5 独立进程 HTTPS 调用链
+
+```text
+Exact live/loopback Admission + registration + Message Envelope
+  → re-resolve exact hostname and validate every IP
+  → rate slot + scoped credential lease
+  → bounded binary stdin frame (credential + provider message + optional CA)
+  → fixed `python -I` one-shot child, empty allowlisted env, no shell
+  → numeric-IP TCP + admitted-hostname TLS SNI/certificate verification
+  → exact POST path; no redirect/proxy/compression
+  → bounded headers + streaming response capture
+  → bounded parent stdout capture + forced process-group cleanup
+  → peer/TLS proof + strict typed response validation
+  → zero transient buffers; persist digest-only attempt/receipt
+```
+
+生产 `live_https` 与 `loopback_https_probe` 的 host/port/IP/CA 规则在 schema 层互斥。DNS 混入 forbidden address、
+peer 漂移、TLS/CA 失败、非 200/redirect、畸形/超限响应、rate exhaustion 和 timeout 均 fail-closed。没有自动
+retry，且该 adapter 仍只返回 Agent decision/tool proposal；它不能执行工具或改变领域状态。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

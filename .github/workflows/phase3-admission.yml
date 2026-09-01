@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   rootless-isolation:
-    name: Rootless Linux isolation and Broker boundary
+    name: Rootless isolation, Broker, and provider transport boundaries
     runs-on: ubuntu-24.04
     timeout-minutes: 25
 
@@ -100,8 +100,11 @@ jobs:
           VULNLOOM_COMPOSITION_INTEGRATION: "1"
           VULNLOOM_ROOTLESS_QUALIFICATION: "1"
           VULNLOOM_ANALYZER_INTEGRATION: "1"
+          VULNLOOM_PROVIDER_INTEGRATION: "1"
         run: |
           docker info
+          pytest -m provider_integration \
+            tests/test_agent_provider_https_integration.py
           pytest \
             tests/test_runner_docker_integration.py \
             tests/test_validation_composition_integration.py

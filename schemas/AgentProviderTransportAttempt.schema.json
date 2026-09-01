@@ -60,6 +60,47 @@
       "default": false,
       "title": "Network Opened",
       "type": "boolean"
+    },
+    "process_started": {
+      "default": false,
+      "title": "Process Started",
+      "type": "boolean"
+    },
+    "process_terminated": {
+      "default": true,
+      "title": "Process Terminated",
+      "type": "boolean"
+    },
+    "stderr_discarded": {
+      "default": true,
+      "title": "Stderr Discarded",
+      "type": "boolean"
+    },
+    "peer_ip_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Peer Ip Digest"
+    },
+    "tls_version": {
+      "anyOf": [
+        {
+          "pattern": "^TLSv1\\.[23]$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tls Version"
     }
   },
   "required": [

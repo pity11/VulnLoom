@@ -70,6 +70,7 @@ class OfflineAgentRuntime:
                 AgentAdapterKind.OFFLINE_REPLAY,
                 AgentAdapterKind.LOCAL_FAKE_PROVIDER,
                 AgentAdapterKind.ADMISSION_FAKE_TRANSPORT,
+                AgentAdapterKind.SUBPROCESS_HTTPS_PROVIDER,
             }
             or plan.task.worker_role not in self.registration.supported_roles
         ):

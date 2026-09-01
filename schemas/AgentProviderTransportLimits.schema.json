@@ -28,6 +28,13 @@
       "minimum": 1,
       "title": "Max Attempts",
       "type": "integer"
+    },
+    "max_requests_per_minute": {
+      "default": 30,
+      "maximum": 120,
+      "minimum": 1,
+      "title": "Max Requests Per Minute",
+      "type": "integer"
     }
   },
   "title": "AgentProviderTransportLimits",

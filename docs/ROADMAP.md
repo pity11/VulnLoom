@@ -387,6 +387,18 @@ M7.3 不把 system prompt 当安全边界；它没有 live provider、HTTP/SDK�
 
 M7.4 是 live transport 的离线 Admission 协议，不是实时 provider 实现；没有 DNS、socket、HTTP、SDK、proxy、自动 retry、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。真实 HTTPS 出口仍需独立进程/网络隔离、DNS/rebinding、TLS 和生产日志 Admission。
 
+### M7.5：独立进程 pinned HTTPS Provider Transport（已完成首版）
+
+- `subprocess_https_provider` registration 绑定固定实现摘要；调用方不能提供 executable、argv、header、URL、proxy、SDK 或 retry 策略。
+- `live_https` 只接受 canonical hostname、443、全局地址策略和显式 `network_enabled=true` Admission；`loopback_https_probe` 只能使用 `.test` hostname、loopback 地址、exact 动态端口和摘要绑定的测试 CA。两种模式不可互换。
+- Control Plane 每次调用重新解析 exact hostname；空、超量、私网/loopback/metadata/混合地址在凭据读取前拒绝。子进程只连接选定 numeric IP，并复核 socket peer。
+- 固定子进程使用 Python isolated mode、`/` cwd、close-fds、新进程组、最小环境、无 shell、stderr 丢弃、资源上限、父层 bounded stdout 和 timeout kill；credential/message/CA 通过有界二进制 stdin frame 传递。
+- 子进程强制 TLS 1.2+、SNI/hostname 校验、exact POST path、identity encoding、无 redirect、64 KiB header 上限和有界流式 response；父层再次复核 peer/TLS/响应 shape/provider/model。
+- admission 固定单 attempt，并以内容绑定的每分钟请求上限拒绝突发；没有自动 retry。attempt/receipt 只增加 peer IP 摘要、TLS version、process/network cleanup 证明，不保存 endpoint URL、credential、message 或 raw response。
+- 默认测试不创建 socket；opt-in/Phase 3 probe 用 self-signed sealed CA 和 loopback TLS server 证明真实进程、空环境、numeric pinning、timeout kill 与完整 Runtime composition。
+
+M7.5 不提供 provider-specific SDK/response mapping、CLI/API 默认入口、任意 URL、Target 网络访问、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。CI 不连接公网 provider；生产 `live_https` 仍需运营方对 exact provider hostname、credential reference、CA/出口和配额单独签发 Admission。
+
 ## 延后事项
 
 - 公网资产自主发现。

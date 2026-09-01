@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnloom"
-version = "0.29.0"
+version = "0.30.0"
 description = "Evidence-first agent framework for authorized vulnerability research"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -36,11 +36,13 @@ markers = [
     "socket_integration: optional integration test using a local loopback socket",
     "composition_integration: optional full local Docker, live Broker, and verdict probe",
     "rootless_integration: production admission probe requiring a rootless Linux Docker engine",
+    "provider_integration: opt-in loopback TLS subprocess provider Admission probe",
 ]
 
 [tool.coverage.run]
 branch = true
 source = ["vulnloom"]
+omit = ["src/vulnloom/agent_runtime/provider_transport_worker.py"]
 
 [tool.coverage.report]
 show_missing = true

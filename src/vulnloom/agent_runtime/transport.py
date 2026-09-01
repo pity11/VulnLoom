@@ -44,6 +44,14 @@ class AgentProviderTransportExhausted(RuntimeError):
 
 class AgentProviderTransportMode(StrEnum):
     ADMISSION_FAKE = "admission_fake"
+    LOOPBACK_HTTPS_PROBE = "loopback_https_probe"
+    LIVE_HTTPS = "live_https"
+
+
+class AgentProviderIpPolicy(StrEnum):
+    NONE = "none"
+    LOOPBACK_ONLY = "loopback_only"
+    GLOBAL_ONLY = "global_only"
 
 
 class AgentProviderTransportStatus(StrEnum):
@@ -57,6 +65,7 @@ class AgentProviderTransportLimits(DomainModel):
     max_response_bytes: int = Field(default=1_048_576, gt=0, le=2_097_152)
     timeout_seconds: float = Field(default=60.0, gt=0, le=600)
     max_attempts: int = Field(default=1, ge=1, le=1)
+    max_requests_per_minute: int = Field(default=30, ge=1, le=120)
 
 
 class AgentProviderTransportAdmission(DomainModel):
@@ -75,6 +84,10 @@ class AgentProviderTransportAdmission(DomainModel):
     dns_revalidation_required: bool = True
     raw_response_persisted: bool = False
     network_enabled: bool = False
+    process_isolation_required: bool = False
+    ip_policy: AgentProviderIpPolicy = AgentProviderIpPolicy.NONE
+    ca_bundle_digest: Digest | None = None
+    minimum_tls_version: str = "TLSv1.2"
 
     @model_validator(mode="after")
     def sealed_non_network_admission(self) -> Self:
@@ -96,18 +109,42 @@ class AgentProviderTransportAdmission(DomainModel):
             or any(item in self.request_path for item in ("?", "#", "\\", "%", ".."))
         ):
             raise ValueError("provider request path is not canonical")
-        if self.port != 443 or not self.tls_required:
-            raise ValueError("provider transport requires TLS on port 443")
         if (
             self.redirects_allowed
             or self.proxy_allowed
             or not self.dns_revalidation_required
             or self.raw_response_persisted
-            or self.network_enabled
         ):
-            raise ValueError("M7.4 transport admission cannot enable network or relax safeguards")
-        if self.mode is not AgentProviderTransportMode.ADMISSION_FAKE:
-            raise ValueError("M7.4 admits only the no-network fake transport")
+            raise ValueError("provider transport admission cannot relax safeguards")
+        if not self.tls_required or self.minimum_tls_version != "TLSv1.2":
+            raise ValueError("provider transport requires TLS 1.2 or newer")
+        if self.mode is AgentProviderTransportMode.ADMISSION_FAKE:
+            if (
+                self.port != 443
+                or self.network_enabled
+                or self.process_isolation_required
+                or self.ip_policy is not AgentProviderIpPolicy.NONE
+                or self.ca_bundle_digest is not None
+            ):
+                raise ValueError("M7.4 fake transport cannot enable network")
+        elif self.mode is AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE:
+            if (
+                not self.network_enabled
+                or not self.process_isolation_required
+                or self.ip_policy is not AgentProviderIpPolicy.LOOPBACK_ONLY
+                or self.ca_bundle_digest is None
+                or not hostname.endswith(".test")
+            ):
+                raise ValueError("loopback HTTPS probe admission is invalid")
+        elif (
+            self.mode is not AgentProviderTransportMode.LIVE_HTTPS
+            or not self.network_enabled
+            or not self.process_isolation_required
+            or self.ip_policy is not AgentProviderIpPolicy.GLOBAL_ONLY
+            or self.port != 443
+            or hostname.endswith(".test")
+        ):
+            raise ValueError("live HTTPS provider admission is invalid")
         if self.admission_id != agent_provider_transport_admission_digest(self):
             raise ValueError("provider transport admission content digest mismatch")
         return self
@@ -138,6 +175,99 @@ class AgentProviderTransportAdmission(DomainModel):
             "dns_revalidation_required": True,
             "raw_response_persisted": False,
             "network_enabled": False,
+            "process_isolation_required": False,
+            "ip_policy": AgentProviderIpPolicy.NONE,
+            "ca_bundle_digest": None,
+            "minimum_tls_version": "TLSv1.2",
+        }
+        digest_values = {**values, "limits": limits.model_dump(mode="python")}
+        return cls(admission_id=canonical_digest(digest_values), **values)
+
+    @classmethod
+    def create_loopback_probe(
+        cls,
+        *,
+        provider_id: str,
+        hostname: str,
+        port: int,
+        request_path: str,
+        credential_reference_id: str,
+        adapter_digest: str,
+        ca_bundle_digest: str,
+        limits: AgentProviderTransportLimits,
+    ) -> AgentProviderTransportAdmission:
+        return cls._create_networked(
+            provider_id=provider_id,
+            hostname=hostname,
+            port=port,
+            request_path=request_path,
+            credential_reference_id=credential_reference_id,
+            adapter_digest=adapter_digest,
+            ca_bundle_digest=ca_bundle_digest,
+            limits=limits,
+            mode=AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE,
+            ip_policy=AgentProviderIpPolicy.LOOPBACK_ONLY,
+        )
+
+    @classmethod
+    def create_live_https(
+        cls,
+        *,
+        provider_id: str,
+        hostname: str,
+        request_path: str,
+        credential_reference_id: str,
+        adapter_digest: str,
+        limits: AgentProviderTransportLimits,
+        ca_bundle_digest: str | None = None,
+    ) -> AgentProviderTransportAdmission:
+        return cls._create_networked(
+            provider_id=provider_id,
+            hostname=hostname,
+            port=443,
+            request_path=request_path,
+            credential_reference_id=credential_reference_id,
+            adapter_digest=adapter_digest,
+            ca_bundle_digest=ca_bundle_digest,
+            limits=limits,
+            mode=AgentProviderTransportMode.LIVE_HTTPS,
+            ip_policy=AgentProviderIpPolicy.GLOBAL_ONLY,
+        )
+
+    @classmethod
+    def _create_networked(
+        cls,
+        *,
+        provider_id: str,
+        hostname: str,
+        port: int,
+        request_path: str,
+        credential_reference_id: str,
+        adapter_digest: str,
+        ca_bundle_digest: str | None,
+        limits: AgentProviderTransportLimits,
+        mode: AgentProviderTransportMode,
+        ip_policy: AgentProviderIpPolicy,
+    ) -> AgentProviderTransportAdmission:
+        values = {
+            "provider_id": provider_id,
+            "hostname": hostname,
+            "port": port,
+            "request_path": request_path,
+            "credential_reference_id": credential_reference_id,
+            "adapter_digest": adapter_digest,
+            "mode": mode,
+            "limits": limits,
+            "tls_required": True,
+            "redirects_allowed": False,
+            "proxy_allowed": False,
+            "dns_revalidation_required": True,
+            "raw_response_persisted": False,
+            "network_enabled": True,
+            "process_isolation_required": True,
+            "ip_policy": ip_policy,
+            "ca_bundle_digest": ca_bundle_digest,
+            "minimum_tls_version": "TLSv1.2",
         }
         digest_values = {**values, "limits": limits.model_dump(mode="python")}
         return cls(admission_id=canonical_digest(digest_values), **values)
@@ -183,6 +313,11 @@ class AgentProviderTransportAttempt(DomainModel):
     request_body_released: bool
     raw_response_discarded: bool
     network_opened: bool = False
+    process_started: bool = False
+    process_terminated: bool = True
+    stderr_discarded: bool = True
+    peer_ip_digest: Digest | None = None
+    tls_version: str | None = Field(default=None, pattern=r"^TLSv1\.[23]$")
 
     @model_validator(mode="after")
     def sealed_cleanup(self) -> Self:
@@ -190,12 +325,18 @@ class AgentProviderTransportAttempt(DomainModel):
             self.credential_released
             and self.request_body_released
             and self.raw_response_discarded
-        ) or self.network_opened:
+            and self.process_terminated
+            and self.stderr_discarded
+        ):
             raise ValueError("provider transport attempt cleanup is incomplete")
         if (self.status is AgentProviderTransportStatus.COMPLETED) != (
             self.error_code is None
         ):
             raise ValueError("provider transport attempt status shape mismatch")
+        if self.network_opened != (
+            self.peer_ip_digest is not None and self.tls_version is not None
+        ):
+            raise ValueError("provider transport network proof shape mismatch")
         if self.attempt_id != canonical_digest(
             self.model_dump(mode="python", exclude={"attempt_id"})
         ):
@@ -389,6 +530,11 @@ class AdmissionFakeTransportAdapter:
                 "request_body_released": not any(request_body),
                 "raw_response_discarded": response_body is None or not any(response_body),
                 "network_opened": False,
+                "process_started": False,
+                "process_terminated": True,
+                "stderr_discarded": True,
+                "peer_ip_digest": None,
+                "tls_version": None,
             }
             attempt = AgentProviderTransportAttempt(
                 attempt_id=canonical_digest(attempt_values), **attempt_values

@@ -1,5 +1,14 @@
 {
   "$defs": {
+    "AgentProviderIpPolicy": {
+      "enum": [
+        "none",
+        "loopback_only",
+        "global_only"
+      ],
+      "title": "AgentProviderIpPolicy",
+      "type": "string"
+    },
     "AgentProviderTransportLimits": {
       "additionalProperties": false,
       "properties": {
@@ -30,6 +39,13 @@
           "minimum": 1,
           "title": "Max Attempts",
           "type": "integer"
+        },
+        "max_requests_per_minute": {
+          "default": 30,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Max Requests Per Minute",
+          "type": "integer"
         }
       },
       "title": "AgentProviderTransportLimits",
@@ -37,7 +53,9 @@
     },
     "AgentProviderTransportMode": {
       "enum": [
-        "admission_fake"
+        "admission_fake",
+        "loopback_https_probe",
+        "live_https"
       ],
       "title": "AgentProviderTransportMode",
       "type": "string"
@@ -120,6 +138,33 @@
       "default": false,
       "title": "Network Enabled",
       "type": "boolean"
+    },
+    "process_isolation_required": {
+      "default": false,
+      "title": "Process Isolation Required",
+      "type": "boolean"
+    },
+    "ip_policy": {
+      "$ref": "#/$defs/AgentProviderIpPolicy",
+      "default": "none"
+    },
+    "ca_bundle_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ca Bundle Digest"
+    },
+    "minimum_tls_version": {
+      "default": "TLSv1.2",
+      "title": "Minimum Tls Version",
+      "type": "string"
     }
   },
   "required": [

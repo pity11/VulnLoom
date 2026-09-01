@@ -12,6 +12,7 @@ from .context import (
     AgentContextTimedOut,
     agent_context_snapshot_digest,
 )
+from .live_provider import ProviderProcessRunner, ProviderResolver, SubprocessHttpsProviderAdapter
 from .local_fake import (
     LocalFakeModelAdapter,
     LocalFakeProviderExhausted,
@@ -46,6 +47,12 @@ from .models import (
     AgentToolCallPayload,
     AgentToolIntent,
 )
+from .provider_process import (
+    SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+    ProviderProcessExecutionError,
+    ProviderProcessResult,
+    SubprocessProviderTransportRunner,
+)
 from .replay import (
     AgentModelAdapter,
     OfflineReplayExhausted,
@@ -62,6 +69,7 @@ from .store import (
 from .transport import (
     AdmissionFakeTransportAdapter,
     AdmissionFakeTransportTurn,
+    AgentProviderIpPolicy,
     AgentProviderTransportAdmission,
     AgentProviderTransportAttempt,
     AgentProviderTransportExhausted,
@@ -80,6 +88,7 @@ __all__ = [
     "AGENT_DECISION_SCHEMA_DIGEST",
     "AdmissionFakeTransportAdapter",
     "AdmissionFakeTransportTurn",
+    "SUBPROCESS_HTTPS_ADAPTER_DIGEST",
     "AgentAdapterKind",
     "AgentCleanupReport",
     "AgentContextAssembler",
@@ -104,6 +113,7 @@ __all__ = [
     "AgentPromptTemplateRegistration",
     "AgentProviderMessage",
     "AgentProviderMessageRole",
+    "AgentProviderIpPolicy",
     "AgentProviderTransportAdmission",
     "AgentProviderTransportAttempt",
     "AgentProviderTransportExhausted",
@@ -134,7 +144,13 @@ __all__ = [
     "OfflineReplayExhausted",
     "OfflineReplayMismatch",
     "OfflineReplayModelAdapter",
+    "ProviderProcessExecutionError",
+    "ProviderProcessResult",
+    "ProviderProcessRunner",
+    "ProviderResolver",
     "ReplayTurn",
+    "SubprocessHttpsProviderAdapter",
+    "SubprocessProviderTransportRunner",
     "agent_context_snapshot_digest",
     "agent_message_envelope_digest",
     "agent_prompt_template_digest",

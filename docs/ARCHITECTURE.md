@@ -437,3 +437,27 @@ The admitted adapter is an in-memory behavior fake: it deliberately has no DNS, 
 SDK, proxy, or retry implementation. This proves the protocol and lifecycle only. A real HTTPS adapter
 requires a later production Admission proving process isolation, exact egress, DNS/rebinding and TLS
 behavior, bounded streaming capture, rate limits, and redacted operational logging.
+
+## 28. M7.5 subprocess-pinned HTTPS provider transport
+
+M7.5 introduces a fixed Control Plane adapter, not a Worker network capability. Its registration and
+transport admission bind one implementation digest, provider/model, credential reference, exact
+hostname/path, limits, rate, and IP policy. Production admissions require port 443 and globally
+routable DNS answers. The separately typed Admission probe requires a `.test` hostname, loopback-only
+answers, an exact port, and a content-bound test CA.
+
+Each call re-resolves the hostname, validates every answer, and selects one canonical numeric IP.
+Credential and provider-message bytes are framed over stdin to a one-shot fixed Python module. The
+child runs in isolated mode with a minimal environment, root cwd, closed descriptors, no shell, a new
+process group, resource limits, discarded stderr, and bounded stdout. Timeout and overflow kill the
+entire group before control returns.
+
+The child creates one TLS 1.2+ connection to the pinned IP while preserving the admitted hostname for
+SNI/certificate verification. It verifies the actual peer, performs exactly one POST to the admitted
+path, forbids redirects/compression, bounds headers and streams at most the admitted body size. A
+small non-secret frame returns peer/TLS proof plus raw response bytes; the parent revalidates and
+discards them after strict typed parsing. Only digest-only attempts and receipts remain.
+
+There is no provider SDK or arbitrary provider wire mapping yet: the endpoint must implement the
+sealed VulnLoom response contract. The default test suite remains offline. Production Admission uses
+a real loopback TLS server and child process, never a public provider.

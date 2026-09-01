@@ -168,6 +168,22 @@ M7.4 的 `admission_fake` 不解析或连接 hostname，不创建 DNS/socket/HTT
 rebinding、速率限制或进程级隔离已经通过生产准入。真实 provider 出口仍必须通过独立 Admission；不得通过
 修改 schema 或替换 adapter 绕过该里程碑。
 
+M7.5 的 live adapter 只存在于可信 Control Plane。生产 Admission 固定 exact hostname:443、global-only DNS、
+固定 implementation digest、单次 POST、单 attempt 和每分钟请求上限；loopback Admission probe 则固定
+`.test`、loopback-only、exact port 与 sealed CA。每次调用都重解析 hostname，并要求全部 DNS answer 满足同一
+IP policy，阻止私网/metadata 混入。子进程连接 numeric IP，同时以 admitted hostname 做 TLS SNI/certificate
+校验并复核实际 peer，因此连接阶段不会再次按 hostname 解析。
+
+provider child 使用固定 module、Python `-I`、空白名单环境、`/` cwd、close-fds、无 shell、新进程组、资源
+上限、stderr 丢弃和父层 bounded stdout。credential 不进入环境或 argv，只在 parent lease 和 stdin frame 中
+短暂存在；frame 在写入后归零，child 退出即销毁其地址空间。超时、overflow 和异常路径强制杀死/回收进程组。
+response 在 child 流式设限，并由 parent 再次限长、验证 peer/TLS、strict JSON 与 provider/model identity，随后
+归零。日志/checkpoint 只保留 endpoint-free digests、peer IP digest、TLS version、计数、状态和 cleanup proof。
+
+该边界不允许 arbitrary URL/header/method、redirect、proxy、compression、自动 retry 或 SDK。Phase 3 只用
+loopback TLS fixture 证明进程与 socket 行为，不证明任何公网 provider 的可用性、服务条款、数据驻留或运营
+授权；生产 exact-host Admission 必须由运营方单独签发。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

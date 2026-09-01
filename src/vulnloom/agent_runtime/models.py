@@ -31,6 +31,7 @@ class AgentAdapterKind(StrEnum):
     OFFLINE_REPLAY = "offline_replay"
     LOCAL_FAKE_PROVIDER = "local_fake_provider"
     ADMISSION_FAKE_TRANSPORT = "admission_fake_transport"
+    SUBPROCESS_HTTPS_PROVIDER = "subprocess_https_provider"
 
 
 class AgentDecisionKind(StrEnum):
@@ -78,6 +79,11 @@ class AgentModelRegistration(DomainModel):
                 raise ValueError("admission fake transport requires a credential reference")
             if self.transport_admission_id is None:
                 raise ValueError("admission fake transport requires a transport admission")
+        elif self.adapter_kind is AgentAdapterKind.SUBPROCESS_HTTPS_PROVIDER:
+            if self.credential_reference_id is None:
+                raise ValueError("HTTPS provider requires a credential reference")
+            if self.transport_admission_id is None:
+                raise ValueError("HTTPS provider requires a transport admission")
         if self.registration_id != agent_model_registration_digest(self):
             raise ValueError("Agent model registration content digest mismatch")
         return self
@@ -146,6 +152,31 @@ class AgentModelRegistration(DomainModel):
             "provider_id": provider_id,
             "model": model,
             "adapter_kind": AgentAdapterKind.ADMISSION_FAKE_TRANSPORT,
+            "adapter_digest": adapter_digest,
+            "credential_reference_id": credential_reference_id,
+            "transport_admission_id": transport_admission_id,
+            "supported_roles": roles,
+            "max_output_tokens": max_output_tokens,
+        }
+        return cls(registration_id=canonical_digest(values), **values)
+
+    @classmethod
+    def create_subprocess_https(
+        cls,
+        *,
+        provider_id: str,
+        model: str,
+        adapter_digest: str,
+        credential_reference_id: str,
+        transport_admission_id: str,
+        supported_roles: tuple[WorkerRole, ...],
+        max_output_tokens: int,
+    ) -> AgentModelRegistration:
+        roles = tuple(sorted(set(supported_roles), key=lambda item: item.value))
+        values = {
+            "provider_id": provider_id,
+            "model": model,
+            "adapter_kind": AgentAdapterKind.SUBPROCESS_HTTPS_PROVIDER,
             "adapter_digest": adapter_digest,
             "credential_reference_id": credential_reference_id,
             "transport_admission_id": transport_admission_id,

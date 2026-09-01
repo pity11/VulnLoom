@@ -4,7 +4,8 @@
       "enum": [
         "offline_replay",
         "local_fake_provider",
-        "admission_fake_transport"
+        "admission_fake_transport",
+        "subprocess_https_provider"
       ],
       "title": "AgentAdapterKind",
       "type": "string"

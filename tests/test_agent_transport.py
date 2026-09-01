@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import timedelta
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from vulnloom.adapters import (
     ModelCredentialReference,
 )
 from vulnloom.agent_runtime import (
+    SUBPROCESS_HTTPS_ADAPTER_DIGEST,
     AdmissionFakeTransportAdapter,
     AdmissionFakeTransportTurn,
     AgentContextAssembler,
@@ -32,6 +34,9 @@ from vulnloom.agent_runtime import (
     AgentRuntimeAdapterFailure,
     AgentStepRequest,
     OfflineAgentRuntime,
+    ProviderProcessExecutionError,
+    ProviderProcessResult,
+    SubprocessHttpsProviderAdapter,
     prepare_agent_provider_transport_request,
 )
 from vulnloom.domain.digests import canonical_digest
@@ -182,6 +187,115 @@ def _runtime(tmp_path, fixture, turn):
     return adapter, store, runtime
 
 
+class _Resolver:
+    def __init__(self, addresses=("8.8.8.8",)):
+        self.addresses = addresses
+        self.calls = []
+
+    def resolve(self, hostname):
+        self.calls.append(hostname)
+        return self.addresses
+
+
+class _ProcessRunner:
+    def __init__(self, fixture, *, error=None, peer_ip="8.8.8.8"):
+        self.fixture = fixture
+        self.error = error
+        self.peer_ip = peer_ip
+        self.calls = []
+
+    def exchange(self, **values):
+        self.calls.append(
+            {
+                key: value
+                for key, value in values.items()
+                if key not in {"credential", "request_body", "ca_bundle"}
+            }
+        )
+        assert hashlib.sha256(values["credential"]).hexdigest() == hashlib.sha256(
+            self.fixture["secret"].encode()
+        ).hexdigest()
+        if self.error is not None:
+            raise self.error
+        body = bytearray(
+            json.dumps(
+                {
+                    "input_tokens": 3,
+                    "latency_seconds": 0.1,
+                    "model": self.fixture["registration"].model,
+                    "output_tokens": 2,
+                    "provider_id": self.fixture["registration"].provider_id,
+                    "structured_output": {
+                        "kind": "complete",
+                        "summary_digest": "f" * 64,
+                    },
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode()
+        )
+        return ProviderProcessResult(
+            response_body=body,
+            latency_seconds=0.1,
+            peer_ip=self.peer_ip,
+            tls_version="TLSv1.3",
+        )
+
+
+def _live_fixture(tmp_path, now, *, limits=None):
+    fixture = _fixture(tmp_path, now)
+    admission = AgentProviderTransportAdmission.create_live_https(
+        provider_id="provider",
+        hostname="api.provider.example",
+        request_path="/v1/responses",
+        credential_reference_id=fixture["credential_reference"].reference_id,
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        limits=limits or AgentProviderTransportLimits(),
+    )
+    registration = AgentModelRegistration.create_subprocess_https(
+        provider_id="provider",
+        model="sealed-model-v1",
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        credential_reference_id=fixture["credential_reference"].reference_id,
+        transport_admission_id=admission.admission_id,
+        supported_roles=(WorkerRole.HYPOTHESIS,),
+        max_output_tokens=64,
+    )
+    plan = AgentRunPlan.create(
+        task=fixture["task"],
+        registration=registration,
+        limits=AgentRunLimits(
+            max_steps=1, max_output_tokens_per_step=64, timeout_seconds=20
+        ),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="agent:live-transport:1",
+        context_snapshot=fixture["snapshot"],
+    )
+    renderer = AgentMessageRenderer()
+    base_request = AgentStepRequest.create(
+        plan=plan, step=1, remaining_model_tokens=100
+    )
+    envelope = renderer.render(
+        plan=plan, snapshot=fixture["snapshot"], request=base_request
+    )
+    request = AgentStepRequest.create(
+        plan=plan,
+        step=1,
+        remaining_model_tokens=100,
+        message_envelope_id=envelope.envelope_id,
+    )
+    fixture.update(
+        admission=admission,
+        registration=registration,
+        plan=plan,
+        renderer=renderer,
+        envelope=envelope,
+        request=request,
+    )
+    return fixture
+
+
 def test_admission_fake_transport_completes_with_digest_only_receipt(tmp_path, now):
     fixture = _fixture(tmp_path, now)
     adapter, store, runtime = _runtime(tmp_path, fixture, _turn(fixture))
@@ -281,7 +395,7 @@ def test_transport_admission_rejects_network_relaxation_and_binding_drift(tmp_pa
         ("dns_revalidation_required", False),
         ("raw_response_persisted", True),
     ):
-        with pytest.raises(ValidationError, match="cannot enable network"):
+        with pytest.raises(ValidationError, match="cannot (?:enable network|relax safeguards)"):
             AgentProviderTransportAdmission.model_validate(
                 {**payload, field: value}
             )
@@ -364,3 +478,192 @@ def test_transport_missing_credential_keeps_recovery_checkpoint_and_cleans_body(
     )
     assert store.connection.execute("SELECT state FROM agent_runs").fetchone()[0] == "started"
     store.close()
+
+
+def test_subprocess_https_adapter_pins_dns_and_persists_only_network_proof(
+    tmp_path, now
+):
+    fixture = _live_fixture(tmp_path, now)
+    resolver = _Resolver()
+    runner = _ProcessRunner(fixture)
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=fixture["registration"],
+        admission=fixture["admission"],
+        credential_reference=fixture["credential_reference"],
+        credential_provider=fixture["provider"],
+        resolver=resolver,
+        process_runner=runner,
+    )
+    store = AgentRunStore(tmp_path / "live-runs.sqlite3")
+    runtime = OfflineAgentRuntime(
+        store=store,
+        registration=fixture["registration"],
+        adapter=adapter,
+        context_store=fixture["context_store"],
+        message_renderer=fixture["renderer"],
+    )
+
+    outcome = runtime.execute(fixture["plan"], now=now + timedelta(seconds=1))
+
+    assert outcome.status is AgentRunStatus.COMPLETED
+    assert resolver.calls == [fixture["admission"].hostname]
+    assert runner.calls[0]["pinned_ip"] == "8.8.8.8"
+    assert adapter.attempts[0].network_opened
+    assert adapter.attempts[0].process_started
+    assert adapter.attempts[0].process_terminated
+    assert adapter.attempts[0].tls_version == "TLSv1.3"
+    assert adapter.attempts[0].peer_ip_digest == canonical_digest("8.8.8.8")
+    assert adapter.released_leases[0].zeroed
+    assert not any(adapter.released_request_bodies[0])
+    assert not any(adapter.discarded_response_bodies[0])
+    serialized = "".join(
+        (
+            adapter.attempts[0].model_dump_json(),
+            adapter.receipts[0].model_dump_json(),
+            outcome.model_dump_json(),
+        )
+    )
+    assert fixture["secret"] not in serialized
+    assert "raw-context-secret" not in serialized
+    assert fixture["secret"].encode() not in (tmp_path / "live-runs.sqlite3").read_bytes()
+    store.close()
+
+
+@pytest.mark.parametrize(
+    "addresses",
+    [
+        ("127.0.0.1",),
+        ("8.8.8.8", "169.254.169.254"),
+        (),
+    ],
+)
+def test_live_https_rejects_forbidden_or_empty_dns_before_credential(
+    tmp_path, now, addresses
+):
+    fixture = _live_fixture(tmp_path, now)
+    runner = _ProcessRunner(fixture)
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=fixture["registration"],
+        admission=fixture["admission"],
+        credential_reference=fixture["credential_reference"],
+        credential_provider=fixture["provider"],
+        resolver=_Resolver(addresses),
+        process_runner=runner,
+    )
+
+    with pytest.raises(AgentProviderTransportRejected, match="DNS|forbidden"):
+        adapter.complete(
+            fixture["request"], message_envelope=fixture["envelope"]
+        )
+
+    assert runner.calls == []
+    assert adapter.released_leases == []
+    assert adapter.attempts[0].network_opened is False
+
+
+def test_subprocess_timeout_maps_to_typed_runtime_outcome_and_cleanup(tmp_path, now):
+    fixture = _live_fixture(tmp_path, now)
+    runner = _ProcessRunner(
+        fixture,
+        error=ProviderProcessExecutionError(
+            "provider_process_timeout", timed_out=True
+        ),
+    )
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=fixture["registration"],
+        admission=fixture["admission"],
+        credential_reference=fixture["credential_reference"],
+        credential_provider=fixture["provider"],
+        resolver=_Resolver(),
+        process_runner=runner,
+    )
+    store = AgentRunStore(tmp_path / "timeout-live.sqlite3")
+    runtime = OfflineAgentRuntime(
+        store=store,
+        registration=fixture["registration"],
+        adapter=adapter,
+        context_store=fixture["context_store"],
+        message_renderer=fixture["renderer"],
+    )
+
+    outcome = runtime.execute(fixture["plan"], now=now + timedelta(seconds=1))
+
+    assert outcome.status is AgentRunStatus.TIMED_OUT
+    assert outcome.error_codes == ("provider_transport_timeout",)
+    assert adapter.attempts[0].process_started
+    assert adapter.attempts[0].process_terminated
+    assert adapter.released_leases[0].zeroed
+    assert not any(adapter.released_request_bodies[0])
+    store.close()
+
+
+def test_subprocess_https_rate_limit_is_enforced_before_second_credential(tmp_path, now):
+    fixture = _live_fixture(
+        tmp_path,
+        now,
+        limits=AgentProviderTransportLimits(max_requests_per_minute=1),
+    )
+    runner = _ProcessRunner(fixture)
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=fixture["registration"],
+        admission=fixture["admission"],
+        credential_reference=fixture["credential_reference"],
+        credential_provider=fixture["provider"],
+        resolver=_Resolver(),
+        process_runner=runner,
+        clock=lambda: 10.0,
+    )
+
+    adapter.complete(fixture["request"], message_envelope=fixture["envelope"])
+    with pytest.raises(AgentProviderTransportRejected, match="rate limit"):
+        adapter.complete(fixture["request"], message_envelope=fixture["envelope"])
+
+    assert len(runner.calls) == 1
+    assert len(adapter.released_leases) == 1
+    assert len(adapter.attempts) == 2
+
+
+def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
+    tmp_path, now
+):
+    fixture = _fixture(tmp_path, now)
+    ca_bundle = b"test-only-ca-bundle"
+    admission = AgentProviderTransportAdmission.create_loopback_probe(
+        provider_id="provider",
+        hostname="provider.test",
+        port=8443,
+        request_path="/v1/responses",
+        credential_reference_id=fixture["credential_reference"].reference_id,
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        ca_bundle_digest=hashlib.sha256(ca_bundle).hexdigest(),
+        limits=AgentProviderTransportLimits(),
+    )
+    registration = AgentModelRegistration.create_subprocess_https(
+        provider_id="provider",
+        model="sealed-model-v1",
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        credential_reference_id=fixture["credential_reference"].reference_id,
+        transport_admission_id=admission.admission_id,
+        supported_roles=(WorkerRole.HYPOTHESIS,),
+        max_output_tokens=64,
+    )
+
+    with pytest.raises(ValueError, match="CA bundle binding mismatch"):
+        SubprocessHttpsProviderAdapter(
+            registration=registration,
+            admission=admission,
+            credential_reference=fixture["credential_reference"],
+            credential_provider=fixture["provider"],
+            ca_bundle=b"wrong-ca",
+            resolver=_Resolver(("127.0.0.1",)),
+            process_runner=_ProcessRunner(fixture, peer_ip="127.0.0.1"),
+        )
+    with pytest.raises(ValidationError, match="live HTTPS provider admission"):
+        AgentProviderTransportAdmission.create_live_https(
+            provider_id="provider",
+            hostname="provider.test",
+            request_path="/v1/responses",
+            credential_reference_id=fixture["credential_reference"].reference_id,
+            adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+            limits=AgentProviderTransportLimits(),
+        )

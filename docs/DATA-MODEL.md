@@ -388,6 +388,15 @@ credential reference，并只保存瞬时请求 body 的 SHA-256、字节数、�
 credential 清理证明；`AgentProviderTransportReceipt` 仅在成功时保存响应摘要、identity、token 计数和 latency。
 原始请求、credential lease、raw response 与 fake turn 都不是持久化数据模型。
 
+M7.5 扩展同一 Admission 为互斥的 `live_https` 和 `loopback_https_probe` mode，并增加 IP policy、CA bundle
+摘要、process-isolation 标记、TLS minimum 和每分钟请求上限。`AgentModelRegistration` 的
+`subprocess_https_provider` kind 必须绑定 exact admission 与 credential reference。
+
+网络 attempt 只额外保存 `peer_ip_digest`、`tls_version`、process started/terminated、stderr discarded 与
+network-proof 标记；不保存 hostname、numeric IP、证书、Authorization header 或响应正文。
+`ProviderProcessResult`、stdin frame、CA bytes、credential view 和 child response buffer 都是瞬时对象，不是
+Pydantic schema、checkpoint、领域事件或普通日志。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
