@@ -77,6 +77,12 @@ The M8.1 human Validation Intake admission run is GitHub Actions
 [`33524481152`](https://github.com/pity11/VulnLoom/actions/runs/33524481152). Both completed
 successfully on 2026-09-01 and qualify the M8.1 Agent Validation Intake row below.
 
+The M8.2 completed Validation outcome binding admission run is GitHub Actions
+[`33529822161`](https://github.com/pity11/VulnLoom/actions/runs/33529822161) for commit
+`3fffa23583c1c0e2146af55dff1b4789724a8311`. The standard Python CI for the same commit is
+[`33529822053`](https://github.com/pity11/VulnLoom/actions/runs/33529822053). Both completed
+successfully on 2026-09-02 and qualify the M8.2 Agent Validation outcome binding row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -101,6 +107,7 @@ successfully on 2026-09-01 and qualify the M8.1 Agent Validation Intake row belo
 | Agent fixed two-tool session | One sealed Session Ledger monotonically accounts for at most three provider turns and two exact read-only Broker commitments; every Observation is rebuilt from verified Evidence, Approval pauses require an explicit one-shot retry, and a third tool proposal, budget drift, or incomplete cleanup fails closed | PASS (`33509298034`) |
 | Agent session audit | A completed fixed-shape Session is reopened from authoritative Agent, handoff, continuation and Evidence stores; ordered commitments and cumulative budgets are recomputed before a digest-only, read-only audit bundle and deterministic non-authoritative recommendation are published | PASS (`33517750165`) |
 | Agent Validation Intake | A human accepts one exact Control-Plane-built ValidationPlan bound to an immutable completed Audit recommendation and CandidateSet; tampering is rejected before checkpoint and Runner, Broker, provider and target call counts remain unchanged | PASS (`33524481072`) |
+| Agent Validation outcome binding | One explicitly completed Validation is reopened with its accepted Intake, Audit, Candidate, exact plan, run and Evidence provenance; outcome tampering is rejected before checkpoint and read-only binding leaves Runner, Broker, provider and target call counts unchanged | PASS (`33529822161`) |
 
 ## Reproduction
 
@@ -211,3 +218,15 @@ human decisions, non-completed recommendations, expiry, writable CandidateSet ob
 unfinished recovery and SQLite/schema absence of executable or sensitive fields. This PASS qualifies
 only immutable Intake binding; it does not qualify Validation execution, Approval, Candidate mutation,
 Target build, public egress, Finding creation or Submission.
+
+M8.2 explicitly invokes the existing local Validation entry point once after that accepted Intake,
+then reopens the completed checkpoint through the read-only binding service. The Admission probe
+replaces the stored Runner result identity and proves rejection before any binding checkpoint, restores
+the authoritative outcome, and records one digest-only binding. Runner calls remain at one, target
+requests remain at two, provider attempts remain at three, and binding adds no Broker or network call.
+Ordinary CI covers reproduced, not-reproduced, inconclusive, policy-stopped and timed-out outcomes;
+expired/non-accepted Intake, missing/unfinished Validation, Candidate/Target/Scope/plan/run/Evidence
+drift, duplicate consumption, unfinished recovery and SQLite/schema absence of request or body data.
+This PASS qualifies only provenance binding for an already completed Validation; it does not qualify
+automatic Validation, retry, Approval, Candidate mutation, Critic verdict, Finding creation, public
+egress, Target build or Submission.
