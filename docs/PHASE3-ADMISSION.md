@@ -71,6 +71,12 @@ The M7.11 immutable Agent session audit admission run is GitHub Actions
 [`33517750294`](https://github.com/pity11/VulnLoom/actions/runs/33517750294). Both completed
 successfully on 2026-09-01 and qualify the M7.11 Agent session audit row below.
 
+The M8.1 human Validation Intake admission run is GitHub Actions
+[`33524481072`](https://github.com/pity11/VulnLoom/actions/runs/33524481072) for commit
+`a27661cd2554128f1ce63b89d9c862e381a89436`. The standard Python CI for the same commit is
+[`33524481152`](https://github.com/pity11/VulnLoom/actions/runs/33524481152). Both completed
+successfully on 2026-09-01 and qualify the M8.1 Agent Validation Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -94,6 +100,7 @@ successfully on 2026-09-01 and qualify the M7.11 Agent session audit row below.
 | Agent Observation continuation | Exact completed handoff and Evidence refs are reopened into redacted untrusted context; a derived Validator Task inherits authority and deadline but has no tools and zero tool-call budget, while the real loopback provider and pinned Broker prove one bounded continuation, terminal decision, and cleanup | PASS (`33493614664`) |
 | Agent fixed two-tool session | One sealed Session Ledger monotonically accounts for at most three provider turns and two exact read-only Broker commitments; every Observation is rebuilt from verified Evidence, Approval pauses require an explicit one-shot retry, and a third tool proposal, budget drift, or incomplete cleanup fails closed | PASS (`33509298034`) |
 | Agent session audit | A completed fixed-shape Session is reopened from authoritative Agent, handoff, continuation and Evidence stores; ordered commitments and cumulative budgets are recomputed before a digest-only, read-only audit bundle and deterministic non-authoritative recommendation are published | PASS (`33517750165`) |
+| Agent Validation Intake | A human accepts one exact Control-Plane-built ValidationPlan bound to an immutable completed Audit recommendation and CandidateSet; tampering is rejected before checkpoint and Runner, Broker, provider and target call counts remain unchanged | PASS (`33524481072`) |
 
 ## Reproduction
 
@@ -194,3 +201,13 @@ timed-out projections; Evidence drift; early/expired plans; writable artifacts; 
 publication cleanup; and absence of URL, credential, provider wire data, tool arguments and Evidence
 body content from audit schemas and persistence. This PASS adds no provider or target authority and
 does not qualify Candidate/Finding transitions, Validation execution, report export or Submission.
+
+M8.1 consumes that real M7.11 audit artifact only through the read-only artifact store, binds it to an
+immutable CandidateSet and a separately constructed local typed ValidationPlan, then records one
+explicit human `accept`. The Admission probe first tampers with the ValidationPlan and proves rejection
+before the Intake checkpoint. The accepted path leaves Candidate state at `PROPOSED`, target requests
+at two, provider attempts at three, and performs no Runner or Broker call. Ordinary CI covers all three
+human decisions, non-completed recommendations, expiry, writable CandidateSet objects, digest drift,
+unfinished recovery and SQLite/schema absence of executable or sensitive fields. This PASS qualifies
+only immutable Intake binding; it does not qualify Validation execution, Approval, Candidate mutation,
+Target build, public egress, Finding creation or Submission.

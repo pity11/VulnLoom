@@ -491,6 +491,19 @@ M7.11 用可独立复核的不可变审计链收束 Phase 5 首版。它不把 A
 
 M8.1 是人工选择记录，不是 Validation 执行器或新的 Approval。后续执行仍必须显式调用既有 `ValidationService`，并重新通过 Scope、Policy、Sandbox、Tool Broker、预算、Evidence 与必要 Approval 门禁。
 
+### M8.2：accepted Intake 与完成 Validation Outcome 的确定性绑定（开发中）
+
+- 新增内容寻址的 `AgentValidationOutcomeBindingPlan`，精确绑定一个仍有效的 accepted M8.1 Intake Record、原始 Audit/CandidateSet/Candidate、exact `ValidationPlan`，以及同一 plan 在权威 `ValidationStore` 中已经完成的 `ValidationOutcome` 摘要。
+- Binding Service 只在 Validation 已由现有显式入口完成后运行；它不得调用 `ValidationService`、Runner、Broker、Docker、网络或 Approval，不得排队、恢复或重放 Validation，也不得再次改变 Candidate。
+- `ValidationStore` 与 Intake Store 增加只读 completed lookup；遗留 STARTED、缺失 outcome、plan/record digest 漂移、非 accepted/过期 record、跨 Candidate/Target/Scope 重放和重复消费均 fail-closed。
+- 绑定时重新读取 Audit artifact、CandidateSet、Intake Record、Validation checkpoint 和当前 Scope，复核 no-follow、只读、大小、摘要、原始 Candidate 为 `PROPOSED`、ValidationRun/Outcome provenance、Evidence refs 与最终 Candidate 状态的一致性。
+- 只生成 digest-only 的 `AgentValidationOutcomeBinding`：保存 Audit/Intake/Candidate/Validation plan/outcome/run/bundle 的 ID/摘要、typed result 和完成时间；不复制 Runner/Broker 参数、URL、HTTP body、credential、Agent prose 或 Evidence 正文。
+- SQLite 使用独立 `STARTED/COMPLETED` checkpoint；相同绑定幂等返回，冲突 key、重复 outcome/record 消费和遗留 STARTED 拒绝自动重放。失败发生在 checkpoint 前，或留下需显式处理的 STARTED，不触发外部清理动作。
+- 常规测试覆盖 reproduced/not-reproduced/inconclusive/policy-stopped/timed-out 结果、非 accepted/过期 Intake、缺失/STARTED Validation、Candidate/Scope/Target/plan/outcome/Evidence 漂移、幂等冲突、重复消费和 SQLite/schema 无正文。
+- Phase 3 Admission 复用已完成的本地 Validation composition outcome 做只读绑定，证明 Binding 前后 Runner/Broker/target 调用计数不变；篡改 Intake 或 Validation outcome 时在 binding checkpoint 前拒绝。
+
+M8.2 是已发生 Validation 的来源证明，不是执行授权、自动重试或 Critic verdict。后续 Critic 接入仍需独立里程碑，并继续从权威 Evidence/Validation store 重读全部对象。
+
 ## 延后事项
 
 - 公网资产自主发现。

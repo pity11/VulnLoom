@@ -1,0 +1,147 @@
+{
+  "$defs": {
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Plan Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "audit_bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Bundle Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Outcome Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "final_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "final_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Candidate Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evidence Bundle Id"
+    },
+    "evidence_bundle_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evidence Bundle Digest"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "binding_plan_id",
+    "intake_record_id",
+    "audit_bundle_id",
+    "candidate_id",
+    "candidate_digest",
+    "validation_plan_id",
+    "validation_outcome_digest",
+    "validation_run_id",
+    "result",
+    "final_candidate_state",
+    "final_candidate_digest",
+    "completed_at"
+  ],
+  "title": "AgentValidationOutcomeBinding",
+  "type": "object"
+}
