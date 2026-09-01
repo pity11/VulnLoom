@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "AgentSessionRecommendationDisposition": {
+      "enum": [
+        "completed",
+        "blocked",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AgentSessionRecommendationDisposition",
+      "type": "string"
+    },
+    "AgentSessionRecommendationReason": {
+      "enum": [
+        "session_completed",
+        "agent_blocked",
+        "broker_denied",
+        "session_failed",
+        "session_timed_out"
+      ],
+      "title": "AgentSessionRecommendationReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "disposition": {
+      "$ref": "#/$defs/AgentSessionRecommendationDisposition"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentSessionRecommendationReason"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "budget_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Budget Digest",
+      "type": "string"
+    },
+    "projected_at": {
+      "format": "date-time",
+      "title": "Projected At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "session_id",
+    "disposition",
+    "reason_code",
+    "budget_digest",
+    "projected_at"
+  ],
+  "title": "AgentSessionRecommendation",
+  "type": "object"
+}

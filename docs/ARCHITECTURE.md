@@ -566,3 +566,24 @@ replays provider or Broker actions automatically.
 The fixed shape permits at most three provider turns and two successful tool calls. It introduces no
 general recursion, model-built request parameters, Agent-owned transport, public target/provider,
 target build, Candidate/Finding transition, report export or Submission capability.
+
+## 34. M7.11 immutable Session audit and deterministic terminal projection
+
+M7.11 is an offline verifier over the completed M7.10 chain. Its digest-only plan binds the exact
+Session plan and outcome without persisting the full authorized calls. Before an audit checkpoint is
+claimed, the service reopens the Session, both Agent run stores, every handoff, the terminal
+continuation and every referenced Evidence object. It revalidates the typed objects, reconstructs the
+ordered Observation set, proves the selected call belongs to the sealed authorized set, and recomputes
+all token, step, tool, provider, Broker and wall-time accounting.
+
+The resulting content-addressed bundle contains only object IDs and digests, Target/Scope provenance,
+Approval decision digests, Evidence refs, typed budgets, cleanup proofs and one deterministic terminal
+recommendation. `denied` projects to a blocked recommendation; all other terminal states retain their
+completed, blocked, failed or timed-out meaning. Neither model prose nor confidence participates in
+the projection, and the recommendation has no domain-state command.
+
+Bounded JSON and Markdown artifacts are atomically published as read-only objects and never copy
+Evidence content, URLs, credentials, provider wire data or tool arguments. The separate SQLite
+STARTED/COMPLETED lifecycle permits idempotent completed reads but refuses conflict and unfinished
+recovery. This layer performs no provider, Broker, Runner, Docker, target-build, Candidate/Finding,
+report-export or Submission action.

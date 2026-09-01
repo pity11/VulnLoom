@@ -1,0 +1,409 @@
+{
+  "$defs": {
+    "AgentSessionBudgetLedger": {
+      "additionalProperties": false,
+      "properties": {
+        "original_model_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Original Model Tokens",
+          "type": "integer"
+        },
+        "original_tool_calls": {
+          "maximum": 2,
+          "minimum": 2,
+          "title": "Original Tool Calls",
+          "type": "integer"
+        },
+        "consumed_model_tokens": {
+          "minimum": 0,
+          "title": "Consumed Model Tokens",
+          "type": "integer"
+        },
+        "remaining_model_tokens": {
+          "minimum": 0,
+          "title": "Remaining Model Tokens",
+          "type": "integer"
+        },
+        "consumed_agent_steps": {
+          "maximum": 24,
+          "minimum": 1,
+          "title": "Consumed Agent Steps",
+          "type": "integer"
+        },
+        "consumed_tool_calls": {
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Consumed Tool Calls",
+          "type": "integer"
+        },
+        "remaining_tool_calls": {
+          "minimum": 0,
+          "title": "Remaining Tool Calls",
+          "type": "integer"
+        },
+        "provider_attempts": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Provider Attempts",
+          "type": "integer"
+        },
+        "broker_attempts": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Broker Attempts",
+          "type": "integer"
+        },
+        "remaining_wall_seconds": {
+          "maximum": 86400,
+          "minimum": 0,
+          "title": "Remaining Wall Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "original_model_tokens",
+        "original_tool_calls",
+        "consumed_model_tokens",
+        "remaining_model_tokens",
+        "consumed_agent_steps",
+        "consumed_tool_calls",
+        "remaining_tool_calls",
+        "provider_attempts",
+        "broker_attempts",
+        "remaining_wall_seconds"
+      ],
+      "title": "AgentSessionBudgetLedger",
+      "type": "object"
+    },
+    "AgentSessionCleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_buffers_released": {
+          "title": "Evidence Buffers Released",
+          "type": "boolean"
+        },
+        "context_reverified": {
+          "title": "Context Reverified",
+          "type": "boolean"
+        },
+        "raw_provider_responses_absent": {
+          "title": "Raw Provider Responses Absent",
+          "type": "boolean"
+        },
+        "broker_authorization_enforced": {
+          "title": "Broker Authorization Enforced",
+          "type": "boolean"
+        },
+        "no_vulnloom_domain_state_changed": {
+          "title": "No Vulnloom Domain State Changed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidence_buffers_released",
+        "context_reverified",
+        "raw_provider_responses_absent",
+        "broker_authorization_enforced",
+        "no_vulnloom_domain_state_changed"
+      ],
+      "title": "AgentSessionCleanup",
+      "type": "object"
+    },
+    "AgentSessionRecommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "recommendation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recommendation Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "disposition": {
+          "$ref": "#/$defs/AgentSessionRecommendationDisposition"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/AgentSessionRecommendationReason"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 128,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "budget_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Budget Digest",
+          "type": "string"
+        },
+        "projected_at": {
+          "format": "date-time",
+          "title": "Projected At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_id",
+        "session_id",
+        "disposition",
+        "reason_code",
+        "budget_digest",
+        "projected_at"
+      ],
+      "title": "AgentSessionRecommendation",
+      "type": "object"
+    },
+    "AgentSessionRecommendationDisposition": {
+      "enum": [
+        "completed",
+        "blocked",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AgentSessionRecommendationDisposition",
+      "type": "string"
+    },
+    "AgentSessionRecommendationReason": {
+      "enum": [
+        "session_completed",
+        "agent_blocked",
+        "broker_denied",
+        "session_failed",
+        "session_timed_out"
+      ],
+      "title": "AgentSessionRecommendationReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "audit_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Plan Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "session_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Plan Digest",
+      "type": "string"
+    },
+    "session_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Outcome Id",
+      "type": "string"
+    },
+    "session_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Outcome Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "root_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Root Plan Id",
+      "type": "string"
+    },
+    "root_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Root Outcome Digest",
+      "type": "string"
+    },
+    "first_handoff_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "First Handoff Id",
+      "type": "string"
+    },
+    "first_handoff_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "First Handoff Outcome Digest",
+      "type": "string"
+    },
+    "round_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Round Plan Id",
+      "type": "string"
+    },
+    "round_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Round Outcome Digest",
+      "type": "string"
+    },
+    "authorized_call_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorized Call Set Id",
+      "type": "string"
+    },
+    "selected_call_commitment": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Call Commitment"
+    },
+    "approval_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Approval Digests",
+      "type": "array"
+    },
+    "second_handoff_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Second Handoff Id"
+    },
+    "second_handoff_outcome_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Second Handoff Outcome Digest"
+    },
+    "continuation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Continuation Id"
+    },
+    "continuation_outcome_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Continuation Outcome Digest"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "budget": {
+      "$ref": "#/$defs/AgentSessionBudgetLedger"
+    },
+    "cleanup": {
+      "$ref": "#/$defs/AgentSessionCleanup"
+    },
+    "recommendation": {
+      "$ref": "#/$defs/AgentSessionRecommendation"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "audit_plan_id",
+    "session_id",
+    "session_plan_digest",
+    "session_outcome_id",
+    "session_outcome_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "root_plan_id",
+    "root_outcome_digest",
+    "first_handoff_id",
+    "first_handoff_outcome_digest",
+    "round_plan_id",
+    "round_outcome_digest",
+    "authorized_call_set_id",
+    "observation_ids",
+    "evidence_refs",
+    "budget",
+    "cleanup",
+    "recommendation",
+    "completed_at"
+  ],
+  "title": "AgentSessionAuditBundle",
+  "type": "object"
+}

@@ -492,6 +492,22 @@ Session 最多产生三个 provider turn、两个成功 tool call；显式 Appro
 读取，遗留 STARTED/RESUMING 不自动重放。模型不能构造调用参数，Session 也不能改变 Candidate/Finding、导出
 报告或触发 Submission。
 
+### M7.11 Session Audit 与终态投影
+
+```text
+Authoritative completed M7.10 Session
+  → reopen Session / Agent runs / handoffs / continuation / Evidence
+  → recompute ordered rounds, exact commitments, Approval digests and cumulative budgets
+  → reject missing, duplicate, forked, drifted or incomplete-cleanup chains
+  → deterministic recommendation (completed | blocked | failed | timed_out)
+  → bounded read-only content-addressed JSON + Markdown
+  → COMPLETED audit checkpoint
+```
+
+审计计划和 checkpoint 不保存完整 Session Plan，避免把其中的 URL 或工具参数复制到普通持久层。artifact 只含
+digest、ID、typed count/status 和 Evidence ref；recommendation 只是后续确定性服务的输入，不触发工具、Approval、
+Candidate/Finding、Report 或 Submission 状态变化。发布失败清理临时文件并留下需显式处理的 STARTED checkpoint。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

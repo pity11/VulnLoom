@@ -299,6 +299,7 @@ class AgentSessionService:
             round_outcome=round_outcome,
             selected=selected,
             approval_handoff=None,
+            approvals=(),
             second_handoff=second_handoff,
             terminal=terminal,
             now=now,
@@ -376,6 +377,7 @@ class AgentSessionService:
             round_outcome=round_outcome,
             selected=selected,
             approval_handoff=approval_handoff,
+            approvals=approvals,
             second_handoff=second_handoff,
             terminal=terminal,
             now=now,
@@ -390,6 +392,7 @@ class AgentSessionService:
         round_outcome: AgentRunOutcome,
         selected: AgentAuthorizedCallOption | None,
         approval_handoff: AgentToolHandoffOutcome | None,
+        approvals: tuple[ApprovalRequest, ...],
         second_handoff: AgentToolHandoffOutcome | None,
         terminal: AgentContinuationOutcome | None,
         now: datetime,
@@ -418,6 +421,14 @@ class AgentSessionService:
                 None if selected is None else selected.broker_call_digest
             ),
             "approval_handoff_outcome": approval_handoff,
+            "approval_digests": tuple(
+                sorted(
+                    {
+                        canonical_digest(item.model_dump(mode="python"))
+                        for item in approvals
+                    }
+                )
+            ),
             "second_handoff_outcome": second_handoff,
             "terminal_continuation": terminal,
             "budget": budget,

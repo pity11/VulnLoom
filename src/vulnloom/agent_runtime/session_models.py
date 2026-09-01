@@ -358,6 +358,7 @@ class AgentSessionOutcome(DomainModel):
     selected_call_commitment: Digest | None = None
     selected_broker_call_digest: Digest | None = None
     approval_handoff_outcome: AgentToolHandoffOutcome | None = None
+    approval_digests: tuple[Digest, ...] = ()
     second_handoff_outcome: AgentToolHandoffOutcome | None = None
     terminal_continuation: AgentContinuationOutcome | None = None
     budget: AgentSessionBudgetLedger
@@ -416,8 +417,13 @@ class AgentSessionOutcome(DomainModel):
                 or self.second_handoff_outcome.attempt != 2
                 or approval_handoff.agent_outcome_digest
                 != self.second_handoff_outcome.agent_outcome_digest
+                or not self.approval_digests
             ):
                 raise ValueError("Agent session Approval retry chain mismatch")
+        elif self.approval_digests:
+            raise ValueError("Agent session Approval digests require a retry chain")
+        if self.approval_digests != tuple(sorted(set(self.approval_digests))):
+            raise ValueError("Agent session Approval digests must be unique and sorted")
         outcomes = [self.round_agent_outcome]
         if self.terminal_continuation is not None:
             outcomes.append(self.terminal_continuation.agent_outcome)

@@ -239,6 +239,15 @@ commitment、重复消费、跨轮漂移、第三次工具提议、超时、清�
 Approval-required 只进入持久等待，不自动审批或轮询；唯一恢复路径是带有效 Approval 的 M7.8 attempt-2，且
 不会扩大两次成功 tool-call 上限。Session outcome 没有 Candidate/Finding/Report/Submission 状态转换能力。
 
+M7.11 在离线路径中重新打开 completed Session 及其全部 Agent、handoff、continuation 和 Evidence checkpoint，
+并独立重算轮次顺序、exact call commitment、Approval decision digest、Target/Scope 绑定、累计预算和 cleanup。
+调用方不能提供 transcript、Evidence 正文或模型摘要；缺失、分叉、重复、跨 Session 重放、摘要漂移、预算回增、
+未清理或 Evidence 完整性失败都会在审计 artifact 发布前 fail-closed。
+
+审计 bundle、SQLite 与只读 JSON/Markdown 只含 digest、ID、计数、稳定终态和 Evidence ref，不含 URL、credential、
+provider request/response、工具参数或 Evidence 正文。确定性 recommendation 没有领域状态命令，不得替代
+Validation、Critic、Finding promotion、人工 Approval 或 Submission。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

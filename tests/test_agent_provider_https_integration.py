@@ -41,6 +41,10 @@ from vulnloom.agent_runtime import (
     AgentRunPlan,
     AgentRunStatus,
     AgentRunStore,
+    AgentSessionAuditArtifactStore,
+    AgentSessionAuditRejected,
+    AgentSessionAuditService,
+    AgentSessionAuditStore,
     AgentSessionCallTemplate,
     AgentSessionService,
     AgentSessionStatus,
@@ -637,6 +641,9 @@ def test_live_provider_fixed_two_tool_session_chain(
                 tmp_path / "m710-continuations.sqlite3"
             ) as continuation_store,
             AgentSessionStore(tmp_path / "m710-sessions.sqlite3") as session_store,
+            AgentSessionAuditStore(
+                tmp_path / "m711-audits.sqlite3"
+            ) as audit_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -739,6 +746,37 @@ def test_live_provider_fixed_two_tool_session_chain(
                 terminal_continuation_key="m7.10:terminal-continuation",
                 terminal_run_key="m7.10:terminal-run",
             )
+            audit_service = AgentSessionAuditService(
+                session_store=session_store,
+                root_agent_store=root_store,
+                round_agent_store=next_store,
+                handoff_store=handoff_store,
+                continuation_store=continuation_store,
+                evidence_store=evidence_store,
+                audit_store=audit_store,
+                artifact_store=AgentSessionAuditArtifactStore(
+                    tmp_path / "m711-audit-artifacts"
+                ),
+            )
+            audit_plan = audit_service.prepare(
+                session_plan=session_plan,
+                now=now + timedelta(seconds=5),
+                idempotency_key="m7.11:audit",
+            )
+            audit_outcome = audit_service.execute(
+                audit_plan,
+                session_plan=session_plan,
+                now=now + timedelta(seconds=6),
+            )
+            tampered_session_plan = session_plan.model_copy(
+                update={"root_outcome_digest": "0" * 64}
+            )
+            with pytest.raises(AgentSessionAuditRejected):
+                audit_service.execute(
+                    audit_plan,
+                    session_plan=tampered_session_plan,
+                    now=now + timedelta(seconds=7),
+                )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -759,6 +797,11 @@ def test_live_provider_fixed_two_tool_session_chain(
     assert all(item.network_opened for item in adapter.attempts)
     assert session_outcome.terminal_continuation is not None
     assert session_outcome.terminal_continuation.agent_outcome.tool_intent is None
+    assert audit_outcome.bundle.recommendation.disposition.value == "completed"
+    assert len(audit_outcome.bundle.observation_ids) == 2
+    assert len(audit_outcome.bundle.evidence_refs) == 2
+    assert audit_outcome.bundle.budget == session_outcome.budget
+    assert _TARGET_BODY not in (tmp_path / "m711-audits.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (
         tmp_path / "m710-sessions.sqlite3"

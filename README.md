@@ -63,7 +63,7 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M7.10 include deterministic replay, fixed provider
+they are not present in the current tree. M7.1a-M7.11 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
@@ -422,6 +422,22 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Phase 3 uses three isolated loopback provider subprocesses and two exact pinned-Broker reads of a
   temporary authorized target. No public target/provider, arbitrary loop, target build, domain-state
   transition, report export, or Submission path is introduced.
+
+### M7.11: immutable Agent session audit and deterministic projection
+
+- Reopens the authoritative Session, Agent run, handoff, continuation and Evidence stores before
+  producing one content-addressed `AgentSessionAuditBundle`; callers cannot provide a transcript or
+  substitute a model-generated summary.
+- Recomputes ordered round identities, exact call commitments, Approval decision digests,
+  Target/Scope provenance, cumulative token/step/tool/provider/Broker budgets and cleanup proofs.
+- Projects only `completed`, `blocked`, `failed` or `timed_out` with a stable reason code and verified
+  Evidence refs. The recommendation is not a Candidate/Finding/Report transition or an authorization.
+- Publishes bounded, read-only JSON/Markdown containing only digests, IDs, typed counts and statuses;
+  it never copies Evidence bodies, URLs, credentials, provider requests/responses or tool parameters.
+- Uses a separate SQLite STARTED/COMPLETED checkpoint with idempotent completed replay and fail-closed
+  conflict/recovery. Artifact failure cleans temporary files and refuses automatic replay.
+- Extends the loopback Phase 3 composition by creating the audit from the real M7.10 session and
+  proving a tampered chain is rejected without adding runtime network or execution authority.
 
 ## Local development
 

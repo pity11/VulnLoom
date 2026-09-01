@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "AgentSessionAuditLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_evidence_refs": {
+          "default": 128,
+          "maximum": 512,
+          "minimum": 1,
+          "title": "Max Evidence Refs",
+          "type": "integer"
+        },
+        "max_artifact_bytes": {
+          "default": 2097152,
+          "maximum": 8388608,
+          "minimum": 1024,
+          "title": "Max Artifact Bytes",
+          "type": "integer"
+        }
+      },
+      "title": "AgentSessionAuditLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "audit_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Plan Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "session_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Plan Digest",
+      "type": "string"
+    },
+    "session_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Outcome Id",
+      "type": "string"
+    },
+    "session_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Outcome Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentSessionAuditLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "audit_plan_id",
+    "session_id",
+    "session_plan_digest",
+    "session_outcome_id",
+    "session_outcome_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentSessionAuditPlan",
+  "type": "object"
+}

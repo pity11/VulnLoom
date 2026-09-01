@@ -468,6 +468,19 @@ attempt 计数。SQLite Session 状态为 started、waiting-approval、resuming 
 拒绝自动恢复。typed outcome 只保存摘要、计数、handoff/continuation outcome 与 cleanup proof，不保存 Evidence
 正文、URL、credential、provider raw response 或领域状态命令。
 
+### AgentSessionAuditPlan、AuditBundle 与 Recommendation
+
+M7.11 的 `AgentSessionAuditPlan` 只保存 Session plan/outcome 摘要、Target/Scope 绑定、资源上限、deadline 与
+幂等键，不嵌入可能含 URL 的 Session Plan。执行时由可信服务接收瞬时 Session Plan，并从 Session、Agent run、
+handoff、continuation 与 Evidence store 逐项重读权威对象；随后重算 round 顺序、call commitment、Approval
+decision digest、预算单调性、deadline 与 cleanup 链。
+
+`AgentSessionAuditBundle` 只保存上述对象的 ID/摘要、排序 Observation/Evidence refs、typed budget/cleanup 和
+确定性 recommendation。recommendation 只能是 completed、blocked、failed 或 timed-out 及固定 reason code，
+没有 Candidate/Finding/Report 字段或领域命令。JSON/Markdown artifact 内容寻址且只读，不复制 Evidence 正文、
+URL、credential、provider request/response 或工具参数。独立 SQLite 只保存 plan/outcome 与摘要化 bundle；遗留
+STARTED 拒绝自动重放。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

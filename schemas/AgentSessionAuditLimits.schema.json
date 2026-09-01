@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "timeout_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_evidence_refs": {
+      "default": 128,
+      "maximum": 512,
+      "minimum": 1,
+      "title": "Max Evidence Refs",
+      "type": "integer"
+    },
+    "max_artifact_bytes": {
+      "default": 2097152,
+      "maximum": 8388608,
+      "minimum": 1024,
+      "title": "Max Artifact Bytes",
+      "type": "integer"
+    }
+  },
+  "title": "AgentSessionAuditLimits",
+  "type": "object"
+}

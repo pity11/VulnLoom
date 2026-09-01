@@ -182,6 +182,29 @@ class AgentSessionStore:
             outcome, from_states=("started", "resuming"), target_state="completed"
         )
 
+    def require_completed(self, session_id: str) -> AgentSessionOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM agent_sessions WHERE session_id = ?", (session_id,)
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise AgentSessionRecoveryRequired(
+                "Agent session does not have an authoritative completed checkpoint"
+            )
+        outcome = AgentSessionOutcome.model_validate_json(row["outcome_json"])
+        if (
+            outcome.session_id != session_id
+            or outcome.root_plan_id != row["root_plan_id"]
+            or outcome.first_observation_id != row["first_observation_id"]
+            or outcome.round_plan_id != row["round_plan_id"]
+            or outcome.authorized_call_set_id != row["authorized_call_set_id"]
+            or outcome.status.value != row["status"]
+            or outcome.selected_call_commitment != row["selected_call_commitment"]
+        ):
+            raise AgentSessionRecoveryRequired(
+                "Agent session completed checkpoint binding mismatch"
+            )
+        return outcome
+
     def _write_outcome(
         self,
         outcome: AgentSessionOutcome,

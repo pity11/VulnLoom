@@ -137,6 +137,28 @@ class AgentContinuationStore:
                 "Agent continuation STARTED checkpoint is unavailable"
             )
 
+    def require_completed(self, continuation_id: str) -> AgentContinuationOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM agent_continuations WHERE continuation_id = ?",
+            (continuation_id,),
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise AgentContinuationRecoveryRequired(
+                "Agent continuation does not have an authoritative completed checkpoint"
+            )
+        outcome = AgentContinuationOutcome.model_validate_json(row["outcome_json"])
+        if (
+            outcome.continuation_id != continuation_id
+            or outcome.observation_id != row["observation_id"]
+            or outcome.root_plan_id != row["root_plan_id"]
+            or outcome.continuation_plan_id != row["continuation_plan_id"]
+            or outcome.status.value != row["status"]
+        ):
+            raise AgentContinuationRecoveryRequired(
+                "Agent continuation completed checkpoint binding mismatch"
+            )
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

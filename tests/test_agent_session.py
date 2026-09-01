@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from datetime import timedelta
 from uuid import uuid4
@@ -20,9 +21,22 @@ from vulnloom.agent_runtime import (
     AgentRunLimits,
     AgentRunPlan,
     AgentRunStore,
+    AgentSessionAuditArtifact,
+    AgentSessionAuditArtifactStore,
+    AgentSessionAuditBundle,
+    AgentSessionAuditIdempotencyConflict,
+    AgentSessionAuditLimits,
+    AgentSessionAuditOutcome,
+    AgentSessionAuditPlan,
+    AgentSessionAuditRecoveryRequired,
+    AgentSessionAuditRejected,
+    AgentSessionAuditService,
+    AgentSessionAuditStore,
+    AgentSessionAuditTimedOut,
     AgentSessionCallTemplate,
     AgentSessionIdempotencyConflict,
     AgentSessionObservationConflict,
+    AgentSessionRecommendation,
     AgentSessionRecoveryRequired,
     AgentSessionRejected,
     AgentSessionService,
@@ -682,6 +696,9 @@ def test_session_pauses_for_explicit_credential_approval_then_resumes_once(
     assert completed == replay_completed
     assert completed.status is AgentSessionStatus.COMPLETED
     assert completed.approval_handoff_outcome == waiting.second_handoff_outcome
+    assert completed.approval_digests == (
+        canonical_digest(approval.model_dump(mode="python")),
+    )
     assert completed.second_handoff_outcome is not None
     assert completed.second_handoff_outcome.attempt == 2
     assert completed.budget.broker_attempts == 3
@@ -867,4 +884,291 @@ def test_session_store_refuses_started_recovery_and_conflicting_reuse(
             observation_reuse, now=now + timedelta(seconds=4)
         )
     _close(fixture2)
+    _close(fixture)
+
+
+def _completed_session(fixture, now, *, terminal_kind="complete"):
+    plan = _prepare(fixture, now)
+    commitment = plan.authorized_calls.options[0].call_commitment
+    terminal = {"kind": terminal_kind, "summary_digest": "a" * 64}
+    if terminal_kind == "complete":
+        terminal["supporting_ref_digests"] = [fixture["evidence2"].evidence_id]
+    fixture["adapter"].decisions.extend(
+        [
+            {
+                "kind": "propose_tool",
+                "tool_call": {
+                    "tool_id": "http.request",
+                    "arguments": [commitment],
+                    "working_directory": "source",
+                },
+            },
+            terminal,
+        ]
+    )
+    return plan, _execute(fixture, plan, now)
+
+
+def _audit_service(fixture, tmp_path):
+    audit_store = AgentSessionAuditStore(tmp_path / "audits.sqlite3")
+    artifact_store = AgentSessionAuditArtifactStore(tmp_path / "audit-artifacts")
+    service = AgentSessionAuditService(
+        session_store=fixture["session_store"],
+        root_agent_store=fixture["root_store"],
+        round_agent_store=fixture["round_store"],
+        handoff_store=fixture["handoff_store"],
+        continuation_store=fixture["continuation_store"],
+        evidence_store=fixture["evidence_store"],
+        audit_store=audit_store,
+        artifact_store=artifact_store,
+    )
+    return service, audit_store, artifact_store
+
+
+@pytest.mark.parametrize(
+    ("terminal_kind", "disposition", "reason"),
+    [
+        ("complete", "completed", "session_completed"),
+        ("blocked", "blocked", "agent_blocked"),
+    ],
+)
+def test_session_audit_builds_digest_only_immutable_artifacts(
+    tmp_path, approved_scope, now, terminal_kind, disposition, reason
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan, _ = _completed_session(fixture, now, terminal_kind=terminal_kind)
+    service, audit_store, artifact_store = _audit_service(fixture, tmp_path)
+    audit_plan = service.prepare(
+        session_plan=session_plan,
+        now=now + timedelta(seconds=4),
+        idempotency_key="audit:session:1",
+    )
+
+    outcome = service.execute(
+        audit_plan,
+        session_plan=session_plan,
+        now=now + timedelta(seconds=5),
+    )
+    replay = service.execute(
+        audit_plan,
+        session_plan=session_plan,
+        now=now + timedelta(seconds=6),
+    )
+
+    assert replay == outcome
+    assert outcome.bundle.recommendation.disposition.value == disposition
+    assert outcome.bundle.recommendation.reason_code.value == reason
+    assert outcome.bundle.observation_ids[0] == (
+        session_plan.first_handoff_outcome.observation.observation_id
+    )
+    assert len(outcome.bundle.observation_ids) == 2
+    assert outcome.bundle.evidence_refs == tuple(
+        sorted((fixture["evidence1"].evidence_id, fixture["evidence2"].evidence_id))
+    )
+    assert artifact_store.read_bundle(outcome.artifact) == outcome.bundle
+    markdown = artifact_store.read_markdown(outcome.artifact)
+    persisted = (tmp_path / "audits.sqlite3").read_bytes()
+    artifact_bytes = (
+        artifact_store.root / outcome.artifact.json_ref
+    ).read_bytes() + markdown.encode()
+    for forbidden in (SECRET, URL1, URL2, "Authorization", "Bearer"):
+        assert forbidden.encode() not in persisted
+        assert forbidden.encode() not in artifact_bytes
+    directory = artifact_store.objects / outcome.bundle.bundle_id
+    assert directory.stat().st_mode & 0o222 == 0
+    assert all(item.stat().st_mode & 0o222 == 0 for item in directory.iterdir())
+    audit_store.close()
+    _close(fixture)
+
+
+@pytest.mark.parametrize(
+    ("error", "disposition", "reason"),
+    [
+        (AgentProviderTransportRejected("rejected"), "failed", "session_failed"),
+        (AgentProviderTransportTimedOut("timeout"), "timed_out", "session_timed_out"),
+    ],
+)
+def test_session_audit_projects_provider_failure_and_timeout(
+    tmp_path, approved_scope, now, error, disposition, reason
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan = _prepare(fixture, now)
+    fixture["adapter"].decisions.append(error)
+    _execute(fixture, session_plan, now)
+    service, audit_store, _ = _audit_service(fixture, tmp_path)
+    audit_plan = service.prepare(
+        session_plan=session_plan,
+        now=now + timedelta(seconds=4),
+        idempotency_key=f"audit:{disposition}",
+    )
+
+    outcome = service.execute(
+        audit_plan,
+        session_plan=session_plan,
+        now=now + timedelta(seconds=5),
+    )
+
+    assert outcome.bundle.recommendation.disposition.value == disposition
+    assert outcome.bundle.recommendation.reason_code.value == reason
+    assert outcome.bundle.observation_ids == (
+        session_plan.first_handoff_outcome.observation.observation_id,
+    )
+    audit_store.close()
+    _close(fixture)
+
+
+def test_session_audit_schemas_cannot_carry_raw_or_domain_state_fields():
+    schemas = " ".join(
+        json.dumps(model.model_json_schema()).lower()
+        for model in (
+            AgentSessionAuditLimits,
+            AgentSessionAuditPlan,
+            AgentSessionRecommendation,
+            AgentSessionAuditBundle,
+            AgentSessionAuditArtifact,
+            AgentSessionAuditOutcome,
+        )
+    )
+    for forbidden in (
+        '"url"',
+        '"credential"',
+        '"provider_request"',
+        '"provider_response"',
+        '"tool_arguments"',
+        '"candidate"',
+        '"finding"',
+        '"submission"',
+    ):
+        assert forbidden not in schemas
+
+
+def test_session_audit_rejects_authoritative_chain_and_evidence_drift(
+    tmp_path, approved_scope, now
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan, _ = _completed_session(fixture, now)
+    service, audit_store, _ = _audit_service(fixture, tmp_path)
+    evidence_path = (
+        fixture["evidence_store"].objects / fixture["evidence2"].evidence_id
+    )
+    original = evidence_path.read_bytes()
+    evidence_path.write_bytes(original + b"drift")
+
+    with pytest.raises(AgentSessionAuditRejected, match="Evidence verification"):
+        service.prepare(
+            session_plan=session_plan,
+            now=now + timedelta(seconds=4),
+            idempotency_key="audit:drift",
+        )
+    assert audit_store.connection.execute(
+        "SELECT count(*) FROM agent_session_audits"
+    ).fetchone()[0] == 0
+    audit_store.close()
+    _close(fixture)
+
+
+def test_session_audit_rejects_plan_drift_timeout_and_writable_artifact(
+    tmp_path, approved_scope, now
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan, _ = _completed_session(fixture, now)
+    service, audit_store, artifact_store = _audit_service(fixture, tmp_path)
+    with pytest.raises(AgentSessionAuditRejected, match="precede Session completion"):
+        service.prepare(
+            session_plan=session_plan,
+            now=now + timedelta(seconds=2),
+            idempotency_key="audit:early",
+        )
+    plan = service.prepare(
+        session_plan=session_plan,
+        now=now + timedelta(seconds=4),
+        idempotency_key="audit:boundaries",
+    )
+    drifted = plan.model_copy(update={"session_outcome_digest": "0" * 64})
+    with pytest.raises(AgentSessionAuditRejected, match="boundary validation"):
+        service.execute(
+            drifted,
+            session_plan=session_plan,
+            now=now + timedelta(seconds=5),
+        )
+    with pytest.raises(AgentSessionAuditTimedOut, match="wall budget"):
+        service.execute(plan, session_plan=session_plan, now=plan.deadline)
+
+    outcome = service.execute(
+        plan,
+        session_plan=session_plan,
+        now=now + timedelta(seconds=5),
+    )
+    json_path = artifact_store.root / outcome.artifact.json_ref
+    os.chmod(json_path, 0o600)
+    with pytest.raises(ValueError, match="unavailable or unsafe"):
+        artifact_store.read_bundle(outcome.artifact)
+    audit_store.close()
+    _close(fixture)
+
+
+def test_session_audit_store_refuses_recovery_and_conflicting_reuse(
+    tmp_path, approved_scope, now
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan, _ = _completed_session(fixture, now)
+    service, audit_store, _ = _audit_service(fixture, tmp_path)
+    plan = service.prepare(
+        session_plan=session_plan,
+        now=now + timedelta(seconds=4),
+        idempotency_key="audit:store",
+    )
+    audit_store.claim(plan, now=now + timedelta(seconds=5))
+    with pytest.raises(AgentSessionAuditRecoveryRequired):
+        audit_store.claim(plan, now=now + timedelta(seconds=6))
+
+    payload = plan.model_dump(mode="python")
+    payload["audit_plan_id"] = canonical_digest(
+        {key: value for key, value in payload.items() if key != "audit_plan_id"}
+    )
+    with pytest.raises(AgentSessionAuditRecoveryRequired):
+        audit_store.claim(type(plan).model_validate(payload), now=now + timedelta(seconds=6))
+
+    fixture2 = _fixture(tmp_path / "other", now, approved_scope)
+    session_plan2, _ = _completed_session(fixture2, now)
+    service2, audit_store2, _ = _audit_service(fixture2, tmp_path / "other")
+    plan2 = service2.prepare(
+        session_plan=session_plan2,
+        now=now + timedelta(seconds=4),
+        idempotency_key=plan.idempotency_key,
+    )
+    with pytest.raises(AgentSessionAuditIdempotencyConflict):
+        audit_store.claim(plan2, now=now + timedelta(seconds=6))
+    audit_store2.close()
+    _close(fixture2)
+    audit_store.close()
+    _close(fixture)
+
+
+def test_session_audit_artifact_limit_failure_keeps_recovery_checkpoint(
+    tmp_path, approved_scope, now
+):
+    fixture = _fixture(tmp_path, now, approved_scope)
+    session_plan, _ = _completed_session(fixture, now)
+    service, audit_store, _ = _audit_service(fixture, tmp_path)
+    plan = service.prepare(
+        session_plan=session_plan,
+        now=now + timedelta(seconds=4),
+        idempotency_key="audit:limit",
+        limits=AgentSessionAuditLimits(max_artifact_bytes=1024),
+    )
+    with pytest.raises(AgentSessionAuditRejected, match="artifact exceeds"):
+        service.execute(
+            plan,
+            session_plan=session_plan,
+            now=now + timedelta(seconds=5),
+        )
+    with pytest.raises(AgentSessionAuditRecoveryRequired):
+        service.execute(
+            plan,
+            session_plan=session_plan,
+            now=now + timedelta(seconds=6),
+        )
+    assert not any((tmp_path / "audit-artifacts" / "objects").iterdir())
+    audit_store.close()
     _close(fixture)

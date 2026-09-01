@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "json_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Json Sha256",
+      "type": "string"
+    },
+    "markdown_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Markdown Sha256",
+      "type": "string"
+    },
+    "json_ref": {
+      "pattern": "^objects/[0-9a-f]{64}/audit\\.json$",
+      "title": "Json Ref",
+      "type": "string"
+    },
+    "markdown_ref": {
+      "pattern": "^objects/[0-9a-f]{64}/audit\\.md$",
+      "title": "Markdown Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "json_sha256",
+    "markdown_sha256",
+    "json_ref",
+    "markdown_ref"
+  ],
+  "title": "AgentSessionAuditArtifact",
+  "type": "object"
+}

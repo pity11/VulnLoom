@@ -461,7 +461,7 @@ M7.9 不增加公网 provider/目标能力、任意 provider 参数、Agent 直�
 
 M7.10 不增加公网 provider/目标能力、动态 URL 或参数、Agent 直连网络/Runner/Docker、自动 Approval、写目标、Target build、任意 shell、无限循环、Candidate/Finding 状态变化、报告导出或 Submission。固定双工具上限不是权限来源；每次执行仍由独立的 Scope、Policy、Broker、network grant、credential 与 Approval 边界重新裁决。
 
-### M7.11：会话审计封包与确定性终态投影（规划）
+### M7.11：会话审计封包与确定性终态投影（已完成首版）
 
 - 新增内容寻址、只读的 `AgentSessionAuditBundle`，精确绑定 Session Plan/outcome、各轮 Agent outcome、Authorized Call Set、handoff、Observation、Evidence refs、Approval 决定、累计预算与 cleanup proof；封包只从权威 store 重建，不接受调用方提供 transcript 或模型摘要。
 - 独立纯验证器按 round 顺序重算全部对象摘要、唯一消费、call commitment、预算单调性、deadline、Scope/Target/version、Approval 和 cleanup 链；任何缺失、额外对象、分叉、循环、跨会话重放、可写/链接 artifact 或内容漂移都 fail-closed。

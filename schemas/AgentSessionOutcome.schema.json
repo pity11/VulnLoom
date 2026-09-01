@@ -933,6 +933,15 @@
       ],
       "default": null
     },
+    "approval_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Approval Digests",
+      "type": "array"
+    },
     "second_handoff_outcome": {
       "anyOf": [
         {
