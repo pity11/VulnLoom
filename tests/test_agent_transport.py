@@ -23,8 +23,13 @@ from vulnloom.agent_runtime import (
     AgentContextStore,
     AgentMessageRenderer,
     AgentModelRegistration,
+    AgentProviderEgressAuthority,
+    AgentProviderEgressIssuerPolicy,
+    AgentProviderEgressPurpose,
+    AgentProviderEgressStore,
     AgentProviderTransportAdmission,
     AgentProviderTransportLimits,
+    AgentProviderTransportMode,
     AgentProviderTransportRejected,
     AgentProviderTransportStatus,
     AgentRunLimits,
@@ -252,12 +257,32 @@ def _live_fixture(tmp_path, now, *, limits=None):
         adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
         limits=limits or AgentProviderTransportLimits(),
     )
+    issuer_policy = AgentProviderEgressIssuerPolicy.create(
+        issuer_id="test-security-operator",
+        allowed_provider_ids=(admission.provider_id,),
+        allowed_modes=(AgentProviderTransportMode.LIVE_HTTPS,),
+        max_lifetime_seconds=3600,
+    )
+    egress_store = AgentProviderEgressStore(tmp_path / "provider-egress")
+    egress_authority = AgentProviderEgressAuthority(
+        store=egress_store, issuer_policies=(issuer_policy,)
+    )
+    egress_grant = egress_authority.issue(
+        admission=admission,
+        issuer_policy_id=issuer_policy.policy_id,
+        purpose=AgentProviderEgressPurpose.MODEL_INFERENCE,
+        now=now,
+        expires_at=now + timedelta(minutes=30),
+        deadline=now + timedelta(seconds=10),
+        idempotency_key="provider-egress:live-fixture:1",
+    )
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="provider",
         model="sealed-model-v1",
         adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
         credential_reference_id=fixture["credential_reference"].reference_id,
         transport_admission_id=admission.admission_id,
+        egress_grant_id=egress_grant.grant_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -292,6 +317,10 @@ def _live_fixture(tmp_path, now, *, limits=None):
         renderer=renderer,
         envelope=envelope,
         request=request,
+        egress_store=egress_store,
+        egress_authority=egress_authority,
+        egress_grant=egress_grant,
+        issuer_policy=issuer_policy,
     )
     return fixture
 
@@ -491,6 +520,7 @@ def test_subprocess_https_adapter_pins_dns_and_persists_only_network_proof(
         admission=fixture["admission"],
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
+        egress_store=fixture["egress_store"],
         resolver=resolver,
         process_runner=runner,
     )
@@ -527,6 +557,79 @@ def test_subprocess_https_adapter_pins_dns_and_persists_only_network_proof(
     assert "raw-context-secret" not in serialized
     assert fixture["secret"].encode() not in (tmp_path / "live-runs.sqlite3").read_bytes()
     store.close()
+    fixture["egress_store"].close()
+
+
+@pytest.mark.parametrize("lifecycle", ["revoked", "expired"])
+def test_live_https_rechecks_egress_lifecycle_before_dns_or_credential(
+    tmp_path, now, lifecycle
+):
+    fixture = _live_fixture(tmp_path, now)
+    if lifecycle == "revoked":
+        fixture["egress_authority"].revoke(
+            grant_id=fixture["egress_grant"].grant_id,
+            issuer_policy_id=fixture["issuer_policy"].policy_id,
+            reason_digest=canonical_digest("test revocation"),
+            now=now + timedelta(seconds=1),
+            deadline=now + timedelta(seconds=5),
+            idempotency_key="provider-egress:test-revocation:1",
+        )
+        current_time = now + timedelta(seconds=2)
+    else:
+        current_time = fixture["egress_grant"].expires_at
+    resolver = _Resolver()
+    runner = _ProcessRunner(fixture)
+    adapter = SubprocessHttpsProviderAdapter(
+        registration=fixture["registration"],
+        admission=fixture["admission"],
+        credential_reference=fixture["credential_reference"],
+        credential_provider=fixture["provider"],
+        egress_store=fixture["egress_store"],
+        resolver=resolver,
+        process_runner=runner,
+        now=lambda: current_time,
+    )
+
+    with pytest.raises(AgentProviderTransportRejected, match="egress grant"):
+        adapter.complete(
+            fixture["request"], message_envelope=fixture["envelope"]
+        )
+
+    assert resolver.calls == []
+    assert runner.calls == []
+    assert adapter.released_leases == []
+    assert adapter.attempts[0].error_code == "provider_egress_admission_rejected"
+    assert adapter.attempts[0].process_started is False
+    assert adapter.attempts[0].network_opened is False
+    assert not any(adapter.released_request_bodies[0])
+    fixture["egress_store"].close()
+
+
+def test_model_registration_requires_grant_only_for_live_https(tmp_path, now):
+    fixture = _live_fixture(tmp_path, now)
+    live_values = fixture["registration"].model_dump(mode="python")
+    live_values["egress_grant_id"] = None
+    live_values["registration_id"] = canonical_digest(
+        {key: value for key, value in live_values.items() if key != "registration_id"}
+    )
+    with pytest.raises(ValidationError, match="requires an egress grant"):
+        AgentModelRegistration.model_validate(live_values)
+
+    offline = AgentModelRegistration.create(
+        provider_id="offline",
+        model="sealed-model-v1",
+        adapter_digest="b" * 64,
+        supported_roles=(WorkerRole.HYPOTHESIS,),
+        max_output_tokens=64,
+    )
+    offline_values = offline.model_dump(mode="python")
+    offline_values["egress_grant_id"] = fixture["egress_grant"].grant_id
+    offline_values["registration_id"] = canonical_digest(
+        {key: value for key, value in offline_values.items() if key != "registration_id"}
+    )
+    with pytest.raises(ValidationError, match="cannot bind an egress grant"):
+        AgentModelRegistration.model_validate(offline_values)
+    fixture["egress_store"].close()
 
 
 @pytest.mark.parametrize(
@@ -547,6 +650,7 @@ def test_live_https_rejects_forbidden_or_empty_dns_before_credential(
         admission=fixture["admission"],
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
+        egress_store=fixture["egress_store"],
         resolver=_Resolver(addresses),
         process_runner=runner,
     )
@@ -559,6 +663,7 @@ def test_live_https_rejects_forbidden_or_empty_dns_before_credential(
     assert runner.calls == []
     assert adapter.released_leases == []
     assert adapter.attempts[0].network_opened is False
+    fixture["egress_store"].close()
 
 
 def test_subprocess_timeout_maps_to_typed_runtime_outcome_and_cleanup(tmp_path, now):
@@ -574,6 +679,7 @@ def test_subprocess_timeout_maps_to_typed_runtime_outcome_and_cleanup(tmp_path, 
         admission=fixture["admission"],
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
+        egress_store=fixture["egress_store"],
         resolver=_Resolver(),
         process_runner=runner,
     )
@@ -595,6 +701,7 @@ def test_subprocess_timeout_maps_to_typed_runtime_outcome_and_cleanup(tmp_path, 
     assert adapter.released_leases[0].zeroed
     assert not any(adapter.released_request_bodies[0])
     store.close()
+    fixture["egress_store"].close()
 
 
 def test_subprocess_https_rate_limit_is_enforced_before_second_credential(tmp_path, now):
@@ -609,6 +716,7 @@ def test_subprocess_https_rate_limit_is_enforced_before_second_credential(tmp_pa
         admission=fixture["admission"],
         credential_reference=fixture["credential_reference"],
         credential_provider=fixture["provider"],
+        egress_store=fixture["egress_store"],
         resolver=_Resolver(),
         process_runner=runner,
         clock=lambda: 10.0,
@@ -621,6 +729,7 @@ def test_subprocess_https_rate_limit_is_enforced_before_second_credential(tmp_pa
     assert len(runner.calls) == 1
     assert len(adapter.released_leases) == 1
     assert len(adapter.attempts) == 2
+    fixture["egress_store"].close()
 
 
 def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
@@ -638,12 +747,31 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
         ca_bundle_digest=hashlib.sha256(ca_bundle).hexdigest(),
         limits=AgentProviderTransportLimits(),
     )
+    issuer_policy = AgentProviderEgressIssuerPolicy.create(
+        issuer_id="test-security-operator",
+        allowed_provider_ids=(admission.provider_id,),
+        allowed_modes=(AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE,),
+        max_lifetime_seconds=3600,
+    )
+    egress_store = AgentProviderEgressStore(tmp_path / "loopback-egress")
+    egress_grant = AgentProviderEgressAuthority(
+        store=egress_store, issuer_policies=(issuer_policy,)
+    ).issue(
+        admission=admission,
+        issuer_policy_id=issuer_policy.policy_id,
+        purpose=AgentProviderEgressPurpose.LOOPBACK_ADMISSION_PROBE,
+        now=now,
+        expires_at=now + timedelta(minutes=30),
+        deadline=now + timedelta(seconds=10),
+        idempotency_key="provider-egress:loopback-ca:1",
+    )
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="provider",
         model="sealed-model-v1",
         adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
         credential_reference_id=fixture["credential_reference"].reference_id,
         transport_admission_id=admission.admission_id,
+        egress_grant_id=egress_grant.grant_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -654,6 +782,7 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
             admission=admission,
             credential_reference=fixture["credential_reference"],
             credential_provider=fixture["provider"],
+            egress_store=egress_store,
             ca_bundle=b"wrong-ca",
             resolver=_Resolver(("127.0.0.1",)),
             process_runner=_ProcessRunner(fixture, peer_ip="127.0.0.1"),
@@ -667,3 +796,4 @@ def test_loopback_and_live_admissions_are_mutually_exclusive_and_ca_bound(
             adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
             limits=AgentProviderTransportLimits(),
         )
+    egress_store.close()

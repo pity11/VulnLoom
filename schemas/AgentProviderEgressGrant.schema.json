@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "AgentProviderEgressPurpose": {
+      "enum": [
+        "model_inference",
+        "loopback_admission_probe"
+      ],
+      "title": "AgentProviderEgressPurpose",
+      "type": "string"
+    },
+    "AgentProviderTransportMode": {
+      "enum": [
+        "admission_fake",
+        "loopback_https_probe",
+        "live_https"
+      ],
+      "title": "AgentProviderTransportMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "grant_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Grant Id",
+      "type": "string"
+    },
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/AgentProviderTransportMode"
+    },
+    "credential_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Reference Id",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "issuer_policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Issuer Policy Id",
+      "type": "string"
+    },
+    "issuer_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Issuer Id",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/AgentProviderEgressPurpose"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "grant_id",
+    "admission_id",
+    "provider_id",
+    "mode",
+    "credential_reference_id",
+    "adapter_digest",
+    "issuer_policy_id",
+    "issuer_id",
+    "purpose",
+    "issued_at",
+    "expires_at",
+    "idempotency_key"
+  ],
+  "title": "AgentProviderEgressGrant",
+  "type": "object"
+}

@@ -399,6 +399,18 @@ M7.4 是 live transport 的离线 Admission 协议，不是实时 provider 实�
 
 M7.5 不提供 provider-specific SDK/response mapping、CLI/API 默认入口、任意 URL、Target 网络访问、工具执行、Approval 消费、Candidate/Finding 转换或 Submission。CI 不连接公网 provider；生产 `live_https` 仍需运营方对 exact provider hostname、credential reference、CA/出口和配额单独签发 Admission。
 
+### M7.6：Provider Egress Admission 签发与生命周期（已完成首版）
+
+- `AgentProviderEgressIssuerPolicy` 内容寻址绑定受信 issuer、允许的 provider/mode 和最长 grant 生命周期；fake/no-network mode 不可签发。
+- `AgentProviderEgressGrant` 精确绑定 transport Admission、provider、mode、credential reference、adapter digest、issuer policy、用途、签发/过期时间和幂等键；live inference 与 loopback probe 用途互斥。
+- 可信 Authority 在任何 checkpoint 前验证 issuer policy、provider/mode、用途、期限和 deadline；未知 issuer、越权 provider/mode、超期或错误用途均拒绝。
+- grant/revocation 使用原子发布的只读内容寻址对象；读取强制 no-follow、常规文件、不可写、大小、schema、对象 ID 与摘要复核。
+- SQLite lifecycle ledger 对签发和撤销分别使用 `STARTED/COMPLETED` checkpoint；相同内容幂等返回，冲突 key、遗留 STARTED 和并发未决撤销 fail-closed。
+- 状态显式为 `active/revoked/expired`。`AgentModelRegistration` 绑定 exact grant ID；live adapter 每次调用在 DNS、rate slot、credential lease 和子进程之前重新读取对象与 ledger，并复核 exact Admission 绑定。
+- 常规测试覆盖签发、幂等、拒绝、deadline timeout、发布清理、冲突、STARTED 恢复、到期、撤销、symlink/可写对象、Admission 漂移和 pre-DNS/pre-credential 拒绝；Phase 3 loopback TLS composition 使用真实签发 grant。
+
+M7.6 不增加 cryptographic remote signer、provider SDK/codec、默认 live CLI/API、公网 provider 调用、任意 URL、Target 网络访问、工具执行、Approval 消费或 Submission。issuer policy 与 lifecycle ledger 属于可信本地 Control Plane；跨主机签名和密钥管理必须另立里程碑。
+
 ## 延后事项
 
 - 公网资产自主发现。

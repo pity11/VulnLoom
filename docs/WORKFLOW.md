@@ -384,6 +384,29 @@ Exact live/loopback Admission + registration + Message Envelope
 peer 漂移、TLS/CA 失败、非 200/redirect、畸形/超限响应、rate exhaustion 和 timeout 均 fail-closed。没有自动
 retry，且该 adapter 仍只返回 Agent decision/tool proposal；它不能执行工具或改变领域状态。
 
+### M7.6 Provider Egress 签发与撤销链
+
+```text
+Trusted issuer policy + exact networked transport Admission
+  → validate provider/mode/purpose/lifetime/deadline
+  → STARTED issuance checkpoint
+  → atomic read-only content-addressed grant publication
+  → COMPLETED active lifecycle record
+  → bind exact grant ID into model registration
+  → before every call: reopen grant + ledger, verify active/time/Admission
+  → only then DNS → rate slot → credential lease → fixed child
+
+Exact issuer + active grant
+  → STARTED revocation checkpoint
+  → atomic read-only revocation publication
+  → transactionally mark grant revoked + COMPLETED
+  → subsequent calls stop before DNS and credential access
+```
+
+未知 issuer、policy 越权、purpose/mode 不匹配、超长期限、deadline、幂等冲突、遗留 STARTED、到期、撤销、
+可写/链接/畸形对象或 Admission 漂移均 fail-closed。grant/revocation 不包含 secret；该 lifecycle 不签发任意 URL，
+也不提供公网调用入口。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。

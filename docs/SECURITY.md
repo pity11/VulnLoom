@@ -184,6 +184,16 @@ response 在 child 流式设限，并由 parent 再次限长、验证 peer/TLS�
 loopback TLS fixture 证明进程与 socket 行为，不证明任何公网 provider 的可用性、服务条款、数据驻留或运营
 授权；生产 exact-host Admission 必须由运营方单独签发。
 
+M7.6 将“单独签发”变为代码边界。只有本地受信 `AgentProviderEgressIssuerPolicy` 明确允许的 provider、networked
+mode 和期限才能产生 grant；no-network fake、错误用途、未知 issuer 与超期申请不能进入 STARTED checkpoint。
+grant 精确绑定 Admission、credential reference 与 adapter digest，并由 model registration 绑定其 ID。
+
+grant/revocation 对象原子发布、内容寻址且只读，每次读取执行 no-follow、常规文件、不可写、大小、schema、ID
+和摘要复核。ledger 对签发/撤销使用独立 STARTED/COMPLETED；遗留操作、冲突、到期或 revocation 全部拒绝。
+live adapter 在每次 DNS、速率计数、凭据读取和子进程创建之前重读 lifecycle，因此撤销不会依赖长驻内存缓存。
+本地 SQLite authority 是可信 Control Plane 状态，不是跨主机密码学签名系统；M7.6 不引入远程 signer key、
+provider SDK、公开调用入口或新的 Worker 权限。
+
 M6.3b 的 alignment 是评测标签，不是领域授权。只有显式列出的 match 才参与 recall；同 CWE 不自动匹配。
 服务在 checkpoint 前复核 suite/case/Target/ObservationSet/truth/CWE 全部绑定，并限制 set、Observation、
 match 数量和墙钟时间。跨 case、摘要漂移、一个 Observation 多 truth、CWE 不相容和不完整输入均拒绝。

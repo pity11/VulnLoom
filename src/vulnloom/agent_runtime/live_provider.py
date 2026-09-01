@@ -6,6 +6,7 @@ import hashlib
 import ipaddress
 import time
 from collections.abc import Callable
+from datetime import datetime
 from typing import Protocol
 
 from vulnloom.adapters.model_credentials import (
@@ -15,6 +16,7 @@ from vulnloom.adapters.model_credentials import (
 )
 from vulnloom.broker.live_http import SystemResolver
 from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.models import utc_now
 
 from .messages import AgentMessageEnvelope
 from .models import (
@@ -22,6 +24,11 @@ from .models import (
     AgentModelRegistration,
     AgentModelReply,
     AgentStepRequest,
+)
+from .provider_admission import (
+    AgentProviderEgressRecoveryRequired,
+    AgentProviderEgressRejected,
+    AgentProviderEgressStore,
 )
 from .provider_process import (
     SUBPROCESS_HTTPS_ADAPTER_DIGEST,
@@ -73,10 +80,12 @@ class SubprocessHttpsProviderAdapter:
         admission: AgentProviderTransportAdmission,
         credential_reference: ModelCredentialReference,
         credential_provider: ModelCredentialProvider,
+        egress_store: AgentProviderEgressStore,
         ca_bundle: bytes | None = None,
         resolver: ProviderResolver | None = None,
         process_runner: ProviderProcessRunner | None = None,
         clock: Callable[[], float] = time.monotonic,
+        now: Callable[[], datetime] = utc_now,
     ):
         if (
             registration.adapter_kind is not AgentAdapterKind.SUBPROCESS_HTTPS_PROVIDER
@@ -104,10 +113,12 @@ class SubprocessHttpsProviderAdapter:
         self.admission = admission
         self.credential_reference = credential_reference
         self.credential_provider = credential_provider
+        self.egress_store = egress_store
         self.ca_bundle = ca_bundle
         self.resolver = resolver or SystemResolver()
         self.process_runner = process_runner or SubprocessProviderTransportRunner()
         self.clock = clock
+        self.now = now
         self.transport_requests: list[AgentProviderTransportRequest] = []
         self.attempts: list[AgentProviderTransportAttempt] = []
         self.receipts: list[AgentProviderTransportReceipt] = []
@@ -156,6 +167,22 @@ class SubprocessHttpsProviderAdapter:
         process_terminated = True
         stderr_discarded = True
         try:
+            try:
+                self.egress_store.require_active(
+                    self.registration.egress_grant_id,
+                    admission=self.admission,
+                    now=self.now(),
+                )
+            except AgentProviderEgressRecoveryRequired as exc:
+                error_code = "provider_egress_recovery_required"
+                raise AgentProviderTransportRejected(
+                    "provider egress lifecycle is unresolved"
+                ) from exc
+            except AgentProviderEgressRejected as exc:
+                error_code = "provider_egress_admission_rejected"
+                raise AgentProviderTransportRejected(
+                    "provider egress grant rejected"
+                ) from exc
             pinned_ip = self._resolve_pinned_ip()
             self._consume_rate_slot()
             lease = self.credential_provider.acquire(self.credential_reference)

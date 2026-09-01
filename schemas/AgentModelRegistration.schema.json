@@ -76,6 +76,19 @@
       "default": null,
       "title": "Transport Admission Id"
     },
+    "egress_grant_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Egress Grant Id"
+    },
     "supported_roles": {
       "items": {
         "$ref": "#/$defs/WorkerRole"

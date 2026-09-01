@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "AgentProviderTransportMode": {
+      "enum": [
+        "admission_fake",
+        "loopback_https_probe",
+        "live_https"
+      ],
+      "title": "AgentProviderTransportMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "issuer_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Issuer Id",
+      "type": "string"
+    },
+    "allowed_provider_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Allowed Provider Ids",
+      "type": "array"
+    },
+    "allowed_modes": {
+      "items": {
+        "$ref": "#/$defs/AgentProviderTransportMode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Allowed Modes",
+      "type": "array"
+    },
+    "max_lifetime_seconds": {
+      "maximum": 2592000,
+      "minimum": 60,
+      "title": "Max Lifetime Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy_id",
+    "issuer_id",
+    "allowed_provider_ids",
+    "allowed_modes",
+    "max_lifetime_seconds"
+  ],
+  "title": "AgentProviderEgressIssuerPolicy",
+  "type": "object"
+}

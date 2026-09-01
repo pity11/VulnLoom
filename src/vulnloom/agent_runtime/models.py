@@ -56,6 +56,7 @@ class AgentModelRegistration(DomainModel):
     adapter_digest: Digest
     credential_reference_id: Digest | None = None
     transport_admission_id: Digest | None = None
+    egress_grant_id: Digest | None = None
     supported_roles: Annotated[tuple[WorkerRole, ...], Field(min_length=1)]
     max_output_tokens: int = Field(gt=0, le=65_536)
 
@@ -69,21 +70,29 @@ class AgentModelRegistration(DomainModel):
                 raise ValueError("offline replay cannot bind a model credential")
             if self.transport_admission_id is not None:
                 raise ValueError("offline replay cannot bind a transport admission")
+            if self.egress_grant_id is not None:
+                raise ValueError("offline replay cannot bind an egress grant")
         elif self.adapter_kind is AgentAdapterKind.LOCAL_FAKE_PROVIDER:
             if self.credential_reference_id is None:
                 raise ValueError("local fake provider requires a credential reference")
             if self.transport_admission_id is not None:
                 raise ValueError("local fake provider cannot bind a transport admission")
+            if self.egress_grant_id is not None:
+                raise ValueError("local fake provider cannot bind an egress grant")
         elif self.adapter_kind is AgentAdapterKind.ADMISSION_FAKE_TRANSPORT:
             if self.credential_reference_id is None:
                 raise ValueError("admission fake transport requires a credential reference")
             if self.transport_admission_id is None:
                 raise ValueError("admission fake transport requires a transport admission")
+            if self.egress_grant_id is not None:
+                raise ValueError("admission fake transport cannot bind an egress grant")
         elif self.adapter_kind is AgentAdapterKind.SUBPROCESS_HTTPS_PROVIDER:
             if self.credential_reference_id is None:
                 raise ValueError("HTTPS provider requires a credential reference")
             if self.transport_admission_id is None:
                 raise ValueError("HTTPS provider requires a transport admission")
+            if self.egress_grant_id is None:
+                raise ValueError("HTTPS provider requires an egress grant")
         if self.registration_id != agent_model_registration_digest(self):
             raise ValueError("Agent model registration content digest mismatch")
         return self
@@ -106,6 +115,7 @@ class AgentModelRegistration(DomainModel):
             "adapter_digest": adapter_digest,
             "credential_reference_id": None,
             "transport_admission_id": None,
+            "egress_grant_id": None,
             "supported_roles": roles,
             "max_output_tokens": max_output_tokens,
         }
@@ -130,6 +140,7 @@ class AgentModelRegistration(DomainModel):
             "adapter_digest": adapter_digest,
             "credential_reference_id": credential_reference_id,
             "transport_admission_id": None,
+            "egress_grant_id": None,
             "supported_roles": roles,
             "max_output_tokens": max_output_tokens,
         }
@@ -155,6 +166,7 @@ class AgentModelRegistration(DomainModel):
             "adapter_digest": adapter_digest,
             "credential_reference_id": credential_reference_id,
             "transport_admission_id": transport_admission_id,
+            "egress_grant_id": None,
             "supported_roles": roles,
             "max_output_tokens": max_output_tokens,
         }
@@ -169,6 +181,7 @@ class AgentModelRegistration(DomainModel):
         adapter_digest: str,
         credential_reference_id: str,
         transport_admission_id: str,
+        egress_grant_id: str,
         supported_roles: tuple[WorkerRole, ...],
         max_output_tokens: int,
     ) -> AgentModelRegistration:
@@ -180,6 +193,7 @@ class AgentModelRegistration(DomainModel):
             "adapter_digest": adapter_digest,
             "credential_reference_id": credential_reference_id,
             "transport_admission_id": transport_admission_id,
+            "egress_grant_id": egress_grant_id,
             "supported_roles": roles,
             "max_output_tokens": max_output_tokens,
         }

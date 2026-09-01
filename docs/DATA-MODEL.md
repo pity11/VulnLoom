@@ -397,6 +397,17 @@ network-proof 标记；不保存 hostname、numeric IP、证书、Authorization 
 `ProviderProcessResult`、stdin frame、CA bytes、credential view 和 child response buffer 都是瞬时对象，不是
 Pydantic schema、checkpoint、领域事件或普通日志。
 
+### AgentProviderEgressIssuerPolicy、Grant 与 Revocation
+
+M7.6 的 issuer policy 内容寻址绑定本地受信签发者、允许的 provider/mode 与最长生命周期。
+`AgentProviderEgressGrant` 绑定 exact transport Admission、credential reference、adapter、用途、issuer policy、
+签发/过期时间和幂等键；`AgentModelRegistration.egress_grant_id` 对 live adapter 必填，对所有 offline/fake
+adapter 禁止。
+
+Grant 与 `AgentProviderEgressRevocation` 是只读内容寻址对象。SQLite ledger 只保存对象 ID、Admission ID、
+幂等键、STARTED/COMPLETED 和 active/revoked 状态，不保存 hostname、credential、消息或响应。`expired` 由 grant
+的不可变时间窗在读取时计算；任何未决 revocation 会让 active 读取 fail-closed。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "revocation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Revocation Id",
+      "type": "string"
+    },
+    "grant_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Grant Id",
+      "type": "string"
+    },
+    "issuer_policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Issuer Policy Id",
+      "type": "string"
+    },
+    "issuer_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Issuer Id",
+      "type": "string"
+    },
+    "reason_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reason Digest",
+      "type": "string"
+    },
+    "revoked_at": {
+      "format": "date-time",
+      "title": "Revoked At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "revocation_id",
+    "grant_id",
+    "issuer_policy_id",
+    "issuer_id",
+    "reason_digest",
+    "revoked_at",
+    "idempotency_key"
+  ],
+  "title": "AgentProviderEgressRevocation",
+  "type": "object"
+}

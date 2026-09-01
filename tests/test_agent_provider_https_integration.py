@@ -24,8 +24,13 @@ from vulnloom.agent_runtime import (
     AgentContextStore,
     AgentMessageRenderer,
     AgentModelRegistration,
+    AgentProviderEgressAuthority,
+    AgentProviderEgressIssuerPolicy,
+    AgentProviderEgressPurpose,
+    AgentProviderEgressStore,
     AgentProviderTransportAdmission,
     AgentProviderTransportLimits,
+    AgentProviderTransportMode,
     AgentRunLimits,
     AgentRunPlan,
     AgentRunStatus,
@@ -256,12 +261,31 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
         ca_bundle_digest=hashlib.sha256(ca_bundle).hexdigest(),
         limits=AgentProviderTransportLimits(timeout_seconds=5),
     )
+    issuer_policy = AgentProviderEgressIssuerPolicy.create(
+        issuer_id="phase3-security-operator",
+        allowed_provider_ids=(admission.provider_id,),
+        allowed_modes=(AgentProviderTransportMode.LOOPBACK_HTTPS_PROBE,),
+        max_lifetime_seconds=3600,
+    )
+    egress_store = AgentProviderEgressStore(tmp_path / "provider-egress")
+    egress_grant = AgentProviderEgressAuthority(
+        store=egress_store, issuer_policies=(issuer_policy,)
+    ).issue(
+        admission=admission,
+        issuer_policy_id=issuer_policy.policy_id,
+        purpose=AgentProviderEgressPurpose.LOOPBACK_ADMISSION_PROBE,
+        now=now,
+        expires_at=now + timedelta(minutes=30),
+        deadline=now + timedelta(seconds=10),
+        idempotency_key="provider-egress:phase3-loopback:1",
+    )
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="loopback",
         model="loopback-model-v1",
         adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
         credential_reference_id=reference.reference_id,
         transport_admission_id=admission.admission_id,
+        egress_grant_id=egress_grant.grant_id,
         supported_roles=(WorkerRole.HYPOTHESIS,),
         max_output_tokens=64,
     )
@@ -289,6 +313,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
             },
             allowed_references=(reference,),
         ),
+        egress_store=egress_store,
         ca_bundle=ca_bundle,
         resolver=_LoopbackResolver(),
     )
@@ -315,3 +340,4 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
     assert b"raw-loopback-context-secret" not in (tmp_path / "loopback-runs.sqlite3").read_bytes()
     assert b"loopback-provider-secret" not in (tmp_path / "loopback-runs.sqlite3").read_bytes()
     store.close()
+    egress_store.close()

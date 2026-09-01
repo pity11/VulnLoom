@@ -461,3 +461,23 @@ discards them after strict typed parsing. Only digest-only attempts and receipts
 There is no provider SDK or arbitrary provider wire mapping yet: the endpoint must implement the
 sealed VulnLoom response contract. The default test suite remains offline. Production Admission uses
 a real loopback TLS server and child process, never a public provider.
+
+## 29. M7.6 provider egress authorization lifecycle
+
+M7.6 separates transport configuration from permission to use it. A content-addressed issuer policy
+limits one trusted Control Plane issuer to explicit provider IDs, networked transport modes, and a
+maximum grant lifetime. The Authority turns one exact transport Admission into an immutable grant
+that also binds its credential reference, adapter implementation, purpose, issuer, and validity
+window. Model registration binds the exact grant ID.
+
+Grant and revocation records are atomically published as read-only content-addressed objects. A
+SQLite lifecycle ledger provides independent STARTED/COMPLETED checkpoints, idempotency conflict
+rejection, and active/revoked state. Expiry is derived from the immutable grant time window. Unsafe,
+writable, linked, oversized, malformed, missing, unfinished, revoked, expired, or Admission-drifted
+objects all fail closed.
+
+The HTTPS adapter reopens and validates the grant object and lifecycle ledger on every call before
+DNS, rate accounting, credential acquisition, or process creation. Thus a registration or Admission
+constructed in memory cannot itself authorize egress, and completed revocation takes effect before
+another external action. This is a local trusted-Control-Plane authority, not a cryptographic remote
+signer; M7.6 adds no public provider call, provider codec/SDK, tool execution, or Submission path.
