@@ -47,6 +47,12 @@ The M7.7 sealed Responses codec admission run is GitHub Actions
 [`33477673808`](https://github.com/pity11/VulnLoom/actions/runs/33477673808). Both completed
 successfully on 2026-09-01 and qualify the M7.7 provider codec row below.
 
+The M7.8 typed Agent-to-Broker handoff admission run is GitHub Actions
+[`33481732221`](https://github.com/pity11/VulnLoom/actions/runs/33481732221) for commit
+`2a17eed9368e4220629e1911f6ebf54ba9f3f0fc`. The standard Python CI for the same commit is
+[`33481732208`](https://github.com/pity11/VulnLoom/actions/runs/33481732208). Both completed
+successfully on 2026-09-01 and qualify the M7.8 Agent tool handoff row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -66,6 +72,7 @@ successfully on 2026-09-01 and qualify the M7.7 provider codec row below.
 | Provider transport | Fixed isolated subprocess inherits no parent secret/proxy environment, pins a numeric loopback peer while verifying admitted-host TLS, bounds output, kills on timeout, and composes through the typed Runtime without exposing raw credential or response data | PASS (`33465813508`) |
 | Provider egress lifecycle | A trusted local issuer policy creates a content-addressed active loopback grant bound into registration; the Runtime reopens and verifies it before DNS/credential/process use, while offline tests enforce expiry, revocation, unfinished-checkpoint, tamper, and cleanup refusal | PASS (`33474110739`) |
 | Provider Responses codec | A content-addressed codec emits the fixed non-streaming/non-stored strict-schema request and accepts only one completed assistant output text; the real isolated loopback TLS subprocess proves bounded transport, nested typed decoding, identity checks, and transient-buffer cleanup | PASS (`33477673827`) |
+| Agent tool handoff | An authoritative completed Validator Agent intent is bound to an independently constructed exact Broker call; the real pinned Broker re-enforces Scope/Policy/network and imports only digest-bound Evidence metadata into an Observation, while checkpoint, Approval retry, timeout, drift, and no-raw-persistence paths remain fail-closed | PASS (`33481732221`) |
 
 ## Reproduction
 
@@ -123,3 +130,13 @@ assistant `output_text`, exact model identity, typed usage, strict nested JSON, 
 oversize, timeout, drift, and cleanup refusals. This qualifies the codec and local subprocess
 composition only. It does not contact or qualify a public provider, production credential, SDK,
 streaming/session behavior, data-residency policy, quota, or operational egress authorization.
+
+M7.8 adds a trusted typed handoff after a completed `tool_proposed` Agent run. The handoff reopens the
+authoritative Agent checkpoint, compares its digest-only intent with a Control-Plane-constructed exact
+`BrokerCall`, performs static preflight before its own STARTED checkpoint, and then leaves Scope,
+Policy, DNS pinning, credential, tool budget, and Approval enforcement to the Broker. The Phase 3
+composition connects only to a temporary authorized service through the real pinned transport and
+stores the redacted response in the Evidence Store. The resulting `AgentToolObservation` contains
+only typed counts, digests, and Evidence refs. This PASS does not qualify Agent-owned sockets,
+arbitrary URLs, automatic Approval, public targets, recursive tool loops, Candidate/Finding promotion,
+report export, or Submission.

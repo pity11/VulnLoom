@@ -434,6 +434,19 @@ M7.7 不提供默认 live CLI/API、provider SDK、流式输出、会话续接�
 
 M7.8 不允许 Agent 直接调用 Runner、socket、Docker 或工具 adapter，不新增 Provider 公网调用、任意 URL、自动 Approval、Target build、Candidate/Finding 状态变化、报告导出或 Submission。Observation 只是后续可信工作流输入，不能自行提升为 Candidate/Finding。
 
+### M7.9：密封 Tool Observation 续跑状态机（规划）
+
+- 新增内容寻址的 `AgentContinuationPlan`，精确绑定原始 `AgentRunPlan`/completed `tool_proposed` outcome、completed handoff outcome、`AgentToolObservation`、后续 context snapshot、model registration 和派生 continuation Task；所有对象都从权威 store 重读，不接受调用方拼接的 transcript。
+- continuation Task 使用新 task/idempotency identity，但必须继承 exact engagement、Target/version、Scope/version、Policy/Profile/Registry、Validator role 和绝对 deadline；其 `input_refs` 只能是绑定的 Observation/Evidence refs，`allowed_tools` 固定为空且 `tool_calls=0`，model/wall budget 只能收缩。
+- 可信 Control Plane 只从 Observation 的 exact Evidence refs 经 Evidence Store 的 no-follow、大小和内容摘要校验读取已脱敏正文，再通过既有 `AgentContextAssembler` 形成带 `OBSERVATION_SUMMARY` 标记的有界 untrusted fragment；缺失、链接、摘要/Target/version 漂移、超限或二次脱敏失败均在 provider 调用前拒绝。
+- 首版只允许一次成功 handoff 后的一次续跑，并要求续跑产出 `complete` 或 `blocked`；再次 `propose_tool` fail-closed，避免递归自唤醒。后续多工具循环必须另立里程碑并先引入跨轮次预算账本。
+- continuation ledger 使用独立 SQLite `STARTED/COMPLETED` checkpoint，绑定唯一 Observation 和幂等键；完成结果可幂等返回，冲突、重复消费、遗留 STARTED 和跨 Task/Scope/Target/version 重放拒绝，不自动重放 provider 或 Broker 外部动作。
+- continuation ledger 依据原始 Agent outcome 的 tokens/steps、Broker result 的 tool calls、当前时间和原绝对 deadline 计算剩余预算；剩余预算不足、deadline 到期、Approval 未决、handoff 非 completed 或 cleanup 不完整时不得创建续跑 checkpoint。
+- 后续 Message Envelope 明确区分可信 control 与 untrusted Observation context；持久层只保存 plan/outcome/envelope/context/evidence 摘要、稳定状态和 cleanup proof，不保存 provider 请求、raw response、URL、credential 或未脱敏 Evidence 正文。
+- 常规测试覆盖成功终止、blocked、二次工具提议拒绝、Evidence/Observation/Task 漂移、预算耗尽、deadline、provider timeout/failure、幂等冲突、STARTED 恢复、清理与 SQLite 无正文；Phase 3 仅使用现有 loopback provider fixture 和临时授权 Broker 服务组合完整 propose → handoff → Observation → continue 链。
+
+M7.9 不增加公网 provider/目标能力、任意 provider 参数、Agent 直连工具、自动 Approval、无限 Agent loop、Target build、Candidate/Finding 转换、报告导出或 Submission。它只完成一次有界、可审计的 Observation 反馈闭环；任何领域状态变化仍由后续独立的确定性服务和门禁负责。
+
 ## 延后事项
 
 - 公网资产自主发现。
