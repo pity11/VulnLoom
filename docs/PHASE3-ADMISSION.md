@@ -155,6 +155,12 @@ The M9.2 sealed negative-path mutation corpus admission run is GitHub Actions
 [`33632777250`](https://github.com/pity11/VulnLoom/actions/runs/33632777250). Both completed
 successfully on 2026-09-02 and qualify the M9.2 mutation regression row below.
 
+The M9.3 local-source quality benchmark admission run is GitHub Actions
+[`33635497035`](https://github.com/pity11/VulnLoom/actions/runs/33635497035) for commit
+`920591c7fd5a74f4d7b756431fec3e49942c14d0`. The standard Python CI for the same commit is
+[`33635497379`](https://github.com/pity11/VulnLoom/actions/runs/33635497379). Both completed
+successfully on 2026-09-02 and qualify the M9.3 local-source quality row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -190,6 +196,7 @@ successfully on 2026-09-02 and qualify the M9.2 mutation regression row below.
 | Agent local Report export execution | One accepted M8.11 record is consumed only with a granted exact `EXPORT_REPORT` Approval; action-digest tampering is rejected before checkpoint, while the deterministic local export creates one immutable `EXPORTED` artifact, preserves the source human-approved Report, and adds no Runner, Broker, provider, target, destination, public-network or Submission call | PASS (`33626287272`) |
 | Closed Agent workflow regression | One fixed 13-stage M7.11–M8.12 observation binds six human Intake decisions, three exact Approvals, Evidence and immutable Candidate/Report states; the typed gate passes only when provider, Broker, Runner and target counts do not increase after Validation and public-network, build, automatic-Approval and Submission counts remain zero | PASS (`33629783453`) |
 | Agent workflow mutation regression | One sealed corpus covers all 23 fixed M9.1 mutations exactly once; immutable expected status and ordered violation codes match 23/23 on Python 3.12/3.13/3.14, including public-network, Target-build, automatic-Approval and Submission failures | PASS (`33632777250`) |
+| Local-source Agent quality | Nine sealed local source cases exercise the real archive-ingestion, AST SourceGraph and deterministic Candidate path across eight supported CWE families plus one guarded negative; recall, precision, trace, bound M6.1 Finding/Evidence quality and all forbidden-effect counters pass on Python 3.12/3.13/3.14 | PASS (`33635497379`) |
 
 ## Reproduction
 
@@ -435,3 +442,13 @@ regression, public network, Target build, automatic Approval and Submission. Sch
 rejects missing cases, reordered coverage, altered expectations and inconsistent match flags. The
 concurrent Phase 3 workflow confirms the existing real rootless composition remains admitted; the
 M9.2 corpus itself is pure and offline and grants no operational authority.
+
+M9.3 deterministically archives and ingests nine repository-owned Python fixtures, then runs the
+real AST Source Mapper and Candidate Generator without importing or executing fixture code. Eight
+cases cover every currently supported Candidate CWE and one ownership-guarded case must remain
+Candidate-free. The ordinary CI matrix regenerates the content-addressed suite and observations,
+requires exact fixture/schema stability, and gates Candidate recall, Candidate precision and static
+trace completeness at 1.0. Finding precision and Evidence completeness come only from the exact
+policy-bound M6.1 baseline, never from Candidate promotion. The same gate requires zero Runner,
+Broker, provider, Target process, public-network, build, automatic-Approval and Submission effects;
+the concurrent Phase 3 run confirms the existing real rootless boundary remains admitted.
