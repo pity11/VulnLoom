@@ -90,6 +90,9 @@ from vulnloom.critic import (
 )
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
+    ApprovalAction,
+    ApprovalRequest,
+    ApprovalStatus,
     Candidate,
     EvidenceKind,
     NetworkTargetScope,
@@ -110,6 +113,9 @@ from vulnloom.findings import (
     FindingDuplicateCheck,
     FindingDuplicateCheckStore,
     FindingPromotionPlan,
+    FindingPromotionRejected,
+    FindingPromotionService,
+    FindingPromotionStore,
     agent_finding_intake_plan_digest,
 )
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
@@ -734,6 +740,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             FindingDuplicateCheckStore(
                 tmp_path / "m85-duplicate-checks.sqlite3"
             ) as duplicate_check_store,
+            FindingPromotionStore(
+                tmp_path / "m86-finding-promotions.sqlite3"
+            ) as finding_promotion_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1317,6 +1326,68 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            finding_promotion_service = FindingPromotionService(
+                intake_service=finding_intake_service,
+                store=finding_promotion_store,
+            )
+            promotion_action = finding_promotion_service.approval_action(
+                record=finding_intake_record,
+                promotion_plan=promotion_plan,
+            )
+            promotion_approval = ApprovalRequest(
+                engagement_id=scope.engagement_id,
+                target_id=reviewed_candidate.target_id,
+                action=ApprovalAction.MUTATE_TARGET_STATE,
+                action_digest=promotion_action.action_id,
+                expected_side_effects=("candidate:promoted", "finding:created"),
+                evidence_summary="Phase 3 human approved the exact sealed promotion",
+                policy_version=scope.version,
+                expires_at=now + timedelta(seconds=29),
+                status=ApprovalStatus.GRANTED,
+                decided_by="phase3-human-approval-reviewer",
+                decided_at=now + timedelta(seconds=20),
+            )
+            finding_execution_plan = finding_promotion_service.prepare(
+                intake_plan=finding_intake_plan,
+                critic_binding_plan=critic_binding_plan,
+                promotion_plan=promotion_plan,
+                duplicate_check=duplicate_check,
+                approval=promotion_approval,
+                now=now + timedelta(seconds=21),
+                deadline=now + timedelta(seconds=28),
+                idempotency_key="m8.6:finding-promotion",
+            )
+            with pytest.raises(FindingPromotionRejected):
+                finding_promotion_service.execute(
+                    finding_execution_plan,
+                    intake_plan=finding_intake_plan,
+                    critic_binding_plan=critic_binding_plan,
+                    promotion_plan=promotion_plan,
+                    duplicate_check=duplicate_check,
+                    approval=promotion_approval.model_copy(update={"action_digest": "0" * 64}),
+                    now=now + timedelta(seconds=22),
+                )
+            assert (
+                finding_promotion_store.connection.execute(
+                    "SELECT count(*) FROM finding_promotions"
+                ).fetchone()[0]
+                == 0
+            )
+            calls_before_finding_promotion = calls_after_finding_intake
+            finding_promotion_outcome = finding_promotion_service.execute(
+                finding_execution_plan,
+                intake_plan=finding_intake_plan,
+                critic_binding_plan=critic_binding_plan,
+                promotion_plan=promotion_plan,
+                duplicate_check=duplicate_check,
+                approval=promotion_approval,
+                now=now + timedelta(seconds=22),
+            )
+            calls_after_finding_promotion = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1354,6 +1425,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert calls_after_critic_binding == calls_before_critic_binding
     assert finding_intake_record.decision is AgentFindingIntakeDecision.ACCEPT
     assert calls_after_finding_intake == calls_before_finding_intake
+    assert finding_promotion_outcome.promoted_candidate.state.value == "promoted"
+    assert finding_promotion_outcome.finding.finding_id == promotion_plan.finding_id
+    assert calls_after_finding_promotion == calls_before_finding_promotion
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1364,6 +1438,11 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert _TARGET_BODY not in (tmp_path / "m83-critic-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m84-critic-outcome-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m86-finding-promotions.sqlite3").read_bytes()
+    assert (
+        b"Phase 3 human approved the exact sealed promotion"
+        not in (tmp_path / "m86-finding-promotions.sqlite3").read_bytes()
+    )
     assert (
         b"trusted Phase 3 control-plane root cause"
         not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()

@@ -678,3 +678,21 @@ The independent STARTED/COMPLETED ledger uniquely consumes the Critic binding, p
 duplicate proof, Finding identity and command. It persists no root-cause, impact, severity, Evidence
 body or Agent prose. Drift, expiry, duplicate results, non-accepted reviews, conflicts and unfinished
 recovery fail closed before promotion.
+
+## 40. M8.6 Approval-gated deterministic Finding promotion
+
+M8.6 is the first Agent-path component allowed to materialize a verified Finding. It requires two
+independent human control-plane facts: an accepted, unexpired M8.5 Intake record and a granted
+`MUTATE_TARGET_STATE` Approval. The Approval digest covers the exact Intake record, PromotionPlan,
+Candidate, preallocated Finding ID, Scope, Target and the fixed effects `candidate:promoted` and
+`finding:created`; it cannot be reused for a different object or effect.
+
+The service reopens every authoritative M8.2/M8.4, Validation, Evidence, Critic, duplicate-check and
+Intake checkpoint immediately before execution. Only then does it call the existing pure
+`promote_candidate()` transition. The resulting immutable promoted Candidate and verified Finding are
+stored together in a unique STARTED/COMPLETED ledger. Completed replay is read-only and idempotent;
+conflicts and unfinished STARTED rows require explicit recovery and never trigger automatic replay.
+
+No Agent text is accepted at this boundary. The execution plan contains only identities, digests,
+Scope, times and the Approval binding; the Approval narrative is not copied into persistence. Runner,
+Broker, provider, build, public-network, report and Submission adapters are absent.

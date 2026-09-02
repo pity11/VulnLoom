@@ -29,6 +29,22 @@ from .models import (
     finding_duplicate_check_digest,
     finding_promotion_plan_digest,
 )
+from .promotion import FindingPromotionRejected, FindingPromotionService, FindingPromotionTimedOut
+from .promotion_models import (
+    FINDING_PROMOTION_SIDE_EFFECTS,
+    FindingPromotionApprovalAction,
+    FindingPromotionExecutionPlan,
+    FindingPromotionOutcome,
+    finding_promotion_approval_action_digest,
+    finding_promotion_execution_plan_digest,
+    finding_promotion_outcome_digest,
+)
+from .promotion_store import (
+    FindingPromotionClaim,
+    FindingPromotionConflict,
+    FindingPromotionRecoveryRequired,
+    FindingPromotionStore,
+)
 
 __all__ = [
     "AgentFindingIntakeClaim",
@@ -48,9 +64,23 @@ __all__ = [
     "FindingDuplicateCheck",
     "FindingDuplicateCheckStore",
     "FindingPromotionPlan",
+    "FINDING_PROMOTION_SIDE_EFFECTS",
+    "FindingPromotionApprovalAction",
+    "FindingPromotionClaim",
+    "FindingPromotionConflict",
+    "FindingPromotionExecutionPlan",
+    "FindingPromotionOutcome",
+    "FindingPromotionRecoveryRequired",
+    "FindingPromotionRejected",
+    "FindingPromotionService",
+    "FindingPromotionStore",
+    "FindingPromotionTimedOut",
     "agent_finding_intake_command_digest",
     "agent_finding_intake_plan_digest",
     "agent_finding_intake_record_digest",
     "finding_duplicate_check_digest",
     "finding_promotion_plan_digest",
+    "finding_promotion_approval_action_digest",
+    "finding_promotion_execution_plan_digest",
+    "finding_promotion_outcome_digest",
 ]

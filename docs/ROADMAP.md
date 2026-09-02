@@ -537,7 +537,27 @@ M8.4 只是已发生独立反证审查的来源证明。它不把 `CRITIC_REVIEW
 - 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 M8.4 binding、PromotionPlan、duplicate check、Finding ID 与 command；相同决定幂等返回，冲突与遗留 STARTED 拒绝自动恢复，且不保存晋升正文。
 - 常规测试覆盖三种人工决定、非 accepted Critic、duplicate、PromotionPlan 漂移、超时、幂等、恢复、无状态变化和 schema/SQLite digest-only；Phase 3 Admission 证明 Intake 前后 Critic、Runner、Broker、provider、target 调用计数不变。
 
-M8.5 只是人工选择 exact Finding 晋升输入，不是 Finding 创建。后续 M8.6 才能在 accepted record 下通过事务性确定性服务调用现有纯状态机，并绑定实际晋升结果。
+M8.5 只是人工选择 exact Finding 晋升输入，不是 Finding 创建。
+
+### M8.6：accepted Intake、精确 Approval 与确定性 Finding 晋升（已完成首版）
+
+- 晋升必须同时持有仍有效的 accepted M8.5 record 与人工 granted `MUTATE_TARGET_STATE`
+  Approval；Approval 精确绑定 Intake record、PromotionPlan、Candidate、预分配 Finding ID、Scope、
+  Target 以及 `candidate:promoted`/`finding:created` 两个预期效果。
+- 执行前重新读取 M8.4/M8.2、Validation、Evidence、Critic、最新 duplicate-clear 和 M8.5 completed
+  checkpoint；任何拒绝、过期、替换、跨 Target/Scope 漂移都在晋升 checkpoint 前 fail-closed。
+- 只有完成全部来源与授权校验后，事务服务才调用现有纯 `promote_candidate()` 状态机；
+  `duplicate_checked=True` 仅由已验证的权威 typed proof 导出，不接受 Agent 布尔值。
+- `FindingPromotionExecutionPlan` 不含 Agent prose、Runner/Broker 参数、URL、credential 或 Submission；
+  Approval 的摘要正文也不会持久化到晋升 ledger。
+- 独立 SQLite 使用唯一 STARTED/COMPLETED checkpoint，原子绑定 promoted Candidate 与 verified
+  Finding；相同执行幂等读取，重复消费与遗留 STARTED 拒绝自动重放。
+- 常规测试覆盖精确授权、pending/denied/revoked 拒绝、篡改、超时、幂等和恢复；Phase 3 Admission
+  证明实际晋升前后 Runner、Broker、provider 与 target 调用计数不变，原始 Candidate 仍不可变。
+
+M8.6 首次形成经过 Validation、Critic、人工选择和精确 Approval 的 verified Finding，但不生成报告、
+不访问公网、不构建目标，也不创建或发送 Submission。后续工作应从该 sealed Finding outcome 开始建立
+人工报告 Intake，而不能回读 Agent 输出构造报告事实。
 
 ## 延后事项
 

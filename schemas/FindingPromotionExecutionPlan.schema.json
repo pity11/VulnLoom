@@ -1,0 +1,112 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Action Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Digest",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "promotion_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "execution_plan_id",
+    "approval_action_id",
+    "approval_id",
+    "approval_digest",
+    "intake_plan_id",
+    "intake_record_id",
+    "intake_record_digest",
+    "promotion_plan_id",
+    "promotion_plan_digest",
+    "candidate_id",
+    "candidate_digest",
+    "finding_id",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "FindingPromotionExecutionPlan",
+  "type": "object"
+}

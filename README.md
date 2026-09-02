@@ -63,9 +63,9 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M8.1 include deterministic replay, fixed provider
+they are not present in the current tree. M7.1a-M8.6 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
-two-tool Session ledger, plus digest-only human Validation Intake.
+two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
 rules, databases, or images.
 
@@ -494,6 +494,18 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
   Acceptance does not call Candidate promotion, create a Finding, mutate state or draft a report.
 - Drift, expiry, duplicate results, non-accepted Critic verdicts, conflicting consumption and
   unfinished recovery fail closed without Runner, Broker, provider, network or Submission access.
+
+### M8.6: Approval-gated deterministic Finding promotion
+
+- Requires both an unexpired accepted M8.5 record and a granted `MUTATE_TARGET_STATE` Approval bound
+  to the exact Intake record, PromotionPlan, Candidate, Finding ID, Scope and two declared effects.
+- Reopens the complete Validation, Evidence, Critic, duplicate-check and Intake provenance chain,
+  then calls only the existing pure Candidate-to-Finding state transition.
+- Atomically records the promoted immutable Candidate and verified Finding in a unique
+  STARTED/COMPLETED result ledger. Completed replay is idempotent; conflicts and unfinished recovery
+  fail closed.
+- Agent output cannot supply Approval or promotion fields, and the service has no Runner, Broker,
+  provider, build, public-network, report-generation or Submission capability.
 
 ## Local development
 

@@ -283,3 +283,13 @@ rejected/inconclusive Critic outcomes, duplicate and stale-clear proofs, promoti
 conflicting consumption, unfinished recovery, and schema/SQLite absence of promotion prose. This PASS
 qualifies only human selection of exact Finding promotion inputs; it does not qualify Candidate
 promotion, Finding creation, report generation, public egress, Target build or Submission.
+
+M8.6 consumes that accepted M8.5 record only together with a separately granted
+`MUTATE_TARGET_STATE` Approval bound to the exact Intake, PromotionPlan, Candidate, Finding ID,
+Target, Scope and fixed effects. The Admission probe first replaces the Approval action digest and
+proves rejection before a promotion checkpoint, then invokes the existing pure Candidate-to-Finding
+transition and persists one immutable promoted Candidate plus verified Finding. Runner calls remain
+at one, target requests at two, provider attempts at three, and the original Candidate remains
+`PROPOSED`. Ordinary CI covers pending/denied/revoked Approval, expiry, plan drift, idempotent replay,
+conflicts and unfinished recovery. This qualification adds no automatic Approval, Validation or
+Critic execution, public egress, Target build, report generation or Submission.

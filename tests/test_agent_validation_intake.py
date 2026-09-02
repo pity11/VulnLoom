@@ -53,6 +53,10 @@ from vulnloom.critic import (
 )
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
+    ApprovalAction,
+    ApprovalRequest,
+    ApprovalStatus,
+    CandidateState,
     CriticVerdict,
     EvidenceBundle,
     EvidenceKind,
@@ -75,7 +79,14 @@ from vulnloom.findings import (
     DuplicateCheckResult,
     FindingDuplicateCheck,
     FindingDuplicateCheckStore,
+    FindingPromotionConflict,
+    FindingPromotionExecutionPlan,
     FindingPromotionPlan,
+    FindingPromotionRecoveryRequired,
+    FindingPromotionRejected,
+    FindingPromotionService,
+    FindingPromotionStore,
+    FindingPromotionTimedOut,
     agent_finding_intake_plan_digest,
 )
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
@@ -1975,3 +1986,247 @@ def test_finding_intake_contracts_and_sqlite_are_digest_only():
     }
     for model in (AgentFindingIntakePlan, AgentFindingIntakeRecord):
         assert not set(model.model_fields) & forbidden
+
+
+def _accepted_m85_case(tmp_path, now, scope, candidate):
+    case = _completed_m85_case(tmp_path, now, scope, candidate)
+    service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
+    plan = service.prepare(
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        now=now + timedelta(seconds=10),
+        decision_deadline=now + timedelta(seconds=30),
+        idempotency_key="finding-intake:m8.6",
+    )
+    command = AgentFindingIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_finding_intake_plan_digest(plan),
+        critic_outcome_binding_id=plan.critic_outcome_binding_id,
+        promotion_plan_id=plan.promotion_plan_id,
+        promotion_plan_digest=plan.promotion_plan_digest,
+        candidate_id=plan.candidate_id,
+        finding_id=plan.finding_id,
+        decision=AgentFindingIntakeDecision.ACCEPT,
+        reason_code=AgentFindingIntakeReason.HUMAN_ACCEPTED_EXACT_PROMOTION,
+        reviewer="human-finding-reviewer",
+        decided_at=now + timedelta(seconds=11),
+    )
+    record = service.decide(
+        plan,
+        command,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        now=command.decided_at,
+    )
+    return case, plan, record
+
+
+def _close_m85_case(case):
+    service = case[0]
+    for store in (case[1], service.duplicate_check_store, *case[6:12]):
+        store.close()
+
+
+def _promotion_approval(
+    service, record, promotion_plan, scope, now, *, status=ApprovalStatus.GRANTED
+):
+    action = service.approval_action(record=record, promotion_plan=promotion_plan)
+    return ApprovalRequest(
+        engagement_id=scope.engagement_id,
+        target_id=service._candidate_target_id(promotion_plan),
+        action=ApprovalAction.MUTATE_TARGET_STATE,
+        action_digest=action.action_id,
+        expected_side_effects=("candidate:promoted", "finding:created"),
+        evidence_summary="Human approved the exact sealed local promotion action",
+        policy_version=scope.version,
+        expires_at=now + timedelta(seconds=29),
+        status=status,
+        decided_by="human-approval-reviewer" if status is ApprovalStatus.GRANTED else None,
+        decided_at=now + timedelta(seconds=12) if status is ApprovalStatus.GRANTED else None,
+    )
+
+
+def test_finding_promotion_requires_exact_approval_and_binds_result(
+    tmp_path, now, approved_scope, candidate
+):
+    case, intake_plan, record = _accepted_m85_case(tmp_path, now, approved_scope, candidate)
+    intake_service, _, binding_plan, promotion_plan, duplicate_check, critic_outcome, *tail = case
+    store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
+    service = FindingPromotionService(intake_service=intake_service, store=store)
+    approval = _promotion_approval(service, record, promotion_plan, approved_scope, now)
+    plan = service.prepare(
+        intake_plan=intake_plan,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        approval=approval,
+        now=now + timedelta(seconds=13),
+        deadline=now + timedelta(seconds=28),
+        idempotency_key="finding-promotion:m8.6",
+    )
+    runner, transport = tail[-2:]
+    calls_before = (runner.calls, len(transport.calls))
+    outcome = service.execute(
+        plan,
+        intake_plan=intake_plan,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        approval=approval,
+        now=now + timedelta(seconds=14),
+    )
+    assert outcome.promoted_candidate.state is CandidateState.PROMOTED
+    assert outcome.finding.finding_id == promotion_plan.finding_id
+    assert outcome.finding.state == "verified"
+    assert outcome.finding.validation_run_ids == promotion_plan.validation_run_ids
+    assert service.store.load_completed(plan.execution_plan_id) == outcome
+    assert (
+        service.execute(
+            plan,
+            intake_plan=intake_plan,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            approval=approval,
+            now=now + timedelta(seconds=15),
+        )
+        == outcome
+    )
+    assert candidate.state is CandidateState.PROPOSED
+    assert critic_outcome.candidate.state is CandidateState.CRITIC_REVIEWED
+    assert (runner.calls, len(transport.calls)) == calls_before
+    persisted = (tmp_path / "finding-promotions.sqlite3").read_bytes()
+    assert b"Human approved the exact sealed" not in persisted
+    assert b"Authorization" not in persisted
+    conflicting = FindingPromotionExecutionPlan.create(
+        **plan.model_dump(
+            mode="python", exclude={"execution_plan_id", "idempotency_key"}
+        ),
+        idempotency_key="finding-promotion:m8.6:conflict",
+    )
+    with pytest.raises(FindingPromotionConflict):
+        store.claim(conflicting, now=now + timedelta(seconds=16))
+    store.close()
+    _close_m85_case(case)
+
+
+@pytest.mark.parametrize(
+    "status", (ApprovalStatus.PENDING, ApprovalStatus.DENIED, ApprovalStatus.REVOKED)
+)
+def test_finding_promotion_rejects_missing_grant_before_checkpoint(
+    tmp_path, now, approved_scope, candidate, status
+):
+    case, intake_plan, record = _accepted_m85_case(tmp_path, now, approved_scope, candidate)
+    intake_service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
+    store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
+    service = FindingPromotionService(intake_service=intake_service, store=store)
+    approval = _promotion_approval(
+        service, record, promotion_plan, approved_scope, now, status=status
+    )
+    with pytest.raises(FindingPromotionRejected, match="Approval"):
+        service.prepare(
+            intake_plan=intake_plan,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            approval=approval,
+            now=now + timedelta(seconds=13),
+            deadline=now + timedelta(seconds=28),
+            idempotency_key=f"finding-promotion:m8.6:{status.value}",
+        )
+    assert store.connection.execute("SELECT count(*) FROM finding_promotions").fetchone()[0] == 0
+    store.close()
+    _close_m85_case(case)
+
+
+def test_finding_promotion_timeout_drift_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case, intake_plan, record = _accepted_m85_case(tmp_path, now, approved_scope, candidate)
+    intake_service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
+    store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
+    service = FindingPromotionService(intake_service=intake_service, store=store)
+    approval = _promotion_approval(service, record, promotion_plan, approved_scope, now)
+    plan = service.prepare(
+        intake_plan=intake_plan,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        approval=approval,
+        now=now + timedelta(seconds=13),
+        deadline=now + timedelta(seconds=20),
+        idempotency_key="finding-promotion:m8.6:recovery",
+    )
+    with pytest.raises(FindingPromotionTimedOut):
+        service.execute(
+            plan,
+            intake_plan=intake_plan,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            approval=approval,
+            now=plan.deadline,
+        )
+    with pytest.raises(FindingPromotionRejected, match="drifted"):
+        service.execute(
+            plan.model_copy(update={"candidate_digest": "f" * 64}),
+            intake_plan=intake_plan,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            approval=approval,
+            now=now + timedelta(seconds=14),
+        )
+    assert store.connection.execute("SELECT count(*) FROM finding_promotions").fetchone()[0] == 0
+    store.claim(plan, now=now + timedelta(seconds=14))
+    with pytest.raises(FindingPromotionRecoveryRequired):
+        service.execute(
+            plan,
+            intake_plan=intake_plan,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            approval=approval,
+            now=now + timedelta(seconds=15),
+        )
+    store.close()
+    _close_m85_case(case)
+
+
+def test_finding_promotion_rejects_expired_or_wrong_action_approval(
+    tmp_path, now, approved_scope, candidate
+):
+    case, intake_plan, record = _accepted_m85_case(
+        tmp_path, now, approved_scope, candidate
+    )
+    intake_service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
+    store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
+    service = FindingPromotionService(intake_service=intake_service, store=store)
+    approval = _promotion_approval(service, record, promotion_plan, approved_scope, now)
+    for drifted in (
+        approval.model_copy(update={"expires_at": now + timedelta(seconds=13)}),
+        approval.model_copy(update={"action_digest": "0" * 64}),
+        approval.model_copy(update={"target_id": uuid4()}),
+    ):
+        with pytest.raises(FindingPromotionRejected, match="Approval"):
+            service.prepare(
+                intake_plan=intake_plan,
+                critic_binding_plan=binding_plan,
+                promotion_plan=promotion_plan,
+                duplicate_check=duplicate_check,
+                approval=drifted,
+                now=now + timedelta(seconds=13),
+                deadline=now + timedelta(seconds=20),
+                idempotency_key="finding-promotion:m8.6:invalid-approval",
+            )
+    assert store.connection.execute("SELECT count(*) FROM finding_promotions").fetchone()[0] == 0
+    store.close()
+    _close_m85_case(case)
+
+
+def test_finding_promotion_execution_schema_has_no_agent_or_tool_parameters():
+    schema = json.dumps(FindingPromotionExecutionPlan.model_json_schema()).lower()
+    for forbidden in ("prompt", "runner", "broker", "url", "credential", "token", "submission"):
+        assert forbidden not in schema

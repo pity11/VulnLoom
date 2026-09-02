@@ -544,6 +544,19 @@ family、reviewer 与有效期；权威 store 只允许唯一最新的 `clear` �
 时间和 Scope。accepted record 不代表 Candidate 已 `PROMOTED` 或 Finding 已存在；SQLite 不保存 PromotionPlan
 正文，并唯一消费 Critic binding、promotion、duplicate proof、Finding ID 与 command。
 
+### FindingPromotionApprovalAction、ExecutionPlan 与 Outcome
+
+M8.6 的 `FindingPromotionApprovalAction` 是内容寻址的本地状态变更描述，绑定 accepted Intake record、
+PromotionPlan、`CRITIC_REVIEWED` Candidate、预分配 Finding ID、Engagement/Target/Scope 和固定的两个效果。
+对应 `ApprovalRequest` 必须是人工 granted 的 `MUTATE_TARGET_STATE`，且 action digest、target、policy version、
+效果、决定人、决定时间和有效期全部匹配。
+
+`FindingPromotionExecutionPlan` 只保存上述对象与 Approval 的 ID/摘要、执行窗口和幂等键，不保存 Approval
+摘要正文、Agent 输出、工具参数或网络位置。`FindingPromotionOutcome` 原子绑定输入 Candidate 摘要、不可变的
+`PROMOTED` Candidate 和 `verified` Finding；Finding 继续引用 reproduced ValidationRun 与 EvidenceBundle。
+独立 SQLite 唯一消费 Intake、PromotionPlan、Finding ID 和 Approval，同一 completed plan 只读幂等返回，
+冲突或遗留 STARTED 不会自动重新执行。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

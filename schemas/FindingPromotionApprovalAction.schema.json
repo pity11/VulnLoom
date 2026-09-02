@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Digest",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "promotion_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "expected_side_effects": {
+      "default": [
+        "candidate:promoted",
+        "finding:created"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Side Effects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "action_id",
+    "engagement_id",
+    "target_id",
+    "intake_record_id",
+    "intake_record_digest",
+    "promotion_plan_id",
+    "promotion_plan_digest",
+    "candidate_id",
+    "candidate_digest",
+    "finding_id",
+    "scope_id",
+    "scope_version"
+  ],
+  "title": "FindingPromotionApprovalAction",
+  "type": "object"
+}

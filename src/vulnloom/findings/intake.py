@@ -85,7 +85,7 @@ class AgentFindingIntakeService:
         decision_deadline: datetime,
         idempotency_key: str,
     ) -> AgentFindingIntakePlan:
-        binding, validation_outcome, critic_outcome = self._load(
+        binding, validation_outcome, critic_outcome = self.load_authoritative(
             critic_binding_plan, promotion_plan, duplicate_check, now
         )
         evidence_bundle = validation_outcome.evidence_bundle
@@ -187,7 +187,8 @@ class AgentFindingIntakeService:
         self.store.complete(record)
         return record
 
-    def _load(self, binding_plan, promotion_plan, duplicate_check, now):
+    def load_authoritative(self, binding_plan, promotion_plan, duplicate_check, now):
+        """Re-read and verify the full M8.4/M8.2/Evidence/promotion provenance chain."""
         try:
             stored_duplicate_check = self.duplicate_check_store.load_current(
                 duplicate_check.check_id
