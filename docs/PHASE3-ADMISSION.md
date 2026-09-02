@@ -137,6 +137,12 @@ The M8.11 human local Report export Intake admission run is GitHub Actions
 [`33623614558`](https://github.com/pity11/VulnLoom/actions/runs/33623614558). Both completed
 successfully on 2026-09-02 and qualify the M8.11 Report export Intake row below.
 
+The M8.12 Approval-gated deterministic local Report export admission run is GitHub Actions
+[`33626287272`](https://github.com/pity11/VulnLoom/actions/runs/33626287272) for commit
+`a4b98a1b7b71b3145b26def1230ac584795ad35d`. The standard Python CI for the same commit is
+[`33626287258`](https://github.com/pity11/VulnLoom/actions/runs/33626287258). Both completed
+successfully on 2026-09-02 and qualify the M8.12 local Report export execution row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -169,6 +175,7 @@ successfully on 2026-09-02 and qualify the M8.11 Report export Intake row below.
 | Agent Report review Intake | A human selects one exact trusted-control-plane ReportReviewPlan bound to the completed M8.8 DRAFT, immutable artifact, EvidenceBundle and identical ordered Evidence catalog; tampering is rejected before checkpoint and Intake leaves the Report DRAFT with no review, approval, export, Runner, Broker, provider, target or Submission call | PASS (`33619141456`) |
 | Agent Report review execution | One accepted M8.9 record is consumed only with a separately issued exact human command and granted `REVIEW_REPORT` Approval; action-digest tampering is rejected before checkpoint, while an explicit `request_changes` transition leaves the source DRAFT immutable and adds no Runner, Broker, provider, target, export or Submission call | PASS (`33621891122`) |
 | Agent Report export Intake | A human selects one exact trusted-control-plane ReportExportPlan bound to a completed M8.10 `approve` decision, `HUMAN_APPROVED` Report, review and immutable artifact; plan tampering is rejected before checkpoint and Intake leaves the Report human-approved with no new artifact, export, Runner, Broker, provider, target, destination or Submission call | PASS (`33623614574`) |
+| Agent local Report export execution | One accepted M8.11 record is consumed only with a granted exact `EXPORT_REPORT` Approval; action-digest tampering is rejected before checkpoint, while the deterministic local export creates one immutable `EXPORTED` artifact, preserves the source human-approved Report, and adds no Runner, Broker, provider, target, destination, public-network or Submission call | PASS (`33626287272`) |
 
 ## Reproduction
 
