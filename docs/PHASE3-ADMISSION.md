@@ -161,6 +161,12 @@ The M9.3 local-source quality benchmark admission run is GitHub Actions
 [`33635497379`](https://github.com/pity11/VulnLoom/actions/runs/33635497379). Both completed
 successfully on 2026-09-02 and qualify the M9.3 local-source quality row below.
 
+The M9.4 cross-framework and safe-negative robustness admission run is GitHub Actions
+[`33637781003`](https://github.com/pity11/VulnLoom/actions/runs/33637781003) for commit
+`d2b94b6638c697b1a5708d37414f78ecc7f8bab5`. The standard Python CI for the same commit is
+[`33637780947`](https://github.com/pity11/VulnLoom/actions/runs/33637780947). Both completed
+successfully on 2026-09-02 and qualify the M9.4 local-source robustness row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -197,6 +203,7 @@ successfully on 2026-09-02 and qualify the M9.3 local-source quality row below.
 | Closed Agent workflow regression | One fixed 13-stage M7.11–M8.12 observation binds six human Intake decisions, three exact Approvals, Evidence and immutable Candidate/Report states; the typed gate passes only when provider, Broker, Runner and target counts do not increase after Validation and public-network, build, automatic-Approval and Submission counts remain zero | PASS (`33629783453`) |
 | Agent workflow mutation regression | One sealed corpus covers all 23 fixed M9.1 mutations exactly once; immutable expected status and ordered violation codes match 23/23 on Python 3.12/3.13/3.14, including public-network, Target-build, automatic-Approval and Submission failures | PASS (`33632777250`) |
 | Local-source Agent quality | Nine sealed local source cases exercise the real archive-ingestion, AST SourceGraph and deterministic Candidate path across eight supported CWE families plus one guarded negative; recall, precision, trace, bound M6.1 Finding/Evidence quality and all forbidden-effect counters pass on Python 3.12/3.13/3.14 | PASS (`33635497379`) |
+| Cross-framework static robustness | A code-owned 13-case contract covers five Flask/FastAPI/Django positive paths and eight safe negatives; exact framework, cross-file provenance, per-case call depth, zero parse failures, zero negative Candidates and the shared zero-effect quality gate pass on Python 3.12/3.13/3.14 | PASS (`33637780947`) |
 
 ## Reproduction
 
@@ -452,3 +459,13 @@ trace completeness at 1.0. Finding precision and Evidence completeness come only
 policy-bound M6.1 baseline, never from Candidate promotion. The same gate requires zero Runner,
 Broker, provider, Target process, public-network, build, automatic-Approval and Submission effects;
 the concurrent Phase 3 run confirms the existing real rootless boundary remains admitted.
+
+M9.4 adds five positive Flask/FastAPI/Django paths and eight safe negatives to the same offline
+static harness. The positive set covers cross-module calls, Django URL dispatch and FastAPI
+dependencies; negative cases retain route input and recognizable sink syntax but pass fixed values,
+or enforce a visible ownership guard. A code-owned contract fixes order, disposition, framework,
+CWE truth, analyzed-file minimum and call-chain minimum. CI regenerates exact observations and
+requires the M9.3 quality fan-in plus complete three-framework coverage, cross-file entry/sink
+provenance, zero parse failures and zero negative Candidates. The suite never executes fixture code
+and the shared counters remain zero for Runner, Broker, provider, Target process, public network,
+build, automatic Approval and Submission; the concurrent rootless Admission run also remains PASS.
