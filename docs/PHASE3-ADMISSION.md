@@ -167,6 +167,12 @@ The M9.4 cross-framework and safe-negative robustness admission run is GitHub Ac
 [`33637780947`](https://github.com/pity11/VulnLoom/actions/runs/33637780947). Both completed
 successfully on 2026-09-02 and qualify the M9.4 local-source robustness row below.
 
+The M9.5 authorized local-pilot readiness admission run is GitHub Actions
+[`33641691085`](https://github.com/pity11/VulnLoom/actions/runs/33641691085) for commit
+`8653e65f517df21e965571f5950bad0f510b1082`. The standard Python CI for the same commit is
+[`33641691100`](https://github.com/pity11/VulnLoom/actions/runs/33641691100). Both completed
+successfully on 2026-09-02 and qualify the M9.5 authorized pilot readiness row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -204,6 +210,7 @@ successfully on 2026-09-02 and qualify the M9.4 local-source robustness row belo
 | Agent workflow mutation regression | One sealed corpus covers all 23 fixed M9.1 mutations exactly once; immutable expected status and ordered violation codes match 23/23 on Python 3.12/3.13/3.14, including public-network, Target-build, automatic-Approval and Submission failures | PASS (`33632777250`) |
 | Local-source Agent quality | Nine sealed local source cases exercise the real archive-ingestion, AST SourceGraph and deterministic Candidate path across eight supported CWE families plus one guarded negative; recall, precision, trace, bound M6.1 Finding/Evidence quality and all forbidden-effect counters pass on Python 3.12/3.13/3.14 | PASS (`33635497379`) |
 | Cross-framework static robustness | A code-owned 13-case contract covers five Flask/FastAPI/Django positive paths and eight safe negatives; exact framework, cross-file provenance, per-case call depth, zero parse failures, zero negative Candidates and the shared zero-effect quality gate pass on Python 3.12/3.13/3.14 | PASS (`33637780947`) |
+| Authorized local-pilot readiness | One content-addressed local pilot binds an approved Scope, fully verified 18-file Snapshot, rebuilt SourceGraph, five exact proposed Candidates, passing M9.4 quality, ten fixed human gates and eight forbidden capabilities; Python 3.12/3.13/3.14 report zero forbidden effects while the concurrent rootless boundary remains admitted | PASS (`33641691100`) |
 
 ## Reproduction
 
@@ -469,3 +476,14 @@ requires the M9.3 quality fan-in plus complete three-framework coverage, cross-f
 provenance, zero parse failures and zero negative Candidates. The suite never executes fixture code
 and the shared counters remain zero for Runner, Broker, provider, Target process, public network,
 build, automatic Approval and Submission; the concurrent rootless Admission run also remains PASS.
+
+M9.5 combines all 18 repository-owned M9.4 source files into one deterministic archive and processes
+it through the real safe ingestion, AST mapping and Candidate generation path. The readiness service
+re-authorizes the exact Scope, reloads and verifies every Snapshot file, rebuilds SourceGraph and
+CandidateSet from trusted code, and checks the sealed M9.4 result before checkpointing. The manifest
+retains five Candidates in `PROPOSED`, selects none, and fixes human Candidate selection, six Intake
+decisions and three exact Approvals. It also forbids Agent-generated Runner/Broker parameters,
+automatic Validation or Candidate mutation, automatic Approval, Target build, public network and
+Submission. The standard CI matrix reproduces the same manifest, plan and PASS result with zero
+forbidden effects; the concurrent Phase 3 run confirms the real rootless isolation boundary remains
+PASS. This admission artifact is readiness evidence only and grants no operational authority.
