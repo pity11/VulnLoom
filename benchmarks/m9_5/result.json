@@ -1,0 +1,17 @@
+{
+  "result_id": "59dc7d9f0907e88a4b4b5d2fa71f910131f80bad308c0628aee6597da5d55df3",
+  "plan_id": "fe3a4e1284f1c718684932428acf1050d0e23becc4f10ed3c375abbe21362821",
+  "pilot_manifest_id": "f0e8b9ec06dd99fa95aa5d5bd02f06c443c2fad1ec49275453ccdaa37b174601",
+  "metrics": {
+    "source_file_count": 18,
+    "source_total_bytes": 2702,
+    "candidate_count": 5,
+    "proposed_candidate_count": 5,
+    "human_gate_count": 10,
+    "forbidden_capability_count": 8,
+    "forbidden_effect_count": 0
+  },
+  "gate_status": "passed",
+  "violations": [],
+  "completed_at": "2030-01-15T12:00:00Z"
+}

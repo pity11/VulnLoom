@@ -746,6 +746,26 @@ M9.3 是离线静态分析质量与既有闭环质量的联合准入，不执行
 M9.4 不执行 fixture 或 Validation，不改变 Candidate/Finding，不调用 Runner/Broker/provider，不自动批准、
 不构建 Target、不访问公网，也不创建、导出或发送 Submission。
 
+### M9.5：人工授权本地项目 pilot 与发布就绪门禁（已完成首版）
+
+- 新增内容寻址 `AuthorizedPilotManifest`，从当前有效 `Scope`、安全导入的 exact `TargetSnapshot`、可信
+  `SourceGraph` 和 `CandidateSet` 构造，不接受 Agent 声明的目标、路径、Candidate 或执行参数。
+- manifest 固定记录 6 个 M8 Intake、3 个精确 Approval 和前置人工 Candidate selection；同时固定禁止
+  Agent Runner/Broker 参数、自动 Validation、Candidate 自动变更、自动 Approval、Target build、公网和
+  Submission，且 `selected_candidate_ids` 必须为空。
+- `AuthorizedPilotReadinessPlan` 密封 exact manifest、通过的 M9.4 profile/result、不可放宽的资源与零副作用
+  policy、执行窗口及幂等键。评估前重新授权 Scope、完整复核本地 Snapshot、静态产物和所有 digest binding。
+- repository-owned admission pilot 将 18 个 M9.4 Python 文件合并为一个确定性本地源码归档，经真实安全
+  ingestion、AST mapper 和 Candidate generator 产生 5 个仍为 `PROPOSED` 的 Candidate；fixture 从不执行。
+- 纯 readiness reducer 输出文件/字节/Candidate/人工门禁/禁止副作用计数和稳定 violation code；结果仅是
+  PASS/FAIL，不选择 Candidate，也不创建 Validation、Finding、Report、Approval 或 Submission。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint；结果以有界、no-follow、只读 JSON/Markdown 内容寻址
+  保存。常规 CI 重新生成 manifest/plan/result，并覆盖成功、拒绝、超时、清理、恢复、冲突和 symlink。
+
+M9.5 是真实授权项目接入前的离线发布就绪协议与 repository-owned admission pilot。接入具体项目仍需人工
+提供 exact Scope 和本地 Snapshot；本阶段不扫描其他仓库、不执行 Validation、不改变 Candidate/Finding、
+不批准操作、不构建 Target、不访问公网，也不创建、导出或发送 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

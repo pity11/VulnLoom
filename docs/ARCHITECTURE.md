@@ -884,3 +884,31 @@ suite and M6.1 workflow baseline. Its pure reducer fans in the M9.3 quality resu
 requires three-framework coverage, intact cross-file entry/sink provenance, zero parse failures and
 zero Candidates for every negative. It invokes no operational adapter and retains the same eight
 zero-effect constraints as the shared static harness.
+
+## 51. M9.5 authorized local-pilot readiness boundary
+
+M9.5 introduces a release-readiness boundary before any concrete authorized project is allowed to
+enter human Validation intake. A trusted control-plane builder derives a content-addressed
+`AuthorizedPilotManifest` from a currently approved `Scope`, an integrity-checked local
+`TargetSnapshot`, and exact trusted `SourceGraph` and `CandidateSet` objects. The manifest stores
+only identities, digests, versions, counts, fixed gate names and fixed forbidden capabilities; it
+does not persist source, authorization prose, model prose, credentials or execution parameters.
+
+The manifest requires the six M8 human Intake decisions, three exact Approvals and a preceding human
+Candidate selection. It also fixes eight prohibitions: Agent-generated Runner or Broker parameters,
+automatic Validation, automatic Candidate mutation, automatic Approval, Target build, public
+network and Submission. No Candidate is selected by readiness evaluation.
+
+`AuthorizedPilotReadinessPlan` binds that manifest to the exact passing M9.4 profile and result, a
+non-weakenable resource/effect policy, an execution window and an idempotency key. Preflight
+re-authorizes Scope, reloads and fully verifies the immutable Snapshot, recomputes static content
+identities and reconstructs the manifest before the STARTED checkpoint. The pure reducer then emits
+only typed counts and stable PASS/FAIL violations. A separate SQLite ledger and bounded no-follow,
+read-only content-addressed artifact store provide deterministic replay, conflict refusal and
+fail-closed unfinished-state recovery.
+
+The CI admission pilot combines all 18 repository-owned M9.4 Python files in one deterministic local
+archive and sends it through the real safe ingestion, AST mapping and Candidate generation path. It
+produces five proposed Candidates, but executes no fixture and grants no Validation, mutation,
+Approval, build, network or Submission authority. A concrete project remains out of scope until a
+human supplies its exact authorization and local Snapshot.

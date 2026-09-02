@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "AuthorizedPilotReadinessArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "result_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Result Digest",
+          "type": "string"
+        },
+        "json_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Json Sha256",
+          "type": "string"
+        },
+        "markdown_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Markdown Sha256",
+          "type": "string"
+        },
+        "json_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/result\\.json$",
+          "title": "Json Ref",
+          "type": "string"
+        },
+        "markdown_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/result\\.md$",
+          "title": "Markdown Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "result_digest",
+        "json_sha256",
+        "markdown_sha256",
+        "json_ref",
+        "markdown_ref"
+      ],
+      "title": "AuthorizedPilotReadinessArtifact",
+      "type": "object"
+    },
+    "AuthorizedPilotReadinessMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "source_file_count": {
+          "minimum": 0,
+          "title": "Source File Count",
+          "type": "integer"
+        },
+        "source_total_bytes": {
+          "minimum": 0,
+          "title": "Source Total Bytes",
+          "type": "integer"
+        },
+        "candidate_count": {
+          "minimum": 0,
+          "title": "Candidate Count",
+          "type": "integer"
+        },
+        "proposed_candidate_count": {
+          "minimum": 0,
+          "title": "Proposed Candidate Count",
+          "type": "integer"
+        },
+        "human_gate_count": {
+          "minimum": 0,
+          "title": "Human Gate Count",
+          "type": "integer"
+        },
+        "forbidden_capability_count": {
+          "minimum": 0,
+          "title": "Forbidden Capability Count",
+          "type": "integer"
+        },
+        "forbidden_effect_count": {
+          "minimum": 0,
+          "title": "Forbidden Effect Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_file_count",
+        "source_total_bytes",
+        "candidate_count",
+        "proposed_candidate_count",
+        "human_gate_count",
+        "forbidden_capability_count",
+        "forbidden_effect_count"
+      ],
+      "title": "AuthorizedPilotReadinessMetrics",
+      "type": "object"
+    },
+    "AuthorizedPilotReadinessResult": {
+      "additionalProperties": false,
+      "properties": {
+        "result_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Result Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "pilot_manifest_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Pilot Manifest Id",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/AuthorizedPilotReadinessMetrics"
+        },
+        "gate_status": {
+          "$ref": "#/$defs/BenchmarkGateStatus"
+        },
+        "violations": {
+          "items": {
+            "$ref": "#/$defs/AuthorizedPilotReadinessViolation"
+          },
+          "title": "Violations",
+          "type": "array"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "result_id",
+        "plan_id",
+        "pilot_manifest_id",
+        "metrics",
+        "gate_status",
+        "violations",
+        "completed_at"
+      ],
+      "title": "AuthorizedPilotReadinessResult",
+      "type": "object"
+    },
+    "AuthorizedPilotReadinessViolation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "actual": {
+          "minimum": 0,
+          "title": "Actual",
+          "type": "integer"
+        },
+        "limit": {
+          "minimum": 0,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "actual",
+        "limit"
+      ],
+      "title": "AuthorizedPilotReadinessViolation",
+      "type": "object"
+    },
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/AuthorizedPilotReadinessResult"
+    },
+    "artifact": {
+      "$ref": "#/$defs/AuthorizedPilotReadinessArtifact"
+    }
+  },
+  "required": [
+    "plan_id",
+    "result",
+    "artifact"
+  ],
+  "title": "AuthorizedPilotReadinessOutcome",
+  "type": "object"
+}

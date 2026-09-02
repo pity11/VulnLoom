@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "PilotForbiddenCapability": {
+      "enum": [
+        "agent_runner_parameters",
+        "agent_broker_parameters",
+        "automatic_validation",
+        "automatic_candidate_mutation",
+        "automatic_approval",
+        "target_build",
+        "public_network",
+        "submission"
+      ],
+      "title": "PilotForbiddenCapability",
+      "type": "string"
+    },
+    "PilotHumanGate": {
+      "enum": [
+        "candidate_selection",
+        "validation_intake",
+        "critic_intake",
+        "finding_promotion_intake",
+        "finding_promotion_approval",
+        "report_intake",
+        "report_review_intake",
+        "report_review_approval",
+        "report_export_intake",
+        "report_export_approval"
+      ],
+      "title": "PilotHumanGate",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "required_human_gates": {
+      "default": [
+        "candidate_selection",
+        "validation_intake",
+        "critic_intake",
+        "finding_promotion_intake",
+        "finding_promotion_approval",
+        "report_intake",
+        "report_review_intake",
+        "report_review_approval",
+        "report_export_intake",
+        "report_export_approval"
+      ],
+      "items": {
+        "$ref": "#/$defs/PilotHumanGate"
+      },
+      "title": "Required Human Gates",
+      "type": "array"
+    },
+    "forbidden_capabilities": {
+      "default": [
+        "agent_runner_parameters",
+        "agent_broker_parameters",
+        "automatic_validation",
+        "automatic_candidate_mutation",
+        "automatic_approval",
+        "target_build",
+        "public_network",
+        "submission"
+      ],
+      "items": {
+        "$ref": "#/$defs/PilotForbiddenCapability"
+      },
+      "title": "Forbidden Capabilities",
+      "type": "array"
+    },
+    "max_source_files": {
+      "default": 10000,
+      "maximum": 10000,
+      "minimum": 10000,
+      "title": "Max Source Files",
+      "type": "integer"
+    },
+    "max_source_bytes": {
+      "default": 209715200,
+      "maximum": 209715200,
+      "minimum": 209715200,
+      "title": "Max Source Bytes",
+      "type": "integer"
+    },
+    "max_candidates": {
+      "default": 2000,
+      "maximum": 2000,
+      "minimum": 2000,
+      "title": "Max Candidates",
+      "type": "integer"
+    },
+    "require_quality_pass": {
+      "default": true,
+      "title": "Require Quality Pass",
+      "type": "boolean"
+    },
+    "require_proposed_candidates": {
+      "default": true,
+      "title": "Require Proposed Candidates",
+      "type": "boolean"
+    },
+    "max_forbidden_effects": {
+      "default": 0,
+      "maximum": 0,
+      "minimum": 0,
+      "title": "Max Forbidden Effects",
+      "type": "integer"
+    }
+  },
+  "title": "AuthorizedPilotReadinessPolicy",
+  "type": "object"
+}

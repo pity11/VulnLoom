@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Code",
+      "type": "string"
+    },
+    "actual": {
+      "minimum": 0,
+      "title": "Actual",
+      "type": "integer"
+    },
+    "limit": {
+      "minimum": 0,
+      "title": "Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "code",
+    "actual",
+    "limit"
+  ],
+  "title": "AuthorizedPilotReadinessViolation",
+  "type": "object"
+}

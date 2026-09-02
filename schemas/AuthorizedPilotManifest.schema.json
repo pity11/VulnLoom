@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "PilotForbiddenCapability": {
+      "enum": [
+        "agent_runner_parameters",
+        "agent_broker_parameters",
+        "automatic_validation",
+        "automatic_candidate_mutation",
+        "automatic_approval",
+        "target_build",
+        "public_network",
+        "submission"
+      ],
+      "title": "PilotForbiddenCapability",
+      "type": "string"
+    },
+    "PilotHumanGate": {
+      "enum": [
+        "candidate_selection",
+        "validation_intake",
+        "critic_intake",
+        "finding_promotion_intake",
+        "finding_promotion_approval",
+        "report_intake",
+        "report_review_intake",
+        "report_review_approval",
+        "report_export_intake",
+        "report_export_approval"
+      ],
+      "title": "PilotHumanGate",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "pilot_manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Manifest Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "target_manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Manifest Id",
+      "type": "string"
+    },
+    "artifact_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "scope_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Digest",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "source_graph_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Digest",
+      "type": "string"
+    },
+    "analyzer_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Analyzer Version",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_set_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Digest",
+      "type": "string"
+    },
+    "generator_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "candidate_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Candidate Ids",
+      "type": "array"
+    },
+    "source_file_count": {
+      "exclusiveMinimum": 0,
+      "maximum": 1000000,
+      "title": "Source File Count",
+      "type": "integer"
+    },
+    "source_total_bytes": {
+      "exclusiveMinimum": 0,
+      "maximum": 10737418240,
+      "title": "Source Total Bytes",
+      "type": "integer"
+    },
+    "required_human_gates": {
+      "default": [
+        "candidate_selection",
+        "validation_intake",
+        "critic_intake",
+        "finding_promotion_intake",
+        "finding_promotion_approval",
+        "report_intake",
+        "report_review_intake",
+        "report_review_approval",
+        "report_export_intake",
+        "report_export_approval"
+      ],
+      "items": {
+        "$ref": "#/$defs/PilotHumanGate"
+      },
+      "title": "Required Human Gates",
+      "type": "array"
+    },
+    "forbidden_capabilities": {
+      "default": [
+        "agent_runner_parameters",
+        "agent_broker_parameters",
+        "automatic_validation",
+        "automatic_candidate_mutation",
+        "automatic_approval",
+        "target_build",
+        "public_network",
+        "submission"
+      ],
+      "items": {
+        "$ref": "#/$defs/PilotForbiddenCapability"
+      },
+      "title": "Forbidden Capabilities",
+      "type": "array"
+    },
+    "selected_candidate_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 0,
+      "title": "Selected Candidate Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "pilot_manifest_id",
+    "engagement_id",
+    "target_id",
+    "target_version",
+    "target_manifest_id",
+    "artifact_id",
+    "scope_id",
+    "scope_version",
+    "scope_digest",
+    "source_graph_id",
+    "source_graph_digest",
+    "analyzer_version",
+    "candidate_set_id",
+    "candidate_set_digest",
+    "generator_version",
+    "candidate_ids",
+    "source_file_count",
+    "source_total_bytes"
+  ],
+  "title": "AuthorizedPilotManifest",
+  "type": "object"
+}

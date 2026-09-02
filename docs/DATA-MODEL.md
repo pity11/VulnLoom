@@ -692,6 +692,27 @@ trace failure 和负例 Candidate 数量。`LocalSourceRobustnessResult` 绑定�
 稳定 violation code 表示只读 PASS/FAIL；它不能改变 Candidate/Finding 或授予任何执行、Approval、导出、
 网络与 Submission 权限。
 
+### AuthorizedPilotManifest、ReadinessPlan 与 Result
+
+M9.5 的 `AuthorizedPilotManifest` 内容寻址绑定当前授权 engagement/target/version、Target manifest/artifact、
+Scope identity/version/digest、SourceGraph identity/digest/analyzer version，以及 CandidateSet identity/digest/
+generator version 和排序后的 exact Candidate IDs。它只保存文件数与总字节数，不保存源码、授权正文、Agent
+prose、凭据、路径、URL 或 Runner/Broker 参数；`selected_candidate_ids` 的长度固定为零。
+
+`PilotHumanGate` 代码内固定人工 Candidate selection、六个 M8 Intake 和三个精确 Approval。
+`PilotForbiddenCapability` 固定 Agent Runner/Broker 参数、自动 Validation、Candidate 自动变更、自动
+Approval、Target build、公网与 Submission 八类禁区。manifest 和 `AuthorizedPilotReadinessPolicy` 都必须
+逐项保持完整顺序，资源上限和零副作用上限不可放宽。
+
+`AuthorizedPilotReadinessPlan` 绑定 exact manifest、M9.4 quality profile/result 的 identity 与完整 digest、
+policy、八类 `LocalSourceEffectCounters`、窗口和幂等键。`AuthorizedPilotReadinessMetrics` 仅记录文件、字节、
+Candidate、`PROPOSED` Candidate、人工门禁、禁止能力和禁止副作用计数；
+`AuthorizedPilotReadinessResult` 以稳定 violation 表示资格 PASS/FAIL，不是领域事件或 Approval。
+
+`AuthorizedPilotReadinessStore` 只保存 digest-only STARTED/COMPLETED checkpoint；artifact store 将 result
+写入大小受限、no-follow 验证、只读的内容寻址 JSON/Markdown。遗留 STARTED 不自动恢复，重复完成只读复核
+artifact；任何 Scope、Snapshot、静态产物、quality input 或 plan 漂移都在 checkpoint 前 fail-closed。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -38,6 +38,7 @@ jobs:
           python scripts/export_agent_workflow_regression_fixtures.py
           python scripts/export_local_source_benchmark_fixtures.py
           python scripts/export_local_source_robustness_fixtures.py
+          python scripts/export_authorized_pilot_readiness_fixtures.py
           git diff --exit-code -- benchmarks
       - name: M6.1 offline regression gate
         run: python scripts/run_m6_1_regression_gate.py
@@ -49,5 +50,7 @@ jobs:
         run: python scripts/run_m9_3_local_source_quality_gate.py
       - name: M9.4 offline local-source robustness gate
         run: python scripts/run_m9_4_local_source_robustness_gate.py
+      - name: M9.5 offline authorized pilot readiness gate
+        run: python scripts/run_m9_5_authorized_pilot_readiness_gate.py
       - name: Test
         run: pytest --cov=vulnloom --cov-report=term-missing

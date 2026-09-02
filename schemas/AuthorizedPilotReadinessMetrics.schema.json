@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "source_file_count": {
+      "minimum": 0,
+      "title": "Source File Count",
+      "type": "integer"
+    },
+    "source_total_bytes": {
+      "minimum": 0,
+      "title": "Source Total Bytes",
+      "type": "integer"
+    },
+    "candidate_count": {
+      "minimum": 0,
+      "title": "Candidate Count",
+      "type": "integer"
+    },
+    "proposed_candidate_count": {
+      "minimum": 0,
+      "title": "Proposed Candidate Count",
+      "type": "integer"
+    },
+    "human_gate_count": {
+      "minimum": 0,
+      "title": "Human Gate Count",
+      "type": "integer"
+    },
+    "forbidden_capability_count": {
+      "minimum": 0,
+      "title": "Forbidden Capability Count",
+      "type": "integer"
+    },
+    "forbidden_effect_count": {
+      "minimum": 0,
+      "title": "Forbidden Effect Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "source_file_count",
+    "source_total_bytes",
+    "candidate_count",
+    "proposed_candidate_count",
+    "human_gate_count",
+    "forbidden_capability_count",
+    "forbidden_effect_count"
+  ],
+  "title": "AuthorizedPilotReadinessMetrics",
+  "type": "object"
+}
