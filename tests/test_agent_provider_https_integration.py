@@ -76,13 +76,25 @@ from vulnloom.critic import (
     AgentCriticIntakeReason,
     AgentCriticIntakeService,
     AgentCriticIntakeStore,
+    AgentCriticOutcomeBindingRejected,
+    AgentCriticOutcomeBindingService,
+    AgentCriticOutcomeBindingStore,
     CounterevidenceAssessment,
     CounterevidenceDisposition,
     CriticPlan,
+    CriticStore,
+    DeterministicCritic,
     agent_critic_intake_plan_digest,
     domain_object_digest,
 )
-from vulnloom.domain.models import Candidate, NetworkTargetScope, Scope, ScopeState, SourceLocation
+from vulnloom.domain.models import (
+    Candidate,
+    EvidenceKind,
+    NetworkTargetScope,
+    Scope,
+    ScopeState,
+    SourceLocation,
+)
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
@@ -697,6 +709,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             ValidationStore(tmp_path / "m82-validations.sqlite3") as validation_store,
             AgentValidationOutcomeBindingStore(tmp_path / "m82-bindings.sqlite3") as binding_store,
             AgentCriticIntakeStore(tmp_path / "m83-critic-intakes.sqlite3") as critic_intake_store,
+            CriticStore(tmp_path / "m84-critic-executions.sqlite3") as critic_store,
+            AgentCriticOutcomeBindingStore(
+                tmp_path / "m84-critic-outcome-bindings.sqlite3"
+            ) as critic_binding_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1097,6 +1113,84 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            critic_evidence_ref = evidence_bundle.evidence_refs[0]
+            critic_evidence = evidence_store.capture_text(
+                evidence_store.read_text_ref(critic_evidence_ref),
+                kind=EvidenceKind.TEST,
+                source_ref="m8.4-phase3-local-evidence",
+                producer="phase3.m8.4",
+                target_version=candidate.target_version,
+                summary="M8.4 admission Evidence metadata",
+            )
+            assert critic_evidence.evidence_id == critic_evidence_ref
+            critic_outcome = DeterministicCritic(
+                scope=scope, evidence_store=evidence_store, store=critic_store
+            ).review(
+                validation_outcome.candidate,
+                validation_outcome.validation_run,
+                evidence_bundle,
+                (critic_evidence,),
+                critic_plan,
+                now=now + timedelta(seconds=14),
+            )
+            critic_binding_service = AgentCriticOutcomeBindingService(
+                scope=scope,
+                critic_intake_store=critic_intake_store,
+                outcome_binding_store=binding_store,
+                validation_store=validation_store,
+                critic_store=critic_store,
+                evidence_store=evidence_store,
+                binding_store=critic_binding_store,
+            )
+            critic_binding_plan = critic_binding_service.prepare(
+                critic_intake_plan=critic_intake_plan,
+                now=now + timedelta(seconds=15),
+                idempotency_key="m8.4:critic-outcome-binding",
+            )
+            tampered_critic_outcome = critic_outcome.model_copy(
+                update={
+                    "review": critic_outcome.review.model_copy(
+                        update={"rationale_code": "tampered_phase3_rationale"}
+                    )
+                }
+            )
+            with critic_store.connection:
+                critic_store.connection.execute(
+                    "UPDATE critic_executions SET outcome_json=? WHERE plan_id=?",
+                    (tampered_critic_outcome.model_dump_json(), critic_plan.plan_id),
+                )
+            with pytest.raises(AgentCriticOutcomeBindingRejected):
+                critic_binding_service.execute(
+                    critic_binding_plan,
+                    critic_intake_plan=critic_intake_plan,
+                    now=now + timedelta(seconds=16),
+                )
+            assert (
+                critic_binding_store.connection.execute(
+                    "SELECT count(*) FROM agent_critic_outcome_bindings"
+                ).fetchone()[0]
+                == 0
+            )
+            with critic_store.connection:
+                critic_store.connection.execute(
+                    "UPDATE critic_executions SET outcome_json=? WHERE plan_id=?",
+                    (critic_outcome.model_dump_json(), critic_plan.plan_id),
+                )
+            calls_before_critic_binding = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
+            critic_outcome_binding = critic_binding_service.execute(
+                critic_binding_plan,
+                critic_intake_plan=critic_intake_plan,
+                now=now + timedelta(seconds=16),
+            )
+            calls_after_critic_binding = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1128,6 +1222,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert calls_after_binding == calls_before_binding
     assert critic_intake_record.decision is AgentCriticIntakeDecision.ACCEPT
     assert calls_after_critic_intake == calls_before_critic_intake
+    assert critic_outcome.review.verdict.value == "accepted"
+    assert critic_outcome_binding.critic_review_id == critic_outcome.review.review_id
+    assert critic_outcome_binding.final_candidate_state.value == "critic_reviewed"
+    assert calls_after_critic_binding == calls_before_critic_binding
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
     assert len(adapter.attempts) == 3
@@ -1135,5 +1233,6 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert _TARGET_BODY not in (tmp_path / "m81-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m82-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m83-critic-intakes.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m84-critic-outcome-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (tmp_path / "m710-sessions.sqlite3").read_bytes()

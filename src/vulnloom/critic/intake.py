@@ -210,8 +210,7 @@ class AgentCriticIntakeService:
             or not evidence_bundle.evidence_refs
             or binding.evidence_bundle_id != evidence_bundle.bundle_id
             or binding.evidence_bundle_digest != domain_object_digest(evidence_bundle)
-            or tuple(sorted(binding.evidence_refs))
-            != tuple(sorted(evidence_bundle.evidence_refs))
+            or tuple(sorted(binding.evidence_refs)) != tuple(sorted(evidence_bundle.evidence_refs))
         ):
             raise AgentCriticIntakeRejected("Critic Intake provenance drifted")
         assessment_refs = tuple(

@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Plan Id",
+      "type": "string"
+    },
+    "critic_intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Intake Plan Id",
+      "type": "string"
+    },
+    "critic_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Intake Record Id",
+      "type": "string"
+    },
+    "critic_intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Intake Record Digest",
+      "type": "string"
+    },
+    "outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Id",
+      "type": "string"
+    },
+    "outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "validated_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validated Candidate Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "validation_run_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Run Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "critic_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Plan Id",
+      "type": "string"
+    },
+    "critic_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Plan Digest",
+      "type": "string"
+    },
+    "critic_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Digest",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "critic_review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Review Digest",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/CriticVerdict"
+    },
+    "final_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "final_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Candidate Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_plan_id",
+    "critic_intake_plan_id",
+    "critic_intake_record_id",
+    "critic_intake_record_digest",
+    "outcome_binding_id",
+    "outcome_binding_digest",
+    "candidate_id",
+    "validated_candidate_digest",
+    "validation_run_id",
+    "validation_run_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "critic_plan_id",
+    "critic_plan_digest",
+    "critic_outcome_digest",
+    "critic_review_id",
+    "critic_review_digest",
+    "verdict",
+    "final_candidate_state",
+    "final_candidate_digest",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentCriticOutcomeBindingPlan",
+  "type": "object"
+}

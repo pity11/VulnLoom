@@ -643,3 +643,18 @@ Critic, create a CriticReview, or mutate the authoritative Candidate; it only re
 exact plan. A separate digest-only STARTED/COMPLETED ledger provides idempotent completed reads and
 refuses conflicting consumption or unfinished recovery. Runner, Broker, provider, Docker, network,
 Approval, Finding, report and Submission capabilities are absent from this service.
+
+## 38. M8.4 completed Critic outcome provenance binding
+
+M8.4 consumes only an already completed deterministic Critic checkpoint selected by an accepted,
+unexpired M8.3 Intake. The binding service reopens the M8.2 Validation binding, completed Validation,
+Critic plan/outcome and referenced Evidence, and recomputes every identity and digest. It validates
+the review context separation, ruleset, timestamps, counterevidence and rationale, plus the closed
+verdict-to-state mapping (`accepted` to `CRITIC_REVIEWED`, `rejected` to `REJECTED`, and
+`inconclusive` to unchanged `VALIDATED`).
+
+The service has no Critic execution dependency and cannot replay review or mutate the original
+Candidate. Its separate STARTED/COMPLETED ledger stores only IDs, digests, typed verdict/state and
+timestamps, uniquely consuming the Intake record, Critic plan and outcome. Missing, unfinished,
+expired, conflicting or drifted provenance fails closed before a binding checkpoint. The binding is
+not authority to create a Finding, report, target build, public-network action or Submission.

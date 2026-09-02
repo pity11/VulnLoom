@@ -97,6 +97,24 @@ class CriticStore:
         if changed != 1:
             raise CriticRecoveryRequired("Critic STARTED checkpoint is unavailable")
 
+    def load_completed(self, plan_id: str) -> tuple[CriticPlan, CriticOutcome]:
+        row = self.connection.execute(
+            "SELECT * FROM critic_executions WHERE plan_id = ?", (plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Critic execution is unavailable")
+        if row["state"] != "completed" or row["outcome_json"] is None:
+            raise CriticRecoveryRequired("Critic has an unfinished STARTED checkpoint")
+        plan = CriticPlan.model_validate_json(row["plan_json"])
+        outcome = CriticOutcome.model_validate_json(row["outcome_json"])
+        if (
+            plan.plan_id != plan_id
+            or outcome.plan_id != plan_id
+            or outcome.completed_at.isoformat() != row["completed_at"]
+        ):
+            raise CriticRecoveryRequired("Critic completed checkpoint drifted")
+        return plan, outcome
+
     def close(self) -> None:
         self.connection.close()
 

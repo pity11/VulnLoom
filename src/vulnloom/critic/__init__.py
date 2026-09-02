@@ -28,6 +28,19 @@ from .models import (
     critic_plan_digest,
     domain_object_digest,
 )
+from .outcome_binding import AgentCriticOutcomeBindingRejected, AgentCriticOutcomeBindingService
+from .outcome_binding_models import (
+    AgentCriticOutcomeBinding,
+    AgentCriticOutcomeBindingPlan,
+    agent_critic_outcome_binding_digest,
+    agent_critic_outcome_binding_plan_digest,
+)
+from .outcome_binding_store import (
+    AgentCriticOutcomeBindingClaim,
+    AgentCriticOutcomeBindingConflict,
+    AgentCriticOutcomeBindingRecoveryRequired,
+    AgentCriticOutcomeBindingStore,
+)
 from .service import CriticRejected, DeterministicCritic
 from .store import (
     CriticClaim,
@@ -49,6 +62,14 @@ __all__ = [
     "AgentCriticIntakeService",
     "AgentCriticIntakeStore",
     "AgentCriticIntakeTimedOut",
+    "AgentCriticOutcomeBinding",
+    "AgentCriticOutcomeBindingClaim",
+    "AgentCriticOutcomeBindingConflict",
+    "AgentCriticOutcomeBindingPlan",
+    "AgentCriticOutcomeBindingRecoveryRequired",
+    "AgentCriticOutcomeBindingRejected",
+    "AgentCriticOutcomeBindingService",
+    "AgentCriticOutcomeBindingStore",
     "CRITIC_RULESET_DIGEST",
     "REQUIRED_ANGLES",
     "CounterevidenceAngle",
@@ -67,4 +88,6 @@ __all__ = [
     "agent_critic_intake_command_digest",
     "agent_critic_intake_plan_digest",
     "agent_critic_intake_record_digest",
+    "agent_critic_outcome_binding_digest",
+    "agent_critic_outcome_binding_plan_digest",
 ]

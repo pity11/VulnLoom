@@ -105,6 +105,28 @@ class AgentCriticIntakeStore:
         if changed != 1:
             raise AgentCriticIntakeRecoveryRequired("Critic Intake STARTED checkpoint unavailable")
 
+    def load_completed(self, intake_plan_id: str) -> AgentCriticIntakeRecord:
+        row = self.connection.execute(
+            "SELECT * FROM agent_critic_intakes WHERE intake_plan_id=?", (intake_plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Critic Intake is unavailable")
+        if row["state"] != "completed" or row["record_json"] is None:
+            raise AgentCriticIntakeRecoveryRequired(
+                "Critic Intake has unfinished STARTED checkpoint"
+            )
+        record = AgentCriticIntakeRecord.model_validate_json(row["record_json"])
+        if (
+            record.intake_plan_id != intake_plan_id
+            or record.command_id != row["command_id"]
+            or record.outcome_binding_id != row["outcome_binding_id"]
+            or record.critic_plan_id != row["critic_plan_id"]
+            or record.decision.value != row["decision"]
+            or record.decided_at.isoformat() != row["completed_at"]
+        ):
+            raise AgentCriticIntakeRecoveryRequired("Critic Intake checkpoint drifted")
+        return record
+
     def close(self):
         self.connection.close()
 

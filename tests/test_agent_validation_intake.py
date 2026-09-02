@@ -36,14 +36,27 @@ from vulnloom.critic import (
     AgentCriticIntakeRejected,
     AgentCriticIntakeService,
     AgentCriticIntakeStore,
+    AgentCriticOutcomeBinding,
+    AgentCriticOutcomeBindingPlan,
+    AgentCriticOutcomeBindingRecoveryRequired,
+    AgentCriticOutcomeBindingRejected,
+    AgentCriticOutcomeBindingService,
+    AgentCriticOutcomeBindingStore,
     CounterevidenceAssessment,
     CounterevidenceDisposition,
     CriticPlan,
+    CriticStore,
+    DeterministicCritic,
     agent_critic_intake_plan_digest,
     domain_object_digest,
 )
 from vulnloom.domain.digests import canonical_digest
-from vulnloom.domain.models import EvidenceBundle, EvidenceKind, ValidationResult
+from vulnloom.domain.models import (
+    CriticVerdict,
+    EvidenceBundle,
+    EvidenceKind,
+    ValidationResult,
+)
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
@@ -1329,3 +1342,245 @@ def test_critic_intake_rejects_non_reproduced_binding_and_started_recovery(
     binding_store.close()
     validation_store.close()
     intake_store.close()
+
+
+def _completed_critic_case(tmp_path, now, scope, candidate, verdict):
+    case = _completed_binding_case(tmp_path, now, scope, candidate, ValidationResult.REPRODUCED)
+    (
+        intake_service,
+        intake_store,
+        intake_record,
+        artifact,
+        validation_plan,
+        validation_store,
+        validation_outcome,
+        evidence_store,
+        validation_binding_store,
+        validation_binding_service,
+        runner,
+        transport,
+    ) = case
+    validation_binding_plan = validation_binding_service.prepare(
+        intake_plan_id=intake_record.intake_plan_id,
+        audit_artifact=artifact,
+        candidate_set_id=intake_record.candidate_set_id,
+        candidate_id=candidate.candidate_id,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=3),
+        idempotency_key=f"binding:m8.4:{verdict.value}",
+    )
+    validation_binding = validation_binding_service.execute(
+        validation_binding_plan,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=now + timedelta(seconds=4),
+    )
+    critic_plan = _critic_plan(now, validation_outcome, validation_binding.evidence_refs[0])
+    if verdict is not CriticVerdict.ACCEPTED:
+        disposition = (
+            CounterevidenceDisposition.CONFIRMED
+            if verdict is CriticVerdict.REJECTED
+            else CounterevidenceDisposition.INCONCLUSIVE
+        )
+        assessments = list(critic_plan.assessments)
+        assessments[0] = assessments[0].model_copy(
+            update={
+                "disposition": disposition,
+                "evidence_refs": ()
+                if disposition is CounterevidenceDisposition.INCONCLUSIVE
+                else assessments[0].evidence_refs,
+                "rationale_code": f"m8.4_{disposition.value}",
+            }
+        )
+        critic_plan = CriticPlan.create(
+            **critic_plan.model_dump(
+                mode="python",
+                exclude={"plan_id", "assessments", "idempotency_key", "ruleset_digest"},
+            ),
+            assessments=tuple(assessments),
+            idempotency_key=f"critic:m8.4:{verdict.value}",
+        )
+    critic_intake_store = AgentCriticIntakeStore(tmp_path / "critic-intake-m8.4.sqlite3")
+    critic_intake_service = AgentCriticIntakeService(
+        scope=scope,
+        audit_store=intake_service.audit_artifact_store,
+        candidate_store=intake_service.candidate_set_store,
+        outcome_binding_store=validation_binding_store,
+        validation_store=validation_store,
+        evidence_store=evidence_store,
+        store=critic_intake_store,
+    )
+    critic_intake_plan = critic_intake_service.prepare(
+        outcome_binding_plan=validation_binding_plan,
+        audit_artifact=artifact,
+        critic_plan=critic_plan,
+        now=now + timedelta(seconds=5),
+        decision_deadline=now + timedelta(seconds=30),
+        idempotency_key=f"critic-intake:m8.4:{verdict.value}",
+    )
+    command = AgentCriticIntakeCommand.create(
+        intake_plan_id=critic_intake_plan.intake_plan_id,
+        intake_plan_digest=agent_critic_intake_plan_digest(critic_intake_plan),
+        outcome_binding_id=critic_intake_plan.outcome_binding_id,
+        candidate_id=critic_intake_plan.candidate_id,
+        critic_plan_id=critic_intake_plan.critic_plan_id,
+        critic_plan_digest=critic_intake_plan.critic_plan_digest,
+        decision=AgentCriticIntakeDecision.ACCEPT,
+        reason_code=AgentCriticIntakeReason.HUMAN_ACCEPTED_EXACT_PLAN,
+        reviewer="human-m8.4-reviewer",
+        decided_at=now + timedelta(seconds=6),
+    )
+    critic_intake_service.decide(
+        critic_intake_plan,
+        command,
+        outcome_binding_plan=validation_binding_plan,
+        audit_artifact=artifact,
+        critic_plan=critic_plan,
+        now=command.decided_at,
+    )
+    evidence = evidence_store.capture_text(
+        "redacted M8.2 deterministic fixture",
+        kind=EvidenceKind.TEST,
+        source_ref="m8.2-local-fixture",
+        producer="test.m8.2",
+        target_version=candidate.target_version,
+        summary="M8.2 deterministic fixture",
+    )
+    critic_store = CriticStore(tmp_path / "critic-execution-m8.4.sqlite3")
+    critic_outcome = DeterministicCritic(
+        scope=scope, evidence_store=evidence_store, store=critic_store
+    ).review(
+        validation_outcome.candidate,
+        validation_outcome.validation_run,
+        validation_outcome.evidence_bundle,
+        (evidence,),
+        critic_plan,
+        now=now + timedelta(seconds=7),
+    )
+    binding_store = AgentCriticOutcomeBindingStore(tmp_path / "critic-outcome-bindings.sqlite3")
+    binding_service = AgentCriticOutcomeBindingService(
+        scope=scope,
+        critic_intake_store=critic_intake_store,
+        outcome_binding_store=validation_binding_store,
+        validation_store=validation_store,
+        critic_store=critic_store,
+        evidence_store=evidence_store,
+        binding_store=binding_store,
+    )
+    return (
+        critic_intake_plan,
+        critic_outcome,
+        binding_service,
+        binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        intake_store,
+        runner,
+        transport,
+    )
+
+
+@pytest.mark.parametrize("verdict", tuple(CriticVerdict))
+def test_critic_outcome_binding_is_read_only_for_every_verdict(
+    tmp_path, now, approved_scope, candidate, verdict
+):
+    (
+        intake_plan,
+        critic_outcome,
+        service,
+        store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        runner,
+        transport,
+    ) = _completed_critic_case(tmp_path, now, approved_scope, candidate, verdict)
+    before = (runner.calls, len(transport.calls), candidate.state)
+    plan = service.prepare(
+        critic_intake_plan=intake_plan,
+        now=now + timedelta(seconds=8),
+        idempotency_key=f"critic-outcome-binding:m8.4:{verdict.value}",
+    )
+    expired = plan.model_copy(update={"deadline": now + timedelta(seconds=9)})
+    with pytest.raises(AgentCriticOutcomeBindingRejected, match="expired"):
+        service.execute(expired, critic_intake_plan=intake_plan, now=now + timedelta(seconds=9))
+    result = service.execute(plan, critic_intake_plan=intake_plan, now=now + timedelta(seconds=9))
+    assert result.verdict is verdict
+    assert result.final_candidate_state is critic_outcome.candidate.state
+    assert (runner.calls, len(transport.calls), candidate.state) == before
+    assert not hasattr(service, "critic")
+    assert (
+        service.execute(plan, critic_intake_plan=intake_plan, now=now + timedelta(seconds=10))
+        == result
+    )
+    persisted = (tmp_path / "critic-outcome-bindings.sqlite3").read_bytes()
+    for forbidden in (b"https://", b"Authorization", b"deterministic fixture"):
+        assert forbidden not in persisted
+    recovery = AgentCriticOutcomeBindingStore(tmp_path / "critic-binding-recovery.sqlite3")
+    recovery.claim(plan, now=now + timedelta(seconds=9))
+    with pytest.raises(AgentCriticOutcomeBindingRecoveryRequired):
+        recovery.claim(plan, now=now + timedelta(seconds=9))
+    recovery.close()
+    store.close()
+    critic_store.close()
+    critic_intake_store.close()
+    validation_binding_store.close()
+    validation_store.close()
+    validation_intake_store.close()
+
+
+def test_critic_outcome_binding_rejects_completed_outcome_drift_before_checkpoint(
+    tmp_path, now, approved_scope, candidate
+):
+    (
+        intake_plan,
+        _,
+        service,
+        store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        _,
+        _,
+    ) = _completed_critic_case(tmp_path, now, approved_scope, candidate, CriticVerdict.ACCEPTED)
+    row = critic_store.connection.execute(
+        "SELECT outcome_json FROM critic_executions WHERE plan_id=?",
+        (intake_plan.critic_plan_id,),
+    ).fetchone()
+    payload = json.loads(row[0])
+    payload["review"]["rationale_code"] = "tampered"
+    critic_store.connection.execute(
+        "UPDATE critic_executions SET outcome_json=? WHERE plan_id=?",
+        (json.dumps(payload), intake_plan.critic_plan_id),
+    )
+    critic_store.connection.commit()
+    with pytest.raises(AgentCriticOutcomeBindingRejected, match="drifted"):
+        service.prepare(
+            critic_intake_plan=intake_plan,
+            now=now + timedelta(seconds=8),
+            idempotency_key="critic-outcome-binding:m8.4:drift",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_critic_outcome_bindings").fetchone()[0]
+        == 0
+    )
+    store.close()
+    critic_store.close()
+    critic_intake_store.close()
+    validation_binding_store.close()
+    validation_store.close()
+    validation_intake_store.close()
+
+
+def test_critic_outcome_binding_contracts_are_digest_only():
+    forbidden = {"prompt", "body", "headers", "token", "cookie", "runner", "broker"}
+    for model in (AgentCriticOutcomeBindingPlan, AgentCriticOutcomeBinding):
+        fields = set(model.model_fields)
+        assert not fields & forbidden
+        assert all("evidence_ref" not in field for field in fields)

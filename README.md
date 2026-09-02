@@ -472,6 +472,17 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Persists only IDs, digests, typed decisions and timestamps; conflict, expiry, drift and unfinished
   recovery fail closed without Runner, Broker, provider, network, Approval or Submission access.
 
+### M8.4: completed Critic outcome provenance binding
+
+- Runs only after the accepted M8.3 exact `CriticPlan` has completed through the existing explicit
+  deterministic Critic entry point; the binding service cannot invoke, retry or recover Critic.
+- Reopens the M8.2 binding, Validation checkpoint, Evidence, Critic plan/outcome and current Scope,
+  validating review identity, independent context, ruleset, counterevidence, rationale and time.
+- Enforces the exact verdict/state mapping: accepted to `CRITIC_REVIEWED`, rejected to `REJECTED`,
+  inconclusive to unchanged `VALIDATED`.
+- Persists only IDs, digests, typed verdict/state and timestamps in a unique STARTED/COMPLETED ledger.
+  It does not mutate the original Candidate or create a Finding, report, build, Approval or Submission.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

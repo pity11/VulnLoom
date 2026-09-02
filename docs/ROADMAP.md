@@ -516,6 +516,17 @@ M8.2 是已发生 Validation 的来源证明，不是执行授权、自动重试
 
 M8.3 是进入独立反证审查前的人工选择记录，不是 Critic verdict。后续 M8.4 只读绑定已完成 Critic Outcome，仍不得自动创建 Finding。
 
+### M8.4：accepted Critic Intake 与完成 Critic Outcome 的确定性绑定（已完成首版）
+
+- 新增内容寻址的 `AgentCriticOutcomeBindingPlan`，精确绑定仍有效的 accepted M8.3 Intake Record、M8.2 Validation binding、权威 Validation outcome、exact `CriticPlan` 与已完成 `CriticOutcome`。
+- Binding Service 只读权威 completed checkpoint；它不持有或调用 `DeterministicCritic`，不恢复或重放 Critic，不迁移原始 Candidate，也不创建 Finding、Report 或 Submission。
+- 绑定前复核 Scope、accepted/expiry、Validation run/EvidenceBundle、CriticPlan 四角度与独立 context、CriticReview 身份/时间/ruleset/rationale/counterevidence，以及 verdict 到终态的唯一映射：accepted→`CRITIC_REVIEWED`、rejected→`REJECTED`、inconclusive→保持 `VALIDATED`。
+- `AgentCriticOutcomeBinding` 只保存 Intake、Validation binding/run/bundle、Critic plan/outcome/review、verdict/final state 的 ID、摘要与时间，不复制 Evidence 正文、Agent prose、Runner/Broker 参数、URL、credential 或 Approval。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 Critic Intake Record、CriticPlan 和 outcome digest；幂等 completed replay只读，冲突、漂移与遗留 STARTED fail-closed。
+- 常规测试覆盖三种 Critic verdict、完成态篡改、过期/非 accepted/缺失 checkpoint、幂等、恢复以及 schema/SQLite digest-only；绑定前后 Runner、Broker 与原始 Candidate 状态保持不变。
+
+M8.4 只是已发生独立反证审查的来源证明。它不把 `CRITIC_REVIEWED` Candidate 自动晋升为 Finding，后续 Finding admission 仍需单独的显式状态机和人工门禁。
+
 ## 延后事项
 
 - 公网资产自主发现。

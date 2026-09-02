@@ -518,6 +518,17 @@ prose、Runner/Broker 参数、URL、credential 或 Approval。
 不表示 Critic 已执行或 Candidate 已迁移。独立 SQLite 唯一消费 binding 与 CriticPlan，遗留 STARTED 不会重放
 Critic。
 
+### AgentCriticOutcomeBindingPlan 与 Binding
+
+M8.4 的 `AgentCriticOutcomeBindingPlan` 内容寻址绑定 accepted M8.3 record、M8.2 outcome binding、完成后的
+ValidationRun/EvidenceBundle、exact CriticPlan、CriticOutcome/CriticReview、typed verdict、最终 Candidate state
+及全部摘要。计划不携带 assessment prose、Evidence 正文、Runner/Broker 参数、URL、credential 或 Approval。
+
+`AgentCriticOutcomeBinding` 是同一来源链的 digest-only 完成事实。模型强制 verdict/终态映射：`accepted` 只能
+对应 `CRITIC_REVIEWED`，`rejected` 只能对应 `REJECTED`，`inconclusive` 只能保持 `VALIDATED`。独立 SQLite
+唯一消费 Intake record、CriticPlan 和 Critic outcome digest；它不会执行 Critic、修改 CandidateSet 中的原始
+`PROPOSED` Candidate，或产生 Finding/Report/Submission。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
