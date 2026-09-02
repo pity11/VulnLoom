@@ -529,6 +529,21 @@ ValidationRun/EvidenceBundle、exact CriticPlan、CriticOutcome/CriticReview、t
 唯一消费 Intake record、CriticPlan 和 Critic outcome digest；它不会执行 Critic、修改 CandidateSet 中的原始
 `PROPOSED` Candidate，或产生 Finding/Report/Submission。
 
+### FindingDuplicateCheck、FindingPromotionPlan 与 AgentFindingIntake
+
+M8.5 的 `FindingDuplicateCheck` 内容寻址绑定 Candidate/Target/Scope、typed `clear|duplicate` 结果、可选 duplicate
+family、reviewer 与有效期；权威 store 只允许唯一最新的 `clear` 且无 duplicate family 证明进入晋升 Intake，
+任何更晚检查都会使旧 clear 失效。
+
+`FindingPromotionPlan` 是可信控制面构造的完整瞬时 typed 对象，绑定 accepted M8.4 binding、
+`CRITIC_REVIEWED` Candidate、reproduced ValidationRun、EvidenceBundle、accepted CriticReview、duplicate proof、
+预分配 Finding ID，以及 root cause、affected versions、impact 和 severity assessment。其内容摘要密封后，Agent
+文本不能补充或修改字段。
+
+`AgentFindingIntakePlan/Command/Record` 只持久化上述对象的 ID/摘要、人工 `accept|reject|defer`、reviewer、
+时间和 Scope。accepted record 不代表 Candidate 已 `PROMOTED` 或 Finding 已存在；SQLite 不保存 PromotionPlan
+正文，并唯一消费 Critic binding、promotion、duplicate proof、Finding ID 与 command。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

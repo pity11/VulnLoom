@@ -527,6 +527,18 @@ M8.3 是进入独立反证审查前的人工选择记录，不是 Critic verdict
 
 M8.4 只是已发生独立反证审查的来源证明。它不把 `CRITIC_REVIEWED` Candidate 自动晋升为 Finding，后续 Finding admission 仍需单独的显式状态机和人工门禁。
 
+### M8.5：人工 Finding Promotion Intake 与密封晋升计划绑定（已完成首版）
+
+- 新增内容寻址的 `FindingDuplicateCheck` 与权威本地 store，把查重结果、Candidate/Target/Scope 摘要、reviewer 与有效期封存为 typed proof；只有唯一最新且当前有效的 `clear` 结果可进入 Intake，旧 clear 会被后续检查作废，裸 `duplicate_checked=True` 不再作为 Agent 接入边界。
+- 新增由可信控制面独立构造的 exact `FindingPromotionPlan`，绑定 accepted M8.4 outcome binding、`CRITIC_REVIEWED` Candidate、reproduced ValidationRun、EvidenceBundle、accepted CriticReview、查重证明、预分配 Finding ID，以及 root cause/affected versions/impact/severity 字段。
+- Agent prose、recommendation、Critic rationale 或 Evidence 正文不得构造或修改晋升字段；完整 PromotionPlan 作为瞬时 typed 输入，Intake 只持久化其 ID/摘要。
+- 人工命令只允许 `accept`、`reject` 或 `defer`。accepted 仅生成 digest-only `AgentFindingIntakeRecord`，不导入或调用 `promote_candidate()`，不把 Candidate 改为 `PROMOTED`，不创建 Finding、Report 或 Submission。
+- 决策前重读 M8.4 binding、M8.2 Validation binding、Validation/Critic completed checkpoint、当前 Scope 与 Evidence object，复核 accepted verdict、唯一终态、run/bundle/review、查重和 PromotionPlan 全链摘要；rejected/inconclusive Critic、duplicate、过期或漂移均在 checkpoint 前 fail-closed。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 M8.4 binding、PromotionPlan、duplicate check、Finding ID 与 command；相同决定幂等返回，冲突与遗留 STARTED 拒绝自动恢复，且不保存晋升正文。
+- 常规测试覆盖三种人工决定、非 accepted Critic、duplicate、PromotionPlan 漂移、超时、幂等、恢复、无状态变化和 schema/SQLite digest-only；Phase 3 Admission 证明 Intake 前后 Critic、Runner、Broker、provider、target 调用计数不变。
+
+M8.5 只是人工选择 exact Finding 晋升输入，不是 Finding 创建。后续 M8.6 才能在 accepted record 下通过事务性确定性服务调用现有纯状态机，并绑定实际晋升结果。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "DuplicateCheckResult": {
+      "enum": [
+        "clear",
+        "duplicate"
+      ],
+      "title": "DuplicateCheckResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Check Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "result": {
+      "$ref": "#/$defs/DuplicateCheckResult"
+    },
+    "duplicate_family_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duplicate Family Id"
+    },
+    "checked_by": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Checked By",
+      "type": "string"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "check_id",
+    "candidate_id",
+    "candidate_digest",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "result",
+    "checked_by",
+    "checked_at",
+    "expires_at"
+  ],
+  "title": "FindingDuplicateCheck",
+  "type": "object"
+}

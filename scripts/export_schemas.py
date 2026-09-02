@@ -151,6 +151,13 @@ from vulnloom.domain.models import (
     ValidationRun,
 )
 from vulnloom.domain.protocol import TaskEnvelope, WorkerResult
+from vulnloom.findings import (
+    AgentFindingIntakeCommand,
+    AgentFindingIntakePlan,
+    AgentFindingIntakeRecord,
+    FindingDuplicateCheck,
+    FindingPromotionPlan,
+)
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.reporting import (
@@ -249,6 +256,11 @@ MODELS = (
     AgentCriticIntakeRecord,
     AgentCriticOutcomeBindingPlan,
     AgentCriticOutcomeBinding,
+    FindingDuplicateCheck,
+    FindingPromotionPlan,
+    AgentFindingIntakePlan,
+    AgentFindingIntakeCommand,
+    AgentFindingIntakeRecord,
     Scope,
     Artifact,
     TargetManifest,

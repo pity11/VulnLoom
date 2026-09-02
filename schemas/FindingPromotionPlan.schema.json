@@ -1,0 +1,181 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Plan Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_run_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Validation Run Ids",
+      "type": "array"
+    },
+    "validation_run_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Validation Run Digests",
+      "type": "array"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "critic_review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Review Digest",
+      "type": "string"
+    },
+    "duplicate_check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Id",
+      "type": "string"
+    },
+    "duplicate_check_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Digest",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "root_cause": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Root Cause",
+      "type": "string"
+    },
+    "affected_versions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Affected Versions",
+      "type": "array"
+    },
+    "impact": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Impact",
+      "type": "string"
+    },
+    "severity_assessment": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "maxProperties": 32,
+      "minProperties": 1,
+      "title": "Severity Assessment",
+      "type": "object"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "promotion_plan_id",
+    "critic_outcome_binding_plan_id",
+    "critic_outcome_binding_id",
+    "critic_outcome_binding_digest",
+    "candidate_id",
+    "candidate_digest",
+    "validation_run_ids",
+    "validation_run_digests",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "critic_review_id",
+    "critic_review_digest",
+    "duplicate_check_id",
+    "duplicate_check_digest",
+    "finding_id",
+    "root_cause",
+    "affected_versions",
+    "impact",
+    "severity_assessment",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "FindingPromotionPlan",
+  "type": "object"
+}

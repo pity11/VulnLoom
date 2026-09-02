@@ -658,3 +658,23 @@ Candidate. Its separate STARTED/COMPLETED ledger stores only IDs, digests, typed
 timestamps, uniquely consuming the Intake record, Critic plan and outcome. Missing, unfinished,
 expired, conflicting or drifted provenance fails closed before a binding checkpoint. The binding is
 not authority to create a Finding, report, target build, public-network action or Submission.
+
+## 39. M8.5 human Finding promotion Intake
+
+M8.5 inserts a human boundary before the existing pure Candidate-to-Finding transition. A sealed
+`FindingDuplicateCheck` replaces the untrusted bare duplicate-check flag at the Agent workflow
+boundary. A separately constructed `FindingPromotionPlan` binds an accepted M8.4 outcome, the exact
+critic-reviewed Candidate, reproduced ValidationRun, EvidenceBundle, accepted CriticReview, duplicate
+proof, preallocated Finding identity and trusted promotion fields.
+
+The Intake reopens authoritative M8.4, Validation and Critic checkpoints plus every Evidence object.
+Only the unique latest, current `clear` result from the authoritative duplicate-check store and an
+accepted Critic verdict are eligible; a later check invalidates an older clear proof. Human commands
+are limited to accept, reject and defer. Acceptance stores only a digest-bound selection record: the
+service does not import or invoke `promote_candidate`, mutate Candidate state, instantiate a Finding,
+draft a report, or access Runner, Broker, provider, network, Approval or Submission capabilities.
+
+The independent STARTED/COMPLETED ledger uniquely consumes the Critic binding, promotion plan,
+duplicate proof, Finding identity and command. It persists no root-cause, impact, severity, Evidence
+body or Agent prose. Drift, expiry, duplicate results, non-accepted reviews, conflicts and unfinished
+recovery fail closed before promotion.

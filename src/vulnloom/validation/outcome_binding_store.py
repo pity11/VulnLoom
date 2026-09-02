@@ -145,6 +145,20 @@ class AgentValidationOutcomeBindingStore:
             )
         return binding
 
+    def load_completed_by_binding_id(self, binding_id: str) -> AgentValidationOutcomeBinding:
+        matches = tuple(
+            row["binding_plan_id"]
+            for row in self.connection.execute(
+                "SELECT binding_plan_id, binding_json FROM agent_validation_outcome_bindings "
+                "WHERE state='completed' AND binding_json IS NOT NULL"
+            ).fetchall()
+            if AgentValidationOutcomeBinding.model_validate_json(row["binding_json"]).binding_id
+            == binding_id
+        )
+        if len(matches) != 1:
+            raise ValueError("Agent Validation outcome binding is unavailable")
+        return self.load_completed(matches[0])
+
     def close(self) -> None:
         self.connection.close()
 

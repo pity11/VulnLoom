@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "AgentFindingIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentFindingIntakeDecision",
+      "type": "string"
+    },
+    "AgentFindingIntakeReason": {
+      "enum": [
+        "human_accepted_exact_promotion",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentFindingIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Id",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "promotion_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Digest",
+      "type": "string"
+    },
+    "duplicate_check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentFindingIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentFindingIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "intake_plan_id",
+    "command_id",
+    "critic_outcome_binding_id",
+    "promotion_plan_id",
+    "promotion_plan_digest",
+    "duplicate_check_id",
+    "candidate_id",
+    "finding_id",
+    "evidence_bundle_id",
+    "critic_review_id",
+    "scope_id",
+    "scope_version",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at",
+    "expires_at"
+  ],
+  "title": "AgentFindingIntakeRecord",
+  "type": "object"
+}

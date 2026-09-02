@@ -1,0 +1,136 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Plan Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Id",
+      "type": "string"
+    },
+    "critic_outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Binding Digest",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "promotion_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Digest",
+      "type": "string"
+    },
+    "duplicate_check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Id",
+      "type": "string"
+    },
+    "duplicate_check_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "validation_run_ids_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Run Ids Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "critic_review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Review Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "decision_deadline": {
+      "format": "date-time",
+      "title": "Decision Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intake_plan_id",
+    "critic_outcome_binding_plan_id",
+    "critic_outcome_binding_id",
+    "critic_outcome_binding_digest",
+    "promotion_plan_id",
+    "promotion_plan_digest",
+    "duplicate_check_id",
+    "duplicate_check_digest",
+    "candidate_id",
+    "candidate_digest",
+    "finding_id",
+    "validation_run_ids_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "critic_review_id",
+    "critic_review_digest",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "decision_deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentFindingIntakePlan",
+  "type": "object"
+}

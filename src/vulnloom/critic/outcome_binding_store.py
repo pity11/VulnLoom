@@ -105,6 +105,30 @@ class AgentCriticOutcomeBindingStore:
                 "Critic outcome binding STARTED checkpoint is unavailable"
             )
 
+    def load_completed(self, binding_plan_id: str) -> AgentCriticOutcomeBinding:
+        row = self.connection.execute(
+            "SELECT * FROM agent_critic_outcome_bindings WHERE binding_plan_id=?",
+            (binding_plan_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Critic outcome binding is unavailable")
+        if row["state"] != "completed" or row["binding_json"] is None:
+            raise AgentCriticOutcomeBindingRecoveryRequired(
+                "Critic outcome binding has unfinished STARTED checkpoint"
+            )
+        binding = AgentCriticOutcomeBinding.model_validate_json(row["binding_json"])
+        if (
+            binding.binding_plan_id != binding_plan_id
+            or binding.critic_intake_record_id != row["critic_intake_record_id"]
+            or binding.critic_plan_id != row["critic_plan_id"]
+            or binding.critic_outcome_digest != row["critic_outcome_digest"]
+            or binding.completed_at.isoformat() != row["completed_at"]
+        ):
+            raise AgentCriticOutcomeBindingRecoveryRequired(
+                "Critic outcome binding checkpoint drifted"
+            )
+        return binding
+
     def close(self) -> None:
         self.connection.close()
 

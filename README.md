@@ -483,6 +483,18 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Persists only IDs, digests, typed verdict/state and timestamps in a unique STARTED/COMPLETED ledger.
   It does not mutate the original Candidate or create a Finding, report, build, Approval or Submission.
 
+### M8.5: human Finding promotion Intake
+
+- Requires an accepted M8.4 binding, exact critic-reviewed Candidate, reproduced Validation and
+  Evidence provenance, accepted CriticReview, and the authoritative store's unique latest,
+  content-addressed duplicate-clear proof.
+- Binds one trusted-control-plane-built exact `FindingPromotionPlan`; Agent prose, Critic rationale
+  and Evidence content cannot construct root-cause, affected-version, impact or severity fields.
+- Records only an explicit human accept, reject or defer selection in a digest-only checkpoint.
+  Acceptance does not call Candidate promotion, create a Finding, mutate state or draft a report.
+- Drift, expiry, duplicate results, non-accepted Critic verdicts, conflicting consumption and
+  unfinished recovery fail closed without Runner, Broker, provider, network or Submission access.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.

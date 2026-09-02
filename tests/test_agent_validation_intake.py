@@ -48,6 +48,7 @@ from vulnloom.critic import (
     CriticStore,
     DeterministicCritic,
     agent_critic_intake_plan_digest,
+    agent_critic_outcome_binding_digest,
     domain_object_digest,
 )
 from vulnloom.domain.digests import canonical_digest
@@ -59,6 +60,24 @@ from vulnloom.domain.models import (
 )
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
+from vulnloom.findings import (
+    AgentFindingIntakeCommand,
+    AgentFindingIntakeConflict,
+    AgentFindingIntakeDecision,
+    AgentFindingIntakePlan,
+    AgentFindingIntakeReason,
+    AgentFindingIntakeRecord,
+    AgentFindingIntakeRecoveryRequired,
+    AgentFindingIntakeRejected,
+    AgentFindingIntakeService,
+    AgentFindingIntakeStore,
+    AgentFindingIntakeTimedOut,
+    DuplicateCheckResult,
+    FindingDuplicateCheck,
+    FindingDuplicateCheckStore,
+    FindingPromotionPlan,
+    agent_finding_intake_plan_digest,
+)
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
@@ -470,6 +489,7 @@ def test_intake_records_human_decision_without_execution_or_state_change(
 
     assert replay == record
     assert record.decision is decision
+    assert store.load_completed(plan.intake_plan_id) == record
     assert candidate.state.value == "proposed"
     assert not hasattr(service, "runner")
     assert not hasattr(service, "broker")
@@ -1584,3 +1604,374 @@ def test_critic_outcome_binding_contracts_are_digest_only():
         fields = set(model.model_fields)
         assert not fields & forbidden
         assert all("evidence_ref" not in field for field in fields)
+
+
+def _completed_m85_case(tmp_path, now, scope, candidate, verdict=CriticVerdict.ACCEPTED):
+    (
+        critic_intake_plan,
+        critic_outcome,
+        critic_binding_service,
+        critic_binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        runner,
+        transport,
+    ) = _completed_critic_case(tmp_path, now, scope, candidate, verdict)
+    critic_binding_plan = critic_binding_service.prepare(
+        critic_intake_plan=critic_intake_plan,
+        now=now + timedelta(seconds=8),
+        idempotency_key="critic-outcome-binding:m8.5",
+    )
+    critic_binding = critic_binding_service.execute(
+        critic_binding_plan,
+        critic_intake_plan=critic_intake_plan,
+        now=now + timedelta(seconds=9),
+    )
+    reviewed = critic_outcome.candidate
+    duplicate_check = FindingDuplicateCheck.create(
+        candidate_id=reviewed.candidate_id,
+        candidate_digest=domain_object_digest(reviewed),
+        target_version_digest=canonical_digest(reviewed.target_version),
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        result=DuplicateCheckResult.CLEAR,
+        duplicate_family_id=None,
+        checked_by="human-duplicate-reviewer",
+        checked_at=now + timedelta(seconds=9),
+        expires_at=now + timedelta(seconds=40),
+    )
+    duplicate_check_store = FindingDuplicateCheckStore(tmp_path / "duplicate-checks.sqlite3")
+    duplicate_check_store.publish(duplicate_check)
+    validation_binding = validation_binding_store.load_completed_by_binding_id(
+        critic_binding.outcome_binding_id
+    )
+    _, validation_outcome = validation_store.load_completed(validation_binding.validation_plan_id)
+    evidence_bundle = validation_outcome.evidence_bundle
+    assert evidence_bundle is not None
+    promotion_plan = FindingPromotionPlan.create(
+        critic_outcome_binding_plan_id=critic_binding_plan.binding_plan_id,
+        critic_outcome_binding_id=critic_binding.binding_id,
+        critic_outcome_binding_digest=agent_critic_outcome_binding_digest(critic_binding),
+        candidate_id=reviewed.candidate_id,
+        candidate_digest=domain_object_digest(reviewed),
+        validation_run_ids=(validation_outcome.validation_run.run_id,),
+        validation_run_digests=(domain_object_digest(validation_outcome.validation_run),),
+        evidence_bundle_id=evidence_bundle.bundle_id,
+        evidence_bundle_digest=domain_object_digest(evidence_bundle),
+        critic_review_id=critic_outcome.review.review_id,
+        critic_review_digest=domain_object_digest(critic_outcome.review),
+        duplicate_check_id=duplicate_check.check_id,
+        duplicate_check_digest=canonical_digest(
+            duplicate_check.model_dump(mode="python", exclude={"check_id"})
+        ),
+        finding_id=uuid4(),
+        root_cause="trusted control-plane root cause",
+        affected_versions=(reviewed.target_version,),
+        impact="trusted control-plane impact",
+        severity_assessment={"rating": "high", "score": 8.1},
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        created_at=now + timedelta(seconds=10),
+        deadline=now + timedelta(seconds=35),
+        idempotency_key="finding-promotion:m8.5",
+    )
+    finding_store = AgentFindingIntakeStore(tmp_path / "finding-intake.sqlite3")
+    service = AgentFindingIntakeService(
+        scope=scope,
+        critic_binding_store=critic_binding_store,
+        validation_binding_store=validation_binding_store,
+        validation_store=validation_store,
+        critic_store=critic_store,
+        evidence_store=critic_binding_service.evidence_store,
+        duplicate_check_store=duplicate_check_store,
+        store=finding_store,
+    )
+    return (
+        service,
+        finding_store,
+        critic_binding_plan,
+        promotion_plan,
+        duplicate_check,
+        critic_outcome,
+        critic_binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        runner,
+        transport,
+    )
+
+
+@pytest.mark.parametrize("decision", tuple(AgentFindingIntakeDecision))
+def test_finding_intake_records_human_decision_without_promotion(
+    tmp_path, now, approved_scope, candidate, decision
+):
+    (
+        service,
+        store,
+        binding_plan,
+        promotion_plan,
+        duplicate_check,
+        critic_outcome,
+        critic_binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        runner,
+        transport,
+    ) = _completed_m85_case(tmp_path, now, approved_scope, candidate)
+    plan = service.prepare(
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        now=now + timedelta(seconds=10),
+        decision_deadline=now + timedelta(seconds=30),
+        idempotency_key=f"finding-intake:m8.5:{decision.value}",
+    )
+    reason = {
+        AgentFindingIntakeDecision.ACCEPT: AgentFindingIntakeReason.HUMAN_ACCEPTED_EXACT_PROMOTION,
+        AgentFindingIntakeDecision.REJECT: AgentFindingIntakeReason.HUMAN_REJECTED,
+        AgentFindingIntakeDecision.DEFER: AgentFindingIntakeReason.HUMAN_DEFERRED,
+    }[decision]
+    command = AgentFindingIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_finding_intake_plan_digest(plan),
+        critic_outcome_binding_id=plan.critic_outcome_binding_id,
+        promotion_plan_id=plan.promotion_plan_id,
+        promotion_plan_digest=plan.promotion_plan_digest,
+        candidate_id=plan.candidate_id,
+        finding_id=plan.finding_id,
+        decision=decision,
+        reason_code=reason,
+        reviewer="human-finding-reviewer",
+        decided_at=now + timedelta(seconds=11),
+    )
+    expired = AgentFindingIntakePlan.create(
+        **plan.model_dump(mode="python", exclude={"intake_plan_id", "decision_deadline"}),
+        decision_deadline=command.decided_at,
+    )
+    with pytest.raises(AgentFindingIntakeTimedOut):
+        service.decide(
+            expired,
+            command,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=command.decided_at,
+        )
+    before = (
+        candidate.state,
+        critic_outcome.candidate.state,
+        runner.calls,
+        len(transport.calls),
+    )
+    record = service.decide(
+        plan,
+        command,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        now=command.decided_at,
+    )
+    assert (
+        service.decide(
+            plan,
+            command,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=command.decided_at,
+        )
+        == record
+    )
+    assert record.decision is decision
+    assert (
+        candidate.state,
+        critic_outcome.candidate.state,
+        runner.calls,
+        len(transport.calls),
+    ) == before
+    assert not hasattr(service, "promote_candidate")
+    conflicting_decision = (
+        AgentFindingIntakeDecision.REJECT
+        if decision is AgentFindingIntakeDecision.ACCEPT
+        else AgentFindingIntakeDecision.ACCEPT
+    )
+    conflicting_reason = {
+        AgentFindingIntakeDecision.ACCEPT: AgentFindingIntakeReason.HUMAN_ACCEPTED_EXACT_PROMOTION,
+        AgentFindingIntakeDecision.REJECT: AgentFindingIntakeReason.HUMAN_REJECTED,
+    }[conflicting_decision]
+    conflicting_command = AgentFindingIntakeCommand.create(
+        **command.model_dump(
+            mode="python",
+            exclude={"command_id", "decision", "reason_code", "reviewer"},
+        ),
+        decision=conflicting_decision,
+        reason_code=conflicting_reason,
+        reviewer="second-human-finding-reviewer",
+    )
+    with pytest.raises(AgentFindingIntakeConflict):
+        service.decide(
+            plan,
+            conflicting_command,
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=conflicting_command.decided_at,
+        )
+    persisted = (tmp_path / "finding-intake.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted control-plane root cause",
+        b"trusted control-plane impact",
+        b"https://",
+        b"Authorization",
+    ):
+        assert forbidden not in persisted
+    recovery = AgentFindingIntakeStore(tmp_path / "finding-intake-recovery.sqlite3")
+    recovery.claim(plan, command, now=command.decided_at)
+    with pytest.raises(AgentFindingIntakeRecoveryRequired):
+        recovery.claim(plan, command, now=command.decided_at)
+    recovery.close()
+    store.close()
+    service.duplicate_check_store.close()
+    critic_binding_store.close()
+    critic_store.close()
+    critic_intake_store.close()
+    validation_binding_store.close()
+    validation_store.close()
+    validation_intake_store.close()
+
+
+def test_finding_intake_rejects_duplicate_or_promotion_drift_before_checkpoint(
+    tmp_path, now, approved_scope, candidate
+):
+    (
+        service,
+        store,
+        binding_plan,
+        promotion_plan,
+        duplicate_check,
+        _,
+        critic_binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        _,
+        _,
+    ) = _completed_m85_case(tmp_path, now, approved_scope, candidate)
+    drifted = promotion_plan.model_copy(update={"impact": "drifted after sealing"})
+    with pytest.raises(AgentFindingIntakeRejected, match="drifted"):
+        service.prepare(
+            critic_binding_plan=binding_plan,
+            promotion_plan=drifted,
+            duplicate_check=duplicate_check,
+            now=now + timedelta(seconds=10),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key="finding-intake:m8.5:drift",
+        )
+    duplicate = FindingDuplicateCheck.create(
+        **duplicate_check.model_dump(
+            mode="python",
+            exclude={
+                "check_id",
+                "result",
+                "duplicate_family_id",
+                "checked_at",
+            },
+        ),
+        result=DuplicateCheckResult.DUPLICATE,
+        duplicate_family_id=uuid4(),
+        checked_at=now + timedelta(seconds=10),
+    )
+    service.duplicate_check_store.publish(duplicate)
+    with pytest.raises(AgentFindingIntakeRejected, match="drifted"):
+        service.prepare(
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate,
+            now=now + timedelta(seconds=10),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key="finding-intake:m8.5:duplicate",
+        )
+    with pytest.raises(AgentFindingIntakeRejected, match="unavailable"):
+        service.prepare(
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=now + timedelta(seconds=10),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key="finding-intake:m8.5:stale-clear",
+        )
+    assert store.connection.execute("SELECT count(*) FROM agent_finding_intakes").fetchone()[0] == 0
+    store.close()
+    service.duplicate_check_store.close()
+    critic_binding_store.close()
+    critic_store.close()
+    critic_intake_store.close()
+    validation_binding_store.close()
+    validation_store.close()
+    validation_intake_store.close()
+
+
+@pytest.mark.parametrize("verdict", (CriticVerdict.REJECTED, CriticVerdict.INCONCLUSIVE))
+def test_finding_intake_requires_an_accepted_critic_binding(
+    tmp_path, now, approved_scope, candidate, verdict
+):
+    (
+        service,
+        store,
+        binding_plan,
+        promotion_plan,
+        duplicate_check,
+        _,
+        critic_binding_store,
+        critic_store,
+        critic_intake_store,
+        validation_binding_store,
+        validation_store,
+        validation_intake_store,
+        _,
+        _,
+    ) = _completed_m85_case(tmp_path, now, approved_scope, candidate, verdict)
+    with pytest.raises(AgentFindingIntakeRejected, match="drifted"):
+        service.prepare(
+            critic_binding_plan=binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=now + timedelta(seconds=10),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key=f"finding-intake:m8.5:{verdict.value}",
+        )
+    assert store.connection.execute("SELECT count(*) FROM agent_finding_intakes").fetchone()[0] == 0
+    store.close()
+    service.duplicate_check_store.close()
+    critic_binding_store.close()
+    critic_store.close()
+    critic_intake_store.close()
+    validation_binding_store.close()
+    validation_store.close()
+    validation_intake_store.close()
+
+
+def test_finding_intake_contracts_and_sqlite_are_digest_only():
+    forbidden = {
+        "root_cause",
+        "affected_versions",
+        "impact",
+        "severity_assessment",
+        "prompt",
+        "runner",
+        "broker",
+        "token",
+    }
+    for model in (AgentFindingIntakePlan, AgentFindingIntakeRecord):
+        assert not set(model.model_fields) & forbidden

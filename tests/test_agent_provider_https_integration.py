@@ -85,8 +85,10 @@ from vulnloom.critic import (
     CriticStore,
     DeterministicCritic,
     agent_critic_intake_plan_digest,
+    agent_critic_outcome_binding_digest,
     domain_object_digest,
 )
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     Candidate,
     EvidenceKind,
@@ -97,6 +99,19 @@ from vulnloom.domain.models import (
 )
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
+from vulnloom.findings import (
+    AgentFindingIntakeCommand,
+    AgentFindingIntakeDecision,
+    AgentFindingIntakeReason,
+    AgentFindingIntakeRejected,
+    AgentFindingIntakeService,
+    AgentFindingIntakeStore,
+    DuplicateCheckResult,
+    FindingDuplicateCheck,
+    FindingDuplicateCheckStore,
+    FindingPromotionPlan,
+    agent_finding_intake_plan_digest,
+)
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
@@ -524,7 +539,7 @@ def test_full_loopback_admission_runtime_uses_real_tls_subprocess(tmp_path):
 @pytest.mark.skipif(
     os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1"
     or os.environ.get("VULNLOOM_COMPOSITION_INTEGRATION") != "1",
-    reason="set both provider and composition integration flags for the M7.10-M8.2 probe",
+    reason="set both provider and composition integration flags for the M7.10-M8.5 probe",
 )
 def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain(
     tmp_path: Path, monkeypatch
@@ -713,6 +728,12 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             AgentCriticOutcomeBindingStore(
                 tmp_path / "m84-critic-outcome-bindings.sqlite3"
             ) as critic_binding_store,
+            AgentFindingIntakeStore(
+                tmp_path / "m85-finding-intakes.sqlite3"
+            ) as finding_intake_store,
+            FindingDuplicateCheckStore(
+                tmp_path / "m85-duplicate-checks.sqlite3"
+            ) as duplicate_check_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1191,6 +1212,111 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            reviewed_candidate = critic_outcome.candidate
+            duplicate_check = FindingDuplicateCheck.create(
+                candidate_id=reviewed_candidate.candidate_id,
+                candidate_digest=domain_object_digest(reviewed_candidate),
+                target_version_digest=canonical_digest(reviewed_candidate.target_version),
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                result=DuplicateCheckResult.CLEAR,
+                duplicate_family_id=None,
+                checked_by="phase3-human-duplicate-reviewer",
+                checked_at=now + timedelta(seconds=17),
+                expires_at=now + timedelta(seconds=35),
+            )
+            duplicate_check_store.publish(duplicate_check)
+            promotion_plan = FindingPromotionPlan.create(
+                critic_outcome_binding_plan_id=critic_binding_plan.binding_plan_id,
+                critic_outcome_binding_id=critic_outcome_binding.binding_id,
+                critic_outcome_binding_digest=agent_critic_outcome_binding_digest(
+                    critic_outcome_binding
+                ),
+                candidate_id=reviewed_candidate.candidate_id,
+                candidate_digest=domain_object_digest(reviewed_candidate),
+                validation_run_ids=(validation_outcome.validation_run.run_id,),
+                validation_run_digests=(domain_object_digest(validation_outcome.validation_run),),
+                evidence_bundle_id=evidence_bundle.bundle_id,
+                evidence_bundle_digest=domain_object_digest(evidence_bundle),
+                critic_review_id=critic_outcome.review.review_id,
+                critic_review_digest=domain_object_digest(critic_outcome.review),
+                duplicate_check_id=duplicate_check.check_id,
+                duplicate_check_digest=canonical_digest(
+                    duplicate_check.model_dump(mode="python", exclude={"check_id"})
+                ),
+                finding_id=uuid4(),
+                root_cause="trusted Phase 3 control-plane root cause",
+                affected_versions=(reviewed_candidate.target_version,),
+                impact="trusted Phase 3 control-plane impact",
+                severity_assessment={"rating": "high", "score": 8.1},
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                created_at=now + timedelta(seconds=17),
+                deadline=now + timedelta(seconds=34),
+                idempotency_key="m8.5:finding-promotion",
+            )
+            finding_intake_service = AgentFindingIntakeService(
+                scope=scope,
+                critic_binding_store=critic_binding_store,
+                validation_binding_store=binding_store,
+                validation_store=validation_store,
+                critic_store=critic_store,
+                evidence_store=evidence_store,
+                duplicate_check_store=duplicate_check_store,
+                store=finding_intake_store,
+            )
+            finding_intake_plan = finding_intake_service.prepare(
+                critic_binding_plan=critic_binding_plan,
+                promotion_plan=promotion_plan,
+                duplicate_check=duplicate_check,
+                now=now + timedelta(seconds=18),
+                decision_deadline=now + timedelta(seconds=30),
+                idempotency_key="m8.5:finding-intake",
+            )
+            finding_command = AgentFindingIntakeCommand.create(
+                intake_plan_id=finding_intake_plan.intake_plan_id,
+                intake_plan_digest=agent_finding_intake_plan_digest(finding_intake_plan),
+                critic_outcome_binding_id=finding_intake_plan.critic_outcome_binding_id,
+                promotion_plan_id=finding_intake_plan.promotion_plan_id,
+                promotion_plan_digest=finding_intake_plan.promotion_plan_digest,
+                candidate_id=finding_intake_plan.candidate_id,
+                finding_id=finding_intake_plan.finding_id,
+                decision=AgentFindingIntakeDecision.ACCEPT,
+                reason_code=AgentFindingIntakeReason.HUMAN_ACCEPTED_EXACT_PROMOTION,
+                reviewer="phase3-human-finding-reviewer",
+                decided_at=now + timedelta(seconds=19),
+            )
+            with pytest.raises(AgentFindingIntakeRejected):
+                finding_intake_service.decide(
+                    finding_intake_plan,
+                    finding_command,
+                    critic_binding_plan=critic_binding_plan,
+                    promotion_plan=promotion_plan.model_copy(
+                        update={"impact": "tampered after sealing"}
+                    ),
+                    duplicate_check=duplicate_check,
+                    now=finding_command.decided_at,
+                )
+            assert (
+                finding_intake_store.connection.execute(
+                    "SELECT count(*) FROM agent_finding_intakes"
+                ).fetchone()[0]
+                == 0
+            )
+            calls_before_finding_intake = calls_after_critic_binding
+            finding_intake_record = finding_intake_service.decide(
+                finding_intake_plan,
+                finding_command,
+                critic_binding_plan=critic_binding_plan,
+                promotion_plan=promotion_plan,
+                duplicate_check=duplicate_check,
+                now=finding_command.decided_at,
+            )
+            calls_after_finding_intake = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1226,6 +1352,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert critic_outcome_binding.critic_review_id == critic_outcome.review.review_id
     assert critic_outcome_binding.final_candidate_state.value == "critic_reviewed"
     assert calls_after_critic_binding == calls_before_critic_binding
+    assert finding_intake_record.decision is AgentFindingIntakeDecision.ACCEPT
+    assert calls_after_finding_intake == calls_before_finding_intake
+    assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
     assert len(adapter.attempts) == 3
@@ -1234,5 +1363,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert _TARGET_BODY not in (tmp_path / "m82-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m83-critic-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m84-critic-outcome-bindings.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 control-plane root cause"
+        not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()
+    )
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
