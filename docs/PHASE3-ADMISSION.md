@@ -131,6 +131,12 @@ The M8.10 Approval-gated deterministic Report review admission run is GitHub Act
 [`33621891210`](https://github.com/pity11/VulnLoom/actions/runs/33621891210). Both completed
 successfully on 2026-09-02 and qualify the M8.10 Report review execution row below.
 
+The M8.11 human local Report export Intake admission run is GitHub Actions
+[`33623614574`](https://github.com/pity11/VulnLoom/actions/runs/33623614574) for commit
+`3dac4333b173500d32ac2291765bdf59ef99c130`. The standard Python CI for the same commit is
+[`33623614558`](https://github.com/pity11/VulnLoom/actions/runs/33623614558). Both completed
+successfully on 2026-09-02 and qualify the M8.11 Report export Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -162,6 +168,7 @@ successfully on 2026-09-02 and qualify the M8.10 Report review execution row bel
 | Agent local Report draft binding | One human-accepted M8.7 record is reopened with the sealed promotion, Critic, Validation, Evidence catalog and exact ReportDraftPlan; metadata drift is rejected before checkpoint, while one deterministic local DRAFT and prose-free binding add no Runner, Broker, provider, target, approval, export or Submission call | PASS (`33616668895`) |
 | Agent Report review Intake | A human selects one exact trusted-control-plane ReportReviewPlan bound to the completed M8.8 DRAFT, immutable artifact, EvidenceBundle and identical ordered Evidence catalog; tampering is rejected before checkpoint and Intake leaves the Report DRAFT with no review, approval, export, Runner, Broker, provider, target or Submission call | PASS (`33619141456`) |
 | Agent Report review execution | One accepted M8.9 record is consumed only with a separately issued exact human command and granted `REVIEW_REPORT` Approval; action-digest tampering is rejected before checkpoint, while an explicit `request_changes` transition leaves the source DRAFT immutable and adds no Runner, Broker, provider, target, export or Submission call | PASS (`33621891122`) |
+| Agent Report export Intake | A human selects one exact trusted-control-plane ReportExportPlan bound to a completed M8.10 `approve` decision, `HUMAN_APPROVED` Report, review and immutable artifact; plan tampering is rejected before checkpoint and Intake leaves the Report human-approved with no new artifact, export, Runner, Broker, provider, target, destination or Submission call | PASS (`33623614574`) |
 
 ## Reproduction
 
