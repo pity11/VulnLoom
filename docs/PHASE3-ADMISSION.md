@@ -95,6 +95,12 @@ The M8.4 completed Critic outcome binding admission run is GitHub Actions
 [`33605801498`](https://github.com/pity11/VulnLoom/actions/runs/33605801498). Both completed
 successfully on 2026-09-02 and qualify the M8.4 Critic outcome binding row below.
 
+The M8.5 human Finding promotion Intake admission run is GitHub Actions
+[`33609723750`](https://github.com/pity11/VulnLoom/actions/runs/33609723750) for commit
+`48e6dc6e84ef38aa729743b29963e3d1fa801964`. The standard Python CI for the same commit is
+[`33609723864`](https://github.com/pity11/VulnLoom/actions/runs/33609723864). Both completed
+successfully on 2026-09-02 and qualify the M8.5 Finding promotion Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -122,6 +128,7 @@ successfully on 2026-09-02 and qualify the M8.4 Critic outcome binding row below
 | Agent Validation outcome binding | One explicitly completed Validation is reopened with its accepted Intake, Audit, Candidate, exact plan, run and Evidence provenance; outcome tampering is rejected before checkpoint and read-only binding leaves Runner, Broker, provider and target call counts unchanged | PASS (`33529822161`) |
 | Agent Critic Intake | A human selects one exact independently constructed CriticPlan bound to a reproduced M8.2 outcome, immutable Audit/Candidate provenance and verified Evidence; Intake adds no Critic execution, Candidate mutation, Runner, Broker, provider or target call | PASS (`33536352834`) |
 | Agent Critic outcome binding | One explicitly completed deterministic Critic outcome is reopened with its accepted Intake, M8.2 Validation binding, exact plan, review and Evidence provenance; tampering is rejected before checkpoint and binding adds no Critic replay, Candidate mutation, Runner, Broker, provider or target call | PASS (`33605801522`) |
+| Agent Finding promotion Intake | A human selects one trusted-control-plane-built exact promotion plan bound to an accepted M8.4 outcome, critic-reviewed Candidate, reproduced Validation, verified Evidence and the authoritative latest duplicate-clear proof; Intake adds no promotion, Finding creation, Runner, Broker, provider or target call | PASS (`33609723750`) |
 
 ## Reproduction
 
@@ -265,3 +272,14 @@ rejected and inconclusive Critic verdicts, exact verdict/state mapping, expiry, 
 drift, idempotent replay, unfinished recovery, and digest-only schema/SQLite persistence. This PASS
 qualifies only provenance binding for an already completed Critic review; it does not qualify
 automatic Critic execution, Finding creation, report export, Target build, public egress or Submission.
+
+M8.5 constructs one trusted-control-plane `FindingPromotionPlan` after the accepted M8.4 binding and
+publishes a content-addressed human duplicate-clear proof to its authoritative local store. The
+Admission probe tampers with the sealed impact field and proves rejection before the Intake
+checkpoint, then records one explicit human `accept`. Runner calls remain at one, target requests at
+two, provider attempts at three, the Critic-reviewed transient Candidate remains unchanged, and the
+authoritative original Candidate remains `PROPOSED`. Ordinary CI covers accept/reject/defer,
+rejected/inconclusive Critic outcomes, duplicate and stale-clear proofs, promotion drift, expiry,
+conflicting consumption, unfinished recovery, and schema/SQLite absence of promotion prose. This PASS
+qualifies only human selection of exact Finding promotion inputs; it does not qualify Candidate
+promotion, Finding creation, report generation, public egress, Target build or Submission.
