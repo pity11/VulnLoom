@@ -63,7 +63,7 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M8.10 include deterministic replay, fixed provider
+they are not present in the current tree. M7.1a-M8.11 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
@@ -554,6 +554,18 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
 - Missing/revoked Approval, decision or provenance drift, expiry, pre-existing unbound reviews and
   unfinished recovery fail closed. No report export, public network or Submission capability is
   present.
+
+### M8.11: human local Report export Intake
+
+- Reopens one completed M8.10 `HUMAN_APPROVED` binding, its authoritative review outcome and
+  immutable artifact, then binds them to an independently constructed exact `ReportExportPlan`.
+- Human input is limited to accepting, rejecting or deferring that exact local export plan. Even an
+  accepted record does not call `LocalReportExportService` or change the Report to `EXPORTED`.
+- Persists only IDs, digests, typed selection and timestamps; report prose and review rationale stay
+  outside the Agent Intake ledger.
+- Non-approved reports, artifact or plan drift, expiry, conflicts and unfinished recovery fail
+  closed. Runner, Broker, provider, target, public network, arbitrary destination and Submission
+  capabilities are absent.
 
 ## Local development
 

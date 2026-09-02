@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "AgentReportExportIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentReportExportIntakeDecision",
+      "type": "string"
+    },
+    "AgentReportExportIntakeReason": {
+      "enum": [
+        "human_accepted_exact_export",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentReportExportIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Digest",
+      "type": "string"
+    },
+    "review_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Outcome Binding Id",
+      "type": "string"
+    },
+    "report_export_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Id",
+      "type": "string"
+    },
+    "report_export_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentReportExportIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentReportExportIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "intake_plan_id",
+    "intake_plan_digest",
+    "review_outcome_binding_id",
+    "report_export_plan_id",
+    "report_export_plan_digest",
+    "report_id",
+    "report_digest",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at"
+  ],
+  "title": "AgentReportExportIntakeCommand",
+  "type": "object"
+}

@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "AgentReportExportIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentReportExportIntakeDecision",
+      "type": "string"
+    },
+    "AgentReportExportIntakeReason": {
+      "enum": [
+        "human_accepted_exact_export",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentReportExportIntakeReason",
+      "type": "string"
+    },
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "review_execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Execution Plan Id",
+      "type": "string"
+    },
+    "review_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Outcome Binding Id",
+      "type": "string"
+    },
+    "review_outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Outcome Binding Digest",
+      "type": "string"
+    },
+    "report_export_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Id",
+      "type": "string"
+    },
+    "report_export_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Digest",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "report_version": {
+      "minimum": 1,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentReportExportIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentReportExportIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "intake_plan_id",
+    "command_id",
+    "review_execution_plan_id",
+    "review_outcome_binding_id",
+    "review_outcome_binding_digest",
+    "report_export_plan_id",
+    "report_export_plan_digest",
+    "report_id",
+    "report_digest",
+    "artifact_digest",
+    "review_id",
+    "review_digest",
+    "report_family_id",
+    "report_version",
+    "finding_id",
+    "candidate_id",
+    "evidence_bundle_id",
+    "channel",
+    "scope_id",
+    "scope_version",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at",
+    "expires_at"
+  ],
+  "title": "AgentReportExportIntakeRecord",
+  "type": "object"
+}

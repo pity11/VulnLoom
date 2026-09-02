@@ -364,3 +364,13 @@ calls remain at one, target requests at two and provider attempts at three. Ordi
 three decisions, pending/denied/revoked Approval, drift, timeout, pre-existing reviews, failure,
 idempotency, conflict, recovery and schema/SQLite absence of prose. This qualification adds no
 automatic decision, report export, public egress, Target build or Submission.
+
+M8.11 reopens a completed M8.10 binding whose independently commanded and approved decision is
+`approve`, verifies the authoritative `HUMAN_APPROVED` Report, review record and immutable artifact,
+and binds them to one trusted-control-plane `ReportExportPlan`. The Admission probe changes the
+sealed plan digest and proves rejection before an Intake checkpoint, then records an explicit human
+accept decision. The Report remains `HUMAN_APPROVED`; Runner calls remain at one, target requests at
+two and provider attempts at three. Ordinary CI covers accept/reject/defer, non-approved reviews,
+plan drift, timeout, artifact corruption, idempotency, conflict, unfinished recovery and
+schema/SQLite absence of prose. This qualification performs no export, accepts no destination, and
+adds no public egress, Target build or Submission.

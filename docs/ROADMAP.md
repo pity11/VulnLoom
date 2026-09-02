@@ -639,6 +639,26 @@ M8.9 只是人工选择 exact review 输入，不是报告批准。后续 M8.10 
 M8.10 只执行本地人工报告审阅状态机，不自动选择或批准决定，不导出报告，不访问公网，也不创建或
 发送 Submission。后续 M8.11 应从 `HUMAN_APPROVED` 的 completed binding 开始建立独立本地 export Intake。
 
+### M8.11：人工本地 Report Export Intake（已完成首版）
+
+- 新增内容寻址的 `AgentReportExportIntakePlan`，绑定 completed M8.10 execution/binding、权威
+  `ReportReviewOutcome`、`HUMAN_APPROVED` Report、immutable artifact、人工 review record、Scope，以及
+  可信控制面独立构造的 exact `ReportExportPlan`。
+- 人工命令只允许 `accept`、`reject` 或 `defer` 是否进入后续本地 export；accepted 只生成 digest-only
+  record，不调用 `LocalReportExportService`，不把 Report 改为 `EXPORTED`。
+- 决策前重新读取 M8.10 completed checkpoint、review outcome 与 artifact，重算 execution/binding、
+  Report、artifact、review 和 export plan 摘要；非 `HUMAN_APPROVED`、篡改、过期或跨 Scope 漂移均在
+  Intake checkpoint 前 fail-closed。
+- 独立 STARTED/COMPLETED SQLite 唯一消费 M8.10 binding、Report、ExportPlan 与 command；同一决定
+  幂等返回，冲突和遗留 STARTED 拒绝自动恢复，且不保存报告正文或 review rationale。
+- 常规测试覆盖三种人工决定、非批准状态、plan 漂移、超时、artifact 损坏、幂等、冲突、恢复与
+  schema/SQLite digest-only；Phase 3 Admission 证明 Intake 前后 Runner、Broker、provider、target 调用
+  计数不变，Report 仍为 `HUMAN_APPROVED` 且没有 export artifact。
+
+M8.11 只是人工选择 exact local export 输入，不是导出授权或导出执行，也不接受路径/URL。后续 M8.12
+必须要求 accepted M8.11 record 与独立、精确且仍有效的 Approval，重新验证全部来源后才可调用既有
+local export 状态机；Submission 继续保持独立且不在 Agent 路径内。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -105,6 +105,17 @@ from vulnloom.reporting import (
     AgentReportDraftExecutionStore,
     AgentReportDraftExecutionTimedOut,
     AgentReportDraftOutcomeBinding,
+    AgentReportExportIntakeCommand,
+    AgentReportExportIntakeConflict,
+    AgentReportExportIntakeDecision,
+    AgentReportExportIntakePlan,
+    AgentReportExportIntakeReason,
+    AgentReportExportIntakeRecord,
+    AgentReportExportIntakeRecoveryRequired,
+    AgentReportExportIntakeRejected,
+    AgentReportExportIntakeService,
+    AgentReportExportIntakeStore,
+    AgentReportExportIntakeTimedOut,
     AgentReportIntakeCommand,
     AgentReportIntakeConflict,
     AgentReportIntakeDecision,
@@ -140,10 +151,12 @@ from vulnloom.reporting import (
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
+    ReportExportPlan,
     ReportReviewCommand,
     ReportReviewPlan,
     ReportReviewStore,
     ReviewDecisionKind,
+    agent_report_export_intake_plan_digest,
     agent_report_intake_plan_digest,
     agent_report_review_intake_plan_digest,
 )
@@ -3687,4 +3700,309 @@ def test_report_review_execution_contracts_have_no_prose_or_tool_parameters():
         "submission",
     }
     for model in (AgentReportReviewExecutionPlan, AgentReportReviewOutcomeBinding):
+        assert not set(model.model_fields) & forbidden
+
+
+def _completed_m810_approved_case(tmp_path, now, scope, candidate, *, decision=None):
+    m89_case = _completed_m89_case(tmp_path, now, scope, candidate)
+    m88_case, _, _, review_intake_plan, _ = m89_case
+    draft_execution_plan = m88_case[4]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, execution_store, review_store = _m810_service(tmp_path, scope, m89_case)
+    selected_decision = decision or ReviewDecisionKind.APPROVE
+    command, approval = _m810_command_and_approval(
+        service, m89_case, now, decision=selected_decision
+    )
+    execution_plan = service.prepare(
+        review_intake_plan=review_intake_plan,
+        draft_execution_plan=draft_execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=24),
+        deadline=now + timedelta(seconds=26),
+        idempotency_key=f"report-review-execution:m8.11:{selected_decision.value}",
+    )
+    binding = service.execute(
+        execution_plan,
+        review_intake_plan=review_intake_plan,
+        draft_execution_plan=draft_execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=25),
+    )
+    outcome = review_store.load_completed(review_plan.plan_id)
+    return (
+        m89_case,
+        execution_store,
+        review_store,
+        execution_plan,
+        binding,
+        outcome,
+    )
+
+
+def _close_m811_case(case, intake_store=None):
+    m89_case, execution_store, review_store, *_ = case
+    if intake_store is not None:
+        intake_store.close()
+    _close_m810_case(m89_case, execution_store, review_store)
+
+
+def _m811_service_and_plan(tmp_path, now, scope, case):
+    m89_case, execution_store, review_store, execution_plan, _, outcome = case
+    artifact_store = m89_case[0][3]
+    intake_store = AgentReportExportIntakeStore(
+        tmp_path / "agent-report-export-intakes.sqlite3"
+    )
+    service = AgentReportExportIntakeService(
+        scope=scope,
+        review_execution_store=execution_store,
+        review_store=review_store,
+        artifact_store=artifact_store,
+        store=intake_store,
+    )
+    export_plan = ReportExportPlan.create(
+        report=outcome.report,
+        artifact=outcome.artifact,
+        review=outcome.review,
+        created_at=now + timedelta(seconds=25, milliseconds=500),
+        deadline=now + timedelta(seconds=28, milliseconds=500),
+        idempotency_key="report-export:m8.11",
+    )
+    return service, intake_store, execution_plan, export_plan
+
+
+@pytest.mark.parametrize(
+    ("decision", "reason"),
+    (
+        (
+            AgentReportExportIntakeDecision.ACCEPT,
+            AgentReportExportIntakeReason.HUMAN_ACCEPTED_EXACT_EXPORT,
+        ),
+        (
+            AgentReportExportIntakeDecision.REJECT,
+            AgentReportExportIntakeReason.HUMAN_REJECTED,
+        ),
+        (
+            AgentReportExportIntakeDecision.DEFER,
+            AgentReportExportIntakeReason.HUMAN_DEFERRED,
+        ),
+    ),
+)
+def test_report_export_intake_records_human_selection_without_export(
+    tmp_path, now, approved_scope, candidate, decision, reason
+):
+    case = _completed_m810_approved_case(tmp_path, now, approved_scope, candidate)
+    service, store, execution_plan, export_plan = _m811_service_and_plan(
+        tmp_path, now, approved_scope, case
+    )
+    plan = service.prepare(
+        review_execution_plan=execution_plan,
+        report_export_plan=export_plan,
+        now=now + timedelta(seconds=26),
+        decision_deadline=now + timedelta(seconds=28),
+        idempotency_key=f"report-export-intake:m8.11:{decision.value}",
+    )
+    command = AgentReportExportIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_export_intake_plan_digest(plan),
+        review_outcome_binding_id=plan.review_outcome_binding_id,
+        report_export_plan_id=export_plan.plan_id,
+        report_export_plan_digest=plan.report_export_plan_digest,
+        report_id=plan.report_id,
+        report_digest=plan.report_digest,
+        decision=decision,
+        reason_code=reason,
+        reviewer="human-report-export-intake-reviewer",
+        decided_at=now + timedelta(seconds=27),
+    )
+    artifact_store = service.artifact_store
+    artifacts_before = tuple(sorted(artifact_store.objects.iterdir()))
+    m85_case = case[0][0][0][0][0]
+    calls_before = (m85_case[-2].calls, len(m85_case[-1].calls))
+    record = service.decide(
+        plan,
+        command,
+        review_execution_plan=execution_plan,
+        report_export_plan=export_plan,
+        now=command.decided_at,
+    )
+    assert record.decision is decision
+    assert store.load_completed(plan.intake_plan_id) == record
+    assert service.review_store.load_completed(
+        execution_plan.report_review_plan_id
+    ).report.review_status.value == "human_approved"
+    assert tuple(sorted(artifact_store.objects.iterdir())) == artifacts_before
+    assert (m85_case[-2].calls, len(m85_case[-1].calls)) == calls_before
+    assert (
+        service.decide(
+            plan,
+            command,
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=command.decided_at,
+        )
+        == record
+    )
+    conflicting = AgentReportExportIntakePlan.create(
+        **plan.model_dump(mode="python", exclude={"intake_plan_id", "idempotency_key"}),
+        idempotency_key=f"report-export-intake:m8.11:{decision.value}:conflict",
+    )
+    with pytest.raises(AgentReportExportIntakeConflict):
+        store.claim(conflicting, command, now=command.decided_at)
+    persisted = (tmp_path / "agent-report-export-intakes.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted exact report title",
+        b"trusted report summary",
+        b"Human authorized the exact sealed",
+        b"submission",
+    ):
+        assert forbidden not in persisted
+    _close_m811_case(case, store)
+
+
+@pytest.mark.parametrize(
+    "decision", (ReviewDecisionKind.REQUEST_CHANGES, ReviewDecisionKind.REJECT)
+)
+def test_report_export_intake_rejects_nonapproved_review(
+    tmp_path, now, approved_scope, candidate, decision
+):
+    case = _completed_m810_approved_case(
+        tmp_path, now, approved_scope, candidate, decision=decision
+    )
+    m89_case, execution_store, review_store, execution_plan, *_ = case
+    store = AgentReportExportIntakeStore(tmp_path / "agent-report-export-intakes.sqlite3")
+    outcome = case[-1]
+    export_plan = ReportExportPlan.create(
+        report=outcome.report,
+        artifact=outcome.artifact,
+        review=outcome.review,
+        created_at=now + timedelta(seconds=25, milliseconds=500),
+        deadline=now + timedelta(seconds=28, milliseconds=500),
+        idempotency_key=f"report-export:m8.11:{decision.value}",
+    )
+    service = AgentReportExportIntakeService(
+        scope=approved_scope,
+        review_execution_store=execution_store,
+        review_store=review_store,
+        artifact_store=m89_case[0][3],
+        store=store,
+    )
+    with pytest.raises(AgentReportExportIntakeRejected, match="provenance"):
+        service.prepare(
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=now + timedelta(seconds=26),
+            decision_deadline=now + timedelta(seconds=28),
+            idempotency_key=f"report-export-intake:m8.11:{decision.value}",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_export_intakes").fetchone()[0]
+        == 0
+    )
+    _close_m811_case(case, store)
+
+
+def test_report_export_intake_rejects_timeout_drift_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m810_approved_case(tmp_path, now, approved_scope, candidate)
+    service, store, execution_plan, export_plan = _m811_service_and_plan(
+        tmp_path, now, approved_scope, case
+    )
+    plan = service.prepare(
+        review_execution_plan=execution_plan,
+        report_export_plan=export_plan,
+        now=now + timedelta(seconds=26),
+        decision_deadline=now + timedelta(seconds=28),
+        idempotency_key="report-export-intake:m8.11:recovery",
+    )
+    command = AgentReportExportIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_export_intake_plan_digest(plan),
+        review_outcome_binding_id=plan.review_outcome_binding_id,
+        report_export_plan_id=export_plan.plan_id,
+        report_export_plan_digest=plan.report_export_plan_digest,
+        report_id=plan.report_id,
+        report_digest=plan.report_digest,
+        decision=AgentReportExportIntakeDecision.ACCEPT,
+        reason_code=AgentReportExportIntakeReason.HUMAN_ACCEPTED_EXACT_EXPORT,
+        reviewer="human-report-export-intake-reviewer",
+        decided_at=now + timedelta(seconds=27),
+    )
+    with pytest.raises(AgentReportExportIntakeTimedOut):
+        service.decide(
+            plan,
+            command,
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=plan.decision_deadline,
+        )
+    with pytest.raises(AgentReportExportIntakeRejected, match="validation"):
+        service.decide(
+            plan.model_copy(update={"report_digest": "f" * 64}),
+            command,
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=command.decided_at,
+        )
+    store.claim(plan, command, now=command.decided_at)
+    with pytest.raises(AgentReportExportIntakeRecoveryRequired):
+        service.decide(
+            plan,
+            command,
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=command.decided_at,
+        )
+    _close_m811_case(case, store)
+
+
+def test_report_export_intake_rejects_artifact_corruption_before_checkpoint(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m810_approved_case(tmp_path, now, approved_scope, candidate)
+    service, store, execution_plan, export_plan = _m811_service_and_plan(
+        tmp_path, now, approved_scope, case
+    )
+    outcome = case[-1]
+    artifact_path = service.artifact_store.root / outcome.artifact.markdown_ref
+    artifact_path.chmod(0o600)
+    artifact_path.write_text("tampered", encoding="utf-8")
+    with pytest.raises(AgentReportExportIntakeRejected, match="unavailable"):
+        service.prepare(
+            review_execution_plan=execution_plan,
+            report_export_plan=export_plan,
+            now=now + timedelta(seconds=26),
+            decision_deadline=now + timedelta(seconds=28),
+            idempotency_key="report-export-intake:m8.11:artifact",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_export_intakes").fetchone()[0]
+        == 0
+    )
+    _close_m811_case(case, store)
+
+
+def test_report_export_intake_contracts_are_digest_only():
+    forbidden = {
+        "title",
+        "sections",
+        "text",
+        "prompt",
+        "runner",
+        "broker",
+        "url",
+        "credential",
+        "token",
+        "approval",
+        "submission",
+    }
+    for model in (AgentReportExportIntakePlan, AgentReportExportIntakeRecord):
         assert not set(model.model_fields) & forbidden

@@ -608,6 +608,19 @@ decision/status 与 Approval 摘要；完整 Report 只在既有 review store/ar
 独立 SQLite 唯一消费 Intake、ReviewPlan、ReviewCommand、Report 和 Approval；completed replay 只读，
 预存在未绑定 review、冲突或遗留 STARTED 不会自动执行。该绑定不表示 Report 已导出或提交。
 
+### AgentReportExportIntakePlan、Command 与 Record
+
+M8.11 的 `AgentReportExportIntakePlan` 内容寻址绑定 completed M8.10 execution/binding、权威
+`ReportReviewOutcome`、`HUMAN_APPROVED` Report、immutable artifact、approve review record、Scope 和
+可信控制面构造的 exact `ReportExportPlan`。它不含报告正文、review rationale、路径、URL、Agent 输出、
+工具参数、Approval 或 Submission。
+
+`AgentReportExportIntakeCommand` 只表示人工 `accept|reject|defer` 是否进入后续本地 export，并绑定
+exact M8.10 binding、Report、ExportPlan、reviewer 与 decision time。`AgentReportExportIntakeRecord`
+保存同一来源链的摘要和 typed 决定；accepted 不等于 Report 已 `EXPORTED`，也不构成 Submission 授权。
+独立 SQLite 唯一消费 review binding、Report、ExportPlan 与 command，遗留 STARTED 不会调用 exporter
+或自动恢复。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -769,3 +769,21 @@ and timestamps. The reviewed Report remains in the existing local artifact/revie
 Completed replay is read-only; missing or revoked Approval, drift, expiry, pre-existing unbound
 reviews, conflicts and unfinished recovery fail closed. Export, Runner, Broker, provider,
 target-build, public-network and Submission dependencies are absent.
+
+## 45. M8.11 human local Report export Intake
+
+M8.11 inserts a human selection boundary between a completed M8.10 human-approved review and the
+existing local export service. It reopens the authoritative M8.10 execution binding, review outcome
+and immutable artifact, requires the closed `approve` decision and `HUMAN_APPROVED` status, and binds
+those objects to an independently constructed exact `ReportExportPlan`.
+
+Human commands are limited to accept, reject and defer entry into a later local export operation.
+Even an accepted record cannot call `LocalReportExportService`, create an exported artifact or apply
+the `EXPORTED` transition. The Intake plan, command and record contain only identities, digests,
+typed selection and timestamps; report prose and review rationale remain in the existing artifact
+and review stores.
+
+The independent STARTED/COMPLETED ledger uniquely consumes the M8.10 binding, Report, export plan
+and command. Non-approved review outcomes, corrupt artifacts, digest or Scope drift, expiry,
+conflicts and unfinished recovery fail closed. The component has no Runner, Broker, provider,
+target-build, arbitrary destination, public-network, export execution or Submission dependency.
