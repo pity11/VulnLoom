@@ -696,3 +696,20 @@ conflicts and unfinished STARTED rows require explicit recovery and never trigge
 No Agent text is accepted at this boundary. The execution plan contains only identities, digests,
 Scope, times and the Approval binding; the Approval narrative is not copied into persistence. Runner,
 Broker, provider, build, public-network, report and Submission adapters are absent.
+
+## 41. M8.7 human Report Intake
+
+M8.7 inserts a human selection boundary between a sealed M8.6 Finding promotion outcome and the
+existing deterministic report drafting service. It reopens the completed promotion ledger, accepted
+Critic binding, reproduced Validation checkpoint and EvidenceBundle, then validates an independently
+constructed exact `ReportDraftPlan` against the promoted Candidate and verified Finding.
+
+The complete title, sections and Evidence citations remain transient typed input. The Intake plan,
+command and record persist only report family/channel, IDs, digests, decision and timestamps. Human
+commands are limited to accept, reject and defer; acceptance cannot invoke report drafting, create an
+artifact, approve or export a Report, or access Submission.
+
+The independent STARTED/COMPLETED ledger uniquely consumes a ReportDraftPlan and report family.
+Completed replay is idempotent, while drift, expiry, conflicting consumption, corrupt Evidence and
+unfinished recovery fail closed. The service has no Runner, Broker, provider, target, build, network,
+report execution, export or Submission dependency.

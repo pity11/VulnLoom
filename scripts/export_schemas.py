@@ -164,6 +164,9 @@ from vulnloom.findings import (
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.reporting import (
+    AgentReportIntakeCommand,
+    AgentReportIntakePlan,
+    AgentReportIntakeRecord,
     ReportArtifact,
     ReportDiff,
     ReportDraftPlan,
@@ -267,6 +270,9 @@ MODELS = (
     FindingPromotionApprovalAction,
     FindingPromotionExecutionPlan,
     FindingPromotionOutcome,
+    AgentReportIntakePlan,
+    AgentReportIntakeCommand,
+    AgentReportIntakeRecord,
     Scope,
     Artifact,
     TargetManifest,

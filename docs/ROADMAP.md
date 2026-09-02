@@ -559,6 +559,26 @@ M8.6 首次形成经过 Validation、Critic、人工选择和精确 Approval 的
 不访问公网、不构建目标，也不创建或发送 Submission。后续工作应从该 sealed Finding outcome 开始建立
 人工报告 Intake，而不能回读 Agent 输出构造报告事实。
 
+### M8.7：人工 Report Intake 与 sealed Finding outcome 绑定（已完成首版）
+
+- 新增内容寻址的 `AgentReportIntakePlan`，绑定 completed M8.6 execution/outcome、promoted Candidate、
+  verified Finding、reproduced ValidationRun、EvidenceBundle，以及可信控制面独立构造的 exact
+  version 1 `ReportDraftPlan`、报告家族与渠道；修订版 Intake 留待后续绑定 predecessor/diff 后开放。
+- ReportDraftPlan 的标题、完整章节和 Evidence citations 只作为瞬时 typed 输入；Agent prose、Critic
+  rationale 或 Evidence 正文不得补写报告事实，Intake SQLite 不保存任何报告正文。
+- 人工命令只允许 `accept`、`reject` 或 `defer`。accepted 仅产生 digest-only record，不调用
+  `DeterministicReportService`，不创建 Report/Artifact，不进入 review/export，更不创建 Submission。
+- 决策前重读 M8.6 promotion、M8.4 Critic binding、M8.2 Validation binding、Validation completed
+  checkpoint 和 Evidence objects；完成态缺失、篡改、Scope/Target/Candidate/Finding/bundle 漂移、
+  越界 citation 或过期均在 Intake checkpoint 前 fail-closed。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 ReportDraftPlan、report family、command
+  和幂等键；同一决定幂等返回，冲突与遗留 STARTED 拒绝自动恢复。
+- 常规测试覆盖三种人工决定、plan 漂移、超时、幂等、冲突、恢复和 schema/SQLite digest-only；
+  Phase 3 Admission 证明 Report Intake 前后 Runner、Broker、provider、target 调用计数不变。
+
+M8.7 只是人工选择 exact 报告输入，不是报告生成或披露授权。后续 M8.8 才能从 accepted record 与
+权威 Evidence 重读结果，通过确定性服务生成本地 draft Report；review、export 和 Submission 仍保持独立。
+
 ## 延后事项
 
 - 公网资产自主发现。

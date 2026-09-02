@@ -557,6 +557,17 @@ PromotionPlan、`CRITIC_REVIEWED` Candidate、预分配 Finding ID、Engagement/
 独立 SQLite 唯一消费 Intake、PromotionPlan、Finding ID 和 Approval，同一 completed plan 只读幂等返回，
 冲突或遗留 STARTED 不会自动重新执行。
 
+### AgentReportIntakePlan、Command 与 Record
+
+M8.7 的 `AgentReportIntakePlan` 内容寻址绑定 completed `FindingPromotionOutcome`、promoted Candidate、
+verified Finding、EvidenceBundle，以及 exact `ReportDraftPlan` 的 ID/摘要、report family、channel、Scope
+和人工决策窗口。它不包含报告 title、sections、text 或 Evidence 正文。
+
+`AgentReportIntakeCommand` 只允许人工 `accept|reject|defer`，并精确绑定 promotion outcome、draft plan、
+report family、Finding、reviewer 与 decision time。`AgentReportIntakeRecord` 保存同一来源链的摘要和 typed
+决定；accepted 不表示 Report 已生成、审阅、批准、导出或提交。独立 SQLite 唯一消费 ReportDraftPlan、
+report family 与 command，遗留 STARTED 不会调用报告服务或自动恢复。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

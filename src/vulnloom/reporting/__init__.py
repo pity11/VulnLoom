@@ -1,6 +1,23 @@
 """Deterministic offline report drafting and local export."""
 
 from .diff import ReportChangeKind, ReportDiff, ReportFieldChange, diff_reports
+from .intake import AgentReportIntakeRejected, AgentReportIntakeService, AgentReportIntakeTimedOut
+from .intake_models import (
+    AgentReportIntakeCommand,
+    AgentReportIntakeDecision,
+    AgentReportIntakePlan,
+    AgentReportIntakeReason,
+    AgentReportIntakeRecord,
+    agent_report_intake_command_digest,
+    agent_report_intake_plan_digest,
+    agent_report_intake_record_digest,
+)
+from .intake_store import (
+    AgentReportIntakeClaim,
+    AgentReportIntakeConflict,
+    AgentReportIntakeRecoveryRequired,
+    AgentReportIntakeStore,
+)
 from .models import (
     ReportArtifact,
     ReportDraftPlan,
@@ -43,6 +60,18 @@ from .workflow_store import (
 
 __all__ = [
     "DeterministicReportService",
+    "AgentReportIntakeClaim",
+    "AgentReportIntakeCommand",
+    "AgentReportIntakeConflict",
+    "AgentReportIntakeDecision",
+    "AgentReportIntakePlan",
+    "AgentReportIntakeReason",
+    "AgentReportIntakeRecord",
+    "AgentReportIntakeRecoveryRequired",
+    "AgentReportIntakeRejected",
+    "AgentReportIntakeService",
+    "AgentReportIntakeStore",
+    "AgentReportIntakeTimedOut",
     "HumanReportReviewService",
     "LocalReportExportService",
     "ReportChangeKind",
@@ -73,6 +102,9 @@ __all__ = [
     "ReportWorkflowRecoveryRequired",
     "ReviewDecisionKind",
     "apply_review_decision",
+    "agent_report_intake_command_digest",
+    "agent_report_intake_plan_digest",
+    "agent_report_intake_record_digest",
     "diff_reports",
     "domain_object_digest",
     "render_markdown",

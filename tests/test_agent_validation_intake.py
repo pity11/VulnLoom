@@ -60,6 +60,9 @@ from vulnloom.domain.models import (
     CriticVerdict,
     EvidenceBundle,
     EvidenceKind,
+    ReportChannel,
+    ReportSection,
+    ReportSectionKind,
     ValidationResult,
 )
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
@@ -92,6 +95,21 @@ from vulnloom.findings import (
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
+from vulnloom.reporting import (
+    AgentReportIntakeCommand,
+    AgentReportIntakeConflict,
+    AgentReportIntakeDecision,
+    AgentReportIntakePlan,
+    AgentReportIntakeReason,
+    AgentReportIntakeRecord,
+    AgentReportIntakeRecoveryRequired,
+    AgentReportIntakeRejected,
+    AgentReportIntakeService,
+    AgentReportIntakeStore,
+    AgentReportIntakeTimedOut,
+    ReportDraftPlan,
+    agent_report_intake_plan_digest,
+)
 from vulnloom.runners import (
     NetworkGrant,
     OfflineSandboxRunner,
@@ -2101,9 +2119,7 @@ def test_finding_promotion_requires_exact_approval_and_binds_result(
     assert b"Human approved the exact sealed" not in persisted
     assert b"Authorization" not in persisted
     conflicting = FindingPromotionExecutionPlan.create(
-        **plan.model_dump(
-            mode="python", exclude={"execution_plan_id", "idempotency_key"}
-        ),
+        **plan.model_dump(mode="python", exclude={"execution_plan_id", "idempotency_key"}),
         idempotency_key="finding-promotion:m8.6:conflict",
     )
     with pytest.raises(FindingPromotionConflict):
@@ -2198,9 +2214,7 @@ def test_finding_promotion_timeout_drift_and_started_recovery(
 def test_finding_promotion_rejects_expired_or_wrong_action_approval(
     tmp_path, now, approved_scope, candidate
 ):
-    case, intake_plan, record = _accepted_m85_case(
-        tmp_path, now, approved_scope, candidate
-    )
+    case, intake_plan, record = _accepted_m85_case(tmp_path, now, approved_scope, candidate)
     intake_service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
     store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
     service = FindingPromotionService(intake_service=intake_service, store=store)
@@ -2230,3 +2244,326 @@ def test_finding_promotion_execution_schema_has_no_agent_or_tool_parameters():
     schema = json.dumps(FindingPromotionExecutionPlan.model_json_schema()).lower()
     for forbidden in ("prompt", "runner", "broker", "url", "credential", "token", "submission"):
         assert forbidden not in schema
+
+
+def _completed_m86_case(tmp_path, now, scope, candidate):
+    case, finding_intake_plan, record = _accepted_m85_case(tmp_path, now, scope, candidate)
+    intake_service, _, binding_plan, promotion_plan, duplicate_check, *_ = case
+    promotion_store = FindingPromotionStore(tmp_path / "finding-promotions.sqlite3")
+    promotion_service = FindingPromotionService(
+        intake_service=intake_service, store=promotion_store
+    )
+    approval = _promotion_approval(promotion_service, record, promotion_plan, scope, now)
+    execution_plan = promotion_service.prepare(
+        intake_plan=finding_intake_plan,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        approval=approval,
+        now=now + timedelta(seconds=13),
+        deadline=now + timedelta(seconds=28),
+        idempotency_key="finding-promotion:m8.7",
+    )
+    outcome = promotion_service.execute(
+        execution_plan,
+        intake_plan=finding_intake_plan,
+        critic_binding_plan=binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+        approval=approval,
+        now=now + timedelta(seconds=14),
+    )
+    critic_binding = case[6].load_completed(binding_plan.binding_plan_id)
+    validation_binding = case[9].load_completed_by_binding_id(critic_binding.outcome_binding_id)
+    _, validation_outcome = case[10].load_completed(validation_binding.validation_plan_id)
+    bundle = validation_outcome.evidence_bundle
+    assert bundle is not None
+    evidence_ref = bundle.evidence_refs[0]
+    sections = (
+        ReportSection(kind=ReportSectionKind.SUMMARY, text="trusted report summary"),
+        ReportSection(
+            kind=ReportSectionKind.CODE_LOCATION,
+            text="trusted code location",
+            evidence_refs=(evidence_ref,),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.REQUEST_RESPONSE,
+            text="trusted request response",
+            evidence_refs=(evidence_ref,),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.REPRODUCTION,
+            text="trusted reproduction",
+            evidence_refs=(evidence_ref,),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.IMPACT,
+            text="trusted report impact",
+            evidence_refs=(evidence_ref,),
+        ),
+        ReportSection(kind=ReportSectionKind.REMEDIATION, text="trusted remediation"),
+    )
+    report_plan = ReportDraftPlan.create(
+        finding_id=outcome.finding.finding_id,
+        finding_digest=domain_object_digest(outcome.finding),
+        candidate_id=outcome.promoted_candidate.candidate_id,
+        candidate_digest=domain_object_digest(outcome.promoted_candidate),
+        evidence_bundle_id=bundle.bundle_id,
+        evidence_bundle_digest=domain_object_digest(bundle),
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        channel=ReportChannel.GENERIC,
+        title="trusted exact report title",
+        sections=sections,
+        prepared_by="trusted-control-plane",
+        created_at=now + timedelta(seconds=15),
+        deadline=now + timedelta(seconds=40),
+        idempotency_key="report-draft:m8.7",
+    )
+    return case, promotion_store, execution_plan, outcome, binding_plan, bundle, report_plan
+
+
+@pytest.mark.parametrize("decision", tuple(AgentReportIntakeDecision))
+def test_report_intake_records_human_selection_without_drafting(
+    tmp_path, now, approved_scope, candidate, decision
+):
+    case = _completed_m86_case(tmp_path, now, approved_scope, candidate)
+    m85_case, promotion_store, execution_plan, outcome, binding_plan, bundle, report_plan = case
+    store = AgentReportIntakeStore(tmp_path / "report-intakes.sqlite3")
+    service = AgentReportIntakeService(
+        scope=approved_scope,
+        finding_promotion_store=promotion_store,
+        critic_binding_store=m85_case[6],
+        validation_binding_store=m85_case[9],
+        validation_store=m85_case[10],
+        evidence_store=m85_case[0].evidence_store,
+        store=store,
+    )
+    plan = service.prepare(
+        finding_execution_plan=execution_plan,
+        critic_binding_plan=binding_plan,
+        report_draft_plan=report_plan,
+        now=now + timedelta(seconds=16),
+        decision_deadline=now + timedelta(seconds=30),
+        idempotency_key=f"report-intake:m8.7:{decision.value}",
+    )
+    reason = {
+        AgentReportIntakeDecision.ACCEPT: AgentReportIntakeReason.HUMAN_ACCEPTED_EXACT_DRAFT,
+        AgentReportIntakeDecision.REJECT: AgentReportIntakeReason.HUMAN_REJECTED,
+        AgentReportIntakeDecision.DEFER: AgentReportIntakeReason.HUMAN_DEFERRED,
+    }[decision]
+    command = AgentReportIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_intake_plan_digest(plan),
+        finding_promotion_outcome_id=outcome.outcome_id,
+        report_draft_plan_id=report_plan.plan_id,
+        report_draft_plan_digest=plan.report_draft_plan_digest,
+        report_family_id=report_plan.report_family_id,
+        report_version=report_plan.version,
+        finding_id=outcome.finding.finding_id,
+        decision=decision,
+        reason_code=reason,
+        reviewer="human-report-reviewer",
+        decided_at=now + timedelta(seconds=17),
+    )
+    before = (
+        outcome.promoted_candidate,
+        outcome.finding,
+        m85_case[-2].calls,
+        len(m85_case[-1].calls),
+    )
+    record = service.decide(
+        plan,
+        command,
+        finding_execution_plan=execution_plan,
+        critic_binding_plan=binding_plan,
+        report_draft_plan=report_plan,
+        now=command.decided_at,
+    )
+    assert (
+        service.decide(
+            plan,
+            command,
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan,
+            now=command.decided_at,
+        )
+        == record
+    )
+    assert record.decision is decision
+    assert store.load_completed(plan.intake_plan_id) == record
+    assert not hasattr(service, "draft")
+    assert before == (
+        outcome.promoted_candidate,
+        outcome.finding,
+        m85_case[-2].calls,
+        len(m85_case[-1].calls),
+    )
+    persisted = (tmp_path / "report-intakes.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted exact report title",
+        b"trusted report summary",
+        b"trusted reproduction",
+        b"https://",
+        b"Authorization",
+    ):
+        assert forbidden not in persisted
+    conflicting_command = AgentReportIntakeCommand.create(
+        **command.model_dump(mode="python", exclude={"command_id", "reviewer"}),
+        reviewer="second-human-report-reviewer",
+    )
+    with pytest.raises(AgentReportIntakeConflict):
+        service.decide(
+            plan,
+            conflicting_command,
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan,
+            now=conflicting_command.decided_at,
+        )
+    store.close()
+    promotion_store.close()
+    _close_m85_case(m85_case)
+
+
+def test_report_intake_rejects_plan_drift_timeout_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m86_case(tmp_path, now, approved_scope, candidate)
+    m85_case, promotion_store, execution_plan, outcome, binding_plan, _, report_plan = case
+    store = AgentReportIntakeStore(tmp_path / "report-intakes.sqlite3")
+    service = AgentReportIntakeService(
+        scope=approved_scope,
+        finding_promotion_store=promotion_store,
+        critic_binding_store=m85_case[6],
+        validation_binding_store=m85_case[9],
+        validation_store=m85_case[10],
+        evidence_store=m85_case[0].evidence_store,
+        store=store,
+    )
+    with pytest.raises(AgentReportIntakeRejected):
+        service.prepare(
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan.model_copy(update={"title": "drifted"}),
+            now=now + timedelta(seconds=16),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key="report-intake:m8.7:drift",
+        )
+    plan = service.prepare(
+        finding_execution_plan=execution_plan,
+        critic_binding_plan=binding_plan,
+        report_draft_plan=report_plan,
+        now=now + timedelta(seconds=16),
+        decision_deadline=now + timedelta(seconds=20),
+        idempotency_key="report-intake:m8.7:recovery",
+    )
+    command = AgentReportIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_intake_plan_digest(plan),
+        finding_promotion_outcome_id=outcome.outcome_id,
+        report_draft_plan_id=report_plan.plan_id,
+        report_draft_plan_digest=plan.report_draft_plan_digest,
+        report_family_id=report_plan.report_family_id,
+        report_version=report_plan.version,
+        finding_id=outcome.finding.finding_id,
+        decision=AgentReportIntakeDecision.ACCEPT,
+        reason_code=AgentReportIntakeReason.HUMAN_ACCEPTED_EXACT_DRAFT,
+        reviewer="human-report-reviewer",
+        decided_at=now + timedelta(seconds=17),
+    )
+    with pytest.raises(AgentReportIntakeTimedOut):
+        service.decide(
+            plan,
+            command,
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan,
+            now=plan.decision_deadline,
+        )
+    assert store.connection.execute("SELECT count(*) FROM agent_report_intakes").fetchone()[0] == 0
+    store.claim(plan, command, now=command.decided_at)
+    with pytest.raises(AgentReportIntakeRecoveryRequired):
+        service.decide(
+            plan,
+            command,
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan,
+            now=command.decided_at,
+        )
+    store.close()
+    promotion_store.close()
+    _close_m85_case(m85_case)
+
+
+@pytest.mark.parametrize("tamper", ("missing", "promotion", "evidence"))
+def test_report_intake_rejects_missing_or_corrupt_authoritative_inputs(
+    tmp_path, now, approved_scope, candidate, tamper
+):
+    case = _completed_m86_case(tmp_path, now, approved_scope, candidate)
+    m85_case, promotion_store, execution_plan, _, binding_plan, bundle, report_plan = case
+    active_promotion_store = promotion_store
+    if tamper == "missing":
+        active_promotion_store = FindingPromotionStore(
+            tmp_path / "missing-finding-promotions.sqlite3"
+        )
+    elif tamper == "promotion":
+        row = promotion_store.connection.execute(
+            "SELECT outcome_json FROM finding_promotions WHERE execution_plan_id=?",
+            (execution_plan.execution_plan_id,),
+        ).fetchone()
+        payload = json.loads(row[0])
+        payload["finding"]["state"] = "tampered"
+        promotion_store.connection.execute(
+            "UPDATE finding_promotions SET outcome_json=? WHERE execution_plan_id=?",
+            (json.dumps(payload), execution_plan.execution_plan_id),
+        )
+        promotion_store.connection.commit()
+    else:
+        (m85_case[0].evidence_store.objects / bundle.evidence_refs[0]).write_bytes(
+            b"tampered"
+        )
+    store = AgentReportIntakeStore(tmp_path / "report-intakes.sqlite3")
+    service = AgentReportIntakeService(
+        scope=approved_scope,
+        finding_promotion_store=active_promotion_store,
+        critic_binding_store=m85_case[6],
+        validation_binding_store=m85_case[9],
+        validation_store=m85_case[10],
+        evidence_store=m85_case[0].evidence_store,
+        store=store,
+    )
+    with pytest.raises(AgentReportIntakeRejected):
+        service.prepare(
+            finding_execution_plan=execution_plan,
+            critic_binding_plan=binding_plan,
+            report_draft_plan=report_plan,
+            now=now + timedelta(seconds=16),
+            decision_deadline=now + timedelta(seconds=30),
+            idempotency_key=f"report-intake:m8.7:{tamper}",
+        )
+    assert store.connection.execute("SELECT count(*) FROM agent_report_intakes").fetchone()[0] == 0
+    store.close()
+    if active_promotion_store is not promotion_store:
+        active_promotion_store.close()
+    promotion_store.close()
+    _close_m85_case(m85_case)
+
+
+def test_report_intake_contracts_and_sqlite_are_digest_only():
+    forbidden = {
+        "title",
+        "sections",
+        "text",
+        "prompt",
+        "runner",
+        "broker",
+        "url",
+        "credential",
+        "token",
+        "submission",
+    }
+    for model in (AgentReportIntakePlan, AgentReportIntakeRecord):
+        assert not set(model.model_fields) & forbidden

@@ -96,6 +96,9 @@ from vulnloom.domain.models import (
     Candidate,
     EvidenceKind,
     NetworkTargetScope,
+    ReportChannel,
+    ReportSection,
+    ReportSectionKind,
     Scope,
     ScopeState,
     SourceLocation,
@@ -121,6 +124,16 @@ from vulnloom.findings import (
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
+from vulnloom.reporting import (
+    AgentReportIntakeCommand,
+    AgentReportIntakeDecision,
+    AgentReportIntakeReason,
+    AgentReportIntakeRejected,
+    AgentReportIntakeService,
+    AgentReportIntakeStore,
+    ReportDraftPlan,
+    agent_report_intake_plan_digest,
+)
 from vulnloom.runners import (
     NetworkGrant,
     OfflineSandboxRunner,
@@ -743,6 +756,7 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             FindingPromotionStore(
                 tmp_path / "m86-finding-promotions.sqlite3"
             ) as finding_promotion_store,
+            AgentReportIntakeStore(tmp_path / "m87-report-intakes.sqlite3") as report_intake_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1388,6 +1402,116 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            evidence_ref = evidence_bundle.evidence_refs[0]
+            report_sections = (
+                ReportSection(
+                    kind=ReportSectionKind.SUMMARY,
+                    text="trusted Phase 3 report summary",
+                ),
+                ReportSection(
+                    kind=ReportSectionKind.CODE_LOCATION,
+                    text="trusted Phase 3 code location",
+                    evidence_refs=(evidence_ref,),
+                ),
+                ReportSection(
+                    kind=ReportSectionKind.REQUEST_RESPONSE,
+                    text="trusted Phase 3 request response",
+                    evidence_refs=(evidence_ref,),
+                ),
+                ReportSection(
+                    kind=ReportSectionKind.REPRODUCTION,
+                    text="trusted Phase 3 reproduction",
+                    evidence_refs=(evidence_ref,),
+                ),
+                ReportSection(
+                    kind=ReportSectionKind.IMPACT,
+                    text="trusted Phase 3 report impact",
+                    evidence_refs=(evidence_ref,),
+                ),
+                ReportSection(
+                    kind=ReportSectionKind.REMEDIATION,
+                    text="trusted Phase 3 remediation",
+                ),
+            )
+            report_draft_plan = ReportDraftPlan.create(
+                finding_id=finding_promotion_outcome.finding.finding_id,
+                finding_digest=domain_object_digest(finding_promotion_outcome.finding),
+                candidate_id=finding_promotion_outcome.promoted_candidate.candidate_id,
+                candidate_digest=domain_object_digest(finding_promotion_outcome.promoted_candidate),
+                evidence_bundle_id=evidence_bundle.bundle_id,
+                evidence_bundle_digest=domain_object_digest(evidence_bundle),
+                scope_id=scope.scope_id,
+                scope_version=scope.version,
+                channel=ReportChannel.GENERIC,
+                title="trusted Phase 3 exact report title",
+                sections=report_sections,
+                prepared_by="trusted-control-plane",
+                created_at=now + timedelta(seconds=23),
+                deadline=now + timedelta(seconds=34),
+                idempotency_key="m8.7:report-draft",
+            )
+            report_intake_service = AgentReportIntakeService(
+                scope=scope,
+                finding_promotion_store=finding_promotion_store,
+                critic_binding_store=critic_binding_store,
+                validation_binding_store=binding_store,
+                validation_store=validation_store,
+                evidence_store=evidence_store,
+                store=report_intake_store,
+            )
+            with pytest.raises(AgentReportIntakeRejected):
+                report_intake_service.prepare(
+                    finding_execution_plan=finding_execution_plan,
+                    critic_binding_plan=critic_binding_plan,
+                    report_draft_plan=report_draft_plan.model_copy(
+                        update={"title": "tampered after sealing"}
+                    ),
+                    now=now + timedelta(seconds=24),
+                    decision_deadline=now + timedelta(seconds=30),
+                    idempotency_key="m8.7:report-intake:tampered",
+                )
+            assert (
+                report_intake_store.connection.execute(
+                    "SELECT count(*) FROM agent_report_intakes"
+                ).fetchone()[0]
+                == 0
+            )
+            report_intake_plan = report_intake_service.prepare(
+                finding_execution_plan=finding_execution_plan,
+                critic_binding_plan=critic_binding_plan,
+                report_draft_plan=report_draft_plan,
+                now=now + timedelta(seconds=24),
+                decision_deadline=now + timedelta(seconds=30),
+                idempotency_key="m8.7:report-intake",
+            )
+            report_intake_command = AgentReportIntakeCommand.create(
+                intake_plan_id=report_intake_plan.intake_plan_id,
+                intake_plan_digest=agent_report_intake_plan_digest(report_intake_plan),
+                finding_promotion_outcome_id=finding_promotion_outcome.outcome_id,
+                report_draft_plan_id=report_draft_plan.plan_id,
+                report_draft_plan_digest=report_intake_plan.report_draft_plan_digest,
+                report_family_id=report_draft_plan.report_family_id,
+                report_version=report_draft_plan.version,
+                finding_id=finding_promotion_outcome.finding.finding_id,
+                decision=AgentReportIntakeDecision.ACCEPT,
+                reason_code=AgentReportIntakeReason.HUMAN_ACCEPTED_EXACT_DRAFT,
+                reviewer="phase3-human-report-reviewer",
+                decided_at=now + timedelta(seconds=25),
+            )
+            calls_before_report_intake = calls_after_finding_promotion
+            report_intake_record = report_intake_service.decide(
+                report_intake_plan,
+                report_intake_command,
+                finding_execution_plan=finding_execution_plan,
+                critic_binding_plan=critic_binding_plan,
+                report_draft_plan=report_draft_plan,
+                now=report_intake_command.decided_at,
+            )
+            calls_after_report_intake = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1428,6 +1552,8 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert finding_promotion_outcome.promoted_candidate.state.value == "promoted"
     assert finding_promotion_outcome.finding.finding_id == promotion_plan.finding_id
     assert calls_after_finding_promotion == calls_before_finding_promotion
+    assert report_intake_record.decision is AgentReportIntakeDecision.ACCEPT
+    assert calls_after_report_intake == calls_before_report_intake
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1439,6 +1565,11 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert _TARGET_BODY not in (tmp_path / "m84-critic-outcome-bindings.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m86-finding-promotions.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m87-report-intakes.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 exact report title"
+        not in (tmp_path / "m87-report-intakes.sqlite3").read_bytes()
+    )
     assert (
         b"Phase 3 human approved the exact sealed promotion"
         not in (tmp_path / "m86-finding-promotions.sqlite3").read_bytes()

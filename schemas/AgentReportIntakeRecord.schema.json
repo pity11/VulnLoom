@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "AgentReportIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentReportIntakeDecision",
+      "type": "string"
+    },
+    "AgentReportIntakeReason": {
+      "enum": [
+        "human_accepted_exact_draft",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentReportIntakeReason",
+      "type": "string"
+    },
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "finding_promotion_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Outcome Id",
+      "type": "string"
+    },
+    "finding_promotion_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Outcome Digest",
+      "type": "string"
+    },
+    "report_draft_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Id",
+      "type": "string"
+    },
+    "report_draft_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Digest",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "report_version": {
+      "minimum": 1,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentReportIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentReportIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "intake_plan_id",
+    "command_id",
+    "finding_promotion_outcome_id",
+    "finding_promotion_outcome_digest",
+    "report_draft_plan_id",
+    "report_draft_plan_digest",
+    "report_family_id",
+    "report_version",
+    "finding_id",
+    "candidate_id",
+    "evidence_bundle_id",
+    "channel",
+    "scope_id",
+    "scope_version",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at",
+    "expires_at"
+  ],
+  "title": "AgentReportIntakeRecord",
+  "type": "object"
+}

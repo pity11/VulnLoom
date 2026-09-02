@@ -299,3 +299,12 @@ at one, target requests at two, provider attempts at three, and the original Can
 `PROPOSED`. Ordinary CI covers pending/denied/revoked Approval, expiry, plan drift, idempotent replay,
 conflicts and unfinished recovery. This qualification adds no automatic Approval, Validation or
 Critic execution, public egress, Target build, report generation or Submission.
+
+M8.7 constructs one trusted-control-plane `ReportDraftPlan` from the sealed M8.6 promoted Candidate,
+verified Finding and authoritative EvidenceBundle. The Admission probe alters the sealed title and
+proves rejection before a Report Intake checkpoint, then records one explicit human `accept` without
+calling the report service. Runner calls remain at one, target requests at two, provider attempts at
+three, and no Report or artifact is created. Ordinary CI covers accept/reject/defer, plan drift,
+expiry, idempotency, conflicting report-family consumption, unfinished recovery and SQLite/schema
+absence of report prose. This qualification adds no automatic drafting, report approval, export,
+public egress, Target build or Submission.

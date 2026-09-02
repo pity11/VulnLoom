@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "finding_promotion_execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Execution Plan Id",
+      "type": "string"
+    },
+    "finding_promotion_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Outcome Id",
+      "type": "string"
+    },
+    "finding_promotion_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Outcome Digest",
+      "type": "string"
+    },
+    "report_draft_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Id",
+      "type": "string"
+    },
+    "report_draft_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Digest",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "report_version": {
+      "minimum": 1,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "finding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "decision_deadline": {
+      "format": "date-time",
+      "title": "Decision Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intake_plan_id",
+    "finding_promotion_execution_plan_id",
+    "finding_promotion_outcome_id",
+    "finding_promotion_outcome_digest",
+    "report_draft_plan_id",
+    "report_draft_plan_digest",
+    "report_family_id",
+    "report_version",
+    "finding_id",
+    "finding_digest",
+    "candidate_id",
+    "candidate_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "channel",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "decision_deadline",
+    "idempotency_key"
+  ],
+  "title": "AgentReportIntakePlan",
+  "type": "object"
+}
