@@ -115,11 +115,24 @@ from vulnloom.reporting import (
     AgentReportIntakeService,
     AgentReportIntakeStore,
     AgentReportIntakeTimedOut,
+    AgentReportReviewIntakeCommand,
+    AgentReportReviewIntakeConflict,
+    AgentReportReviewIntakeDecision,
+    AgentReportReviewIntakePlan,
+    AgentReportReviewIntakeReason,
+    AgentReportReviewIntakeRecord,
+    AgentReportReviewIntakeRecoveryRequired,
+    AgentReportReviewIntakeRejected,
+    AgentReportReviewIntakeService,
+    AgentReportReviewIntakeStore,
+    AgentReportReviewIntakeTimedOut,
     DeterministicReportService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
+    ReportReviewPlan,
     agent_report_intake_plan_digest,
+    agent_report_review_intake_plan_digest,
 )
 from vulnloom.runners import (
     NetworkGrant,
@@ -2946,4 +2959,299 @@ def test_report_draft_execution_contracts_are_digest_only():
         "submission",
     }
     for model in (AgentReportDraftExecutionPlan, AgentReportDraftOutcomeBinding):
+        assert not set(model.model_fields) & forbidden
+
+
+def _completed_m88_case(tmp_path, now, scope, candidate):
+    m87_case = _completed_m87_case(tmp_path, now, scope, candidate)
+    m86_case, _, intake_service, intake_plan, _, evidence = m87_case
+    _, _, finding_plan, _, critic_plan, bundle, report_plan = m86_case
+    execution_service, execution_store, report_store, artifact_store = _report_execution_service(
+        tmp_path, scope, intake_service
+    )
+    execution_plan = execution_service.prepare(
+        report_intake_plan=intake_plan,
+        finding_execution_plan=finding_plan,
+        critic_binding_plan=critic_plan,
+        report_draft_plan=report_plan,
+        evidence=evidence,
+        now=now + timedelta(seconds=18),
+        deadline=now + timedelta(seconds=29),
+        idempotency_key="report-draft-execution:m8.9",
+    )
+    binding = execution_service.execute(
+        execution_plan,
+        report_intake_plan=intake_plan,
+        finding_execution_plan=finding_plan,
+        critic_binding_plan=critic_plan,
+        report_draft_plan=report_plan,
+        evidence=evidence,
+        now=now + timedelta(seconds=19),
+    )
+    outcome = report_store.load_completed(report_plan.plan_id)
+    review_plan = ReportReviewPlan.create(
+        report=outcome.report,
+        artifact=outcome.artifact,
+        evidence_bundle_digest=domain_object_digest(bundle),
+        reviewer="future-human-report-reviewer",
+        diff_id=None,
+        created_at=now + timedelta(seconds=20),
+        deadline=now + timedelta(seconds=28),
+        approval_expires_at=now + timedelta(seconds=29),
+        idempotency_key="report-review:m8.9",
+    )
+    return (
+        m87_case,
+        execution_store,
+        report_store,
+        artifact_store,
+        execution_plan,
+        binding,
+        outcome,
+        bundle,
+        evidence,
+        review_plan,
+    )
+
+
+def _close_m89_case(case, review_intake_store=None):
+    m87_case, execution_store, report_store, *_ = case
+    if review_intake_store is not None:
+        review_intake_store.close()
+    _close_m88_case(m87_case, execution_store, report_store)
+
+
+def _report_review_intake_service(tmp_path, scope, case):
+    (
+        m87_case,
+        execution_store,
+        report_store,
+        artifact_store,
+        *_,
+    ) = case
+    evidence_store = m87_case[2].evidence_store
+    store = AgentReportReviewIntakeStore(tmp_path / "report-review-intakes-m8.9.sqlite3")
+    service = AgentReportReviewIntakeService(
+        scope=scope,
+        draft_execution_store=execution_store,
+        report_store=report_store,
+        artifact_store=artifact_store,
+        evidence_store=evidence_store,
+        store=store,
+    )
+    return service, store
+
+
+@pytest.mark.parametrize("decision", tuple(AgentReportReviewIntakeDecision))
+def test_report_review_intake_records_human_selection_without_reviewing(
+    tmp_path, now, approved_scope, candidate, decision
+):
+    case = _completed_m88_case(tmp_path, now, approved_scope, candidate)
+    (
+        m87_case,
+        _,
+        report_store,
+        _,
+        execution_plan,
+        binding,
+        outcome,
+        bundle,
+        evidence,
+        review_plan,
+    ) = case
+    service, store = _report_review_intake_service(tmp_path, approved_scope, case)
+    plan = service.prepare(
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        now=now + timedelta(seconds=21),
+        decision_deadline=now + timedelta(seconds=27),
+        idempotency_key=f"report-review-intake:m8.9:{decision.value}",
+    )
+    reason = {
+        AgentReportReviewIntakeDecision.ACCEPT: (
+            AgentReportReviewIntakeReason.HUMAN_ACCEPTED_EXACT_REVIEW
+        ),
+        AgentReportReviewIntakeDecision.REJECT: AgentReportReviewIntakeReason.HUMAN_REJECTED,
+        AgentReportReviewIntakeDecision.DEFER: AgentReportReviewIntakeReason.HUMAN_DEFERRED,
+    }[decision]
+    command = AgentReportReviewIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_review_intake_plan_digest(plan),
+        draft_outcome_binding_id=binding.binding_id,
+        report_review_plan_id=review_plan.plan_id,
+        report_review_plan_digest=plan.report_review_plan_digest,
+        report_id=outcome.report.report_id,
+        report_digest=plan.report_digest,
+        decision=decision,
+        reason_code=reason,
+        reviewer="human-review-intake-reviewer",
+        decided_at=now + timedelta(seconds=22),
+    )
+    m85_case = m87_case[0][0]
+    calls_before = (m85_case[-2].calls, len(m85_case[-1].calls))
+    record = service.decide(
+        plan,
+        command,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        now=command.decided_at,
+    )
+    assert record.decision is decision
+    assert store.load_completed(plan.intake_plan_id) == record
+    assert (
+        service.decide(
+            plan,
+            command,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=now + timedelta(seconds=23),
+        )
+        == record
+    )
+    assert report_store.load_completed(outcome.plan_id).report.review_status.value == "draft"
+    assert candidate.state is CandidateState.PROPOSED
+    assert (m85_case[-2].calls, len(m85_case[-1].calls)) == calls_before
+    assert not hasattr(service, "review")
+    persisted = (tmp_path / "report-review-intakes-m8.9.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted exact report title",
+        b"trusted report summary",
+        b"trusted reproduction",
+        b"Authorization",
+        b"submission",
+    ):
+        assert forbidden not in persisted
+    conflicting_command = AgentReportReviewIntakeCommand.create(
+        **command.model_dump(mode="python", exclude={"command_id", "reviewer"}),
+        reviewer="second-human-review-intake-reviewer",
+    )
+    with pytest.raises(AgentReportReviewIntakeConflict):
+        service.decide(
+            plan,
+            conflicting_command,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=now + timedelta(seconds=23),
+        )
+    _close_m89_case(case, store)
+
+
+def test_report_review_intake_rejects_drift_timeout_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m88_case(tmp_path, now, approved_scope, candidate)
+    *_, execution_plan, binding, outcome, bundle, evidence, review_plan = case
+    service, store = _report_review_intake_service(tmp_path, approved_scope, case)
+    with pytest.raises(AgentReportReviewIntakeRejected):
+        service.prepare(
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan.model_copy(update={"reviewer": "drifted"}),
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=now + timedelta(seconds=21),
+            decision_deadline=now + timedelta(seconds=27),
+            idempotency_key="report-review-intake:m8.9:drift",
+        )
+    plan = service.prepare(
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        now=now + timedelta(seconds=21),
+        decision_deadline=now + timedelta(seconds=25),
+        idempotency_key="report-review-intake:m8.9:recovery",
+    )
+    command = AgentReportReviewIntakeCommand.create(
+        intake_plan_id=plan.intake_plan_id,
+        intake_plan_digest=agent_report_review_intake_plan_digest(plan),
+        draft_outcome_binding_id=binding.binding_id,
+        report_review_plan_id=review_plan.plan_id,
+        report_review_plan_digest=plan.report_review_plan_digest,
+        report_id=outcome.report.report_id,
+        report_digest=plan.report_digest,
+        decision=AgentReportReviewIntakeDecision.ACCEPT,
+        reason_code=AgentReportReviewIntakeReason.HUMAN_ACCEPTED_EXACT_REVIEW,
+        reviewer="human-review-intake-reviewer",
+        decided_at=now + timedelta(seconds=22),
+    )
+    with pytest.raises(AgentReportReviewIntakeTimedOut):
+        service.decide(
+            plan,
+            command,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=plan.decision_deadline,
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_review_intakes").fetchone()[0]
+        == 0
+    )
+    store.claim(plan, command, now=command.decided_at)
+    with pytest.raises(AgentReportReviewIntakeRecoveryRequired):
+        service.decide(
+            plan,
+            command,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=command.decided_at,
+        )
+    _close_m89_case(case, store)
+
+
+def test_report_review_intake_rejects_corrupt_draft_artifact_before_checkpoint(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m88_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, artifact_store, execution_plan, _, outcome, bundle, evidence, review_plan = case
+    service, store = _report_review_intake_service(tmp_path, approved_scope, case)
+    artifact_path = artifact_store.root / outcome.artifact.markdown_ref
+    artifact_path.chmod(0o600)
+    artifact_path.write_text("tampered", encoding="utf-8")
+    with pytest.raises(AgentReportReviewIntakeRejected, match="unavailable"):
+        service.prepare(
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            now=now + timedelta(seconds=21),
+            decision_deadline=now + timedelta(seconds=27),
+            idempotency_key="report-review-intake:m8.9:artifact",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_review_intakes").fetchone()[0]
+        == 0
+    )
+    _close_m89_case(case, store)
+
+
+def test_report_review_intake_contracts_are_digest_only():
+    forbidden = {
+        "title",
+        "sections",
+        "text",
+        "prompt",
+        "runner",
+        "broker",
+        "url",
+        "credential",
+        "token",
+        "approval",
+        "submission",
+    }
+    for model in (
+        AgentReportReviewIntakePlan,
+        AgentReportReviewIntakeRecord,
+    ):
         assert not set(model.model_fields) & forbidden

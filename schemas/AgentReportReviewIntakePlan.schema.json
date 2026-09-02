@@ -10,58 +10,75 @@
       ],
       "title": "ReportChannel",
       "type": "string"
+    },
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
     }
   },
   "additionalProperties": false,
   "properties": {
-    "execution_plan_id": {
+    "intake_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Execution Plan Id",
+      "title": "Intake Plan Id",
       "type": "string"
     },
-    "report_intake_plan_id": {
+    "draft_execution_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Report Intake Plan Id",
+      "title": "Draft Execution Plan Id",
       "type": "string"
     },
-    "report_intake_record_id": {
+    "draft_execution_plan_digest": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Report Intake Record Id",
+      "title": "Draft Execution Plan Digest",
       "type": "string"
     },
-    "report_intake_record_digest": {
+    "draft_outcome_binding_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Report Intake Record Digest",
+      "title": "Draft Outcome Binding Id",
       "type": "string"
     },
-    "finding_promotion_execution_plan_id": {
+    "draft_outcome_binding_digest": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Finding Promotion Execution Plan Id",
+      "title": "Draft Outcome Binding Digest",
       "type": "string"
     },
-    "finding_promotion_outcome_id": {
+    "report_outcome_digest": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Finding Promotion Outcome Id",
+      "title": "Report Outcome Digest",
       "type": "string"
     },
-    "finding_promotion_outcome_digest": {
+    "report_review_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Finding Promotion Outcome Digest",
+      "title": "Report Review Plan Id",
       "type": "string"
     },
-    "report_draft_plan_id": {
+    "report_review_plan_digest": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Report Draft Plan Id",
+      "title": "Report Review Plan Digest",
       "type": "string"
     },
-    "report_draft_plan_digest": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Report Draft Plan Digest",
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
       "type": "string"
     },
-    "evidence_catalog_digest": {
+    "report_digest": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Evidence Catalog Digest",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
       "type": "string"
     },
     "report_family_id": {
@@ -94,8 +111,16 @@
       "title": "Evidence Bundle Digest",
       "type": "string"
     },
+    "evidence_catalog_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Catalog Digest",
+      "type": "string"
+    },
     "channel": {
       "$ref": "#/$defs/ReportChannel"
+    },
+    "review_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
     },
     "scope_id": {
       "format": "uuid",
@@ -112,9 +137,9 @@
       "title": "Created At",
       "type": "string"
     },
-    "deadline": {
+    "decision_deadline": {
       "format": "date-time",
-      "title": "Deadline",
+      "title": "Decision Deadline",
       "type": "string"
     },
     "idempotency_key": {
@@ -125,29 +150,32 @@
     }
   },
   "required": [
-    "execution_plan_id",
-    "report_intake_plan_id",
-    "report_intake_record_id",
-    "report_intake_record_digest",
-    "finding_promotion_execution_plan_id",
-    "finding_promotion_outcome_id",
-    "finding_promotion_outcome_digest",
-    "report_draft_plan_id",
-    "report_draft_plan_digest",
-    "evidence_catalog_digest",
+    "intake_plan_id",
+    "draft_execution_plan_id",
+    "draft_execution_plan_digest",
+    "draft_outcome_binding_id",
+    "draft_outcome_binding_digest",
+    "report_outcome_digest",
+    "report_review_plan_id",
+    "report_review_plan_digest",
+    "report_id",
+    "report_digest",
+    "artifact_digest",
     "report_family_id",
     "report_version",
     "finding_id",
     "candidate_id",
     "evidence_bundle_id",
     "evidence_bundle_digest",
+    "evidence_catalog_digest",
     "channel",
+    "review_status",
     "scope_id",
     "scope_version",
     "created_at",
-    "deadline",
+    "decision_deadline",
     "idempotency_key"
   ],
-  "title": "AgentReportDraftExecutionPlan",
+  "title": "AgentReportReviewIntakePlan",
   "type": "object"
 }

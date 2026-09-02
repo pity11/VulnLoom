@@ -63,7 +63,7 @@ VulnLoom/
 ```
 
 An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M8.8 include deterministic replay, fixed provider
+they are not present in the current tree. M7.1a-M8.9 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
@@ -530,6 +530,17 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
   target, or access Runner, Broker, provider or network capabilities.
 - Drift, expiry, non-accepted Intake, pre-existing unbound drafts, conflicts and unfinished
   checkpoints fail closed. Completed execution is read-only and idempotent.
+
+### M8.9: human Report review Intake
+
+- Reopens one completed M8.8 binding, its exact DRAFT Report and immutable artifact, plus the same
+  ordered typed Evidence catalog used for drafting.
+- Binds a trusted-control-plane-built exact `ReportReviewPlan`; human input is limited to accepting,
+  rejecting or deferring entry into the later review operation.
+- Persists only IDs, digests, typed selection and timestamps. Acceptance does not call the review
+  service or change the Report from `DRAFT`, and grants no report approval or export authority.
+- Artifact/Evidence corruption, plan drift, expiry, conflicts and unfinished recovery fail closed
+  without Runner, Broker, provider, target, network, export or Submission access.
 
 ## Local development
 

@@ -134,11 +134,19 @@ from vulnloom.reporting import (
     AgentReportIntakeRejected,
     AgentReportIntakeService,
     AgentReportIntakeStore,
+    AgentReportReviewIntakeCommand,
+    AgentReportReviewIntakeDecision,
+    AgentReportReviewIntakeReason,
+    AgentReportReviewIntakeRejected,
+    AgentReportReviewIntakeService,
+    AgentReportReviewIntakeStore,
     DeterministicReportService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
+    ReportReviewPlan,
     agent_report_intake_plan_digest,
+    agent_report_review_intake_plan_digest,
 )
 from vulnloom.runners import (
     NetworkGrant,
@@ -767,6 +775,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             AgentReportDraftExecutionStore(
                 tmp_path / "m88-report-draft-bindings.sqlite3"
             ) as report_draft_execution_store,
+            AgentReportReviewIntakeStore(
+                tmp_path / "m89-report-review-intakes.sqlite3"
+            ) as report_review_intake_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1573,6 +1584,82 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            report_review_plan = ReportReviewPlan.create(
+                report=report_outcome.report,
+                artifact=report_outcome.artifact,
+                evidence_bundle_digest=domain_object_digest(evidence_bundle),
+                reviewer="future-phase3-human-report-reviewer",
+                diff_id=None,
+                created_at=now + timedelta(seconds=28),
+                deadline=now + timedelta(seconds=33),
+                approval_expires_at=now + timedelta(seconds=34),
+                idempotency_key="m8.9:report-review",
+            )
+            report_review_intake_service = AgentReportReviewIntakeService(
+                scope=scope,
+                draft_execution_store=report_draft_execution_store,
+                report_store=report_draft_store,
+                artifact_store=report_service.artifact_store,
+                evidence_store=evidence_store,
+                store=report_review_intake_store,
+            )
+            with pytest.raises(AgentReportReviewIntakeRejected):
+                report_review_intake_service.prepare(
+                    draft_execution_plan=report_execution_plan,
+                    report_review_plan=report_review_plan.model_copy(
+                        update={"reviewer": "tampered reviewer"}
+                    ),
+                    evidence_bundle=evidence_bundle,
+                    evidence=(critic_evidence,),
+                    now=now + timedelta(seconds=29),
+                    decision_deadline=now + timedelta(seconds=32),
+                    idempotency_key="m8.9:report-review-intake:tampered",
+                )
+            assert (
+                report_review_intake_store.connection.execute(
+                    "SELECT count(*) FROM agent_report_review_intakes"
+                ).fetchone()[0]
+                == 0
+            )
+            report_review_intake_plan = report_review_intake_service.prepare(
+                draft_execution_plan=report_execution_plan,
+                report_review_plan=report_review_plan,
+                evidence_bundle=evidence_bundle,
+                evidence=(critic_evidence,),
+                now=now + timedelta(seconds=29),
+                decision_deadline=now + timedelta(seconds=32),
+                idempotency_key="m8.9:report-review-intake",
+            )
+            report_review_intake_command = AgentReportReviewIntakeCommand.create(
+                intake_plan_id=report_review_intake_plan.intake_plan_id,
+                intake_plan_digest=agent_report_review_intake_plan_digest(
+                    report_review_intake_plan
+                ),
+                draft_outcome_binding_id=report_draft_binding.binding_id,
+                report_review_plan_id=report_review_plan.plan_id,
+                report_review_plan_digest=(report_review_intake_plan.report_review_plan_digest),
+                report_id=report_outcome.report.report_id,
+                report_digest=report_review_intake_plan.report_digest,
+                decision=AgentReportReviewIntakeDecision.ACCEPT,
+                reason_code=(AgentReportReviewIntakeReason.HUMAN_ACCEPTED_EXACT_REVIEW),
+                reviewer="phase3-human-report-review-intake-reviewer",
+                decided_at=now + timedelta(seconds=30),
+            )
+            calls_before_report_review_intake = calls_after_report_execution
+            report_review_intake_record = report_review_intake_service.decide(
+                report_review_intake_plan,
+                report_review_intake_command,
+                draft_execution_plan=report_execution_plan,
+                report_review_plan=report_review_plan,
+                evidence_bundle=evidence_bundle,
+                evidence=(critic_evidence,),
+                now=report_review_intake_command.decided_at,
+            )
+            calls_after_report_review_intake = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1618,6 +1705,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert report_draft_binding.review_status.value == "draft"
     assert report_draft_binding.report_id == report_outcome.report.report_id
     assert calls_after_report_execution == calls_before_report_execution
+    assert report_review_intake_record.decision is AgentReportReviewIntakeDecision.ACCEPT
+    assert report_outcome.report.review_status.value == "draft"
+    assert calls_after_report_review_intake == calls_before_report_review_intake
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1634,6 +1724,11 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert (
         b"trusted Phase 3 exact report title"
         not in (tmp_path / "m88-report-draft-bindings.sqlite3").read_bytes()
+    )
+    assert _TARGET_BODY not in (tmp_path / "m89-report-review-intakes.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 exact report title"
+        not in (tmp_path / "m89-report-review-intakes.sqlite3").read_bytes()
     )
     assert (
         b"trusted Phase 3 exact report title"

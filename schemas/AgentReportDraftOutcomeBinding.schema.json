@@ -101,6 +101,11 @@
       "title": "Evidence Bundle Id",
       "type": "string"
     },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
     "channel": {
       "$ref": "#/$defs/ReportChannel"
     },
@@ -129,6 +134,7 @@
     "finding_id",
     "candidate_id",
     "evidence_bundle_id",
+    "evidence_bundle_digest",
     "channel",
     "review_status",
     "completed_at"

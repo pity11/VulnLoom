@@ -29,6 +29,7 @@ class AgentReportDraftExecutionPlan(DomainModel):
     finding_id: UUID
     candidate_id: UUID
     evidence_bundle_id: UUID
+    evidence_bundle_digest: Digest
     channel: ReportChannel
     scope_id: UUID
     scope_version: int = Field(ge=1)
@@ -71,6 +72,7 @@ class AgentReportDraftOutcomeBinding(DomainModel):
     finding_id: UUID
     candidate_id: UUID
     evidence_bundle_id: UUID
+    evidence_bundle_digest: Digest
     channel: ReportChannel
     review_status: ReportReviewStatus
     completed_at: AwareDatetime

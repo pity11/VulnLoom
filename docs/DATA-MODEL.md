@@ -581,6 +581,18 @@ Finding、Candidate、EvidenceBundle 和原 draft plan 的摘要，并强制 `re
 Report artifact/store 边界。completed replay 不重新 drafting，冲突、预存在未绑定 draft 或遗留 STARTED
 不会自动恢复，也不会批准、导出或提交报告。
 
+### AgentReportReviewIntakePlan、Command 与 Record
+
+M8.9 的 `AgentReportReviewIntakePlan` 内容寻址绑定 completed M8.8 execution/binding、`ReportOutcome`、
+仍为 `DRAFT` 的 Report、immutable artifact、EvidenceBundle、与 drafting 相同的有序 typed Evidence
+catalog、exact `ReportReviewPlan`、Scope 和人工决策窗口。持久化计划不含报告正文、Evidence 正文、
+Agent 输出、工具参数、Approval 或 Submission。
+
+`AgentReportReviewIntakeCommand` 只表示人工 `accept|reject|defer` 是否进入后续 review，并绑定 exact
+M8.8 binding、Report、ReviewPlan、reviewer 与 decision time。`AgentReportReviewIntakeRecord` 保存同一
+来源链的摘要和 typed 决定；accepted 不等于 `HUMAN_APPROVED`，Report 仍为 `DRAFT`。独立 SQLite
+唯一消费 draft binding、Report、ReviewPlan 与 command，遗留 STARTED 不会调用 review service。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -45,6 +45,27 @@ from .models import (
 )
 from .render import render_markdown
 from .review import HumanReportReviewService, LocalReportExportService, ReportReviewRejected
+from .review_intake import (
+    AgentReportReviewIntakeRejected,
+    AgentReportReviewIntakeService,
+    AgentReportReviewIntakeTimedOut,
+)
+from .review_intake_models import (
+    AgentReportReviewIntakeCommand,
+    AgentReportReviewIntakeDecision,
+    AgentReportReviewIntakePlan,
+    AgentReportReviewIntakeReason,
+    AgentReportReviewIntakeRecord,
+    agent_report_review_intake_command_digest,
+    agent_report_review_intake_plan_digest,
+    agent_report_review_intake_record_digest,
+)
+from .review_intake_store import (
+    AgentReportReviewIntakeClaim,
+    AgentReportReviewIntakeConflict,
+    AgentReportReviewIntakeRecoveryRequired,
+    AgentReportReviewIntakeStore,
+)
 from .review_models import (
     ReportExportOutcome,
     ReportExportPlan,
@@ -99,6 +120,18 @@ __all__ = [
     "AgentReportIntakeService",
     "AgentReportIntakeStore",
     "AgentReportIntakeTimedOut",
+    "AgentReportReviewIntakeClaim",
+    "AgentReportReviewIntakeCommand",
+    "AgentReportReviewIntakeConflict",
+    "AgentReportReviewIntakeDecision",
+    "AgentReportReviewIntakePlan",
+    "AgentReportReviewIntakeReason",
+    "AgentReportReviewIntakeRecord",
+    "AgentReportReviewIntakeRecoveryRequired",
+    "AgentReportReviewIntakeRejected",
+    "AgentReportReviewIntakeService",
+    "AgentReportReviewIntakeStore",
+    "AgentReportReviewIntakeTimedOut",
     "HumanReportReviewService",
     "LocalReportExportService",
     "ReportChangeKind",
@@ -134,6 +167,9 @@ __all__ = [
     "agent_report_intake_command_digest",
     "agent_report_intake_plan_digest",
     "agent_report_intake_record_digest",
+    "agent_report_review_intake_command_digest",
+    "agent_report_review_intake_plan_digest",
+    "agent_report_review_intake_record_digest",
     "diff_reports",
     "domain_object_digest",
     "evidence_catalog_digest",

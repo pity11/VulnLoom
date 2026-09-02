@@ -732,3 +732,20 @@ Completed execution is idempotent and read-only. Drift, expiry, non-accepted dec
 Evidence, conflicting consumption and unfinished checkpoints fail closed without automatic replay.
 The component has no Runner, Broker, provider, target-build, public-network, Approval, export or
 Submission dependency, and does not mutate Candidate or Finding state.
+
+## 43. M8.9 human Report review Intake
+
+M8.9 inserts another human selection boundary between a completed M8.8 local DRAFT binding and the
+existing `HumanReportReviewService`. It reopens the authoritative M8.8 execution checkpoint,
+ReportDraft outcome and immutable artifact, verifies the same ordered typed Evidence catalog sealed
+for drafting, and binds those objects to an independently constructed exact `ReportReviewPlan`.
+
+Human commands are limited to accept, reject and defer entry into a later review operation. Even an
+accepted record cannot call the review service or apply approve, request-changes or reject to the
+Report. The Report remains `DRAFT`; the Intake store contains only identities, digests, typed
+selection and timestamps, never report prose or Evidence bodies.
+
+The independent STARTED/COMPLETED ledger uniquely consumes the M8.8 binding, Report, review plan and
+command. Missing or corrupt artifacts, Evidence/catalog drift, expired Scope or plan, conflicting
+consumption and unfinished recovery fail closed. Runner, Broker, provider, target-build, network,
+report approval, export and Submission capabilities are absent.

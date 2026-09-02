@@ -331,3 +331,12 @@ remain at one, target requests at two, provider attempts at three, and Candidate
 unchanged. Ordinary CI covers non-accepted Intake, drift, timeout, pre-existing unbound drafts,
 idempotency, conflict, unfinished recovery and schema/SQLite absence of prose. This qualification
 adds no report approval, export, public egress, Target build or Submission.
+
+M8.9 reopens that completed M8.8 binding, its authoritative DRAFT and immutable artifact, and the
+same ordered typed Evidence catalog, then binds them to one trusted-control-plane `ReportReviewPlan`.
+The Admission probe changes the sealed future reviewer and proves rejection before an Intake
+checkpoint, then records one explicit human `accept` without calling `HumanReportReviewService`.
+The Report remains `DRAFT`; Runner calls remain at one, target requests at two and provider attempts
+at three. Ordinary CI covers accept/reject/defer, plan drift, expiry, artifact corruption,
+idempotency, conflict, unfinished recovery and schema/SQLite absence of prose. This qualification
+adds no report decision, approval, export, public egress, Target build or Submission.

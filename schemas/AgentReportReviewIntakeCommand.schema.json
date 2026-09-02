@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "AgentReportReviewIntakeDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "AgentReportReviewIntakeDecision",
+      "type": "string"
+    },
+    "AgentReportReviewIntakeReason": {
+      "enum": [
+        "human_accepted_exact_review",
+        "human_rejected",
+        "human_deferred"
+      ],
+      "title": "AgentReportReviewIntakeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Digest",
+      "type": "string"
+    },
+    "draft_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Draft Outcome Binding Id",
+      "type": "string"
+    },
+    "report_review_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Plan Id",
+      "type": "string"
+    },
+    "report_review_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Plan Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/AgentReportReviewIntakeDecision"
+    },
+    "reason_code": {
+      "$ref": "#/$defs/AgentReportReviewIntakeReason"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "intake_plan_id",
+    "intake_plan_digest",
+    "draft_outcome_binding_id",
+    "report_review_plan_id",
+    "report_review_plan_digest",
+    "report_id",
+    "report_digest",
+    "decision",
+    "reason_code",
+    "reviewer",
+    "decided_at"
+  ],
+  "title": "AgentReportReviewIntakeCommand",
+  "type": "object"
+}

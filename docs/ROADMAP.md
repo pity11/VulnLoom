@@ -599,6 +599,26 @@ M8.7 只是人工选择 exact 报告输入，不是报告生成或披露授权�
 M8.8 只生成本地 DRAFT 和来源绑定，不批准或导出报告，不构建目标，不访问公网，也不创建或发送
 Submission。后续 review/export 必须继续走既有独立人工流程；Submission 仍不在 Agent 路径内。
 
+### M8.9：人工 Report Review Intake 与 M8.8 DRAFT 绑定（已完成首版）
+
+- 新增内容寻址的 `AgentReportReviewIntakePlan`，绑定 completed M8.8 execution/binding、权威
+  `ReportOutcome`、immutable artifact、仍为 `DRAFT` 的 Report、EvidenceBundle、与 M8.8 完全一致的
+  有序 typed Evidence catalog，以及可信控制面独立构造的 exact `ReportReviewPlan`。
+- 人工命令只允许 `accept`、`reject` 或 `defer` 是否进入后续 review；accepted 仅生成 digest-only
+  record，不调用 `HumanReportReviewService`，不执行 approve/request-changes/reject 状态转换。
+- 决策前重新读取 M8.8 completed checkpoint、Report draft store、artifact 与每个 Evidence object，
+  重算 Report/artifact/bundle/catalog/review plan 摘要；非 DRAFT、缺失、篡改、过期或跨 Scope/Candidate
+  漂移均在 Intake checkpoint 前 fail-closed。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint，唯一消费 M8.8 binding、Report、ReviewPlan 与
+  command；同一决定幂等返回，冲突和遗留 STARTED 拒绝自动恢复，且不保存报告正文。
+- 常规测试覆盖三种人工决定、plan 漂移、超时、artifact 损坏、幂等、冲突、恢复和 schema/SQLite
+  digest-only；Phase 3 Admission 证明 Intake 前后 Runner、Broker、provider、target 调用计数不变，
+  Report 仍为 `DRAFT`。
+
+M8.9 只是人工选择 exact review 输入，不是报告批准。后续 M8.10 必须要求 accepted M8.9 record 与
+独立人工 `ReportReviewCommand`，并重新验证全部来源后才可调用既有 review 状态机；export 与 Submission
+仍保持独立且不在本里程碑权限内。
+
 ## 延后事项
 
 - 公网资产自主发现。
