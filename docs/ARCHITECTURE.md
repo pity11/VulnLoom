@@ -713,3 +713,22 @@ The independent STARTED/COMPLETED ledger uniquely consumes a ReportDraftPlan and
 Completed replay is idempotent, while drift, expiry, conflicting consumption, corrupt Evidence and
 unfinished recovery fail closed. The service has no Runner, Broker, provider, target, build, network,
 report execution, export or Submission dependency.
+
+## 42. M8.8 accepted Intake deterministic local draft binding
+
+M8.8 is the only Agent-path adapter permitted to invoke the existing deterministic report drafting
+service, and only after an exact M8.7 Intake was explicitly accepted by a human. It reopens the
+completed M8.6 promotion, M8.4 Critic binding, M8.2 Validation binding and Validation/Evidence chain,
+then seals the ordered typed Evidence catalog together with the exact `ReportDraftPlan` into a
+content-addressed execution plan. No Agent output is accepted as a report field or tool parameter.
+
+The execution store first rejects any ReportDraft checkpoint that predates its accepted execution,
+then records a unique STARTED checkpoint and calls the offline `DeterministicReportService`. The
+result must reopen from both the ReportDraft ledger and immutable artifact store, and must remain in
+`DRAFT` review state. A separate outcome binding stores only identities, digests, typed channel and
+timestamps; report prose stays in the existing redacted local artifact boundary.
+
+Completed execution is idempotent and read-only. Drift, expiry, non-accepted decisions, corrupt
+Evidence, conflicting consumption and unfinished checkpoints fail closed without automatic replay.
+The component has no Runner, Broker, provider, target-build, public-network, Approval, export or
+Submission dependency, and does not mutate Candidate or Finding state.

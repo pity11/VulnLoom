@@ -579,6 +579,26 @@ M8.6 首次形成经过 Validation、Critic、人工选择和精确 Approval 的
 M8.7 只是人工选择 exact 报告输入，不是报告生成或披露授权。后续 M8.8 才能从 accepted record 与
 权威 Evidence 重读结果，通过确定性服务生成本地 draft Report；review、export 和 Submission 仍保持独立。
 
+### M8.8：accepted Intake 的确定性本地报告草稿与结果绑定（已完成首版）
+
+- 新增内容寻址的 `AgentReportDraftExecutionPlan`，只接受仍有效且人工 accepted 的 M8.7 record，绑定
+  M8.6 promotion outcome、exact `ReportDraftPlan`、有序 typed Evidence catalog、report family/version、
+  Finding、Candidate、EvidenceBundle、Scope 与执行窗口。
+- 执行前重新读取 M8.7/M8.6/M8.4/M8.2、Validation、Evidence 和 promotion completed checkpoint，
+  并重算全部摘要；非 accepted、过期、缺失、篡改、Evidence catalog 漂移或预先存在的未绑定报告
+  checkpoint 均 fail-closed。
+- 通过既有 `DeterministicReportService` 生成唯一的本地 immutable Report artifact；结果强制保持
+  `DRAFT`，另存 digest-only `AgentReportDraftOutcomeBinding`，不把 title、sections 或 Evidence 正文
+  写入 Agent execution ledger。
+- 独立 SQLite 使用 STARTED/COMPLETED checkpoint；completed replay 只读幂等，重复消费、冲突和遗留
+  STARTED 拒绝自动执行，失败不会重试报告服务或触发外部清理动作。
+- 常规测试覆盖成功、非 accepted、plan/Evidence 漂移、超时、预存在 draft、幂等、冲突、恢复和
+  schema/SQLite 无正文；Phase 3 Admission 证明本地 drafting 前后 Runner、Broker、provider、target
+  调用计数不变，原始 Candidate 与 sealed Finding 不变。
+
+M8.8 只生成本地 DRAFT 和来源绑定，不批准或导出报告，不构建目标，不访问公网，也不创建或发送
+Submission。后续 review/export 必须继续走既有独立人工流程；Submission 仍不在 Agent 路径内。
+
 ## 延后事项
 
 - 公网资产自主发现。

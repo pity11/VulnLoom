@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ReportChannel": {
+      "enum": [
+        "generic",
+        "edusrc",
+        "cnvd",
+        "vendor",
+        "cve-draft"
+      ],
+      "title": "ReportChannel",
+      "type": "string"
+    },
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "report_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Intake Record Id",
+      "type": "string"
+    },
+    "finding_promotion_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Promotion Outcome Id",
+      "type": "string"
+    },
+    "report_draft_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Id",
+      "type": "string"
+    },
+    "report_draft_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Draft Plan Digest",
+      "type": "string"
+    },
+    "report_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Outcome Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "report_family_id": {
+      "format": "uuid",
+      "title": "Report Family Id",
+      "type": "string"
+    },
+    "report_version": {
+      "minimum": 1,
+      "title": "Report Version",
+      "type": "integer"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "channel": {
+      "$ref": "#/$defs/ReportChannel"
+    },
+    "review_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "report_intake_record_id",
+    "finding_promotion_outcome_id",
+    "report_draft_plan_id",
+    "report_draft_plan_digest",
+    "report_outcome_digest",
+    "report_id",
+    "report_digest",
+    "artifact_digest",
+    "report_family_id",
+    "report_version",
+    "finding_id",
+    "candidate_id",
+    "evidence_bundle_id",
+    "channel",
+    "review_status",
+    "completed_at"
+  ],
+  "title": "AgentReportDraftOutcomeBinding",
+  "type": "object"
+}

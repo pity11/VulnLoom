@@ -568,6 +568,19 @@ report family、Finding、reviewer 与 decision time。`AgentReportIntakeRecord`
 决定；accepted 不表示 Report 已生成、审阅、批准、导出或提交。独立 SQLite 唯一消费 ReportDraftPlan、
 report family 与 command，遗留 STARTED 不会调用报告服务或自动恢复。
 
+### AgentReportDraftExecutionPlan 与 OutcomeBinding
+
+M8.8 的 `AgentReportDraftExecutionPlan` 内容寻址绑定 accepted M8.7 record、M8.6 promotion
+execution/outcome、exact `ReportDraftPlan`、有序 typed Evidence catalog 的摘要、report family/version、
+Finding、Candidate、EvidenceBundle、channel、Scope 和执行窗口。它不包含 title、sections、text、Agent
+输出、Runner/Broker 参数、URL、credential、Approval 或 Submission 字段。
+
+`AgentReportDraftOutcomeBinding` 绑定 completed `ReportOutcome`、本地 immutable artifact、Report、
+Finding、Candidate、EvidenceBundle 和原 draft plan 的摘要，并强制 `review_status=DRAFT`。独立 SQLite
+唯一消费 Intake record 与 ReportDraftPlan，只保存 digest-only binding；完整脱敏正文只存在既有
+Report artifact/store 边界。completed replay 不重新 drafting，冲突、预存在未绑定 draft 或遗留 STARTED
+不会自动恢复，也不会批准、导出或提交报告。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

@@ -105,6 +105,27 @@ class ReportDraftStore:
         if changed != 1:
             raise ReportRecoveryRequired("report STARTED checkpoint is unavailable")
 
+    def has_checkpoint(self, plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM report_executions WHERE plan_id=?", (plan_id,)
+            ).fetchone()
+            is not None
+        )
+
+    def load_completed(self, plan_id: str) -> ReportOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM report_executions WHERE plan_id=?", (plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("report outcome is unavailable")
+        if row["state"] != "completed" or row["outcome_json"] is None:
+            raise ReportRecoveryRequired("report has an unfinished STARTED checkpoint")
+        outcome = ReportOutcome.model_validate_json(row["outcome_json"])
+        if outcome.plan_id != plan_id or outcome.completed_at.isoformat() != row["completed_at"]:
+            raise ReportRecoveryRequired("report completed checkpoint drifted")
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

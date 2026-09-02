@@ -79,7 +79,7 @@ class AgentReportIntakeService:
         decision_deadline: datetime,
         idempotency_key: str,
     ) -> AgentReportIntakePlan:
-        outcome, bundle = self._load(
+        outcome, bundle = self.load_authoritative(
             finding_execution_plan=finding_execution_plan,
             critic_binding_plan=critic_binding_plan,
             report_draft_plan=report_draft_plan,
@@ -127,7 +127,7 @@ class AgentReportIntakeService:
             raise AgentReportIntakeRejected("Report Intake boundary validation failed") from exc
         if now < plan.created_at or now >= plan.decision_deadline:
             raise AgentReportIntakeTimedOut("Report Intake decision is outside its window")
-        self._load(
+        self.load_authoritative(
             finding_execution_plan=finding_execution_plan,
             critic_binding_plan=critic_binding_plan,
             report_draft_plan=report_draft_plan,
@@ -186,7 +186,7 @@ class AgentReportIntakeService:
         self.store.complete(record)
         return record
 
-    def _load(
+    def load_authoritative(
         self,
         *,
         finding_execution_plan,
@@ -194,6 +194,7 @@ class AgentReportIntakeService:
         report_draft_plan,
         now,
     ):
+        """Re-read and verify the sealed Finding, Validation, Evidence, and draft chain."""
         try:
             FindingPromotionExecutionPlan.model_validate(finding_execution_plan)
             AgentCriticOutcomeBindingPlan.model_validate(critic_binding_plan)

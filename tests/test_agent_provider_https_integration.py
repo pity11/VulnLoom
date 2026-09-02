@@ -125,13 +125,19 @@ from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
+    AgentReportDraftExecutionRejected,
+    AgentReportDraftExecutionService,
+    AgentReportDraftExecutionStore,
     AgentReportIntakeCommand,
     AgentReportIntakeDecision,
     AgentReportIntakeReason,
     AgentReportIntakeRejected,
     AgentReportIntakeService,
     AgentReportIntakeStore,
+    DeterministicReportService,
+    ReportArtifactStore,
     ReportDraftPlan,
+    ReportDraftStore,
     agent_report_intake_plan_digest,
 )
 from vulnloom.runners import (
@@ -757,6 +763,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 tmp_path / "m86-finding-promotions.sqlite3"
             ) as finding_promotion_store,
             AgentReportIntakeStore(tmp_path / "m87-report-intakes.sqlite3") as report_intake_store,
+            ReportDraftStore(tmp_path / "m88-report-drafts.sqlite3") as report_draft_store,
+            AgentReportDraftExecutionStore(
+                tmp_path / "m88-report-draft-bindings.sqlite3"
+            ) as report_draft_execution_store,
         ):
             root_outcome = OfflineAgentRuntime(
                 store=root_store,
@@ -1512,6 +1522,57 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            report_service = DeterministicReportService(
+                scope=scope,
+                evidence_store=evidence_store,
+                store=report_draft_store,
+                artifact_store=ReportArtifactStore(tmp_path / "m88-report-artifacts"),
+            )
+            report_execution_service = AgentReportDraftExecutionService(
+                intake_service=report_intake_service,
+                report_service=report_service,
+                store=report_draft_execution_store,
+            )
+            drifted_evidence = critic_evidence.model_copy(
+                update={"summary": "tampered Evidence metadata"}
+            )
+            report_execution_plan = report_execution_service.prepare(
+                report_intake_plan=report_intake_plan,
+                finding_execution_plan=finding_execution_plan,
+                critic_binding_plan=critic_binding_plan,
+                report_draft_plan=report_draft_plan,
+                evidence=(critic_evidence,),
+                now=now + timedelta(seconds=26),
+                deadline=now + timedelta(seconds=29),
+                idempotency_key="m8.8:report-draft-execution",
+            )
+            with pytest.raises(AgentReportDraftExecutionRejected):
+                report_execution_service.execute(
+                    report_execution_plan,
+                    report_intake_plan=report_intake_plan,
+                    finding_execution_plan=finding_execution_plan,
+                    critic_binding_plan=critic_binding_plan,
+                    report_draft_plan=report_draft_plan,
+                    evidence=(drifted_evidence,),
+                    now=now + timedelta(seconds=27),
+                )
+            assert not report_draft_store.has_checkpoint(report_draft_plan.plan_id)
+            calls_before_report_execution = calls_after_report_intake
+            report_draft_binding = report_execution_service.execute(
+                report_execution_plan,
+                report_intake_plan=report_intake_plan,
+                finding_execution_plan=finding_execution_plan,
+                critic_binding_plan=critic_binding_plan,
+                report_draft_plan=report_draft_plan,
+                evidence=(critic_evidence,),
+                now=now + timedelta(seconds=27),
+            )
+            report_outcome = report_draft_store.load_completed(report_draft_plan.plan_id)
+            calls_after_report_execution = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
         target_server.shutdown()
         target_server.server_close()
@@ -1554,6 +1615,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert calls_after_finding_promotion == calls_before_finding_promotion
     assert report_intake_record.decision is AgentReportIntakeDecision.ACCEPT
     assert calls_after_report_intake == calls_before_report_intake
+    assert report_draft_binding.review_status.value == "draft"
+    assert report_draft_binding.report_id == report_outcome.report.report_id
+    assert calls_after_report_execution == calls_before_report_execution
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1566,6 +1630,11 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert _TARGET_BODY not in (tmp_path / "m85-finding-intakes.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m86-finding-promotions.sqlite3").read_bytes()
     assert _TARGET_BODY not in (tmp_path / "m87-report-intakes.sqlite3").read_bytes()
+    assert _TARGET_BODY not in (tmp_path / "m88-report-draft-bindings.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 exact report title"
+        not in (tmp_path / "m88-report-draft-bindings.sqlite3").read_bytes()
+    )
     assert (
         b"trusted Phase 3 exact report title"
         not in (tmp_path / "m87-report-intakes.sqlite3").read_bytes()

@@ -1,6 +1,24 @@
 """Deterministic offline report drafting and local export."""
 
 from .diff import ReportChangeKind, ReportDiff, ReportFieldChange, diff_reports
+from .execution import (
+    AgentReportDraftExecutionRejected,
+    AgentReportDraftExecutionService,
+    AgentReportDraftExecutionTimedOut,
+    evidence_catalog_digest,
+)
+from .execution_models import (
+    AgentReportDraftExecutionPlan,
+    AgentReportDraftOutcomeBinding,
+    agent_report_draft_execution_plan_digest,
+    agent_report_draft_outcome_binding_digest,
+)
+from .execution_store import (
+    AgentReportDraftExecutionClaim,
+    AgentReportDraftExecutionConflict,
+    AgentReportDraftExecutionRecoveryRequired,
+    AgentReportDraftExecutionStore,
+)
 from .intake import AgentReportIntakeRejected, AgentReportIntakeService, AgentReportIntakeTimedOut
 from .intake_models import (
     AgentReportIntakeCommand,
@@ -60,6 +78,15 @@ from .workflow_store import (
 
 __all__ = [
     "DeterministicReportService",
+    "AgentReportDraftExecutionClaim",
+    "AgentReportDraftExecutionConflict",
+    "AgentReportDraftExecutionPlan",
+    "AgentReportDraftExecutionRecoveryRequired",
+    "AgentReportDraftExecutionRejected",
+    "AgentReportDraftExecutionService",
+    "AgentReportDraftExecutionStore",
+    "AgentReportDraftExecutionTimedOut",
+    "AgentReportDraftOutcomeBinding",
     "AgentReportIntakeClaim",
     "AgentReportIntakeCommand",
     "AgentReportIntakeConflict",
@@ -102,11 +129,14 @@ __all__ = [
     "ReportWorkflowRecoveryRequired",
     "ReviewDecisionKind",
     "apply_review_decision",
+    "agent_report_draft_execution_plan_digest",
+    "agent_report_draft_outcome_binding_digest",
     "agent_report_intake_command_digest",
     "agent_report_intake_plan_digest",
     "agent_report_intake_record_digest",
     "diff_reports",
     "domain_object_digest",
+    "evidence_catalog_digest",
     "render_markdown",
     "report_draft_plan_digest",
     "mark_report_exported",

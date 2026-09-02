@@ -314,3 +314,13 @@ three, and no Report or artifact is created. Ordinary CI covers accept/reject/de
 expiry, idempotency, conflicting report-family consumption, unfinished recovery and SQLite/schema
 absence of report prose. This qualification adds no automatic drafting, report approval, export,
 public egress, Target build or Submission.
+
+M8.8 consumes only that exact human-accepted M8.7 record, reopens the complete promotion, Critic,
+Validation and Evidence provenance, and seals the ordered typed Evidence catalog into a digest-only
+execution plan. The Admission probe changes sealed Evidence metadata and proves rejection before a
+draft checkpoint, then invokes the existing deterministic offline report service once. The result is
+an immutable local artifact that remains `DRAFT` plus a prose-free outcome binding. Runner calls
+remain at one, target requests at two, provider attempts at three, and Candidate/Finding state is
+unchanged. Ordinary CI covers non-accepted Intake, drift, timeout, pre-existing unbound drafts,
+idempotency, conflict, unfinished recovery and schema/SQLite absence of prose. This qualification
+adds no report approval, export, public egress, Target build or Submission.
