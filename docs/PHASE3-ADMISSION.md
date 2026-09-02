@@ -143,6 +143,12 @@ The M8.12 Approval-gated deterministic local Report export admission run is GitH
 [`33626287258`](https://github.com/pity11/VulnLoom/actions/runs/33626287258). Both completed
 successfully on 2026-09-02 and qualify the M8.12 local Report export execution row below.
 
+The M9.1 closed Agent workflow regression admission run is GitHub Actions
+[`33629783453`](https://github.com/pity11/VulnLoom/actions/runs/33629783453) for commit
+`e1a976937f17c40ccc7c7a2c6b50f81c30b0c6a8`. The standard Python CI for the same commit is
+[`33629783383`](https://github.com/pity11/VulnLoom/actions/runs/33629783383). Both completed
+successfully on 2026-09-02 and qualify the M9.1 closed workflow regression row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -176,6 +182,7 @@ successfully on 2026-09-02 and qualify the M8.12 local Report export execution r
 | Agent Report review execution | One accepted M8.9 record is consumed only with a separately issued exact human command and granted `REVIEW_REPORT` Approval; action-digest tampering is rejected before checkpoint, while an explicit `request_changes` transition leaves the source DRAFT immutable and adds no Runner, Broker, provider, target, export or Submission call | PASS (`33621891122`) |
 | Agent Report export Intake | A human selects one exact trusted-control-plane ReportExportPlan bound to a completed M8.10 `approve` decision, `HUMAN_APPROVED` Report, review and immutable artifact; plan tampering is rejected before checkpoint and Intake leaves the Report human-approved with no new artifact, export, Runner, Broker, provider, target, destination or Submission call | PASS (`33623614574`) |
 | Agent local Report export execution | One accepted M8.11 record is consumed only with a granted exact `EXPORT_REPORT` Approval; action-digest tampering is rejected before checkpoint, while the deterministic local export creates one immutable `EXPORTED` artifact, preserves the source human-approved Report, and adds no Runner, Broker, provider, target, destination, public-network or Submission call | PASS (`33626287272`) |
+| Closed Agent workflow regression | One fixed 13-stage M7.11–M8.12 observation binds six human Intake decisions, three exact Approvals, Evidence and immutable Candidate/Report states; the typed gate passes only when provider, Broker, Runner and target counts do not increase after Validation and public-network, build, automatic-Approval and Submission counts remain zero | PASS (`33629783453`) |
 
 ## Reproduction
 
@@ -398,3 +405,16 @@ target requests at two and provider attempts at three. Ordinary CI covers pendin
 Approval, drift, timeout, write failure, pre-existing export, idempotency, conflict, recovery and
 schema/SQLite absence of prose or destinations. This qualification adds no public egress, Target
 build, platform credential or Submission.
+
+M9.1 constructs a content-addressed regression observation from the same completed admission
+composition: the M7.11 Audit plus every M8.1–M8.12 Intake, outcome and execution checkpoint in its
+fixed order. It binds six explicit human Intake records, three exact Approval digests, the combined
+Evidence refs, immutable Candidate and Report state snapshots, and counters captured after
+Validation and after local export. The pure evaluator reports PASS only when the complete chain is
+present, Validation is reproduced, Critic is accepted, all source objects remain immutable, and no
+provider, Broker, Runner or target count increases during the later control-plane stages. The fixed
+policy also requires zero public-network calls, Target builds, automatic Approvals and Submissions
+and rejects attempts to relax those limits. Ordinary CI covers typed failure codes, drift, timeout,
+conflict, unfinished recovery, artifact write cleanup, no-follow verification and absence of
+operational parameters. This qualification is read-only and adds no execution or disclosure
+authority.
