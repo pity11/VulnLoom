@@ -52,5 +52,7 @@ jobs:
         run: python scripts/run_m9_4_local_source_robustness_gate.py
       - name: M9.5 offline authorized pilot readiness gate
         run: python scripts/run_m9_5_authorized_pilot_readiness_gate.py
+      - name: M9.5 offline ablation check
+        run: python scripts/run_m9_5_ablation.py
       - name: Test
         run: pytest --cov=vulnloom --cov-report=term-missing
