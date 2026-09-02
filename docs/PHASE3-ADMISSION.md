@@ -149,6 +149,12 @@ The M9.1 closed Agent workflow regression admission run is GitHub Actions
 [`33629783383`](https://github.com/pity11/VulnLoom/actions/runs/33629783383). Both completed
 successfully on 2026-09-02 and qualify the M9.1 closed workflow regression row below.
 
+The M9.2 sealed negative-path mutation corpus admission run is GitHub Actions
+[`33632777116`](https://github.com/pity11/VulnLoom/actions/runs/33632777116) for commit
+`20494936a625774363fbbdc8192022802141c5fb`. The standard Python CI for the same commit is
+[`33632777250`](https://github.com/pity11/VulnLoom/actions/runs/33632777250). Both completed
+successfully on 2026-09-02 and qualify the M9.2 mutation regression row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -183,6 +189,7 @@ successfully on 2026-09-02 and qualify the M9.1 closed workflow regression row b
 | Agent Report export Intake | A human selects one exact trusted-control-plane ReportExportPlan bound to a completed M8.10 `approve` decision, `HUMAN_APPROVED` Report, review and immutable artifact; plan tampering is rejected before checkpoint and Intake leaves the Report human-approved with no new artifact, export, Runner, Broker, provider, target, destination or Submission call | PASS (`33623614574`) |
 | Agent local Report export execution | One accepted M8.11 record is consumed only with a granted exact `EXPORT_REPORT` Approval; action-digest tampering is rejected before checkpoint, while the deterministic local export creates one immutable `EXPORTED` artifact, preserves the source human-approved Report, and adds no Runner, Broker, provider, target, destination, public-network or Submission call | PASS (`33626287272`) |
 | Closed Agent workflow regression | One fixed 13-stage M7.11–M8.12 observation binds six human Intake decisions, three exact Approvals, Evidence and immutable Candidate/Report states; the typed gate passes only when provider, Broker, Runner and target counts do not increase after Validation and public-network, build, automatic-Approval and Submission counts remain zero | PASS (`33629783453`) |
+| Agent workflow mutation regression | One sealed corpus covers all 23 fixed M9.1 mutations exactly once; immutable expected status and ordered violation codes match 23/23 on Python 3.12/3.13/3.14, including public-network, Target-build, automatic-Approval and Submission failures | PASS (`33632777250`) |
 
 ## Reproduction
 
@@ -418,3 +425,13 @@ and rejects attempts to relax those limits. Ordinary CI covers typed failure cod
 conflict, unfinished recovery, artifact write cleanup, no-follow verification and absence of
 operational parameters. This qualification is read-only and adds no execution or disclosure
 authority.
+
+M9.2 seals one known-good M9.1 observation with all 23 fixed negative-path mutations and their exact
+ordered violation-code expectations. The ordinary CI matrix regenerates the corpus, rejects fixture
+drift, and requires 23/23 scenario matches on Python 3.12, 3.13 and 3.14. The cases cover chain
+omission and duplicate identity, missing Evidence or human gates, Candidate/Report state drift,
+Validation/Critic failure, post-Validation provider/Broker/Runner/target activity, counter
+regression, public network, Target build, automatic Approval and Submission. Schema validation
+rejects missing cases, reordered coverage, altered expectations and inconsistent match flags. The
+concurrent Phase 3 workflow confirms the existing real rootless composition remains admitted; the
+M9.2 corpus itself is pure and offline and grants no operational authority.
