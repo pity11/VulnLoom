@@ -107,6 +107,12 @@ The M8.6 Approval-gated deterministic Finding promotion admission run is GitHub 
 [`33612075640`](https://github.com/pity11/VulnLoom/actions/runs/33612075640). Both completed
 successfully on 2026-09-02 and qualify the M8.6 Finding promotion row below.
 
+The M8.7 human Report Intake admission run is GitHub Actions
+[`33614573666`](https://github.com/pity11/VulnLoom/actions/runs/33614573666) for commit
+`f7262e01863f100b54cf0169566dc5b6e4f1cd0a`. The standard Python CI for the same commit is
+[`33614573468`](https://github.com/pity11/VulnLoom/actions/runs/33614573468). Both completed
+successfully on 2026-09-02 and qualify the M8.7 human Report Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
