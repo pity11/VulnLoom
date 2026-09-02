@@ -113,6 +113,12 @@ The M8.7 human Report Intake admission run is GitHub Actions
 [`33614573468`](https://github.com/pity11/VulnLoom/actions/runs/33614573468). Both completed
 successfully on 2026-09-02 and qualify the M8.7 human Report Intake row below.
 
+The M8.8 accepted Intake deterministic local draft admission run is GitHub Actions
+[`33616668895`](https://github.com/pity11/VulnLoom/actions/runs/33616668895) for commit
+`09e3e1e6f50520f23287cb56304b0ade4bc41e28`. The standard Python CI for the same commit is
+[`33616668897`](https://github.com/pity11/VulnLoom/actions/runs/33616668897). Both completed
+successfully on 2026-09-02 and qualify the M8.8 local Report draft binding row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -141,6 +147,7 @@ successfully on 2026-09-02 and qualify the M8.7 human Report Intake row below.
 | Agent Critic Intake | A human selects one exact independently constructed CriticPlan bound to a reproduced M8.2 outcome, immutable Audit/Candidate provenance and verified Evidence; Intake adds no Critic execution, Candidate mutation, Runner, Broker, provider or target call | PASS (`33536352834`) |
 | Agent Critic outcome binding | One explicitly completed deterministic Critic outcome is reopened with its accepted Intake, M8.2 Validation binding, exact plan, review and Evidence provenance; tampering is rejected before checkpoint and binding adds no Critic replay, Candidate mutation, Runner, Broker, provider or target call | PASS (`33605801522`) |
 | Agent Finding promotion Intake | A human selects one trusted-control-plane-built exact promotion plan bound to an accepted M8.4 outcome, critic-reviewed Candidate, reproduced Validation, verified Evidence and the authoritative latest duplicate-clear proof; Intake adds no promotion, Finding creation, Runner, Broker, provider or target call | PASS (`33609723750`) |
+| Agent local Report draft binding | One human-accepted M8.7 record is reopened with the sealed promotion, Critic, Validation, Evidence catalog and exact ReportDraftPlan; metadata drift is rejected before checkpoint, while one deterministic local DRAFT and prose-free binding add no Runner, Broker, provider, target, approval, export or Submission call | PASS (`33616668895`) |
 
 ## Reproduction
 
