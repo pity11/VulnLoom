@@ -381,3 +381,13 @@ two and provider attempts at three. Ordinary CI covers accept/reject/defer, non-
 plan drift, timeout, artifact corruption, idempotency, conflict, unfinished recovery and
 schema/SQLite absence of prose. This qualification performs no export, accepts no destination, and
 adds no public egress, Target build or Submission.
+
+M8.12 consumes the accepted M8.11 record only with a separately granted `EXPORT_REPORT` Approval
+bound to the exact plan, human-approved Report, review, artifact, Scope and fixed local effects. The
+Admission probe changes the Approval action digest and proves rejection before an execution
+checkpoint, then invokes the existing local export service once. The source Report remains
+`HUMAN_APPROVED`, while a new immutable local artifact is `EXPORTED`; Runner calls remain at one,
+target requests at two and provider attempts at three. Ordinary CI covers pending/denied/revoked
+Approval, drift, timeout, write failure, pre-existing export, idempotency, conflict, recovery and
+schema/SQLite absence of prose or destinations. This qualification adds no public egress, Target
+build, platform credential or Submission.

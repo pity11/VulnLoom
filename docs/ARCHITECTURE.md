@@ -787,3 +787,22 @@ The independent STARTED/COMPLETED ledger uniquely consumes the M8.10 binding, Re
 and command. Non-approved review outcomes, corrupt artifacts, digest or Scope drift, expiry,
 conflicts and unfinished recovery fail closed. The component has no Runner, Broker, provider,
 target-build, arbitrary destination, public-network, export execution or Submission dependency.
+
+## 46. M8.12 Approval-gated deterministic local Report export
+
+M8.12 is the only Agent-path adapter allowed to apply the local `EXPORTED` transition. It requires a
+still-valid accepted M8.11 record and a separate granted `EXPORT_REPORT` Approval. The
+content-addressed Approval action binds the exact Intake record, M8.10 review binding,
+`ReportExportPlan`, human-approved Report, review, artifact, Scope and the fixed local Report/artifact
+effects; Intake acceptance alone is not execution authority.
+
+Immediately before export, the service reopens the M8.11 and M8.10 completed checkpoints, review
+outcome and immutable artifact. Only then may it call the existing `LocalReportExportService`, which
+writes solely to its preconfigured content-addressed artifact store and accepts no destination path
+or URL. The source `HUMAN_APPROVED` Report and artifact remain immutable.
+
+The Agent-facing execution ledger stores only IDs, digests, Approval identity, resulting status and
+timestamps. Completed replay is read-only; missing or revoked Approval, drift, expiry, pre-existing
+unbound exports, conflicts, write failure and unfinished recovery fail closed. Runner, Broker,
+provider, target-build, arbitrary destination, public-network, platform credential and Submission
+dependencies are absent.

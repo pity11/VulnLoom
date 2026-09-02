@@ -215,6 +215,29 @@ class ReportExportStore:
         if changed != 1:
             raise ReportWorkflowRecoveryRequired("Report export STARTED checkpoint is unavailable")
 
+    def has_checkpoint(self, plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM report_exports WHERE plan_id=?", (plan_id,)
+            ).fetchone()
+            is not None
+        )
+
+    def load_completed(self, plan_id: str) -> ReportExportOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM report_exports WHERE plan_id=?", (plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Report export outcome is unavailable")
+        if row["state"] != "completed" or row["outcome_json"] is None:
+            raise ReportWorkflowRecoveryRequired(
+                "Report export has an unfinished STARTED checkpoint"
+            )
+        outcome = ReportExportOutcome.model_validate_json(row["outcome_json"])
+        if outcome.plan_id != plan_id or outcome.completed_at.isoformat() != row["completed_at"]:
+            raise ReportWorkflowRecoveryRequired("Report export completed checkpoint drifted")
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

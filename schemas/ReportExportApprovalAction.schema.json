@@ -1,0 +1,110 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "export_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Export Intake Record Id",
+      "type": "string"
+    },
+    "export_intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Export Intake Record Digest",
+      "type": "string"
+    },
+    "review_execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Execution Plan Id",
+      "type": "string"
+    },
+    "review_outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Outcome Binding Id",
+      "type": "string"
+    },
+    "report_export_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Id",
+      "type": "string"
+    },
+    "report_export_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "expected_side_effects": {
+      "default": [
+        "report:exported",
+        "report_artifact:created"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Side Effects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "action_id",
+    "engagement_id",
+    "export_intake_record_id",
+    "export_intake_record_digest",
+    "review_execution_plan_id",
+    "review_outcome_binding_id",
+    "report_export_plan_id",
+    "report_export_plan_digest",
+    "report_id",
+    "report_digest",
+    "artifact_digest",
+    "review_id",
+    "review_digest",
+    "scope_id",
+    "scope_version"
+  ],
+  "title": "ReportExportApprovalAction",
+  "type": "object"
+}

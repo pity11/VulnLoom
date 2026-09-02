@@ -125,10 +125,14 @@ from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
+    REPORT_EXPORT_EFFECTS,
     REPORT_REVIEW_EFFECTS,
     AgentReportDraftExecutionRejected,
     AgentReportDraftExecutionService,
     AgentReportDraftExecutionStore,
+    AgentReportExportExecutionRejected,
+    AgentReportExportExecutionService,
+    AgentReportExportExecutionStore,
     AgentReportExportIntakeCommand,
     AgentReportExportIntakeDecision,
     AgentReportExportIntakeReason,
@@ -152,10 +156,12 @@ from vulnloom.reporting import (
     AgentReportReviewIntakeStore,
     DeterministicReportService,
     HumanReportReviewService,
+    LocalReportExportService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
     ReportExportPlan,
+    ReportExportStore,
     ReportReviewCommand,
     ReportReviewPlan,
     ReportReviewStore,
@@ -767,6 +773,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     )
     report_export_intake_store = AgentReportExportIntakeStore(
         tmp_path / "m811-report-export-intakes.sqlite3"
+    )
+    report_export_store = ReportExportStore(tmp_path / "m812-report-exports.sqlite3")
+    report_export_execution_store = AgentReportExportExecutionStore(
+        tmp_path / "m812-report-export-bindings.sqlite3"
     )
     try:
         with (
@@ -1846,7 +1856,80 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
             report_artifacts_after_export_intake = tuple(
                 sorted(report_service.artifact_store.objects.iterdir())
             )
+            report_export_execution_service = AgentReportExportExecutionService(
+                intake_service=report_export_intake_service,
+                export_service=LocalReportExportService(
+                    scope=scope,
+                    artifact_store=report_service.artifact_store,
+                    store=report_export_store,
+                ),
+                store=report_export_execution_store,
+            )
+            report_export_action = report_export_execution_service.approval_action(
+                record=report_export_intake_record,
+                report_export_plan=report_export_plan,
+            )
+            report_export_approval = ApprovalRequest(
+                engagement_id=scope.engagement_id,
+                action=ApprovalAction.EXPORT_REPORT,
+                action_digest=report_export_action.action_id,
+                expected_side_effects=REPORT_EXPORT_EFFECTS,
+                evidence_summary=(
+                    "Phase 3 human authorized the exact sealed local Report export"
+                ),
+                policy_version=scope.version,
+                expires_at=now + timedelta(seconds=33),
+                status=ApprovalStatus.GRANTED,
+                decided_by="phase3-human-report-export-approval-reviewer",
+                decided_at=now + timedelta(seconds=32),
+            )
+            with pytest.raises(AgentReportExportExecutionRejected):
+                report_export_execution_service.prepare(
+                    export_intake_plan=report_export_intake_plan,
+                    review_execution_plan=report_review_execution_plan,
+                    report_export_plan=report_export_plan,
+                    approval=report_export_approval.model_copy(
+                        update={"action_digest": "0" * 64}
+                    ),
+                    now=now + timedelta(seconds=32, milliseconds=250),
+                    deadline=now + timedelta(seconds=32, milliseconds=750),
+                    idempotency_key="m8.12:report-export-execution:tampered",
+                )
+            assert (
+                report_export_execution_store.connection.execute(
+                    "SELECT count(*) FROM agent_report_export_executions"
+                ).fetchone()[0]
+                == 0
+            )
+            report_export_execution_plan = report_export_execution_service.prepare(
+                export_intake_plan=report_export_intake_plan,
+                review_execution_plan=report_review_execution_plan,
+                report_export_plan=report_export_plan,
+                approval=report_export_approval,
+                now=now + timedelta(seconds=32, milliseconds=250),
+                deadline=now + timedelta(seconds=32, milliseconds=750),
+                idempotency_key="m8.12:report-export-execution",
+            )
+            calls_before_report_export_execution = calls_after_report_export_intake
+            report_export_binding = report_export_execution_service.execute(
+                report_export_execution_plan,
+                export_intake_plan=report_export_intake_plan,
+                review_execution_plan=report_review_execution_plan,
+                report_export_plan=report_export_plan,
+                approval=report_export_approval,
+                now=now + timedelta(seconds=32, milliseconds=500),
+            )
+            report_export_outcome = report_export_store.load_completed(
+                report_export_plan.plan_id
+            )
+            calls_after_report_export_execution = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
+        report_export_execution_store.close()
+        report_export_store.close()
         report_export_intake_store.close()
         report_review_execution_store.close()
         report_review_store.close()
@@ -1905,6 +1988,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert report_review_outcome.report.review_status.value == "human_approved"
     assert calls_after_report_export_intake == calls_before_report_export_intake
     assert report_artifacts_after_export_intake == report_artifacts_before_export_intake
+    assert report_export_binding.resulting_status.value == "exported"
+    assert report_export_outcome.report.review_status.value == "exported"
+    assert report_review_outcome.report.review_status.value == "human_approved"
+    assert calls_after_report_export_execution == calls_before_report_export_execution
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1940,6 +2027,15 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert (
         b"trusted Phase 3 exact report title"
         not in (tmp_path / "m811-report-export-intakes.sqlite3").read_bytes()
+    )
+    assert _TARGET_BODY not in (tmp_path / "m812-report-export-bindings.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 exact report title"
+        not in (tmp_path / "m812-report-export-bindings.sqlite3").read_bytes()
+    )
+    assert (
+        b"Phase 3 human authorized the exact sealed local"
+        not in (tmp_path / "m812-report-export-bindings.sqlite3").read_bytes()
     )
     assert (
         b"trusted Phase 3 exact report title"

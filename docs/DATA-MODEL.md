@@ -621,6 +621,22 @@ exact M8.10 binding、Report、ExportPlan、reviewer 与 decision time。`AgentR
 独立 SQLite 唯一消费 review binding、Report、ExportPlan 与 command，遗留 STARTED 不会调用 exporter
 或自动恢复。
 
+### ReportExportApprovalAction、ExecutionPlan 与 OutcomeBinding
+
+M8.12 的 `ReportExportApprovalAction` 内容寻址绑定 accepted M8.11 record、completed M8.10 binding、
+exact `ReportExportPlan`、`HUMAN_APPROVED` Report/artifact、approve review、Scope 和固定的本地 Report/
+artifact 效果。对应 `ApprovalRequest` 必须是人工 granted 的 `EXPORT_REPORT`，且 action digest、policy
+version、效果、决定人、决定时间和有效期全部匹配。
+
+`AgentReportExportExecutionPlan` 只保存上述对象与 Approval 的 ID/摘要、执行窗口和幂等键，不保存
+报告正文、review rationale、Approval 摘要、路径、URL、Agent 输出或工具参数。
+`AgentReportExportOutcomeBinding` 绑定 authoritative `ReportExportOutcome`、来源 `HUMAN_APPROVED`
+Report、完成后的 `EXPORTED` Report/artifact、review 与 Approval 摘要；完整 Report 只存在既有本地
+artifact/export store 边界。
+
+独立 SQLite 唯一消费 Intake、ExportPlan、Report 与 Approval；completed replay 只读，预存在未绑定
+export、冲突、写入失败或遗留 STARTED 不会自动执行。该绑定不是 Submission，也不包含外部目的地。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

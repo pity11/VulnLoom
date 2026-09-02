@@ -118,6 +118,7 @@ class ApprovalAction(StrEnum):
     EXTERNAL_CALLBACK = "external_callback"
     SUBMIT_REPORT = "submit_report"
     REVIEW_REPORT = "review_report"
+    EXPORT_REPORT = "export_report"
 
 
 class EvidenceKind(StrEnum):

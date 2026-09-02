@@ -96,6 +96,7 @@ from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
+    REPORT_EXPORT_EFFECTS,
     REPORT_REVIEW_EFFECTS,
     AgentReportDraftExecutionConflict,
     AgentReportDraftExecutionPlan,
@@ -105,6 +106,13 @@ from vulnloom.reporting import (
     AgentReportDraftExecutionStore,
     AgentReportDraftExecutionTimedOut,
     AgentReportDraftOutcomeBinding,
+    AgentReportExportExecutionConflict,
+    AgentReportExportExecutionPlan,
+    AgentReportExportExecutionRecoveryRequired,
+    AgentReportExportExecutionRejected,
+    AgentReportExportExecutionService,
+    AgentReportExportExecutionStore,
+    AgentReportExportExecutionTimedOut,
     AgentReportExportIntakeCommand,
     AgentReportExportIntakeConflict,
     AgentReportExportIntakeDecision,
@@ -116,6 +124,7 @@ from vulnloom.reporting import (
     AgentReportExportIntakeService,
     AgentReportExportIntakeStore,
     AgentReportExportIntakeTimedOut,
+    AgentReportExportOutcomeBinding,
     AgentReportIntakeCommand,
     AgentReportIntakeConflict,
     AgentReportIntakeDecision,
@@ -148,10 +157,12 @@ from vulnloom.reporting import (
     AgentReportReviewOutcomeBinding,
     DeterministicReportService,
     HumanReportReviewService,
+    LocalReportExportService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
     ReportExportPlan,
+    ReportExportStore,
     ReportReviewCommand,
     ReportReviewPlan,
     ReportReviewStore,
@@ -4005,4 +4016,344 @@ def test_report_export_intake_contracts_are_digest_only():
         "submission",
     }
     for model in (AgentReportExportIntakePlan, AgentReportExportIntakeRecord):
+        assert not set(model.model_fields) & forbidden
+
+
+def _completed_m811_case(tmp_path, now, scope, candidate):
+    m810_case = _completed_m810_approved_case(tmp_path, now, scope, candidate)
+    intake_service, intake_store, review_execution_plan, export_plan = (
+        _m811_service_and_plan(tmp_path, now, scope, m810_case)
+    )
+    intake_plan = intake_service.prepare(
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        now=now + timedelta(seconds=26),
+        decision_deadline=now + timedelta(seconds=28),
+        idempotency_key="report-export-intake:m8.12",
+    )
+    command = AgentReportExportIntakeCommand.create(
+        intake_plan_id=intake_plan.intake_plan_id,
+        intake_plan_digest=agent_report_export_intake_plan_digest(intake_plan),
+        review_outcome_binding_id=intake_plan.review_outcome_binding_id,
+        report_export_plan_id=export_plan.plan_id,
+        report_export_plan_digest=intake_plan.report_export_plan_digest,
+        report_id=intake_plan.report_id,
+        report_digest=intake_plan.report_digest,
+        decision=AgentReportExportIntakeDecision.ACCEPT,
+        reason_code=AgentReportExportIntakeReason.HUMAN_ACCEPTED_EXACT_EXPORT,
+        reviewer="human-report-export-intake-reviewer",
+        decided_at=now + timedelta(seconds=26, milliseconds=500),
+    )
+    record = intake_service.decide(
+        intake_plan,
+        command,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        now=command.decided_at,
+    )
+    return (
+        m810_case,
+        intake_service,
+        intake_store,
+        intake_plan,
+        record,
+        review_execution_plan,
+        export_plan,
+    )
+
+
+def _close_m812_case(case, execution_store=None, export_store=None):
+    m810_case, _, intake_store, *_ = case
+    if execution_store is not None:
+        execution_store.close()
+    if export_store is not None:
+        export_store.close()
+    intake_store.close()
+    _close_m811_case(m810_case)
+
+
+def _m812_service(tmp_path, scope, case):
+    _, intake_service, *_ = case
+    export_store = ReportExportStore(tmp_path / "report-exports-m8.12.sqlite3")
+    export_service = LocalReportExportService(
+        scope=scope,
+        artifact_store=intake_service.artifact_store,
+        store=export_store,
+    )
+    execution_store = AgentReportExportExecutionStore(
+        tmp_path / "agent-report-export-executions.sqlite3"
+    )
+    service = AgentReportExportExecutionService(
+        intake_service=intake_service,
+        export_service=export_service,
+        store=execution_store,
+    )
+    return service, execution_store, export_store
+
+
+def _m812_approval(service, case, now, *, status=ApprovalStatus.GRANTED):
+    _, _, _, _, record, _, export_plan = case
+    action = service.approval_action(record=record, report_export_plan=export_plan)
+    return ApprovalRequest(
+        engagement_id=service.scope.engagement_id,
+        action=ApprovalAction.EXPORT_REPORT,
+        action_digest=action.action_id,
+        expected_side_effects=REPORT_EXPORT_EFFECTS,
+        evidence_summary="Human authorized the exact sealed local Report export",
+        policy_version=service.scope.version,
+        expires_at=now + timedelta(seconds=28),
+        status=status,
+        decided_by="human-report-export-approval-reviewer"
+        if status is ApprovalStatus.GRANTED
+        else None,
+        decided_at=now + timedelta(seconds=26, milliseconds=750)
+        if status is ApprovalStatus.GRANTED
+        else None,
+    )
+
+
+def test_report_export_execution_requires_exact_approval_and_binds_local_export(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m811_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, intake_plan, _, review_execution_plan, export_plan = case
+    review_outcome = case[0][-1]
+    service, store, export_store = _m812_service(tmp_path, approved_scope, case)
+    approval = _m812_approval(service, case, now)
+    plan = service.prepare(
+        export_intake_plan=intake_plan,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        approval=approval,
+        now=now + timedelta(seconds=27),
+        deadline=now + timedelta(seconds=27, milliseconds=750),
+        idempotency_key="report-export-execution:m8.12",
+    )
+    m85_case = case[0][0][0][0][0][0]
+    calls_before = (m85_case[-2].calls, len(m85_case[-1].calls))
+    artifacts_before = tuple(sorted(service.export_service.artifact_store.objects.iterdir()))
+    binding = service.execute(
+        plan,
+        export_intake_plan=intake_plan,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        approval=approval,
+        now=now + timedelta(seconds=27, milliseconds=500),
+    )
+    outcome = export_store.load_completed(export_plan.plan_id)
+    assert binding.resulting_status.value == "exported"
+    assert binding.source_report_digest == domain_object_digest(review_outcome.report)
+    assert outcome.report.review_status.value == "exported"
+    assert review_outcome.report.review_status.value == "human_approved"
+    assert len(tuple(service.export_service.artifact_store.objects.iterdir())) == len(
+        artifacts_before
+    ) + 1
+    assert candidate.state is CandidateState.PROPOSED
+    assert (m85_case[-2].calls, len(m85_case[-1].calls)) == calls_before
+    assert store.load_completed(plan.execution_plan_id) == binding
+    assert (
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=600),
+        )
+        == binding
+    )
+    conflicting = AgentReportExportExecutionPlan.create(
+        **plan.model_dump(mode="python", exclude={"execution_plan_id", "idempotency_key"}),
+        idempotency_key="report-export-execution:m8.12:conflict",
+    )
+    with pytest.raises(AgentReportExportExecutionConflict):
+        store.claim(conflicting, now=now + timedelta(seconds=27, milliseconds=500))
+    persisted = (tmp_path / "agent-report-export-executions.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted exact report title",
+        b"trusted report summary",
+        b"Human authorized the exact sealed",
+        b"submission",
+    ):
+        assert forbidden not in persisted
+    _close_m812_case(case, store, export_store)
+
+
+@pytest.mark.parametrize(
+    "status", (ApprovalStatus.PENDING, ApprovalStatus.DENIED, ApprovalStatus.REVOKED)
+)
+def test_report_export_execution_rejects_missing_grant_before_checkpoint(
+    tmp_path, now, approved_scope, candidate, status
+):
+    case = _completed_m811_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, intake_plan, _, review_execution_plan, export_plan = case
+    service, store, export_store = _m812_service(tmp_path, approved_scope, case)
+    approval = _m812_approval(service, case, now, status=status)
+    with pytest.raises(AgentReportExportExecutionRejected, match="Approval"):
+        service.prepare(
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27),
+            deadline=now + timedelta(seconds=27, milliseconds=750),
+            idempotency_key=f"report-export-execution:m8.12:{status.value}",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_export_executions").fetchone()[
+            0
+        ]
+        == 0
+    )
+    assert not export_store.has_checkpoint(export_plan.plan_id)
+    _close_m812_case(case, store, export_store)
+
+
+def test_report_export_execution_rejects_timeout_drift_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m811_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, intake_plan, _, review_execution_plan, export_plan = case
+    service, store, export_store = _m812_service(tmp_path, approved_scope, case)
+    approval = _m812_approval(service, case, now)
+    plan = service.prepare(
+        export_intake_plan=intake_plan,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        approval=approval,
+        now=now + timedelta(seconds=27),
+        deadline=now + timedelta(seconds=27, milliseconds=750),
+        idempotency_key="report-export-execution:m8.12:recovery",
+    )
+    with pytest.raises(AgentReportExportExecutionTimedOut):
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=plan.deadline,
+        )
+    with pytest.raises(AgentReportExportExecutionRejected, match="drifted"):
+        service.execute(
+            plan.model_copy(update={"report_digest": "f" * 64}),
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=500),
+        )
+    store.claim(plan, now=now + timedelta(seconds=27, milliseconds=500))
+    with pytest.raises(AgentReportExportExecutionRecoveryRequired):
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=500),
+        )
+    assert not export_store.has_checkpoint(export_plan.plan_id)
+    _close_m812_case(case, store, export_store)
+
+
+def test_report_export_execution_failure_requires_recovery_without_replay(
+    tmp_path, now, approved_scope, candidate, monkeypatch
+):
+    case = _completed_m811_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, intake_plan, _, review_execution_plan, export_plan = case
+    service, store, export_store = _m812_service(tmp_path, approved_scope, case)
+    approval = _m812_approval(service, case, now)
+    plan = service.prepare(
+        export_intake_plan=intake_plan,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        approval=approval,
+        now=now + timedelta(seconds=27),
+        deadline=now + timedelta(seconds=27, milliseconds=750),
+        idempotency_key="report-export-execution:m8.12:failure",
+    )
+    monkeypatch.setattr(
+        service.export_service.artifact_store,
+        "put",
+        lambda _report: (_ for _ in ()).throw(ValueError("fixture failure")),
+    )
+    with pytest.raises(AgentReportExportExecutionRejected, match="failed"):
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=500),
+        )
+    with pytest.raises(AgentReportExportExecutionRecoveryRequired):
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=500),
+        )
+    _close_m812_case(case, store, export_store)
+
+
+def test_report_export_execution_refuses_preexisting_unbound_export(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m811_case(tmp_path, now, approved_scope, candidate)
+    _, _, _, intake_plan, _, review_execution_plan, export_plan = case
+    review_outcome = case[0][-1]
+    service, store, export_store = _m812_service(tmp_path, approved_scope, case)
+    approval = _m812_approval(service, case, now)
+    service.export_service.export(
+        review_outcome.report,
+        review_outcome.artifact,
+        review_outcome.review,
+        export_plan,
+        now=now + timedelta(seconds=27),
+    )
+    plan = service.prepare(
+        export_intake_plan=intake_plan,
+        review_execution_plan=review_execution_plan,
+        report_export_plan=export_plan,
+        approval=approval,
+        now=now + timedelta(seconds=27),
+        deadline=now + timedelta(seconds=27, milliseconds=750),
+        idempotency_key="report-export-execution:m8.12:preexisting",
+    )
+    with pytest.raises(AgentReportExportExecutionRejected, match="predates"):
+        service.execute(
+            plan,
+            export_intake_plan=intake_plan,
+            review_execution_plan=review_execution_plan,
+            report_export_plan=export_plan,
+            approval=approval,
+            now=now + timedelta(seconds=27, milliseconds=500),
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_export_executions").fetchone()[
+            0
+        ]
+        == 0
+    )
+    _close_m812_case(case, store, export_store)
+
+
+def test_report_export_execution_contracts_have_no_prose_or_destination_parameters():
+    forbidden = {
+        "title",
+        "sections",
+        "text",
+        "prompt",
+        "runner",
+        "broker",
+        "path",
+        "url",
+        "credential",
+        "token",
+        "submission",
+    }
+    for model in (AgentReportExportExecutionPlan, AgentReportExportOutcomeBinding):
         assert not set(model.model_fields) & forbidden

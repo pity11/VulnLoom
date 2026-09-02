@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Action Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "export_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Export Intake Record Id",
+      "type": "string"
+    },
+    "report_export_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Plan Id",
+      "type": "string"
+    },
+    "report_export_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Export Outcome Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "source_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Report Digest",
+      "type": "string"
+    },
+    "exported_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Exported Report Digest",
+      "type": "string"
+    },
+    "exported_artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Exported Artifact Digest",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Digest",
+      "type": "string"
+    },
+    "resulting_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "approval_action_id",
+    "approval_id",
+    "approval_digest",
+    "export_intake_record_id",
+    "report_export_plan_id",
+    "report_export_outcome_digest",
+    "report_id",
+    "source_report_digest",
+    "exported_report_digest",
+    "exported_artifact_digest",
+    "review_id",
+    "review_digest",
+    "resulting_status",
+    "completed_at"
+  ],
+  "title": "AgentReportExportOutcomeBinding",
+  "type": "object"
+}

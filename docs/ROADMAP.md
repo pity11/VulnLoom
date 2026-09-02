@@ -659,6 +659,27 @@ M8.11 只是人工选择 exact local export 输入，不是导出授权或导出
 必须要求 accepted M8.11 record 与独立、精确且仍有效的 Approval，重新验证全部来源后才可调用既有
 local export 状态机；Submission 继续保持独立且不在 Agent 路径内。
 
+### M8.12：accepted Intake、精确 Approval 与确定性本地 Report Export（已完成首版）
+
+- 新增 `EXPORT_REPORT` Approval action 与内容寻址的 `ReportExportApprovalAction`，精确绑定 accepted
+  M8.11 record、completed M8.10 binding、exact `ReportExportPlan`、`HUMAN_APPROVED` Report、artifact、
+  review、Scope，以及固定的 `report:exported`/`report_artifact:created` 效果。
+- 只有人工 granted 且仍有效的 exact Approval 才可进入导出；pending/denied/revoked、action/effect/
+  Scope/时间漂移均在 execution checkpoint 前拒绝。
+- 执行前重新读取 M8.11/M8.10 completed checkpoint、review outcome 与 immutable artifact，全部匹配后
+  才调用既有 `LocalReportExportService`；该服务只写预配置的内容寻址 artifact store，不接受路径或 URL。
+- 新增 digest-only `AgentReportExportExecutionPlan` 与 `AgentReportExportOutcomeBinding`；源
+  `HUMAN_APPROVED` Report/artifact 保持不可变，完成结果为本地 `EXPORTED` Report/artifact。
+- 独立 STARTED/COMPLETED ledger 唯一消费 Intake、ExportPlan、Report 与 Approval；completed replay
+  幂等只读，预存在未绑定 export、冲突、失败和遗留 STARTED 不自动重放。
+- 常规测试覆盖精确授权、pending/denied/revoked、plan 漂移、超时、artifact 写入失败、预存在 export、
+  幂等、冲突、恢复和 schema/SQLite 无正文；Phase 3 Admission 证明实际本地导出前后 Runner、Broker、
+  provider、target 调用计数不变。
+
+M8.12 使 Agent 工作流最多到达受控本地 `EXPORTED` artifact。它不包含任意目的地、公网、披露平台
+token 或 Submission；`SUBMITTED` 仍无可达状态迁移。后续工作应进入端到端质量/安全回归评测，而不是
+把本地 export 隐式扩展为外部提交。
+
 ## 延后事项
 
 - 公网资产自主发现。
