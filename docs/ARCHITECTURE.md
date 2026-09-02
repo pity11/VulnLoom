@@ -806,3 +806,24 @@ timestamps. Completed replay is read-only; missing or revoked Approval, drift, e
 unbound exports, conflicts, write failure and unfinished recovery fail closed. Runner, Broker,
 provider, target-build, arbitrary destination, public-network, platform credential and Submission
 dependencies are absent.
+
+## 47. M9.1 closed Agent workflow regression gate
+
+M9.1 turns the admitted M7.11–M8.12 composition into a typed, deterministic quality and safety
+gate. A trusted test harness constructs a content-addressed observation containing the fixed 13
+ordered checkpoint identities and digests, bound Evidence refs, six human Intake decisions, three
+exact Approval digests, immutable state snapshots and effect counters. Agent output cannot supply
+the observation, policy or operational parameters.
+
+The pure evaluator requires reproduced Validation, accepted Critic, the original proposed
+Candidate, separate critic-reviewed and promoted Candidate objects, and immutable DRAFT,
+HUMAN_APPROVED and EXPORTED Report states. Counters captured after Validation form the baseline;
+provider, Broker, Runner and target calls must not increase during the remaining control-plane
+chain. Public-network calls, target builds, automatic Approvals and Submissions must remain zero,
+and the typed policy rejects attempts to relax those limits.
+
+Evaluation is read-only and offline. Its independent STARTED/COMPLETED ledger refuses drift,
+conflicting consumption, expired plans and unfinished recovery. Results are bounded,
+content-addressed JSON/Markdown artifacts verified with no-follow reads. The gate introduces no
+Runner, Broker, provider, network, build, Approval, Candidate mutation, export or Submission entry
+point; it only evaluates facts captured by the existing admission composition.

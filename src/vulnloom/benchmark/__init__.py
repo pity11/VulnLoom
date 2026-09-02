@@ -1,5 +1,31 @@
 """Deterministic, offline benchmark contracts and regression gates."""
 
+from .agent_workflow_evaluator import evaluate_agent_workflow
+from .agent_workflow_models import (
+    REQUIRED_AGENT_WORKFLOW_STAGES,
+    AgentWorkflowCheckpoint,
+    AgentWorkflowEffectCounters,
+    AgentWorkflowRegressionArtifact,
+    AgentWorkflowRegressionMetrics,
+    AgentWorkflowRegressionObservation,
+    AgentWorkflowRegressionOutcome,
+    AgentWorkflowRegressionPlan,
+    AgentWorkflowRegressionPolicy,
+    AgentWorkflowRegressionResult,
+    AgentWorkflowRegressionViolation,
+    AgentWorkflowStage,
+)
+from .agent_workflow_service import (
+    AgentWorkflowRegressionRejected,
+    AgentWorkflowRegressionService,
+    AgentWorkflowRegressionTimedOut,
+)
+from .agent_workflow_store import (
+    AgentWorkflowRegressionArtifactStore,
+    AgentWorkflowRegressionConflict,
+    AgentWorkflowRegressionRecoveryRequired,
+    AgentWorkflowRegressionStore,
+)
 from .analyzer_adapters import (
     CHECKOV_ADAPTER_DIGEST,
     CHECKOV_ADAPTER_ID,
@@ -197,6 +223,24 @@ __all__ = [
     "BOUNTYBENCH_ADAPTER_DIGEST",
     "BOUNTYBENCH_ADAPTER_ID",
     "AutoPenBenchSnapshotAdapter",
+    "AgentWorkflowCheckpoint",
+    "AgentWorkflowEffectCounters",
+    "AgentWorkflowRegressionArtifact",
+    "AgentWorkflowRegressionArtifactStore",
+    "AgentWorkflowRegressionConflict",
+    "AgentWorkflowRegressionMetrics",
+    "AgentWorkflowRegressionObservation",
+    "AgentWorkflowRegressionOutcome",
+    "AgentWorkflowRegressionPlan",
+    "AgentWorkflowRegressionPolicy",
+    "AgentWorkflowRegressionRecoveryRequired",
+    "AgentWorkflowRegressionRejected",
+    "AgentWorkflowRegressionResult",
+    "AgentWorkflowRegressionService",
+    "AgentWorkflowRegressionStore",
+    "AgentWorkflowRegressionTimedOut",
+    "AgentWorkflowRegressionViolation",
+    "AgentWorkflowStage",
     "AlignmentProvenance",
     "AnalyzerCaseBinding",
     "AnalyzerEvaluationArtifact",
@@ -312,6 +356,7 @@ __all__ = [
     "OfflineAnalyzerExecutionService",
     "OfflineAnalyzerExecutionStatus",
     "RegressionViolation",
+    "REQUIRED_AGENT_WORKFLOW_STAGES",
     "SnapshotFile",
     "TRIVY_ADAPTER_DIGEST",
     "TRIVY_ADAPTER_ID",
@@ -327,6 +372,7 @@ __all__ = [
     "create_external_snapshot",
     "default_analyzer_adapters",
     "evaluate_metrics",
+    "evaluate_agent_workflow",
     "evaluate_analyzer_metrics",
     "evaluate_analyzer_regressions",
     "evaluate_regressions",

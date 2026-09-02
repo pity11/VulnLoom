@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "AgentWorkflowStage": {
+      "enum": [
+        "session_audit",
+        "validation_intake",
+        "validation_outcome",
+        "critic_intake",
+        "critic_outcome",
+        "finding_intake",
+        "finding_promotion",
+        "report_intake",
+        "report_draft",
+        "report_review_intake",
+        "report_review",
+        "report_export_intake",
+        "report_export"
+      ],
+      "title": "AgentWorkflowStage",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "stage": {
+      "$ref": "#/$defs/AgentWorkflowStage"
+    },
+    "object_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Object Id",
+      "type": "string"
+    },
+    "object_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Object Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "stage",
+    "object_id",
+    "object_digest"
+  ],
+  "title": "AgentWorkflowCheckpoint",
+  "type": "object"
+}

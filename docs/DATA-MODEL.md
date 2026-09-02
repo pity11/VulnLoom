@@ -637,6 +637,22 @@ artifact/export store 边界。
 独立 SQLite 唯一消费 Intake、ExportPlan、Report 与 Approval；completed replay 只读，预存在未绑定
 export、冲突、写入失败或遗留 STARTED 不会自动执行。该绑定不是 Submission，也不包含外部目的地。
 
+### AgentWorkflowRegressionObservation、Plan 与 Outcome
+
+M9.1 的 `AgentWorkflowRegressionObservation` 内容寻址保存固定 M7.11–M8.12 十三个阶段的有序
+`AgentWorkflowCheckpoint` 摘要、Evidence refs、六个人工 Intake record 摘要、三个精确 Approval 摘要、
+Validation/Critic/Candidate/Report typed 状态、M8.2 与 M8.12 两个副作用计数快照，以及最终本地 artifact
+摘要。它不保存 Agent prose、报告正文、Evidence 正文、URL、路径、凭据或 Runner/Broker 参数。
+
+`AgentWorkflowRegressionPolicy` 固定完整阶段顺序、人工门禁数量与零副作用增量；公网访问、Target 构建、
+自动 Approval 和 Submission 的上限不可放宽。`AgentWorkflowRegressionPlan` 绑定 exact observation 摘要、
+policy、执行窗口和幂等键。
+
+纯 evaluator 生成 `AgentWorkflowRegressionMetrics` 和稳定的 typed violation code；
+`AgentWorkflowRegressionResult` 只表示资格 PASS/FAIL，不改变任何领域状态。独立 SQLite 保存
+STARTED/COMPLETED checkpoint，结果以内容寻址、大小受限、no-follow 复核的 JSON/Markdown artifact
+持久化，遗留 STARTED 不会自动重放。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

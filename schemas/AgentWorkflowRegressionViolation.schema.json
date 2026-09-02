@@ -1,0 +1,25 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Code",
+      "type": "string"
+    },
+    "actual": {
+      "title": "Actual",
+      "type": "number"
+    },
+    "limit": {
+      "title": "Limit",
+      "type": "number"
+    }
+  },
+  "required": [
+    "code",
+    "actual",
+    "limit"
+  ],
+  "title": "AgentWorkflowRegressionViolation",
+  "type": "object"
+}

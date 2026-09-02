@@ -61,6 +61,17 @@ from vulnloom.agent_runtime import (
     SubprocessProviderTransportRunner,
     agent_broker_call_commitment,
 )
+from vulnloom.benchmark import (
+    REQUIRED_AGENT_WORKFLOW_STAGES,
+    AgentWorkflowCheckpoint,
+    AgentWorkflowEffectCounters,
+    AgentWorkflowRegressionArtifactStore,
+    AgentWorkflowRegressionObservation,
+    AgentWorkflowRegressionPlan,
+    AgentWorkflowRegressionPolicy,
+    AgentWorkflowRegressionService,
+    AgentWorkflowRegressionStore,
+)
 from vulnloom.broker import (
     BrokerCall,
     EvidenceStoreHttpSink,
@@ -777,6 +788,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     report_export_store = ReportExportStore(tmp_path / "m812-report-exports.sqlite3")
     report_export_execution_store = AgentReportExportExecutionStore(
         tmp_path / "m812-report-export-bindings.sqlite3"
+    )
+    workflow_regression_store = AgentWorkflowRegressionStore(
+        tmp_path / "m91-agent-workflow-regressions.sqlite3"
     )
     try:
         with (
@@ -1927,7 +1941,114 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            workflow_objects = (
+                audit_outcome.bundle,
+                intake_record,
+                outcome_binding,
+                critic_intake_record,
+                critic_outcome_binding,
+                finding_intake_record,
+                finding_promotion_outcome,
+                report_intake_record,
+                report_draft_binding,
+                report_review_intake_record,
+                report_review_binding,
+                report_export_intake_record,
+                report_export_binding,
+            )
+            workflow_checkpoints = tuple(
+                AgentWorkflowCheckpoint(
+                    stage=stage,
+                    object_id=canonical_digest(
+                        {
+                            "stage": stage.value,
+                            "object_digest": domain_object_digest(item),
+                        }
+                    ),
+                    object_digest=domain_object_digest(item),
+                )
+                for stage, item in zip(
+                    REQUIRED_AGENT_WORKFLOW_STAGES, workflow_objects, strict=True
+                )
+            )
+            validation_effects = AgentWorkflowEffectCounters(
+                target_requests=calls_after_binding[0],
+                broker_calls=calls_after_binding[0],
+                provider_attempts=calls_after_binding[1],
+                runner_calls=calls_after_binding[2],
+            )
+            export_effects = AgentWorkflowEffectCounters(
+                target_requests=calls_after_report_export_execution[0],
+                broker_calls=calls_after_report_export_execution[0],
+                provider_attempts=calls_after_report_export_execution[1],
+                runner_calls=calls_after_report_export_execution[2],
+            )
+            workflow_observation = AgentWorkflowRegressionObservation.create(
+                checkpoints=workflow_checkpoints,
+                proposed_candidate_state=candidate.state,
+                critic_candidate_state=critic_outcome.candidate.state,
+                promoted_candidate_state=finding_promotion_outcome.promoted_candidate.state,
+                validation_result=validation_outcome.verdict.result,
+                critic_verdict=critic_outcome.review.verdict,
+                draft_report_status=report_outcome.report.review_status,
+                reviewed_report_status=report_review_outcome.report.review_status,
+                exported_report_status=report_export_outcome.report.review_status,
+                evidence_refs=tuple(
+                    sorted(
+                        set(audit_outcome.bundle.evidence_refs)
+                        | set(evidence_bundle.evidence_refs)
+                    )
+                ),
+                human_decision_digests=tuple(
+                    sorted(
+                        domain_object_digest(item)
+                        for item in (
+                            intake_record,
+                            critic_intake_record,
+                            finding_intake_record,
+                            report_intake_record,
+                            report_review_intake_record,
+                            report_export_intake_record,
+                        )
+                    )
+                ),
+                approval_digests=tuple(
+                    sorted(
+                        domain_object_digest(item)
+                        for item in (
+                            promotion_approval,
+                            report_review_approval,
+                            report_export_approval,
+                        )
+                    )
+                ),
+                validation_effects=validation_effects,
+                export_effects=export_effects,
+                public_network_calls=0,
+                target_builds=0,
+                automatic_approvals=0,
+                submission_calls=0,
+                exported_artifact_digest=domain_object_digest(report_export_outcome.artifact),
+            )
+            workflow_plan = AgentWorkflowRegressionPlan.create(
+                observation=workflow_observation,
+                policy=AgentWorkflowRegressionPolicy(),
+                created_at=now + timedelta(seconds=32, milliseconds=500),
+                deadline=now + timedelta(seconds=40),
+                idempotency_key="m9.1:agent-workflow-regression",
+            )
+            workflow_regression_outcome = AgentWorkflowRegressionService(
+                store=workflow_regression_store,
+                artifact_store=AgentWorkflowRegressionArtifactStore(
+                    tmp_path / "m91-agent-workflow-artifacts"
+                ),
+            ).evaluate(
+                workflow_plan,
+                workflow_observation,
+                now=now + timedelta(seconds=33),
+            )
     finally:
+        workflow_regression_store.close()
         report_export_execution_store.close()
         report_export_store.close()
         report_export_intake_store.close()
@@ -1992,6 +2113,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert report_export_outcome.report.review_status.value == "exported"
     assert report_review_outcome.report.review_status.value == "human_approved"
     assert calls_after_report_export_execution == calls_before_report_export_execution
+    assert workflow_regression_outcome.result.gate_status.value == "passed"
+    assert workflow_regression_outcome.result.metrics.stage_completeness == 1.0
+    assert not workflow_regression_outcome.result.violations
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -2033,6 +2157,9 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
         b"trusted Phase 3 exact report title"
         not in (tmp_path / "m812-report-export-bindings.sqlite3").read_bytes()
     )
+    assert _TARGET_BODY not in (
+        tmp_path / "m91-agent-workflow-regressions.sqlite3"
+    ).read_bytes()
     assert (
         b"Phase 3 human authorized the exact sealed local"
         not in (tmp_path / "m812-report-export-bindings.sqlite3").read_bytes()

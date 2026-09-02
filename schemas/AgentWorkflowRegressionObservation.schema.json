@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "AgentWorkflowCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/AgentWorkflowStage"
+        },
+        "object_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "object_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "object_id",
+        "object_digest"
+      ],
+      "title": "AgentWorkflowCheckpoint",
+      "type": "object"
+    },
+    "AgentWorkflowEffectCounters": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_attempts": {
+          "minimum": 0,
+          "title": "Provider Attempts",
+          "type": "integer"
+        },
+        "broker_calls": {
+          "minimum": 0,
+          "title": "Broker Calls",
+          "type": "integer"
+        },
+        "runner_calls": {
+          "minimum": 0,
+          "title": "Runner Calls",
+          "type": "integer"
+        },
+        "target_requests": {
+          "minimum": 0,
+          "title": "Target Requests",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "provider_attempts",
+        "broker_calls",
+        "runner_calls",
+        "target_requests"
+      ],
+      "title": "AgentWorkflowEffectCounters",
+      "type": "object"
+    },
+    "AgentWorkflowStage": {
+      "enum": [
+        "session_audit",
+        "validation_intake",
+        "validation_outcome",
+        "critic_intake",
+        "critic_outcome",
+        "finding_intake",
+        "finding_promotion",
+        "report_intake",
+        "report_draft",
+        "report_review_intake",
+        "report_review",
+        "report_export_intake",
+        "report_export"
+      ],
+      "title": "AgentWorkflowStage",
+      "type": "string"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    },
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "checkpoints": {
+      "items": {
+        "$ref": "#/$defs/AgentWorkflowCheckpoint"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Checkpoints",
+      "type": "array"
+    },
+    "proposed_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "critic_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "promoted_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "validation_result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "critic_verdict": {
+      "$ref": "#/$defs/CriticVerdict"
+    },
+    "draft_report_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "reviewed_report_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "exported_report_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "human_decision_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Human Decision Digests",
+      "type": "array"
+    },
+    "approval_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Approval Digests",
+      "type": "array"
+    },
+    "validation_effects": {
+      "$ref": "#/$defs/AgentWorkflowEffectCounters"
+    },
+    "export_effects": {
+      "$ref": "#/$defs/AgentWorkflowEffectCounters"
+    },
+    "public_network_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Public Network Calls",
+      "type": "integer"
+    },
+    "target_builds": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Target Builds",
+      "type": "integer"
+    },
+    "automatic_approvals": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Automatic Approvals",
+      "type": "integer"
+    },
+    "submission_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Submission Calls",
+      "type": "integer"
+    },
+    "exported_artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Exported Artifact Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "checkpoints",
+    "proposed_candidate_state",
+    "critic_candidate_state",
+    "promoted_candidate_state",
+    "validation_result",
+    "critic_verdict",
+    "draft_report_status",
+    "reviewed_report_status",
+    "exported_report_status",
+    "validation_effects",
+    "export_effects",
+    "exported_artifact_digest"
+  ],
+  "title": "AgentWorkflowRegressionObservation",
+  "type": "object"
+}

@@ -680,6 +680,23 @@ M8.12 使 Agent 工作流最多到达受控本地 `EXPORTED` artifact。它不�
 token 或 Submission；`SUBMITTED` 仍无可达状态迁移。后续工作应进入端到端质量/安全回归评测，而不是
 把本地 export 隐式扩展为外部提交。
 
+### M9.1：Agent 闭环端到端质量与安全回归门禁（已完成首版）
+
+- 新增内容寻址的 `AgentWorkflowRegressionObservation`，按固定顺序绑定 M7.11 Audit 与 M8.1–M8.12
+  的 13 个 checkpoint 摘要、Evidence、六次人工 Intake 决定、三次精确 Approval、关键状态和副作用计数。
+- 固定安全策略要求 Validation `REPRODUCED`、Critic `ACCEPTED`、原始 `PROPOSED` Candidate、独立
+  `CRITIC_REVIEWED`/`PROMOTED` Candidate，以及 `DRAFT → HUMAN_APPROVED → EXPORTED` 三份不可变报告。
+- 以 M8.2 Validation 完成后的 provider/Broker/Runner/target 计数为基线；直到 M8.12 export 完成都不得
+  增长。公网访问、Target 构建、自动 Approval 和 Submission 计数必须始终为零，策略模型禁止放宽这些上限。
+- 纯 evaluator 输出 typed metrics、稳定 violation code 与 PASS/FAIL；输入 drift 和过期在 checkpoint 前
+  拒绝，独立 SQLite 的 STARTED 不自动恢复，完成结果以有界、no-follow、只读的 JSON/Markdown artifact
+  内容寻址保存并幂等复核。
+- 常规 CI 覆盖成功、质量/安全失败、超时、输入漂移、恢复、artifact 符号链接和无操作参数；Phase 3
+  Admission 从真实本地 provider/Broker/Validation 到本地 export 的完整组合现场构造 observation 并要求 PASS。
+
+M9.1 是只读资格评测，不是新的 Agent 权限或生产状态机。它不执行 Validation、不改变 Candidate、不批准
+操作、不构建 Target、不访问公网，也不创建或发送 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

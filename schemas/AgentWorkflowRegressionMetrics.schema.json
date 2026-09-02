@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "stage_completeness": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Stage Completeness",
+      "type": "number"
+    },
+    "evidence_ref_count": {
+      "minimum": 0,
+      "title": "Evidence Ref Count",
+      "type": "integer"
+    },
+    "human_decision_count": {
+      "minimum": 0,
+      "title": "Human Decision Count",
+      "type": "integer"
+    },
+    "approval_count": {
+      "minimum": 0,
+      "title": "Approval Count",
+      "type": "integer"
+    },
+    "provider_delta": {
+      "minimum": 0,
+      "title": "Provider Delta",
+      "type": "integer"
+    },
+    "broker_delta": {
+      "minimum": 0,
+      "title": "Broker Delta",
+      "type": "integer"
+    },
+    "runner_delta": {
+      "minimum": 0,
+      "title": "Runner Delta",
+      "type": "integer"
+    },
+    "target_delta": {
+      "minimum": 0,
+      "title": "Target Delta",
+      "type": "integer"
+    },
+    "forbidden_effect_count": {
+      "minimum": 0,
+      "title": "Forbidden Effect Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "stage_completeness",
+    "evidence_ref_count",
+    "human_decision_count",
+    "approval_count",
+    "provider_delta",
+    "broker_delta",
+    "runner_delta",
+    "target_delta",
+    "forbidden_effect_count"
+  ],
+  "title": "AgentWorkflowRegressionMetrics",
+  "type": "object"
+}

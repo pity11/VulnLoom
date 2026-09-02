@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "AgentWorkflowRegressionMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "stage_completeness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Stage Completeness",
+          "type": "number"
+        },
+        "evidence_ref_count": {
+          "minimum": 0,
+          "title": "Evidence Ref Count",
+          "type": "integer"
+        },
+        "human_decision_count": {
+          "minimum": 0,
+          "title": "Human Decision Count",
+          "type": "integer"
+        },
+        "approval_count": {
+          "minimum": 0,
+          "title": "Approval Count",
+          "type": "integer"
+        },
+        "provider_delta": {
+          "minimum": 0,
+          "title": "Provider Delta",
+          "type": "integer"
+        },
+        "broker_delta": {
+          "minimum": 0,
+          "title": "Broker Delta",
+          "type": "integer"
+        },
+        "runner_delta": {
+          "minimum": 0,
+          "title": "Runner Delta",
+          "type": "integer"
+        },
+        "target_delta": {
+          "minimum": 0,
+          "title": "Target Delta",
+          "type": "integer"
+        },
+        "forbidden_effect_count": {
+          "minimum": 0,
+          "title": "Forbidden Effect Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stage_completeness",
+        "evidence_ref_count",
+        "human_decision_count",
+        "approval_count",
+        "provider_delta",
+        "broker_delta",
+        "runner_delta",
+        "target_delta",
+        "forbidden_effect_count"
+      ],
+      "title": "AgentWorkflowRegressionMetrics",
+      "type": "object"
+    },
+    "AgentWorkflowRegressionViolation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "actual": {
+          "title": "Actual",
+          "type": "number"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "number"
+        }
+      },
+      "required": [
+        "code",
+        "actual",
+        "limit"
+      ],
+      "title": "AgentWorkflowRegressionViolation",
+      "type": "object"
+    },
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "format": "uuid",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/AgentWorkflowRegressionMetrics"
+    },
+    "gate_status": {
+      "$ref": "#/$defs/BenchmarkGateStatus"
+    },
+    "violations": {
+      "items": {
+        "$ref": "#/$defs/AgentWorkflowRegressionViolation"
+      },
+      "title": "Violations",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_id",
+    "plan_id",
+    "observation_id",
+    "metrics",
+    "gate_status",
+    "violations",
+    "completed_at"
+  ],
+  "title": "AgentWorkflowRegressionResult",
+  "type": "object"
+}

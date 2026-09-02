@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "provider_attempts": {
+      "minimum": 0,
+      "title": "Provider Attempts",
+      "type": "integer"
+    },
+    "broker_calls": {
+      "minimum": 0,
+      "title": "Broker Calls",
+      "type": "integer"
+    },
+    "runner_calls": {
+      "minimum": 0,
+      "title": "Runner Calls",
+      "type": "integer"
+    },
+    "target_requests": {
+      "minimum": 0,
+      "title": "Target Requests",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "provider_attempts",
+    "broker_calls",
+    "runner_calls",
+    "target_requests"
+  ],
+  "title": "AgentWorkflowEffectCounters",
+  "type": "object"
+}

@@ -580,6 +580,19 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
   recovery fail closed. No destination path/URL, public network, platform token or Submission
   capability exists.
 
+### M9.1: closed Agent workflow quality and safety regression
+
+- Evaluates one content-addressed observation over the fixed 13-stage M7.11–M8.12 chain, including
+  six explicit human Intake decisions and three exact Approvals.
+- Requires reproduced Validation, accepted Critic, immutable source Candidate/Report states and one
+  final local `EXPORTED` artifact with bound Evidence.
+- Compares effect counters captured after Validation with the final export boundary. Any later
+  provider, Broker, Runner or target call fails the gate, as does any public-network access, target
+  build, automatic Approval or Submission.
+- The evaluator is pure and offline; STARTED/COMPLETED checkpoints and content-addressed JSON/
+  Markdown results are bounded, no-follow verified and replayed read-only. The Phase 3 Admission
+  harness constructs the observation from the real local composition rather than Agent prose.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
