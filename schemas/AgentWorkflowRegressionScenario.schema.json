@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "AgentWorkflowMutation": {
+      "enum": [
+        "happy_path",
+        "missing_final_stage",
+        "duplicate_checkpoint_id",
+        "missing_human_decision",
+        "missing_approval",
+        "missing_evidence",
+        "proposed_candidate_mutated",
+        "critic_candidate_mutated",
+        "promoted_candidate_missing",
+        "validation_not_reproduced",
+        "critic_not_accepted",
+        "draft_report_mutated",
+        "reviewed_report_mutated",
+        "export_not_completed",
+        "provider_delta",
+        "broker_delta",
+        "runner_delta",
+        "target_delta",
+        "provider_counter_regressed",
+        "public_network_call",
+        "target_build",
+        "automatic_approval",
+        "submission_call"
+      ],
+      "title": "AgentWorkflowMutation",
+      "type": "string"
+    },
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scenario_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Id",
+      "type": "string"
+    },
+    "mutation": {
+      "$ref": "#/$defs/AgentWorkflowMutation"
+    },
+    "expected_status": {
+      "$ref": "#/$defs/BenchmarkGateStatus"
+    },
+    "expected_violation_codes": {
+      "default": [],
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Expected Violation Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scenario_id",
+    "mutation",
+    "expected_status"
+  ],
+  "title": "AgentWorkflowRegressionScenario",
+  "type": "object"
+}

@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "AgentWorkflowMutation": {
+      "enum": [
+        "happy_path",
+        "missing_final_stage",
+        "duplicate_checkpoint_id",
+        "missing_human_decision",
+        "missing_approval",
+        "missing_evidence",
+        "proposed_candidate_mutated",
+        "critic_candidate_mutated",
+        "promoted_candidate_missing",
+        "validation_not_reproduced",
+        "critic_not_accepted",
+        "draft_report_mutated",
+        "reviewed_report_mutated",
+        "export_not_completed",
+        "provider_delta",
+        "broker_delta",
+        "runner_delta",
+        "target_delta",
+        "provider_counter_regressed",
+        "public_network_call",
+        "target_build",
+        "automatic_approval",
+        "submission_call"
+      ],
+      "title": "AgentWorkflowMutation",
+      "type": "string"
+    },
+    "AgentWorkflowRegressionScenarioResult": {
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "mutation": {
+          "$ref": "#/$defs/AgentWorkflowMutation"
+        },
+        "actual_status": {
+          "$ref": "#/$defs/BenchmarkGateStatus"
+        },
+        "actual_violation_codes": {
+          "default": [],
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Actual Violation Codes",
+          "type": "array"
+        },
+        "expectation_matched": {
+          "title": "Expectation Matched",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "mutation",
+        "actual_status",
+        "expectation_matched"
+      ],
+      "title": "AgentWorkflowRegressionScenarioResult",
+      "type": "object"
+    },
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "corpus_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Corpus Id",
+      "type": "string"
+    },
+    "scenario_count": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Scenario Count",
+      "type": "integer"
+    },
+    "matched_count": {
+      "maximum": 64,
+      "minimum": 0,
+      "title": "Matched Count",
+      "type": "integer"
+    },
+    "gate_status": {
+      "$ref": "#/$defs/BenchmarkGateStatus"
+    },
+    "scenario_results": {
+      "items": {
+        "$ref": "#/$defs/AgentWorkflowRegressionScenarioResult"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Scenario Results",
+      "type": "array"
+    }
+  },
+  "required": [
+    "result_id",
+    "corpus_id",
+    "scenario_count",
+    "matched_count",
+    "gate_status",
+    "scenario_results"
+  ],
+  "title": "AgentWorkflowRegressionCorpusResult",
+  "type": "object"
+}

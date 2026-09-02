@@ -1,0 +1,459 @@
+{
+  "$defs": {
+    "AgentWorkflowCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/AgentWorkflowStage"
+        },
+        "object_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "object_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "object_id",
+        "object_digest"
+      ],
+      "title": "AgentWorkflowCheckpoint",
+      "type": "object"
+    },
+    "AgentWorkflowEffectCounters": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_attempts": {
+          "minimum": 0,
+          "title": "Provider Attempts",
+          "type": "integer"
+        },
+        "broker_calls": {
+          "minimum": 0,
+          "title": "Broker Calls",
+          "type": "integer"
+        },
+        "runner_calls": {
+          "minimum": 0,
+          "title": "Runner Calls",
+          "type": "integer"
+        },
+        "target_requests": {
+          "minimum": 0,
+          "title": "Target Requests",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "provider_attempts",
+        "broker_calls",
+        "runner_calls",
+        "target_requests"
+      ],
+      "title": "AgentWorkflowEffectCounters",
+      "type": "object"
+    },
+    "AgentWorkflowMutation": {
+      "enum": [
+        "happy_path",
+        "missing_final_stage",
+        "duplicate_checkpoint_id",
+        "missing_human_decision",
+        "missing_approval",
+        "missing_evidence",
+        "proposed_candidate_mutated",
+        "critic_candidate_mutated",
+        "promoted_candidate_missing",
+        "validation_not_reproduced",
+        "critic_not_accepted",
+        "draft_report_mutated",
+        "reviewed_report_mutated",
+        "export_not_completed",
+        "provider_delta",
+        "broker_delta",
+        "runner_delta",
+        "target_delta",
+        "provider_counter_regressed",
+        "public_network_call",
+        "target_build",
+        "automatic_approval",
+        "submission_call"
+      ],
+      "title": "AgentWorkflowMutation",
+      "type": "string"
+    },
+    "AgentWorkflowRegressionObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "checkpoints": {
+          "items": {
+            "$ref": "#/$defs/AgentWorkflowCheckpoint"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Checkpoints",
+          "type": "array"
+        },
+        "proposed_candidate_state": {
+          "$ref": "#/$defs/CandidateState"
+        },
+        "critic_candidate_state": {
+          "$ref": "#/$defs/CandidateState"
+        },
+        "promoted_candidate_state": {
+          "$ref": "#/$defs/CandidateState"
+        },
+        "validation_result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "critic_verdict": {
+          "$ref": "#/$defs/CriticVerdict"
+        },
+        "draft_report_status": {
+          "$ref": "#/$defs/ReportReviewStatus"
+        },
+        "reviewed_report_status": {
+          "$ref": "#/$defs/ReportReviewStatus"
+        },
+        "exported_report_status": {
+          "$ref": "#/$defs/ReportReviewStatus"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "human_decision_digests": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Human Decision Digests",
+          "type": "array"
+        },
+        "approval_digests": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Approval Digests",
+          "type": "array"
+        },
+        "validation_effects": {
+          "$ref": "#/$defs/AgentWorkflowEffectCounters"
+        },
+        "export_effects": {
+          "$ref": "#/$defs/AgentWorkflowEffectCounters"
+        },
+        "public_network_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Public Network Calls",
+          "type": "integer"
+        },
+        "target_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Target Builds",
+          "type": "integer"
+        },
+        "automatic_approvals": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Automatic Approvals",
+          "type": "integer"
+        },
+        "submission_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Submission Calls",
+          "type": "integer"
+        },
+        "exported_artifact_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Exported Artifact Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "checkpoints",
+        "proposed_candidate_state",
+        "critic_candidate_state",
+        "promoted_candidate_state",
+        "validation_result",
+        "critic_verdict",
+        "draft_report_status",
+        "reviewed_report_status",
+        "exported_report_status",
+        "validation_effects",
+        "export_effects",
+        "exported_artifact_digest"
+      ],
+      "title": "AgentWorkflowRegressionObservation",
+      "type": "object"
+    },
+    "AgentWorkflowRegressionPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "required_stages": {
+          "default": [
+            "session_audit",
+            "validation_intake",
+            "validation_outcome",
+            "critic_intake",
+            "critic_outcome",
+            "finding_intake",
+            "finding_promotion",
+            "report_intake",
+            "report_draft",
+            "report_review_intake",
+            "report_review",
+            "report_export_intake",
+            "report_export"
+          ],
+          "items": {
+            "$ref": "#/$defs/AgentWorkflowStage"
+          },
+          "title": "Required Stages",
+          "type": "array"
+        },
+        "required_human_decisions": {
+          "default": 6,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Required Human Decisions",
+          "type": "integer"
+        },
+        "required_approvals": {
+          "default": 3,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Required Approvals",
+          "type": "integer"
+        },
+        "min_evidence_refs": {
+          "default": 1,
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Min Evidence Refs",
+          "type": "integer"
+        },
+        "max_control_plane_provider_delta": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Control Plane Provider Delta",
+          "type": "integer"
+        },
+        "max_control_plane_broker_delta": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Control Plane Broker Delta",
+          "type": "integer"
+        },
+        "max_control_plane_runner_delta": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Control Plane Runner Delta",
+          "type": "integer"
+        },
+        "max_control_plane_target_delta": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Control Plane Target Delta",
+          "type": "integer"
+        },
+        "max_public_network_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Public Network Calls",
+          "type": "integer"
+        },
+        "max_target_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Target Builds",
+          "type": "integer"
+        },
+        "max_automatic_approvals": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Automatic Approvals",
+          "type": "integer"
+        },
+        "max_submission_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Max Submission Calls",
+          "type": "integer"
+        }
+      },
+      "title": "AgentWorkflowRegressionPolicy",
+      "type": "object"
+    },
+    "AgentWorkflowRegressionScenario": {
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "mutation": {
+          "$ref": "#/$defs/AgentWorkflowMutation"
+        },
+        "expected_status": {
+          "$ref": "#/$defs/BenchmarkGateStatus"
+        },
+        "expected_violation_codes": {
+          "default": [],
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Expected Violation Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "mutation",
+        "expected_status"
+      ],
+      "title": "AgentWorkflowRegressionScenario",
+      "type": "object"
+    },
+    "AgentWorkflowStage": {
+      "enum": [
+        "session_audit",
+        "validation_intake",
+        "validation_outcome",
+        "critic_intake",
+        "critic_outcome",
+        "finding_intake",
+        "finding_promotion",
+        "report_intake",
+        "report_draft",
+        "report_review_intake",
+        "report_review",
+        "report_export_intake",
+        "report_export"
+      ],
+      "title": "AgentWorkflowStage",
+      "type": "string"
+    },
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    },
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "corpus_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Corpus Id",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    },
+    "base_observation": {
+      "$ref": "#/$defs/AgentWorkflowRegressionObservation"
+    },
+    "policy": {
+      "$ref": "#/$defs/AgentWorkflowRegressionPolicy"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/AgentWorkflowRegressionScenario"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Scenarios",
+      "type": "array"
+    }
+  },
+  "required": [
+    "corpus_id",
+    "version",
+    "base_observation",
+    "policy",
+    "scenarios"
+  ],
+  "title": "AgentWorkflowRegressionCorpus",
+  "type": "object"
+}

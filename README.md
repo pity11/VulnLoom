@@ -593,6 +593,18 @@ Public asset discovery, automatic submission, and general-purpose autonomous she
   Markdown results are bounded, no-follow verified and replayed read-only. The Phase 3 Admission
   harness constructs the observation from the real local composition rather than Agent prose.
 
+### M9.2: sealed negative-path mutation corpus
+
+- Seals one known-good M9.1 observation plus 23 fixed scenarios covering every current quality and
+  safety violation branch; the corpus requires every mutation exactly once and in canonical order.
+- Each scenario has an immutable expected PASS/FAIL status and exact violation-code tuple. Missing
+  cases or changed expectations fail schema validation instead of silently updating the baseline.
+- The offline corpus evaluator deterministically mutates only typed observations and requires all
+  23 actual results to match the sealed baseline. It has no Runner, Broker, provider, target or
+  Approval dependency.
+- Fixture generation and the M9.2 gate run in every Python 3.12/3.13/3.14 CI job. Public-network,
+  target-build, automatic-Approval and Submission regressions are explicit failing scenarios.
+
 ## Local development
 
 VulnLoom requires Python 3.12 or later.
@@ -606,6 +618,8 @@ python3 -m venv .venv
 .venv/bin/python scripts/run_m6_1_regression_gate.py
 .venv/bin/python scripts/export_analyzer_evaluation_fixtures.py
 .venv/bin/python scripts/run_m6_3_regression_gate.py
+.venv/bin/python scripts/export_agent_workflow_regression_fixtures.py
+.venv/bin/python scripts/run_m9_2_agent_workflow_regression_gate.py
 
 # Optional; requires a local Alpine 3.22 image and Docker engine.
 VULNLOOM_DOCKER_INTEGRATION=1 .venv/bin/pytest tests/test_runner_docker_integration.py

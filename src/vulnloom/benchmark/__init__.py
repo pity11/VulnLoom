@@ -1,5 +1,18 @@
 """Deterministic, offline benchmark contracts and regression gates."""
 
+from .agent_workflow_corpus import (
+    EXPECTED_AGENT_WORKFLOW_VIOLATIONS,
+    AgentWorkflowMutation,
+    AgentWorkflowRegressionCorpus,
+    AgentWorkflowRegressionCorpusResult,
+    AgentWorkflowRegressionScenario,
+    AgentWorkflowRegressionScenarioResult,
+    agent_workflow_corpus_digest,
+    agent_workflow_corpus_result_digest,
+    agent_workflow_scenario_digest,
+    apply_agent_workflow_mutation,
+    evaluate_agent_workflow_corpus,
+)
 from .agent_workflow_evaluator import evaluate_agent_workflow
 from .agent_workflow_models import (
     REQUIRED_AGENT_WORKFLOW_STAGES,
@@ -225,6 +238,9 @@ __all__ = [
     "AutoPenBenchSnapshotAdapter",
     "AgentWorkflowCheckpoint",
     "AgentWorkflowEffectCounters",
+    "AgentWorkflowMutation",
+    "AgentWorkflowRegressionCorpus",
+    "AgentWorkflowRegressionCorpusResult",
     "AgentWorkflowRegressionArtifact",
     "AgentWorkflowRegressionArtifactStore",
     "AgentWorkflowRegressionConflict",
@@ -235,6 +251,8 @@ __all__ = [
     "AgentWorkflowRegressionPolicy",
     "AgentWorkflowRegressionRecoveryRequired",
     "AgentWorkflowRegressionRejected",
+    "AgentWorkflowRegressionScenario",
+    "AgentWorkflowRegressionScenarioResult",
     "AgentWorkflowRegressionResult",
     "AgentWorkflowRegressionService",
     "AgentWorkflowRegressionStore",
@@ -348,6 +366,7 @@ __all__ = [
     "ExternalImportLimits",
     "ExternalImportRecoveryRequired",
     "EvaluationDeadline",
+    "EXPECTED_AGENT_WORKFLOW_VIOLATIONS",
     "GroundTruthFinding",
     "KUBESEC_ADAPTER_DIGEST",
     "KUBESEC_ADAPTER_ID",
@@ -373,6 +392,11 @@ __all__ = [
     "default_analyzer_adapters",
     "evaluate_metrics",
     "evaluate_agent_workflow",
+    "evaluate_agent_workflow_corpus",
+    "apply_agent_workflow_mutation",
+    "agent_workflow_corpus_digest",
+    "agent_workflow_corpus_result_digest",
+    "agent_workflow_scenario_digest",
     "evaluate_analyzer_metrics",
     "evaluate_analyzer_regressions",
     "evaluate_regressions",

@@ -653,6 +653,16 @@ policy、执行窗口和幂等键。
 STARTED/COMPLETED checkpoint，结果以内容寻址、大小受限、no-follow 复核的 JSON/Markdown artifact
 持久化，遗留 STARTED 不会自动重放。
 
+### AgentWorkflowRegressionCorpus 与 ScenarioResult
+
+M9.2 的 `AgentWorkflowRegressionCorpus` 内容寻址绑定 M9.1 base observation、固定安全 policy 和完整
+`AgentWorkflowMutation` 序列。`AgentWorkflowRegressionScenario` 的 mutation、预期 gate status 与 exact
+ordered violation codes 共同内容寻址；预期由 contract 固定，不能通过 fixture 修改。
+
+`AgentWorkflowRegressionScenarioResult` 保存 mutation 的实际 status、实际 violation codes 和是否匹配；
+`AgentWorkflowRegressionCorpusResult` 绑定 corpus、场景总数、匹配数、逐场景结果和总体 PASS/FAIL。结果
+只有在全部 23 个场景匹配时才为 PASS，不是 Approval、领域事件或生产状态。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

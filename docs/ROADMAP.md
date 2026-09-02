@@ -697,6 +697,20 @@ token 或 Submission；`SUBMITTED` 仍无可达状态迁移。后续工作应进
 M9.1 是只读资格评测，不是新的 Agent 权限或生产状态机。它不执行 Validation、不改变 Candidate、不批准
 操作、不构建 Target、不访问公网，也不创建或发送 Submission。
 
+### M9.2：密封负向场景语料与 violation baseline（已完成首版）
+
+- `AgentWorkflowRegressionCorpus` 内容寻址绑定一个 M9.1 已知成功 observation、不可放宽 policy，以及
+  23 个固定 mutation scenario；所有 mutation 必须各出现一次并保持规范顺序。
+- 场景覆盖阶段缺失/重复、人工决定/Approval/Evidence 缺失、Candidate/Report 状态漂移、Validation/
+  Critic 失败、provider/Broker/Runner/target 增量和计数回退，以及公网、构建、自动 Approval、Submission。
+- 每个 scenario 的预期 PASS/FAIL 与 exact ordered violation codes 固定在 typed contract 中；删除场景、
+  改写预期或放宽 policy 均在评测前 fail-closed，不能用“更新 baseline”掩盖安全回归。
+- 纯 corpus evaluator 只变换内存中的 typed observation，输出内容寻址的逐场景实际结果和总体 PASS/FAIL；
+  fixture 生成漂移与 23/23 expectation match 已加入 Python 3.12/3.13/3.14 常规 CI。
+
+M9.2 不调用任何生产 adapter，不执行 Validation、不改变领域状态、不访问网络，也不授予构建、审批、导出
+或 Submission 权限。
+
 ## 延后事项
 
 - 公网资产自主发现。

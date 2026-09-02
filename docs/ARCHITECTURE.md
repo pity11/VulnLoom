@@ -827,3 +827,21 @@ conflicting consumption, expired plans and unfinished recovery. Results are boun
 content-addressed JSON/Markdown artifacts verified with no-follow reads. The gate introduces no
 Runner, Broker, provider, network, build, Approval, Candidate mutation, export or Submission entry
 point; it only evaluates facts captured by the existing admission composition.
+
+## 48. M9.2 sealed negative-path mutation corpus
+
+M9.2 adds mutation coverage around the pure M9.1 evaluator without adding a production execution
+path. A content-addressed corpus binds one known-good typed observation, the non-weakenable policy
+and all 23 fixed mutations in canonical order. Each scenario carries a contract-fixed expected gate
+status and exact ordered violation codes; the corpus rejects missing mutations or rewritten
+expectations before evaluation.
+
+Deterministic transformations cover incomplete or duplicate checkpoint chains, missing Evidence or
+human gates, Candidate and Report immutability drift, non-reproduced Validation, non-accepted
+Critic, post-Validation provider/Broker/Runner/target activity, regressed counters, public network,
+target build, automatic Approval and Submission. Evaluation returns a content-addressed per-scenario
+result and passes only when all 23 outcomes match the sealed baseline.
+
+The fixture generator and gate are ordinary offline CI steps on every supported Python version.
+They construct no Target, open no network, invoke no Runner/Broker/provider, issue no Approval and
+perform no domain transition or Submission.
