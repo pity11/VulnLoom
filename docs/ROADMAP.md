@@ -619,6 +619,26 @@ M8.9 只是人工选择 exact review 输入，不是报告批准。后续 M8.10 
 独立人工 `ReportReviewCommand`，并重新验证全部来源后才可调用既有 review 状态机；export 与 Submission
 仍保持独立且不在本里程碑权限内。
 
+### M8.10：accepted Intake、精确 Approval 与确定性 Report Review（已完成首版）
+
+- 新增 `REVIEW_REPORT` Approval action 与内容寻址的 `ReportReviewApprovalAction`，精确绑定 accepted
+  M8.9 record、exact `ReportReviewPlan`、独立人工 `ReportReviewCommand`、DRAFT Report、artifact、Scope、
+  typed decision 和唯一预期状态效果；M8.9 accept 不能充当 review decision 或 Approval。
+- `approve`、`request_changes`、`reject` 三种实际状态转换都要求人工 granted 且仍有效的 exact
+  Approval；pending/denied/revoked、action/effect/Scope/时间漂移均在 execution checkpoint 前拒绝。
+- 执行前重新读取 M8.9/M8.8、Report draft、artifact、EvidenceBundle 与相同 Evidence catalog，确认
+  Report 仍为 `DRAFT` 后才调用既有 `HumanReportReviewService` 与纯状态机。
+- 新增 digest-only `AgentReportReviewExecutionPlan` 和 `AgentReportReviewOutcomeBinding`；完整 reviewed
+  Report 只进入既有本地 review artifact/store，Agent execution ledger 不保存报告正文或 Approval 摘要。
+- 独立 STARTED/COMPLETED ledger 唯一消费 Intake、ReviewPlan、ReviewCommand、Report 与 Approval；
+  completed replay 幂等，预存在未绑定 review、冲突、失败和遗留 STARTED 不自动重放。
+- 常规测试覆盖三种决定、授权拒绝、plan 漂移、超时、失败清理、预存在 review、幂等、冲突、恢复和
+  schema/SQLite 无正文；Phase 3 Admission 以显式人工 `request_changes` 证明实际转换前后 Runner、
+  Broker、provider、target 调用计数不变，原始 DRAFT 仍不可变。
+
+M8.10 只执行本地人工报告审阅状态机，不自动选择或批准决定，不导出报告，不访问公网，也不创建或
+发送 Submission。后续 M8.11 应从 `HUMAN_APPROVED` 的 completed binding 开始建立独立本地 export Intake。
+
 ## 延后事项
 
 - 公网资产自主发现。

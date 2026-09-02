@@ -117,6 +117,7 @@ class ApprovalAction(StrEnum):
     USE_REAL_CREDENTIALS = "use_real_credentials"
     EXTERNAL_CALLBACK = "external_callback"
     SUBMIT_REPORT = "submit_report"
+    REVIEW_REPORT = "review_report"
 
 
 class EvidenceKind(StrEnum):
@@ -372,9 +373,7 @@ class CriticReview(DomainModel):
     review_context_id: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     ruleset_digest: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     verdict: CriticVerdict
-    counterevidence_refs: tuple[
-        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
-    ] = ()
+    counterevidence_refs: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...] = ()
     rationale_code: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
     reviewed_at: AwareDatetime = Field(default_factory=utc_now)
 
@@ -423,9 +422,7 @@ class ProductIdentity(DomainModel):
 class ReportSection(DomainModel):
     kind: ReportSectionKind
     text: str = Field(min_length=1, max_length=8192)
-    evidence_refs: tuple[
-        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
-    ] = ()
+    evidence_refs: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...] = ()
 
     @model_validator(mode="after")
     def evidence_backed_claims(self) -> ReportSection:
@@ -458,9 +455,7 @@ class Report(DomainModel):
     impact: NonEmpty
     remediation: NonEmpty
     sections: Annotated[tuple[ReportSection, ...], Field(min_length=6, max_length=32)]
-    evidence_refs: tuple[
-        Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...
-    ]
+    evidence_refs: tuple[Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")], ...]
     redaction_status: RedactionStatus = RedactionStatus.PASSED
     review_status: ReportReviewStatus = ReportReviewStatus.DRAFT
 
@@ -478,11 +473,14 @@ class Report(DomainModel):
         counts = {kind: 0 for kind in ReportSectionKind}
         for section in self.sections:
             counts[section.kind] += 1
-        if any(
-            counts[kind] != 1
-            for kind in ReportSectionKind
-            if kind is not ReportSectionKind.REPRODUCTION
-        ) or counts[ReportSectionKind.REPRODUCTION] < 1:
+        if (
+            any(
+                counts[kind] != 1
+                for kind in ReportSectionKind
+                if kind is not ReportSectionKind.REPRODUCTION
+            )
+            or counts[ReportSectionKind.REPRODUCTION] < 1
+        ):
             raise ValueError("Report must contain every required section exactly once")
         referenced = tuple(
             dict.fromkeys(ref for section in self.sections for ref in section.evidence_refs)

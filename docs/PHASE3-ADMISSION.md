@@ -347,3 +347,13 @@ The Report remains `DRAFT`; Runner calls remain at one, target requests at two a
 at three. Ordinary CI covers accept/reject/defer, plan drift, expiry, artifact corruption,
 idempotency, conflict, unfinished recovery and schema/SQLite absence of prose. This qualification
 adds no report decision, approval, export, public egress, Target build or Submission.
+
+M8.10 consumes the accepted M8.9 record only with a separately issued human `ReportReviewCommand`
+and a granted `REVIEW_REPORT` Approval bound to the exact command, DRAFT, artifact, Scope and one
+expected state effect. The Admission probe changes the Approval action digest and proves rejection
+before an execution checkpoint, then applies an explicitly selected `request_changes` decision
+through the existing deterministic review service. The original DRAFT remains immutable; Runner
+calls remain at one, target requests at two and provider attempts at three. Ordinary CI covers all
+three decisions, pending/denied/revoked Approval, drift, timeout, pre-existing reviews, failure,
+idempotency, conflict, recovery and schema/SQLite absence of prose. This qualification adds no
+automatic decision, report export, public egress, Target build or Submission.

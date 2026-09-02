@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "ReviewDecisionKind": {
+      "enum": [
+        "approve",
+        "request_changes",
+        "reject"
+      ],
+      "title": "ReviewDecisionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "review_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Intake Record Id",
+      "type": "string"
+    },
+    "review_intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Intake Record Digest",
+      "type": "string"
+    },
+    "report_review_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Plan Id",
+      "type": "string"
+    },
+    "report_review_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Plan Digest",
+      "type": "string"
+    },
+    "report_review_command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Command Id",
+      "type": "string"
+    },
+    "report_review_command_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Command Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Digest",
+      "type": "string"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/ReviewDecisionKind"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "expected_side_effects": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Side Effects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "action_id",
+    "engagement_id",
+    "review_intake_record_id",
+    "review_intake_record_digest",
+    "report_review_plan_id",
+    "report_review_plan_digest",
+    "report_review_command_id",
+    "report_review_command_digest",
+    "report_id",
+    "report_digest",
+    "artifact_digest",
+    "decision",
+    "scope_id",
+    "scope_version",
+    "expected_side_effects"
+  ],
+  "title": "ReportReviewApprovalAction",
+  "type": "object"
+}

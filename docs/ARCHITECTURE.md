@@ -749,3 +749,23 @@ The independent STARTED/COMPLETED ledger uniquely consumes the M8.8 binding, Rep
 command. Missing or corrupt artifacts, Evidence/catalog drift, expired Scope or plan, conflicting
 consumption and unfinished recovery fail closed. Runner, Broker, provider, target-build, network,
 report approval, export and Submission capabilities are absent.
+
+## 44. M8.10 Approval-gated deterministic Report review
+
+M8.10 is the first Agent-path adapter allowed to apply a review decision to a local Report. It
+requires three independent control-plane facts: a still-valid accepted M8.9 record, an exact human
+`ReportReviewCommand`, and a granted `REVIEW_REPORT` Approval. The content-addressed Approval action
+binds the Intake record, review plan, command, DRAFT Report, artifact, Scope, typed decision and the
+single corresponding state effect. Intake acceptance alone is never review authority.
+
+Immediately before transition, the service reopens the M8.9 and M8.8 completed checkpoints, draft
+Report, immutable artifact, EvidenceBundle and the exact Evidence catalog sealed for drafting. Only
+then may it call the existing `HumanReportReviewService`, whose pure state machine maps approve,
+request-changes and reject to their closed statuses. The original DRAFT object and artifact remain
+immutable.
+
+The Agent-facing execution ledger stores only IDs, digests, Approval identity, typed decision/status
+and timestamps. The reviewed Report remains in the existing local artifact/review boundary.
+Completed replay is read-only; missing or revoked Approval, drift, expiry, pre-existing unbound
+reviews, conflicts and unfinished recovery fail closed. Export, Runner, Broker, provider,
+target-build, public-network and Submission dependencies are absent.

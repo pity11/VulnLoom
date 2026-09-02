@@ -96,6 +96,7 @@ from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
+    REPORT_REVIEW_EFFECTS,
     AgentReportDraftExecutionConflict,
     AgentReportDraftExecutionPlan,
     AgentReportDraftExecutionRecoveryRequired,
@@ -115,6 +116,13 @@ from vulnloom.reporting import (
     AgentReportIntakeService,
     AgentReportIntakeStore,
     AgentReportIntakeTimedOut,
+    AgentReportReviewExecutionConflict,
+    AgentReportReviewExecutionPlan,
+    AgentReportReviewExecutionRecoveryRequired,
+    AgentReportReviewExecutionRejected,
+    AgentReportReviewExecutionService,
+    AgentReportReviewExecutionStore,
+    AgentReportReviewExecutionTimedOut,
     AgentReportReviewIntakeCommand,
     AgentReportReviewIntakeConflict,
     AgentReportReviewIntakeDecision,
@@ -126,11 +134,16 @@ from vulnloom.reporting import (
     AgentReportReviewIntakeService,
     AgentReportReviewIntakeStore,
     AgentReportReviewIntakeTimedOut,
+    AgentReportReviewOutcomeBinding,
     DeterministicReportService,
+    HumanReportReviewService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
+    ReportReviewCommand,
     ReportReviewPlan,
+    ReportReviewStore,
+    ReviewDecisionKind,
     agent_report_intake_plan_digest,
     agent_report_review_intake_plan_digest,
 )
@@ -3254,4 +3267,424 @@ def test_report_review_intake_contracts_are_digest_only():
         AgentReportReviewIntakePlan,
         AgentReportReviewIntakeRecord,
     ):
+        assert not set(model.model_fields) & forbidden
+
+
+def _completed_m89_case(tmp_path, now, scope, candidate):
+    m88_case = _completed_m88_case(tmp_path, now, scope, candidate)
+    (
+        _,
+        _,
+        _,
+        _,
+        execution_plan,
+        binding,
+        outcome,
+        bundle,
+        evidence,
+        review_plan,
+    ) = m88_case
+    intake_service, intake_store = _report_review_intake_service(tmp_path, scope, m88_case)
+    intake_plan = intake_service.prepare(
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        now=now + timedelta(seconds=21),
+        decision_deadline=now + timedelta(seconds=27),
+        idempotency_key="report-review-intake:m8.10",
+    )
+    command = AgentReportReviewIntakeCommand.create(
+        intake_plan_id=intake_plan.intake_plan_id,
+        intake_plan_digest=agent_report_review_intake_plan_digest(intake_plan),
+        draft_outcome_binding_id=binding.binding_id,
+        report_review_plan_id=review_plan.plan_id,
+        report_review_plan_digest=intake_plan.report_review_plan_digest,
+        report_id=outcome.report.report_id,
+        report_digest=intake_plan.report_digest,
+        decision=AgentReportReviewIntakeDecision.ACCEPT,
+        reason_code=AgentReportReviewIntakeReason.HUMAN_ACCEPTED_EXACT_REVIEW,
+        reviewer="human-review-intake-reviewer",
+        decided_at=now + timedelta(seconds=22),
+    )
+    record = intake_service.decide(
+        intake_plan,
+        command,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        now=command.decided_at,
+    )
+    return m88_case, intake_service, intake_store, intake_plan, record
+
+
+def _close_m810_case(case, execution_store=None, review_store=None):
+    m88_case, _, intake_store, *_ = case
+    if execution_store is not None:
+        execution_store.close()
+    if review_store is not None:
+        review_store.close()
+    intake_store.close()
+    _close_m89_case(m88_case)
+
+
+def _m810_service(tmp_path, scope, case):
+    m88_case, intake_service, *_ = case
+    artifact_store = m88_case[3]
+    review_store = ReportReviewStore(tmp_path / "report-reviews-m8.10.sqlite3")
+    review_service = HumanReportReviewService(
+        scope=scope,
+        evidence_store=intake_service.evidence_store,
+        artifact_store=artifact_store,
+        store=review_store,
+    )
+    execution_store = AgentReportReviewExecutionStore(
+        tmp_path / "agent-report-review-executions.sqlite3"
+    )
+    service = AgentReportReviewExecutionService(
+        intake_service=intake_service,
+        review_service=review_service,
+        store=execution_store,
+    )
+    return service, execution_store, review_store
+
+
+def _m810_command_and_approval(
+    service,
+    case,
+    now,
+    *,
+    decision=ReviewDecisionKind.APPROVE,
+    status=ApprovalStatus.GRANTED,
+):
+    m88_case, _, _, _, record = case
+    outcome = m88_case[6]
+    review_plan = m88_case[9]
+    command = ReportReviewCommand.create(
+        plan_id=review_plan.plan_id,
+        report_id=outcome.report.report_id,
+        report_digest=domain_object_digest(outcome.report),
+        reviewer=review_plan.reviewer,
+        decision=decision,
+        rationale_code=f"human_{decision.value}",
+        decided_at=now + timedelta(seconds=23),
+    )
+    action = service.approval_action(
+        record=record,
+        report_review_plan=review_plan,
+        report_review_command=command,
+    )
+    approval = ApprovalRequest(
+        engagement_id=service.scope.engagement_id,
+        action=ApprovalAction.REVIEW_REPORT,
+        action_digest=action.action_id,
+        expected_side_effects=REPORT_REVIEW_EFFECTS[decision],
+        evidence_summary="Human authorized the exact sealed local Report review decision",
+        policy_version=service.scope.version,
+        expires_at=now + timedelta(seconds=27),
+        status=status,
+        decided_by="human-report-approval-reviewer" if status is ApprovalStatus.GRANTED else None,
+        decided_at=now + timedelta(seconds=23) if status is ApprovalStatus.GRANTED else None,
+    )
+    return command, approval
+
+
+@pytest.mark.parametrize("decision", tuple(ReviewDecisionKind))
+def test_report_review_execution_requires_approval_and_binds_each_decision(
+    tmp_path, now, approved_scope, candidate, decision
+):
+    case = _completed_m89_case(tmp_path, now, approved_scope, candidate)
+    m88_case, _, _, intake_plan, _ = case
+    execution_plan = m88_case[4]
+    source_outcome = m88_case[6]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, store, review_store = _m810_service(tmp_path, approved_scope, case)
+    command, approval = _m810_command_and_approval(service, case, now, decision=decision)
+    plan = service.prepare(
+        review_intake_plan=intake_plan,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=24),
+        deadline=now + timedelta(seconds=26),
+        idempotency_key=f"report-review-execution:m8.10:{decision.value}",
+    )
+    m85_case = m88_case[0][0][0]
+    calls_before = (m85_case[-2].calls, len(m85_case[-1].calls))
+    binding = service.execute(
+        plan,
+        review_intake_plan=intake_plan,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=25),
+    )
+    expected_status = {
+        ReviewDecisionKind.APPROVE: "human_approved",
+        ReviewDecisionKind.REQUEST_CHANGES: "changes_requested",
+        ReviewDecisionKind.REJECT: "rejected",
+    }[decision]
+    assert binding.resulting_status.value == expected_status
+    assert store.load_completed(plan.execution_plan_id) == binding
+    assert review_store.load_completed(review_plan.plan_id).report.review_status.value == (
+        expected_status
+    )
+    assert source_outcome.report.review_status.value == "draft"
+    assert candidate.state is CandidateState.PROPOSED
+    assert (m85_case[-2].calls, len(m85_case[-1].calls)) == calls_before
+    assert (
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25, microseconds=1),
+        )
+        == binding
+    )
+    persisted = (tmp_path / "agent-report-review-executions.sqlite3").read_bytes()
+    for forbidden in (
+        b"trusted exact report title",
+        b"trusted report summary",
+        b"Human authorized the exact sealed",
+        b"Authorization",
+        b"submission",
+    ):
+        assert forbidden not in persisted
+    conflicting = AgentReportReviewExecutionPlan.create(
+        **plan.model_dump(mode="python", exclude={"execution_plan_id", "idempotency_key"}),
+        idempotency_key=f"report-review-execution:m8.10:{decision.value}:conflict",
+    )
+    with pytest.raises(AgentReportReviewExecutionConflict):
+        store.claim(conflicting, now=now + timedelta(seconds=25))
+    _close_m810_case(case, store, review_store)
+
+
+@pytest.mark.parametrize(
+    "status", (ApprovalStatus.PENDING, ApprovalStatus.DENIED, ApprovalStatus.REVOKED)
+)
+def test_report_review_execution_rejects_missing_grant_before_checkpoint(
+    tmp_path, now, approved_scope, candidate, status
+):
+    case = _completed_m89_case(tmp_path, now, approved_scope, candidate)
+    m88_case, _, _, intake_plan, _ = case
+    execution_plan = m88_case[4]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, store, review_store = _m810_service(tmp_path, approved_scope, case)
+    command, approval = _m810_command_and_approval(service, case, now, status=status)
+    with pytest.raises(AgentReportReviewExecutionRejected, match="Approval"):
+        service.prepare(
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=24),
+            deadline=now + timedelta(seconds=26),
+            idempotency_key=f"report-review-execution:m8.10:{status.value}",
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_review_executions").fetchone()[
+            0
+        ]
+        == 0
+    )
+    assert not review_store.has_checkpoint(review_plan.plan_id)
+    _close_m810_case(case, store, review_store)
+
+
+def test_report_review_execution_rejects_timeout_drift_and_started_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m89_case(tmp_path, now, approved_scope, candidate)
+    m88_case, _, _, intake_plan, _ = case
+    execution_plan = m88_case[4]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, store, review_store = _m810_service(tmp_path, approved_scope, case)
+    command, approval = _m810_command_and_approval(service, case, now)
+    plan = service.prepare(
+        review_intake_plan=intake_plan,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=24),
+        deadline=now + timedelta(seconds=26),
+        idempotency_key="report-review-execution:m8.10:recovery",
+    )
+    with pytest.raises(AgentReportReviewExecutionTimedOut):
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=plan.deadline,
+        )
+    with pytest.raises(AgentReportReviewExecutionRejected, match="drifted"):
+        service.execute(
+            plan.model_copy(update={"report_digest": "f" * 64}),
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25),
+        )
+    assert not review_store.has_checkpoint(review_plan.plan_id)
+    store.claim(plan, now=now + timedelta(seconds=25))
+    with pytest.raises(AgentReportReviewExecutionRecoveryRequired):
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25),
+        )
+    _close_m810_case(case, store, review_store)
+
+
+def test_report_review_execution_failure_requires_recovery_without_replay(
+    tmp_path, now, approved_scope, candidate, monkeypatch
+):
+    case = _completed_m89_case(tmp_path, now, approved_scope, candidate)
+    m88_case, _, _, intake_plan, _ = case
+    execution_plan = m88_case[4]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, store, review_store = _m810_service(tmp_path, approved_scope, case)
+    command, approval = _m810_command_and_approval(service, case, now)
+    plan = service.prepare(
+        review_intake_plan=intake_plan,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=24),
+        deadline=now + timedelta(seconds=26),
+        idempotency_key="report-review-execution:m8.10:failure",
+    )
+    monkeypatch.setattr(
+        service.review_service.artifact_store,
+        "put",
+        lambda _report: (_ for _ in ()).throw(ValueError("fixture failure")),
+    )
+    with pytest.raises(AgentReportReviewExecutionRejected, match="failed"):
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25),
+        )
+    with pytest.raises(AgentReportReviewExecutionRecoveryRequired):
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25),
+        )
+    _close_m810_case(case, store, review_store)
+
+
+def test_report_review_execution_refuses_preexisting_unbound_review(
+    tmp_path, now, approved_scope, candidate
+):
+    case = _completed_m89_case(tmp_path, now, approved_scope, candidate)
+    m88_case, _, _, intake_plan, _ = case
+    execution_plan = m88_case[4]
+    source_outcome = m88_case[6]
+    bundle, evidence, review_plan = m88_case[7:]
+    service, store, review_store = _m810_service(tmp_path, approved_scope, case)
+    command, approval = _m810_command_and_approval(service, case, now)
+    service.review_service.review(
+        source_outcome.report,
+        source_outcome.artifact,
+        bundle,
+        evidence,
+        review_plan,
+        command,
+        now=now + timedelta(seconds=24),
+    )
+    plan = service.prepare(
+        review_intake_plan=intake_plan,
+        draft_execution_plan=execution_plan,
+        report_review_plan=review_plan,
+        report_review_command=command,
+        evidence_bundle=bundle,
+        evidence=evidence,
+        approval=approval,
+        now=now + timedelta(seconds=24),
+        deadline=now + timedelta(seconds=26),
+        idempotency_key="report-review-execution:m8.10:preexisting",
+    )
+    with pytest.raises(AgentReportReviewExecutionRejected, match="predates"):
+        service.execute(
+            plan,
+            review_intake_plan=intake_plan,
+            draft_execution_plan=execution_plan,
+            report_review_plan=review_plan,
+            report_review_command=command,
+            evidence_bundle=bundle,
+            evidence=evidence,
+            approval=approval,
+            now=now + timedelta(seconds=25),
+        )
+    assert (
+        store.connection.execute("SELECT count(*) FROM agent_report_review_executions").fetchone()[
+            0
+        ]
+        == 0
+    )
+    _close_m810_case(case, store, review_store)
+
+
+def test_report_review_execution_contracts_have_no_prose_or_tool_parameters():
+    forbidden = {
+        "title",
+        "sections",
+        "text",
+        "prompt",
+        "runner",
+        "broker",
+        "url",
+        "credential",
+        "token",
+        "submission",
+    }
+    for model in (AgentReportReviewExecutionPlan, AgentReportReviewOutcomeBinding):
         assert not set(model.model_fields) & forbidden

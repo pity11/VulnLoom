@@ -593,6 +593,21 @@ M8.8 binding、Report、ReviewPlan、reviewer 与 decision time。`AgentReportRe
 来源链的摘要和 typed 决定；accepted 不等于 `HUMAN_APPROVED`，Report 仍为 `DRAFT`。独立 SQLite
 唯一消费 draft binding、Report、ReviewPlan 与 command，遗留 STARTED 不会调用 review service。
 
+### ReportReviewApprovalAction、ExecutionPlan 与 OutcomeBinding
+
+M8.10 的 `ReportReviewApprovalAction` 内容寻址绑定 accepted M8.9 record、exact `ReportReviewPlan`、
+独立人工 `ReportReviewCommand`、DRAFT Report/artifact、Scope、typed decision 与唯一效果。对应
+`ApprovalRequest` 必须是人工 granted 的 `REVIEW_REPORT`，且 action digest、policy version、效果、
+决定人、决定时间和有效期全部匹配。
+
+`AgentReportReviewExecutionPlan` 只保存上述对象和 Approval 的 ID/摘要、执行窗口与幂等键，不保存
+报告正文、review rationale、Approval 摘要、Agent 输出或工具参数。`AgentReportReviewOutcomeBinding`
+绑定 authoritative `ReportReviewOutcome`、来源 DRAFT、resulting Report/artifact、review record、typed
+decision/status 与 Approval 摘要；完整 Report 只在既有 review store/artifact 中持久化。
+
+独立 SQLite 唯一消费 Intake、ReviewPlan、ReviewCommand、Report 和 Approval；completed replay 只读，
+预存在未绑定 review、冲突或遗留 STARTED 不会自动执行。该绑定不表示 Report 已导出或提交。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

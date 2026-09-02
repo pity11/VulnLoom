@@ -125,6 +125,7 @@ from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
+    REPORT_REVIEW_EFFECTS,
     AgentReportDraftExecutionRejected,
     AgentReportDraftExecutionService,
     AgentReportDraftExecutionStore,
@@ -134,6 +135,9 @@ from vulnloom.reporting import (
     AgentReportIntakeRejected,
     AgentReportIntakeService,
     AgentReportIntakeStore,
+    AgentReportReviewExecutionRejected,
+    AgentReportReviewExecutionService,
+    AgentReportReviewExecutionStore,
     AgentReportReviewIntakeCommand,
     AgentReportReviewIntakeDecision,
     AgentReportReviewIntakeReason,
@@ -141,10 +145,14 @@ from vulnloom.reporting import (
     AgentReportReviewIntakeService,
     AgentReportReviewIntakeStore,
     DeterministicReportService,
+    HumanReportReviewService,
     ReportArtifactStore,
     ReportDraftPlan,
     ReportDraftStore,
+    ReportReviewCommand,
     ReportReviewPlan,
+    ReportReviewStore,
+    ReviewDecisionKind,
     agent_report_intake_plan_digest,
     agent_report_review_intake_plan_digest,
 )
@@ -745,6 +753,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
         ),
     )
     validation_runner = _CountingOfflineSandboxRunner()
+    report_review_store = ReportReviewStore(tmp_path / "m810-report-reviews.sqlite3")
+    report_review_execution_store = AgentReportReviewExecutionStore(
+        tmp_path / "m810-report-review-bindings.sqlite3"
+    )
     try:
         with (
             AgentRunStore(tmp_path / "m710-root-runs.sqlite3") as root_store,
@@ -1660,7 +1672,96 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
                 len(adapter.attempts),
                 validation_runner.calls,
             )
+            report_review_command = ReportReviewCommand.create(
+                plan_id=report_review_plan.plan_id,
+                report_id=report_outcome.report.report_id,
+                report_digest=domain_object_digest(report_outcome.report),
+                reviewer=report_review_plan.reviewer,
+                decision=ReviewDecisionKind.REQUEST_CHANGES,
+                rationale_code="phase3_human_request_changes",
+                decided_at=now + timedelta(seconds=30),
+            )
+            report_review_execution_service = AgentReportReviewExecutionService(
+                intake_service=report_review_intake_service,
+                review_service=HumanReportReviewService(
+                    scope=scope,
+                    evidence_store=evidence_store,
+                    artifact_store=report_service.artifact_store,
+                    store=report_review_store,
+                ),
+                store=report_review_execution_store,
+            )
+            report_review_action = report_review_execution_service.approval_action(
+                record=report_review_intake_record,
+                report_review_plan=report_review_plan,
+                report_review_command=report_review_command,
+            )
+            report_review_approval = ApprovalRequest(
+                engagement_id=scope.engagement_id,
+                action=ApprovalAction.REVIEW_REPORT,
+                action_digest=report_review_action.action_id,
+                expected_side_effects=REPORT_REVIEW_EFFECTS[report_review_command.decision],
+                evidence_summary=(
+                    "Phase 3 human authorized the exact sealed Report review decision"
+                ),
+                policy_version=scope.version,
+                expires_at=now + timedelta(seconds=32),
+                status=ApprovalStatus.GRANTED,
+                decided_by="phase3-human-report-approval-reviewer",
+                decided_at=now + timedelta(seconds=30),
+            )
+            with pytest.raises(AgentReportReviewExecutionRejected):
+                report_review_execution_service.prepare(
+                    review_intake_plan=report_review_intake_plan,
+                    draft_execution_plan=report_execution_plan,
+                    report_review_plan=report_review_plan,
+                    report_review_command=report_review_command,
+                    evidence_bundle=evidence_bundle,
+                    evidence=(critic_evidence,),
+                    approval=report_review_approval.model_copy(update={"action_digest": "0" * 64}),
+                    now=now + timedelta(seconds=30, milliseconds=250),
+                    deadline=now + timedelta(seconds=31, milliseconds=500),
+                    idempotency_key="m8.10:report-review-execution:tampered",
+                )
+            assert (
+                report_review_execution_store.connection.execute(
+                    "SELECT count(*) FROM agent_report_review_executions"
+                ).fetchone()[0]
+                == 0
+            )
+            report_review_execution_plan = report_review_execution_service.prepare(
+                review_intake_plan=report_review_intake_plan,
+                draft_execution_plan=report_execution_plan,
+                report_review_plan=report_review_plan,
+                report_review_command=report_review_command,
+                evidence_bundle=evidence_bundle,
+                evidence=(critic_evidence,),
+                approval=report_review_approval,
+                now=now + timedelta(seconds=30, milliseconds=250),
+                deadline=now + timedelta(seconds=31, milliseconds=500),
+                idempotency_key="m8.10:report-review-execution",
+            )
+            calls_before_report_review_execution = calls_after_report_review_intake
+            report_review_binding = report_review_execution_service.execute(
+                report_review_execution_plan,
+                review_intake_plan=report_review_intake_plan,
+                draft_execution_plan=report_execution_plan,
+                report_review_plan=report_review_plan,
+                report_review_command=report_review_command,
+                evidence_bundle=evidence_bundle,
+                evidence=(critic_evidence,),
+                approval=report_review_approval,
+                now=now + timedelta(seconds=31),
+            )
+            report_review_outcome = report_review_store.load_completed(report_review_plan.plan_id)
+            calls_after_report_review_execution = (
+                _TargetHandler.requests,
+                len(adapter.attempts),
+                validation_runner.calls,
+            )
     finally:
+        report_review_execution_store.close()
+        report_review_store.close()
         target_server.shutdown()
         target_server.server_close()
         target_thread.join(timeout=2)
@@ -1708,6 +1809,10 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert report_review_intake_record.decision is AgentReportReviewIntakeDecision.ACCEPT
     assert report_outcome.report.review_status.value == "draft"
     assert calls_after_report_review_intake == calls_before_report_review_intake
+    assert report_review_binding.resulting_status.value == "changes_requested"
+    assert report_review_outcome.report.review_status.value == "changes_requested"
+    assert report_outcome.report.review_status.value == "draft"
+    assert calls_after_report_review_execution == calls_before_report_review_execution
     assert critic_outcome.candidate.state.value == "critic_reviewed"
     assert candidate.state.value == "proposed"
     assert _TargetHandler.requests == 2
@@ -1729,6 +1834,15 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     assert (
         b"trusted Phase 3 exact report title"
         not in (tmp_path / "m89-report-review-intakes.sqlite3").read_bytes()
+    )
+    assert _TARGET_BODY not in (tmp_path / "m810-report-review-bindings.sqlite3").read_bytes()
+    assert (
+        b"trusted Phase 3 exact report title"
+        not in (tmp_path / "m810-report-review-bindings.sqlite3").read_bytes()
+    )
+    assert (
+        b"Phase 3 human authorized the exact sealed"
+        not in (tmp_path / "m810-report-review-bindings.sqlite3").read_bytes()
     )
     assert (
         b"trusted Phase 3 exact report title"

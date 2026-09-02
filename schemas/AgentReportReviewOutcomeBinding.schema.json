@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "ReportReviewStatus": {
+      "enum": [
+        "draft",
+        "changes_requested",
+        "rejected",
+        "human_approved",
+        "exported",
+        "submitted"
+      ],
+      "title": "ReportReviewStatus",
+      "type": "string"
+    },
+    "ReviewDecisionKind": {
+      "enum": [
+        "approve",
+        "request_changes",
+        "reject"
+      ],
+      "title": "ReviewDecisionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Action Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "review_intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Intake Record Id",
+      "type": "string"
+    },
+    "report_review_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Plan Id",
+      "type": "string"
+    },
+    "report_review_command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Command Id",
+      "type": "string"
+    },
+    "report_review_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Review Outcome Digest",
+      "type": "string"
+    },
+    "report_id": {
+      "format": "uuid",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "source_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Report Digest",
+      "type": "string"
+    },
+    "resulting_report_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resulting Report Digest",
+      "type": "string"
+    },
+    "resulting_artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resulting Artifact Digest",
+      "type": "string"
+    },
+    "review_id": {
+      "format": "uuid",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Digest",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/ReviewDecisionKind"
+    },
+    "resulting_status": {
+      "$ref": "#/$defs/ReportReviewStatus"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "approval_action_id",
+    "approval_id",
+    "approval_digest",
+    "review_intake_record_id",
+    "report_review_plan_id",
+    "report_review_command_id",
+    "report_review_outcome_digest",
+    "report_id",
+    "source_report_digest",
+    "resulting_report_digest",
+    "resulting_artifact_digest",
+    "review_id",
+    "review_digest",
+    "decision",
+    "resulting_status",
+    "completed_at"
+  ],
+  "title": "AgentReportReviewOutcomeBinding",
+  "type": "object"
+}

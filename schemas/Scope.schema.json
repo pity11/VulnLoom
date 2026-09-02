@@ -6,7 +6,8 @@
         "mutate_target_state",
         "use_real_credentials",
         "external_callback",
-        "submit_report"
+        "submit_report",
+        "review_report"
       ],
       "title": "ApprovalAction",
       "type": "string"

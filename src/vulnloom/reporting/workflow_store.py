@@ -111,6 +111,33 @@ class ReportReviewStore:
         if changed != 1:
             raise ReportWorkflowRecoveryRequired("Report review STARTED checkpoint is unavailable")
 
+    def has_checkpoint(self, plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM report_reviews WHERE plan_id=?", (plan_id,)
+            ).fetchone()
+            is not None
+        )
+
+    def load_completed(self, plan_id: str) -> ReportReviewOutcome:
+        row = self.connection.execute(
+            "SELECT * FROM report_reviews WHERE plan_id=?", (plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Report review outcome is unavailable")
+        if row["state"] != "completed" or row["outcome_json"] is None:
+            raise ReportWorkflowRecoveryRequired(
+                "Report review has an unfinished STARTED checkpoint"
+            )
+        outcome = ReportReviewOutcome.model_validate_json(row["outcome_json"])
+        if (
+            outcome.plan_id != plan_id
+            or outcome.review.command_id != row["command_id"]
+            or outcome.completed_at.isoformat() != row["completed_at"]
+        ):
+            raise ReportWorkflowRecoveryRequired("Report review completed checkpoint drifted")
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 
