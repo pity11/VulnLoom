@@ -119,6 +119,12 @@ The M8.8 accepted Intake deterministic local draft admission run is GitHub Actio
 [`33616668897`](https://github.com/pity11/VulnLoom/actions/runs/33616668897). Both completed
 successfully on 2026-09-02 and qualify the M8.8 local Report draft binding row below.
 
+The M8.9 human Report review Intake admission run is GitHub Actions
+[`33619141456`](https://github.com/pity11/VulnLoom/actions/runs/33619141456) for commit
+`ed2d5e76fffba3ed104bff1fbd91b86f684ea1fb`. The standard Python CI for the same commit is
+[`33619141458`](https://github.com/pity11/VulnLoom/actions/runs/33619141458). Both completed
+successfully on 2026-09-02 and qualify the M8.9 human Report review Intake row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -148,6 +154,7 @@ successfully on 2026-09-02 and qualify the M8.8 local Report draft binding row b
 | Agent Critic outcome binding | One explicitly completed deterministic Critic outcome is reopened with its accepted Intake, M8.2 Validation binding, exact plan, review and Evidence provenance; tampering is rejected before checkpoint and binding adds no Critic replay, Candidate mutation, Runner, Broker, provider or target call | PASS (`33605801522`) |
 | Agent Finding promotion Intake | A human selects one trusted-control-plane-built exact promotion plan bound to an accepted M8.4 outcome, critic-reviewed Candidate, reproduced Validation, verified Evidence and the authoritative latest duplicate-clear proof; Intake adds no promotion, Finding creation, Runner, Broker, provider or target call | PASS (`33609723750`) |
 | Agent local Report draft binding | One human-accepted M8.7 record is reopened with the sealed promotion, Critic, Validation, Evidence catalog and exact ReportDraftPlan; metadata drift is rejected before checkpoint, while one deterministic local DRAFT and prose-free binding add no Runner, Broker, provider, target, approval, export or Submission call | PASS (`33616668895`) |
+| Agent Report review Intake | A human selects one exact trusted-control-plane ReportReviewPlan bound to the completed M8.8 DRAFT, immutable artifact, EvidenceBundle and identical ordered Evidence catalog; tampering is rejected before checkpoint and Intake leaves the Report DRAFT with no review, approval, export, Runner, Broker, provider, target or Submission call | PASS (`33619141456`) |
 
 ## Reproduction
 
