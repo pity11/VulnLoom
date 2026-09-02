@@ -24,6 +24,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from vulnloom.analyzers import PythonWebSourceMapper
+from vulnloom.analyzers.models import WebFramework
 from vulnloom.benchmark.models import BenchmarkBaseline, BenchmarkGateStatus
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import ArtifactKind, ArtifactScope, DomainModel, Scope, ScopeState
@@ -125,6 +126,8 @@ class LocalCandidateObservation(DomainModel):
     entry_path: str = Field(min_length=1, max_length=512)
     sink_path: str = Field(min_length=1, max_length=512)
     code_path_count: int = Field(ge=1, le=1_000)
+    framework: WebFramework
+    call_chain_length: int = Field(ge=1, le=1_000)
 
 
 class LocalSourceCaseObservation(DomainModel):
@@ -132,6 +135,8 @@ class LocalSourceCaseObservation(DomainModel):
     target_version: Digest
     source_graph_id: Digest
     candidate_set_id: Digest
+    files_analyzed: Annotated[tuple[str, ...], Field(min_length=1, max_length=10_000)]
+    parse_failure_count: int = Field(ge=0, le=10_000)
     candidates: tuple[LocalCandidateObservation, ...] = ()
 
 
@@ -305,25 +310,50 @@ def observe_local_source_suite(
             snapshot = IngestionService(store_root).ingest_archive(archive, scope=scope, now=now)
             graph = PythonWebSourceMapper().analyze(snapshot, store_root, scope=scope, now=now)
             candidate_set = CandidateGenerator().generate(graph, scope=scope, now=now)
-            candidates = tuple(
-                LocalCandidateObservation(
-                    candidate_id=item.candidate_id,
-                    cwe=item.cwe,
-                    duplicate_fingerprint=item.duplicate_fingerprint,
-                    signal_ids=item.signal_ids,
-                    entry_path=item.entry_point.path,
-                    sink_path=item.sink.path,
-                    code_path_count=len(item.code_path),
+            signals = {item.signal_id: item for item in graph.signals}
+            routes = {item.route_id: item for item in graph.routes}
+            flows = {item.flow_id: item for item in graph.flows}
+            candidates = []
+            for item in candidate_set.candidates:
+                try:
+                    candidate_signals = tuple(signals[value] for value in item.signal_ids)
+                    route_ids = {value.route_id for value in candidate_signals}
+                    flow_ids = {value.flow_id for value in candidate_signals}
+                    if (
+                        None in route_ids
+                        or None in flow_ids
+                        or len(route_ids) != 1
+                        or len(flow_ids) != 1
+                    ):
+                        raise KeyError
+                    route = routes[route_ids.pop()]
+                    flow = flows[flow_ids.pop()]
+                except KeyError as exc:
+                    raise LocalSourceBenchmarkRejected(
+                        "Candidate trace does not resolve to one route and flow"
+                    ) from exc
+                candidates.append(
+                    LocalCandidateObservation(
+                        candidate_id=item.candidate_id,
+                        cwe=item.cwe,
+                        duplicate_fingerprint=item.duplicate_fingerprint,
+                        signal_ids=item.signal_ids,
+                        entry_path=item.entry_point.path,
+                        sink_path=item.sink.path,
+                        code_path_count=len(item.code_path),
+                        framework=route.framework,
+                        call_chain_length=len(flow.call_chain),
+                    )
                 )
-                for item in candidate_set.candidates
-            )
             observations.append(
                 LocalSourceCaseObservation(
                     case_id=case.case_id,
                     target_version=snapshot.target.version,
                     source_graph_id=graph.graph_id,
                     candidate_set_id=candidate_set.candidate_set_id,
-                    candidates=candidates,
+                    files_analyzed=graph.files_analyzed,
+                    parse_failure_count=len(graph.parse_failures),
+                    candidates=tuple(candidates),
                 )
             )
     return LocalSourceObservationSet.create(
@@ -352,7 +382,13 @@ def evaluate_local_source_quality(
         candidate_count += sum(observed.values())
         matched += sum((truth & observed).values())
         complete += sum(
-            bool(item.signal_ids and item.entry_path and item.sink_path and item.code_path_count)
+            bool(
+                item.signal_ids
+                and item.entry_path
+                and item.sink_path
+                and item.code_path_count
+                and item.call_chain_length
+            )
             for item in by_case[case.case_id].candidates
         )
     effects = sum(observations.effects.model_dump(mode="python").values())

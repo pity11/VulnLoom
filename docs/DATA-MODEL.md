@@ -677,6 +677,21 @@ CWE、重复指纹、signal IDs、entry/sink 相对位置与 code-path 节点数
 中已通过完整工作流约束的 Finding precision/Evidence completeness，只表示 PASS/FAIL，不是 Candidate、
 Finding、Approval 或领域事件。
 
+### LocalSourceRobustnessProfile 与 Result
+
+M9.4 为 `LocalCandidateObservation` 增加从 exact signal/route/flow 推导的 `framework` 与
+`call_chain_length`，并在 `LocalSourceCaseObservation` 中绑定 `files_analyzed` 与
+`parse_failure_count`。这些是静态 provenance，不是漏洞复现或 Finding Evidence。
+
+`LocalSourceRobustnessRequirement` 逐案例绑定 case ID、名称、framework、正/负 disposition、是否跨文件、
+最小文件数、最小调用链长度和 expected CWE；完整 requirements 必须逐项等于代码内固定的
+`M9_4_CASE_CONTRACT`。`LocalSourceRobustnessProfile` 内容寻址绑定 exact suite 与 M6.1 baseline。
+
+`LocalSourceRobustnessMetrics` 记录正例、负例、跨文件、框架、解析失败、framework mismatch、跨文件
+trace failure 和负例 Candidate 数量。`LocalSourceRobustnessResult` 绑定基础 M9.3 quality result，并以
+稳定 violation code 表示只读 PASS/FAIL；它不能改变 Candidate/Finding 或授予任何执行、Approval、导出、
+网络与 Submission 权限。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

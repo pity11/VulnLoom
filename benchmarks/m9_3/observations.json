@@ -1,5 +1,5 @@
 {
-  "observation_set_id": "6ca7b7158a0f87679b8741beb8ef811f7c3d553f9e41911745e074b2946bd867",
+  "observation_set_id": "16877449b4ecdedc56b7b4e3d7bd35f8eb5248e8684c3b48d8b1460a52af4863",
   "suite_id": "aa62d10086ae5471c4667c8c2847ce4d654342ede964bad70254259d6b8140f7",
   "observations": [
     {
@@ -7,6 +7,10 @@
       "target_version": "723a2b6b99d36e296f63e30014ad328c21d7f1362c992da768f993c2cdbbc633",
       "source_graph_id": "c0124a6a9bfc0325b1d3d0f572a6fb61021c97949204afadae8783869252fb9d",
       "candidate_set_id": "87acbc435c21b1a127699b8a0fe138383a625ac4641e7b480a0862187ceedc3c",
+      "files_analyzed": [
+        "sql/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "8d2000f7-2cbc-5cbb-adfb-cad3a1792487",
@@ -17,7 +21,9 @@
           ],
           "entry_path": "sql/app.py",
           "sink_path": "sql/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -26,6 +32,10 @@
       "target_version": "d2dad2f124f84c793472e325e000b32f3678137596265c7f29e7d3ce6cd4c366",
       "source_graph_id": "7f53c0e7f0f01fdeaf4281316dca1aea8d25ca61738e71d97b1d7be345f3ff68",
       "candidate_set_id": "30ef82cc8e04cd2a78887113f0f6700881280c3dc7086fbf98141065b738b49c",
+      "files_analyzed": [
+        "command/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "d178f6bf-0cef-5698-a65f-9d3e536489e3",
@@ -36,7 +46,9 @@
           ],
           "entry_path": "command/app.py",
           "sink_path": "command/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -45,6 +57,10 @@
       "target_version": "35b161b3bc2ad9017bf61e68bcd840bd99159c33607fe16f58a40570d73a59d2",
       "source_graph_id": "045098aab88afa00d3295eef62c56dd4826910838e71cb5a956db6080818ac13",
       "candidate_set_id": "085cb1869f0e07b2238497e2cb3579673de1b0379ca5b80ca6ef4d84e4a1cbfd",
+      "files_analyzed": [
+        "file/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "84c5da0e-fc79-5500-affc-766b971c770f",
@@ -55,7 +71,9 @@
           ],
           "entry_path": "file/app.py",
           "sink_path": "file/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -64,6 +82,10 @@
       "target_version": "eb5cd7d2e16ef6b15101e423bd52ef1499f9914365636f5c21db20787f8b273b",
       "source_graph_id": "870c24c3faf3601c4d2a50af9d38d7208e64dbca925e098f776264507506422b",
       "candidate_set_id": "a6fdb57d60af837ddce58ed9b33bbb6eb78b74a2abfb97bafaaaf7e09e0fa661",
+      "files_analyzed": [
+        "network/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "8a2b6500-24e9-5da7-9257-4b3bbdb1d7bd",
@@ -74,7 +96,9 @@
           ],
           "entry_path": "network/app.py",
           "sink_path": "network/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -83,6 +107,10 @@
       "target_version": "0fc4f22ce054d115616735812d94ba96d8eda0f21c5c809fffe76668c05971cd",
       "source_graph_id": "5c784a3c9e834867657138d88c535556f6a665e569711140ddfd1a1cc86b9d98",
       "candidate_set_id": "25f6360d7456874ce96bec299a3beb35aab2618780f8b764fd9361ffc27e013c",
+      "files_analyzed": [
+        "template/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "c78898c3-d6f0-5957-9435-7f4927c75b75",
@@ -93,7 +121,9 @@
           ],
           "entry_path": "template/app.py",
           "sink_path": "template/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -102,6 +132,10 @@
       "target_version": "72e4e6225d749eb2c95e15f4a3a88fd9e4501de145172f67fc6073d5e18217a9",
       "source_graph_id": "e8f2b610ffa9bbc93f742c2df4dc2e553cbf2a03303ad7a1fba361af08152b00",
       "candidate_set_id": "4f8d9efef8b2ab0638bbc637305defa0f66565ef3dc51b840a290b71d419de87",
+      "files_analyzed": [
+        "deserialization/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "24e3b52a-f4f7-5399-94b7-c84654a69101",
@@ -112,7 +146,9 @@
           ],
           "entry_path": "deserialization/app.py",
           "sink_path": "deserialization/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -121,6 +157,10 @@
       "target_version": "e6273797b3e71d505530d0774ca7301d0f58b484c980c09a56560193247b8f87",
       "source_graph_id": "e7aa82c97ecb03b8a93c16552b0a1812935071a1eb34e6776f5c714bf7a96381",
       "candidate_set_id": "98617c98edea449007595ac0844e43782dcc2a56aa8090337bed30cade1f60ec",
+      "files_analyzed": [
+        "redirect/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "63bcfa51-d241-5980-8556-ba4a1052f842",
@@ -131,7 +171,9 @@
           ],
           "entry_path": "redirect/app.py",
           "sink_path": "redirect/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -140,6 +182,10 @@
       "target_version": "c8322ae8c2c3167d1b474c7576112237931bb47a8800b2374241fbaea290e8af",
       "source_graph_id": "58475460050767c49e550ff068a8676ef55da89f6b12fac90fd8b45c31313d00",
       "candidate_set_id": "5914679a502e9d38ec00e19a109b54648ff7454f315d45e01da5aa85630f583a",
+      "files_analyzed": [
+        "object_lookup/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": [
         {
           "candidate_id": "cb01bec2-a97b-569c-a124-76bd46825540",
@@ -151,7 +197,9 @@
           ],
           "entry_path": "object_lookup/app.py",
           "sink_path": "object_lookup/app.py",
-          "code_path_count": 2
+          "code_path_count": 2,
+          "framework": "flask",
+          "call_chain_length": 1
         }
       ]
     },
@@ -160,6 +208,10 @@
       "target_version": "39a5131a5995202df05d622408c0700a72b60b37c073997c21816089baec2e91",
       "source_graph_id": "6cfc702b2caaf242c4f18d4db48439ef06c92f0ebec2977a937994012b1c6820",
       "candidate_set_id": "37237ff7439b4d001a5f6a27dc2c0d3f22cca8f069b5a18a0cfbfda51ed1d3a2",
+      "files_analyzed": [
+        "guarded_object/app.py"
+      ],
+      "parse_failure_count": 0,
       "candidates": []
     }
   ],

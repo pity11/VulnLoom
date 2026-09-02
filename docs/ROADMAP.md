@@ -729,6 +729,23 @@ M9.2 不调用任何生产 adapter，不执行 Validation、不改变领域状�
 M9.3 是离线静态分析质量与既有闭环质量的联合准入，不执行 Validation、不改变 Candidate/Finding、
 不批准操作、不构建 Target、不访问公网，也不创建、导出或发送 Submission。
 
+### M9.4：跨框架/跨文件静态鲁棒性与安全负例门禁（已完成首版）
+
+- 新增 13 个密封本地源码案例：5 个 Flask/FastAPI/Django 正例覆盖跨文件调用、Django URL dispatch
+  和 FastAPI dependency，8 个负例覆盖 ownership guard 及 SQL、命令、文件、网络、模板、反序列化、
+  redirect sink 使用固定可信值的相似安全路径。
+- M9.3 的 Candidate 观察扩展为记录实际 Web framework、调用链长度、分析文件清单和解析失败计数；
+  这些字段由可信 SourceGraph/Candidate binding 推导，不接受 Agent 声明。
+- code-owned `M9_4_CASE_CONTRACT` 固定案例顺序、正负标签、expected CWE、framework、最小文件数与调用链
+  深度；`LocalSourceRobustnessProfile` 再内容寻址绑定 exact suite 和 M6.1 workflow baseline。
+- 纯 reducer 要求基础质量门禁通过、Flask/FastAPI/Django 三种框架完整、跨文件 entry/sink 分离、调用链
+  达到案例下限、零解析失败且所有安全负例零 Candidate；产生稳定 violation code。
+- 常规 CI 在 Python 3.12/3.13/3.14 重新生成 M9.3/M9.4 fixture、检查 schema/fixture 漂移并运行两个门禁；
+  资源上限、超时、digest/symlink、清理和八类零副作用约束继续由共享可信静态 harness 强制执行。
+
+M9.4 不执行 fixture 或 Validation，不改变 Candidate/Finding，不调用 Runner/Broker/provider，不自动批准、
+不构建 Target、不访问公网，也不创建、导出或发送 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

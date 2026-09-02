@@ -1,4 +1,17 @@
 {
+  "$defs": {
+    "WebFramework": {
+      "enum": [
+        "flask",
+        "fastapi",
+        "django",
+        "starlette",
+        "unknown"
+      ],
+      "title": "WebFramework",
+      "type": "string"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "candidate_id": {
@@ -42,6 +55,15 @@
       "minimum": 1,
       "title": "Code Path Count",
       "type": "integer"
+    },
+    "framework": {
+      "$ref": "#/$defs/WebFramework"
+    },
+    "call_chain_length": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Call Chain Length",
+      "type": "integer"
     }
   },
   "required": [
@@ -51,7 +73,9 @@
     "signal_ids",
     "entry_path",
     "sink_path",
-    "code_path_count"
+    "code_path_count",
+    "framework",
+    "call_chain_length"
   ],
   "title": "LocalCandidateObservation",
   "type": "object"

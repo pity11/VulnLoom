@@ -865,3 +865,22 @@ complete Evidence. Any baseline identity drift is rejected before evaluation. Se
 counters require zero Runner, Broker, provider, target process, public network, target build,
 automatic Approval and Submission activity. The joined result remains an offline qualification
 artifact and creates no production authority.
+
+## 50. M9.4 cross-framework and safe-negative robustness gate
+
+M9.4 adds a second sealed suite on the same trusted local static harness. Positive cases exercise
+Flask and FastAPI calls across modules, Django URL dispatch across files, and FastAPI dependency
+parameters. Negative cases deliberately retain route input and recognizable sink syntax while the
+sink receives a fixed value, plus a Django object lookup protected by a visible ownership guard.
+
+Candidate observations now include the framework and call-chain length resolved from their exact
+SourceGraph signals and flows, while case observations bind the analyzed file list and parse-failure
+count. These values are rebuilt by trusted code; no Agent output supplies framework, provenance or
+expected truth.
+
+A code-owned 13-case contract fixes order, disposition, framework, CWE truth, minimum file count and
+minimum call-chain depth. The content-addressed robustness profile binds that contract to one exact
+suite and M6.1 workflow baseline. Its pure reducer fans in the M9.3 quality result and additionally
+requires three-framework coverage, intact cross-file entry/sink provenance, zero parse failures and
+zero Candidates for every negative. It invokes no operational adapter and retains the same eight
+zero-effect constraints as the shared static harness.

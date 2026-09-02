@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "RobustnessDisposition": {
+      "enum": [
+        "positive",
+        "negative"
+      ],
+      "title": "RobustnessDisposition",
+      "type": "string"
+    },
+    "WebFramework": {
+      "enum": [
+        "flask",
+        "fastapi",
+        "django",
+        "starlette",
+        "unknown"
+      ],
+      "title": "WebFramework",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "framework": {
+      "$ref": "#/$defs/WebFramework"
+    },
+    "disposition": {
+      "$ref": "#/$defs/RobustnessDisposition"
+    },
+    "cross_file": {
+      "title": "Cross File",
+      "type": "boolean"
+    },
+    "min_file_count": {
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Min File Count",
+      "type": "integer"
+    },
+    "min_call_chain_length": {
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Min Call Chain Length",
+      "type": "integer"
+    },
+    "expected_cwes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Cwes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "name",
+    "framework",
+    "disposition",
+    "cross_file",
+    "min_file_count",
+    "min_call_chain_length",
+    "expected_cwes"
+  ],
+  "title": "LocalSourceRobustnessRequirement",
+  "type": "object"
+}

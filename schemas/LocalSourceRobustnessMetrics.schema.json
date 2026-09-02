@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "positive_case_count": {
+      "minimum": 0,
+      "title": "Positive Case Count",
+      "type": "integer"
+    },
+    "negative_case_count": {
+      "minimum": 0,
+      "title": "Negative Case Count",
+      "type": "integer"
+    },
+    "cross_file_case_count": {
+      "minimum": 0,
+      "title": "Cross File Case Count",
+      "type": "integer"
+    },
+    "framework_count": {
+      "minimum": 0,
+      "title": "Framework Count",
+      "type": "integer"
+    },
+    "parse_failure_count": {
+      "minimum": 0,
+      "title": "Parse Failure Count",
+      "type": "integer"
+    },
+    "framework_mismatch_count": {
+      "minimum": 0,
+      "title": "Framework Mismatch Count",
+      "type": "integer"
+    },
+    "cross_file_trace_failure_count": {
+      "minimum": 0,
+      "title": "Cross File Trace Failure Count",
+      "type": "integer"
+    },
+    "negative_candidate_count": {
+      "minimum": 0,
+      "title": "Negative Candidate Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "positive_case_count",
+    "negative_case_count",
+    "cross_file_case_count",
+    "framework_count",
+    "parse_failure_count",
+    "framework_mismatch_count",
+    "cross_file_trace_failure_count",
+    "negative_candidate_count"
+  ],
+  "title": "LocalSourceRobustnessMetrics",
+  "type": "object"
+}

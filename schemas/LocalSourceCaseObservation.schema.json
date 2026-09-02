@@ -44,6 +44,15 @@
           "minimum": 1,
           "title": "Code Path Count",
           "type": "integer"
+        },
+        "framework": {
+          "$ref": "#/$defs/WebFramework"
+        },
+        "call_chain_length": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Call Chain Length",
+          "type": "integer"
         }
       },
       "required": [
@@ -53,10 +62,23 @@
         "signal_ids",
         "entry_path",
         "sink_path",
-        "code_path_count"
+        "code_path_count",
+        "framework",
+        "call_chain_length"
       ],
       "title": "LocalCandidateObservation",
       "type": "object"
+    },
+    "WebFramework": {
+      "enum": [
+        "flask",
+        "fastapi",
+        "django",
+        "starlette",
+        "unknown"
+      ],
+      "title": "WebFramework",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -81,6 +103,21 @@
       "title": "Candidate Set Id",
       "type": "string"
     },
+    "files_analyzed": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Files Analyzed",
+      "type": "array"
+    },
+    "parse_failure_count": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Parse Failure Count",
+      "type": "integer"
+    },
     "candidates": {
       "default": [],
       "items": {
@@ -94,7 +131,9 @@
     "case_id",
     "target_version",
     "source_graph_id",
-    "candidate_set_id"
+    "candidate_set_id",
+    "files_analyzed",
+    "parse_failure_count"
   ],
   "title": "LocalSourceCaseObservation",
   "type": "object"

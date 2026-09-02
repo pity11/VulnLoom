@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    },
+    "LocalSourceRobustnessMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "positive_case_count": {
+          "minimum": 0,
+          "title": "Positive Case Count",
+          "type": "integer"
+        },
+        "negative_case_count": {
+          "minimum": 0,
+          "title": "Negative Case Count",
+          "type": "integer"
+        },
+        "cross_file_case_count": {
+          "minimum": 0,
+          "title": "Cross File Case Count",
+          "type": "integer"
+        },
+        "framework_count": {
+          "minimum": 0,
+          "title": "Framework Count",
+          "type": "integer"
+        },
+        "parse_failure_count": {
+          "minimum": 0,
+          "title": "Parse Failure Count",
+          "type": "integer"
+        },
+        "framework_mismatch_count": {
+          "minimum": 0,
+          "title": "Framework Mismatch Count",
+          "type": "integer"
+        },
+        "cross_file_trace_failure_count": {
+          "minimum": 0,
+          "title": "Cross File Trace Failure Count",
+          "type": "integer"
+        },
+        "negative_candidate_count": {
+          "minimum": 0,
+          "title": "Negative Candidate Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "positive_case_count",
+        "negative_case_count",
+        "cross_file_case_count",
+        "framework_count",
+        "parse_failure_count",
+        "framework_mismatch_count",
+        "cross_file_trace_failure_count",
+        "negative_candidate_count"
+      ],
+      "title": "LocalSourceRobustnessMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "base_quality_result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Quality Result Id",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/LocalSourceRobustnessMetrics"
+    },
+    "violations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Violations",
+      "type": "array"
+    },
+    "gate_status": {
+      "$ref": "#/$defs/BenchmarkGateStatus"
+    }
+  },
+  "required": [
+    "result_id",
+    "suite_id",
+    "observation_set_id",
+    "profile_id",
+    "base_quality_result_id",
+    "metrics",
+    "violations",
+    "gate_status"
+  ],
+  "title": "LocalSourceRobustnessResult",
+  "type": "object"
+}

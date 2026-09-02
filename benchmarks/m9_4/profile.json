@@ -1,0 +1,147 @@
+{
+  "profile_id": "e26b65b236daf7c40631643fe973f1760d33e183748c2c8178f95de1c732021b",
+  "suite_id": "9aaec297e8cb6d568a00a4ce3cf3a4ce40e80f669a2caf916c9d1926e0a713b4",
+  "workflow_baseline_id": "1dbe105a7eea04f76f0d1316022828ba356fa4a075170abb75a74aa82e22f6ad",
+  "requirements": [
+    {
+      "case_id": "043d05b4be978f78d428bad229a5f8a39e813d3fbf2873064738443650eeaf52",
+      "name": "flask_cross_file_idor",
+      "framework": "flask",
+      "disposition": "positive",
+      "cross_file": true,
+      "min_file_count": 2,
+      "min_call_chain_length": 2,
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "3b18a90e6fedba0e6b6f0c543ff0af8dc73fd14c48dfa4f5ca00128edf6b2c49",
+      "name": "fastapi_cross_file_ssrf",
+      "framework": "fastapi",
+      "disposition": "positive",
+      "cross_file": true,
+      "min_file_count": 2,
+      "min_call_chain_length": 2,
+      "expected_cwes": [
+        "CWE-918"
+      ]
+    },
+    {
+      "case_id": "db8b5588526eeba978ebd61518f9cbb23a7b4f9e802f6e511440490f4db32f90",
+      "name": "django_cross_file_idor",
+      "framework": "django",
+      "disposition": "positive",
+      "cross_file": true,
+      "min_file_count": 2,
+      "min_call_chain_length": 1,
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "3f92f9bcb3a475c68e65a574cea6763a093c3ef5171cb52ef9739f77f94a0ff4",
+      "name": "flask_cross_file_sql",
+      "framework": "flask",
+      "disposition": "positive",
+      "cross_file": true,
+      "min_file_count": 2,
+      "min_call_chain_length": 2,
+      "expected_cwes": [
+        "CWE-89"
+      ]
+    },
+    {
+      "case_id": "a3ab53d7363b7bf29f82d0e1314801cf3c0d4223621c37e9963de795a2bb11f9",
+      "name": "fastapi_dependency_idor",
+      "framework": "fastapi",
+      "disposition": "positive",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "fcd1d429ca22b8cdc5b48442287a76d0ba7c9615528c07a65886193cbffc508a",
+      "name": "django_guarded_idor",
+      "framework": "django",
+      "disposition": "negative",
+      "cross_file": true,
+      "min_file_count": 2,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "01ad03e279de4ede43ec9d322a3f75aba4a948faa49c4430afe60e3cb19d0eb4",
+      "name": "constant_sql",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "039ee3f26cb8bcbcfaac8c8448bcbb5ff07ed915ac6ca124a1bf0be00db64119",
+      "name": "constant_command",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "eeb72b4c11208f9c65feb1e9e7bc2f027a57f25f205b387f48a8715e508375e4",
+      "name": "constant_file",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "c5315a12341fd092f9d9fedcce45d6a0df75b0e5856331a386d238dd8beae585",
+      "name": "constant_network",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "e3d6c0df62b8410abd49cf9da02aa6954112113c2c52abfa8e146f8cc11c5a92",
+      "name": "constant_template",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "21c9c9e5cf9a50ff013c7979ae435f2e9ae9aabafd8f38a0230eef18e1de1ed1",
+      "name": "constant_deserialization",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    },
+    {
+      "case_id": "b36d57fe0368d421054e2d271b83dd6a5d9d302e5c9e6a3bebaefa2d3e3f76a8",
+      "name": "constant_redirect",
+      "framework": "flask",
+      "disposition": "negative",
+      "cross_file": false,
+      "min_file_count": 1,
+      "min_call_chain_length": 1,
+      "expected_cwes": []
+    }
+  ]
+}

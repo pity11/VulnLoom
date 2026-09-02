@@ -1,0 +1,237 @@
+{
+  "observation_set_id": "db81a5aff43bca014b37d1e86d41c4c811c4a4843a3870ad579cc3b34f4485da",
+  "suite_id": "9aaec297e8cb6d568a00a4ce3cf3a4ce40e80f669a2caf916c9d1926e0a713b4",
+  "observations": [
+    {
+      "case_id": "043d05b4be978f78d428bad229a5f8a39e813d3fbf2873064738443650eeaf52",
+      "target_version": "d4b00a51867c0fc129e14e93d5d2d2cbda2b85718d29ae8ece822b347901e2f5",
+      "source_graph_id": "a0b7b235c788f2d62af14af1138e28448bdb0fdd2a9a107577bd424f773e2727",
+      "candidate_set_id": "a98c81b8a96dd9611d01ae8d2a65b567c869b0576eef335a966e97ec740f0596",
+      "files_analyzed": [
+        "flask_cross_file_idor/app.py",
+        "flask_cross_file_idor/service.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": [
+        {
+          "candidate_id": "993622a5-9e21-5959-834d-1b6919b360b8",
+          "cwe": "CWE-639",
+          "duplicate_fingerprint": "affa962ab81c51390dc135c14bb3a128562c77ef0bf10cb35a4d215e79d9e1d7",
+          "signal_ids": [
+            "6830492dfd62a5028b1ce4179f4c65cc87de7705cc63ef63e9c92b61f9756552",
+            "867a1aeabf72cdf30c8ccd6d8bdafc9be94f0ab1a5ff6ab4d534025c8f2271bf"
+          ],
+          "entry_path": "flask_cross_file_idor/app.py",
+          "sink_path": "flask_cross_file_idor/service.py",
+          "code_path_count": 3,
+          "framework": "flask",
+          "call_chain_length": 2
+        }
+      ]
+    },
+    {
+      "case_id": "3b18a90e6fedba0e6b6f0c543ff0af8dc73fd14c48dfa4f5ca00128edf6b2c49",
+      "target_version": "868424dd371c9cbf842ac536d5e5a78db3f4ed2940799e8412940c7a9633d745",
+      "source_graph_id": "e5e331b255ffa0baf38559c54c0c2d2894da627a8dc335b71039588cd6ddfe79",
+      "candidate_set_id": "0abb627b40d2697c4a6e8dbab5fc850b6547cf4ea5bb964bd0208d8b10165462",
+      "files_analyzed": [
+        "fastapi_cross_file_ssrf/api.py",
+        "fastapi_cross_file_ssrf/service.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": [
+        {
+          "candidate_id": "1050bbf3-d9cc-5519-b2f7-bb8c3d629b7b",
+          "cwe": "CWE-918",
+          "duplicate_fingerprint": "3087dcb4c016d5242b5f758dc70e21fe3e1476c8c26061c54e05b8dfa4b80f8b",
+          "signal_ids": [
+            "6f1e20f0f34f963c7c08888179c6f3efa8791b6ffd05aec07ce87744fb9666ac"
+          ],
+          "entry_path": "fastapi_cross_file_ssrf/api.py",
+          "sink_path": "fastapi_cross_file_ssrf/service.py",
+          "code_path_count": 3,
+          "framework": "fastapi",
+          "call_chain_length": 2
+        }
+      ]
+    },
+    {
+      "case_id": "db8b5588526eeba978ebd61518f9cbb23a7b4f9e802f6e511440490f4db32f90",
+      "target_version": "763f122d31f3c0d235533fc0eab7c35d08764a043df9949de3d6d794c5b701c2",
+      "source_graph_id": "4c3426c37dd18b5c371cc41213ba97d9331481df46398151970ffe78ca85cdf4",
+      "candidate_set_id": "9167dbe155e23df6bfcb36cdd8d9ea41eabb282bbac009330c528d02298c8e3f",
+      "files_analyzed": [
+        "django_cross_file_idor/urls.py",
+        "django_cross_file_idor/views.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": [
+        {
+          "candidate_id": "49e2d705-45dd-52f6-9570-b86503483da0",
+          "cwe": "CWE-639",
+          "duplicate_fingerprint": "b715211ff8b90f362e6428ca254ac22293b306e1be254f66d80a5653417dc7aa",
+          "signal_ids": [
+            "109da8d088e99774614183cc5e7af277a9c3a3065603e5588fd19e86db23c100",
+            "c2d63788f29dffdf023475435b37bd00d3fcbe011c1ea16b81ebdd9163335b6c"
+          ],
+          "entry_path": "django_cross_file_idor/urls.py",
+          "sink_path": "django_cross_file_idor/views.py",
+          "code_path_count": 3,
+          "framework": "django",
+          "call_chain_length": 1
+        }
+      ]
+    },
+    {
+      "case_id": "3f92f9bcb3a475c68e65a574cea6763a093c3ef5171cb52ef9739f77f94a0ff4",
+      "target_version": "030d8301addeabaad1761b4ce6fd7bacaaa5d1e7678a1fe554e5fd64367a2753",
+      "source_graph_id": "1678f9eab2ae41b7ca37198896e16a3d55c6d72a0235e8239ba7d0c0297846b4",
+      "candidate_set_id": "dfd7fe31dc93319b9d903aeb5b3091b91d8243af1c87671499672eaa4e0bc673",
+      "files_analyzed": [
+        "flask_cross_file_sql/app.py",
+        "flask_cross_file_sql/repository.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": [
+        {
+          "candidate_id": "a78f7dce-669e-5983-be3b-0f01cd6bf292",
+          "cwe": "CWE-89",
+          "duplicate_fingerprint": "adcbe80b512b2e79d06c3de14910fdc91dc236a75ce2f3b8b823b6fef781827c",
+          "signal_ids": [
+            "63690016282715fa51a7df132e185a992de502ba3bc80e797abbd95816aeb2a7"
+          ],
+          "entry_path": "flask_cross_file_sql/app.py",
+          "sink_path": "flask_cross_file_sql/repository.py",
+          "code_path_count": 3,
+          "framework": "flask",
+          "call_chain_length": 2
+        }
+      ]
+    },
+    {
+      "case_id": "a3ab53d7363b7bf29f82d0e1314801cf3c0d4223621c37e9963de795a2bb11f9",
+      "target_version": "fb71bfd0876abadcfe42d01d553a13a750436004a50e4baf6318482f569804c1",
+      "source_graph_id": "109f19b8e1b5df823750105a3e02522353715f50975a16a176eeef1e13740e02",
+      "candidate_set_id": "7ca5560919ddb8db517de5a6d12748ef39bbb99099201536c52d9b3b18714ac1",
+      "files_analyzed": [
+        "fastapi_dependency_idor/api.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": [
+        {
+          "candidate_id": "28b6c6c7-529e-59fd-9a1c-ead503a9c03a",
+          "cwe": "CWE-639",
+          "duplicate_fingerprint": "09899dd4035777f73dbd288e9099077e3bd531e6af1c1bb06373f0dbb8c9f62f",
+          "signal_ids": [
+            "7ea8b03fa0ea9369a8660585ff41af4551e3d368c5936fe700cf2e5bf5047494",
+            "d189eea418acfc131b9817438d46800c75a7161d3cf80662f37c7fe900ff44db"
+          ],
+          "entry_path": "fastapi_dependency_idor/api.py",
+          "sink_path": "fastapi_dependency_idor/api.py",
+          "code_path_count": 2,
+          "framework": "fastapi",
+          "call_chain_length": 1
+        }
+      ]
+    },
+    {
+      "case_id": "fcd1d429ca22b8cdc5b48442287a76d0ba7c9615528c07a65886193cbffc508a",
+      "target_version": "2c2153666d11ef1af0cddcf42ad29d50fb28da3e59fc8f4da77a7fe4497219da",
+      "source_graph_id": "e5736dbaf9443e9ae8854e59a289086cd2ec657410d01404e20e68bcf655dd0c",
+      "candidate_set_id": "3e4eb09c53e1b0e64ee4221ff39928f2b8cbbbc98e8637a8f9f779e6202e52a6",
+      "files_analyzed": [
+        "django_guarded_idor/urls.py",
+        "django_guarded_idor/views.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "01ad03e279de4ede43ec9d322a3f75aba4a948faa49c4430afe60e3cb19d0eb4",
+      "target_version": "5750b7ceb05b9e49212ab9658aacdb659b20a63ce003062dd637eea2bded2188",
+      "source_graph_id": "0d655341bface7f723b159c09b9fb4716430295ca4dcc0c61844cc3fd3c7717d",
+      "candidate_set_id": "3089ad7ce566b84504bf9160ae8446ced292e7b8b269df8cc8ee7e6071017ea4",
+      "files_analyzed": [
+        "constant_sql/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "039ee3f26cb8bcbcfaac8c8448bcbb5ff07ed915ac6ca124a1bf0be00db64119",
+      "target_version": "2d058e0db0c2c388deacbbeba52f884be73d751b4fe5ebad237f397c0d4c704c",
+      "source_graph_id": "c8f557aa36059710e219599b61839ee8dd7b784cd47e0e5f51b97a54dcdd08b9",
+      "candidate_set_id": "09a3659ce2ebf2e4962ede884707081cccc761a71595e1596b1c86284ffc5efc",
+      "files_analyzed": [
+        "constant_command/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "eeb72b4c11208f9c65feb1e9e7bc2f027a57f25f205b387f48a8715e508375e4",
+      "target_version": "91c47cc3cf97ac299bd0490dc7c4ac77fc8f352bec49a06eec5bc89ca24c0a2f",
+      "source_graph_id": "676a65ebbb5c720249177e6cc98c3c6823aadb33cbd740688f77cd38ff6f61cd",
+      "candidate_set_id": "e7f6be537bdd2cc5b42cddc5494c4c4c155fa0140f62e300fdd44f2ddf0ea657",
+      "files_analyzed": [
+        "constant_file/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "c5315a12341fd092f9d9fedcce45d6a0df75b0e5856331a386d238dd8beae585",
+      "target_version": "5520258eaa9c4ae635f25686855e252762f16c5f8cbb6c6e427ed44d693c804d",
+      "source_graph_id": "d1035db753897b3fa35228306c462b91a60103836840c6d9147254b51b3f0d9e",
+      "candidate_set_id": "4cd38c00f346decfc96f6ffe9407e7aa635a23d3212a598f20715d8619de755a",
+      "files_analyzed": [
+        "constant_network/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "e3d6c0df62b8410abd49cf9da02aa6954112113c2c52abfa8e146f8cc11c5a92",
+      "target_version": "ad45d004993905585ccf6588db0f7d9c3a4ab819c7a84bc2eddc36b64dbcf53a",
+      "source_graph_id": "ef6dd541b818fadae62c9b4ec58972c1cdb749afea6fc172c53f33c1fe490f0b",
+      "candidate_set_id": "ea6fb97b2837cb222b573f654a4593bbb1606ca9dfbd56befe2801eddb595d6d",
+      "files_analyzed": [
+        "constant_template/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "21c9c9e5cf9a50ff013c7979ae435f2e9ae9aabafd8f38a0230eef18e1de1ed1",
+      "target_version": "bd16261fd22289850c8fd66039900dbb0be424ca0c23cfbb1e48876c162bd8f1",
+      "source_graph_id": "3c74ace89799aebbe6d1ec02c9afd9866e00114b7b8ca5ba436445aaee060b09",
+      "candidate_set_id": "ff62738089e33251f7810c56bb17f72250f99430dfe4fef4f82001471ae9593a",
+      "files_analyzed": [
+        "constant_deserialization/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    },
+    {
+      "case_id": "b36d57fe0368d421054e2d271b83dd6a5d9d302e5c9e6a3bebaefa2d3e3f76a8",
+      "target_version": "df737e4f2d884d7ebcacb06ce3f14a25197a9dc4aebeeca258a5838e18725a76",
+      "source_graph_id": "2073a8dd6e9ec95b8c077be7ea0f188824d5935557e3c5575dbadc15226228be",
+      "candidate_set_id": "629bbedb5e051096039fb41b4de96660ae14369772a1043df51e5b9b31f634ec",
+      "files_analyzed": [
+        "constant_redirect/app.py"
+      ],
+      "parse_failure_count": 0,
+      "candidates": []
+    }
+  ],
+  "effects": {
+    "runner_calls": 0,
+    "broker_calls": 0,
+    "provider_calls": 0,
+    "target_processes": 0,
+    "public_network_calls": 0,
+    "target_builds": 0,
+    "automatic_approvals": 0,
+    "submissions": 0
+  }
+}

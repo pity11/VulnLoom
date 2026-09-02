@@ -1,0 +1,180 @@
+{
+  "suite_id": "9aaec297e8cb6d568a00a4ce3cf3a4ce40e80f669a2caf916c9d1926e0a713b4",
+  "name": "vulnloom-m9.4-local-source-robustness",
+  "version": "1",
+  "cases": [
+    {
+      "case_id": "043d05b4be978f78d428bad229a5f8a39e813d3fbf2873064738443650eeaf52",
+      "name": "flask_cross_file_idor",
+      "files": [
+        {
+          "path": "flask_cross_file_idor/app.py",
+          "sha256": "6f58f789308a8c1a6c5b9248a1e4f7cf03f375e41c826e95a3165ad1db426421"
+        },
+        {
+          "path": "flask_cross_file_idor/service.py",
+          "sha256": "b77dfc8f3e0608dcfef7368ef572c95ffaf34d62e80fca31ff0e74890fe911c6"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "3b18a90e6fedba0e6b6f0c543ff0af8dc73fd14c48dfa4f5ca00128edf6b2c49",
+      "name": "fastapi_cross_file_ssrf",
+      "files": [
+        {
+          "path": "fastapi_cross_file_ssrf/api.py",
+          "sha256": "e83a622e2d34e8aeaa0f837b4a4ea006d4fbe97a0585c1e3ba9d1a267a1baa2c"
+        },
+        {
+          "path": "fastapi_cross_file_ssrf/service.py",
+          "sha256": "e7e873795c657966f0ccf7ca98c5bb032953944b99ece10e58d48b3f8824b7f0"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-918"
+      ]
+    },
+    {
+      "case_id": "db8b5588526eeba978ebd61518f9cbb23a7b4f9e802f6e511440490f4db32f90",
+      "name": "django_cross_file_idor",
+      "files": [
+        {
+          "path": "django_cross_file_idor/urls.py",
+          "sha256": "6609af1620e9bc8d23e11e7145238fe1d5fc528751e9850af0fdfd335659431d"
+        },
+        {
+          "path": "django_cross_file_idor/views.py",
+          "sha256": "423d06ae6a41436a798c353b755ebf2cc61a6756a67aeae709b2171b84d9565d"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "3f92f9bcb3a475c68e65a574cea6763a093c3ef5171cb52ef9739f77f94a0ff4",
+      "name": "flask_cross_file_sql",
+      "files": [
+        {
+          "path": "flask_cross_file_sql/app.py",
+          "sha256": "4917723bc50225c84bc8d044413b03f472ffd70d3bcd3d427a9ea2f2f7bdbbb0"
+        },
+        {
+          "path": "flask_cross_file_sql/repository.py",
+          "sha256": "9fe8d3d3706cce8e764e88eb1e1517398a1952e2809cee393e7ec5d0caa21152"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-89"
+      ]
+    },
+    {
+      "case_id": "a3ab53d7363b7bf29f82d0e1314801cf3c0d4223621c37e9963de795a2bb11f9",
+      "name": "fastapi_dependency_idor",
+      "files": [
+        {
+          "path": "fastapi_dependency_idor/api.py",
+          "sha256": "bada9781335e662a7184bffa058045b19db1bf41007d39414871ef4615dccc0c"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "fcd1d429ca22b8cdc5b48442287a76d0ba7c9615528c07a65886193cbffc508a",
+      "name": "django_guarded_idor",
+      "files": [
+        {
+          "path": "django_guarded_idor/urls.py",
+          "sha256": "6609af1620e9bc8d23e11e7145238fe1d5fc528751e9850af0fdfd335659431d"
+        },
+        {
+          "path": "django_guarded_idor/views.py",
+          "sha256": "5ba0fb7e9ca8e9fda49afd7b44dbae4ba52d429fecb7007741798cea409cfc75"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "01ad03e279de4ede43ec9d322a3f75aba4a948faa49c4430afe60e3cb19d0eb4",
+      "name": "constant_sql",
+      "files": [
+        {
+          "path": "constant_sql/app.py",
+          "sha256": "15321ee8bb23edac1e4862f26d8ec95ee2ebd7cb6423c5cbeb8e1374a95ca02f"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "039ee3f26cb8bcbcfaac8c8448bcbb5ff07ed915ac6ca124a1bf0be00db64119",
+      "name": "constant_command",
+      "files": [
+        {
+          "path": "constant_command/app.py",
+          "sha256": "bc04a6bcf27f85d6b1d201619b800a5c45ad4b297f9966fc9f301f8adf601a85"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "eeb72b4c11208f9c65feb1e9e7bc2f027a57f25f205b387f48a8715e508375e4",
+      "name": "constant_file",
+      "files": [
+        {
+          "path": "constant_file/app.py",
+          "sha256": "6e88dc1b6df40e715365ffe92bef058b352b8c020dc75b673224663af7d1cc7c"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "c5315a12341fd092f9d9fedcce45d6a0df75b0e5856331a386d238dd8beae585",
+      "name": "constant_network",
+      "files": [
+        {
+          "path": "constant_network/app.py",
+          "sha256": "1d186c6d66cf8e7e0da0280a7531b9d5ba720f05f51517cb4bedee72d03753ef"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "e3d6c0df62b8410abd49cf9da02aa6954112113c2c52abfa8e146f8cc11c5a92",
+      "name": "constant_template",
+      "files": [
+        {
+          "path": "constant_template/app.py",
+          "sha256": "01abc8c2c9800623ba3ac1c3aa92c6227c9175d0107f3090e3260eba8e31c02f"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "21c9c9e5cf9a50ff013c7979ae435f2e9ae9aabafd8f38a0230eef18e1de1ed1",
+      "name": "constant_deserialization",
+      "files": [
+        {
+          "path": "constant_deserialization/app.py",
+          "sha256": "144c44d76b94f7e74459d4c37a8041598de3e9d7e89ba6fb524c587c2b804c11"
+        }
+      ],
+      "expected_cwes": []
+    },
+    {
+      "case_id": "b36d57fe0368d421054e2d271b83dd6a5d9d302e5c9e6a3bebaefa2d3e3f76a8",
+      "name": "constant_redirect",
+      "files": [
+        {
+          "path": "constant_redirect/app.py",
+          "sha256": "cf4a019861773f551a0f299358e663aba15f61eb3672a70f136b9b35e6403d17"
+        }
+      ],
+      "expected_cwes": []
+    }
+  ]
+}
