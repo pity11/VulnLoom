@@ -845,3 +845,23 @@ result and passes only when all 23 outcomes match the sealed baseline.
 The fixture generator and gate are ordinary offline CI steps on every supported Python version.
 They construct no Target, open no network, invoke no Runner/Broker/provider, issue no Approval and
 perform no domain transition or Submission.
+
+## 49. M9.3 local-source and completed-workflow quality fan-in
+
+M9.3 exercises the real trusted static path against nine sealed repository fixtures. Eight minimal
+Python Web cases cover every Candidate CWE currently supported by the AST mapper and generator; a
+ninth case contains a visible ownership guard and must remain Candidate-free. Fixture code is read
+with no-follow and digest checks, packed deterministically, passed through archive ingestion, then
+parsed as AST. It is never imported, executed, built or exposed to a network.
+
+The resulting content-addressed observations retain only Target, SourceGraph and CandidateSet
+digests plus Candidate CWE, duplicate fingerprint, signal IDs and bounded source-location metadata.
+The pure reducer measures static truth recall, Candidate precision and trace completeness. It does
+not reinterpret a Candidate as reproduced or promoted.
+
+Finding precision and Evidence completeness are instead copied from an exact, policy-bound M6.1
+baseline whose observations already require reproduced Validation, accepted Critic, promotion and
+complete Evidence. Any baseline identity drift is rejected before evaluation. Separate effect
+counters require zero Runner, Broker, provider, target process, public network, target build,
+automatic Approval and Submission activity. The joined result remains an offline qualification
+artifact and creates no production authority.

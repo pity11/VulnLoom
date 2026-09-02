@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "BenchmarkGateStatus": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "BenchmarkGateStatus",
+      "type": "string"
+    },
+    "LocalSourceQualityMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "case_count": {
+          "minimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "truth_count": {
+          "minimum": 0,
+          "title": "Truth Count",
+          "type": "integer"
+        },
+        "candidate_count": {
+          "minimum": 0,
+          "title": "Candidate Count",
+          "type": "integer"
+        },
+        "matched_candidate_count": {
+          "minimum": 0,
+          "title": "Matched Candidate Count",
+          "type": "integer"
+        },
+        "candidate_recall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Recall",
+          "type": "number"
+        },
+        "candidate_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Precision",
+          "type": "number"
+        },
+        "trace_completeness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Trace Completeness",
+          "type": "number"
+        },
+        "finding_precision": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Finding Precision",
+          "type": "number"
+        },
+        "evidence_completeness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Evidence Completeness",
+          "type": "number"
+        },
+        "forbidden_effect_count": {
+          "minimum": 0,
+          "title": "Forbidden Effect Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "case_count",
+        "truth_count",
+        "candidate_count",
+        "matched_candidate_count",
+        "candidate_recall",
+        "candidate_precision",
+        "trace_completeness",
+        "finding_precision",
+        "evidence_completeness",
+        "forbidden_effect_count"
+      ],
+      "title": "LocalSourceQualityMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "observation_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Set Id",
+      "type": "string"
+    },
+    "workflow_baseline_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow Baseline Id",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/LocalSourceQualityMetrics"
+    },
+    "violations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Violations",
+      "type": "array"
+    },
+    "gate_status": {
+      "$ref": "#/$defs/BenchmarkGateStatus"
+    }
+  },
+  "required": [
+    "result_id",
+    "suite_id",
+    "observation_set_id",
+    "workflow_baseline_id",
+    "metrics",
+    "violations",
+    "gate_status"
+  ],
+  "title": "LocalSourceQualityResult",
+  "type": "object"
+}

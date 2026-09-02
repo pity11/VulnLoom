@@ -1,0 +1,122 @@
+{
+  "suite_id": "aa62d10086ae5471c4667c8c2847ce4d654342ede964bad70254259d6b8140f7",
+  "name": "vulnloom-m9.3-local-source",
+  "version": "1",
+  "cases": [
+    {
+      "case_id": "d119c477ce500dc896083a60b9c167af78e8e51e29f29cca20f98b5166667ce6",
+      "name": "sql",
+      "files": [
+        {
+          "path": "sql/app.py",
+          "sha256": "d33cf848a1c4dc2660325e922895979b7b044c9121de2df21634325b9946f44b"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-89"
+      ]
+    },
+    {
+      "case_id": "9189fa2cba5fa047e9599ff65cea22b0cb9631bce7b8e6314c05e5dc8eb6dd84",
+      "name": "command",
+      "files": [
+        {
+          "path": "command/app.py",
+          "sha256": "9d5bd32c9cae30dbded19f15749a53c945350fc6921dca0f2907a43c8db134ea"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-78"
+      ]
+    },
+    {
+      "case_id": "c2b3c0e39537d35f5f34a4d8c593505629e8839148e8d567b246c2e274413e28",
+      "name": "file",
+      "files": [
+        {
+          "path": "file/app.py",
+          "sha256": "a167c0afeddf96745efc7b7d5f0cf3b09210105a41f97358a7e1274983176f00"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-22"
+      ]
+    },
+    {
+      "case_id": "291a66dd080bb4303bf57829e462bc11a35fc363fb0a96e58db8af031bd6d00e",
+      "name": "network",
+      "files": [
+        {
+          "path": "network/app.py",
+          "sha256": "0c2548f3dae9947fe96ffe96c1e4f87b16c759485ec31a2782b4ca9044e3f94f"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-918"
+      ]
+    },
+    {
+      "case_id": "7854119edbcdde5d39034e126237ef857d129048d5e90b4c8ec07919c34bba3c",
+      "name": "template",
+      "files": [
+        {
+          "path": "template/app.py",
+          "sha256": "f6733f04dc667984bd20de8839b7ab08c1b8676eedc8a268f22c45afb0217e34"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-1336"
+      ]
+    },
+    {
+      "case_id": "062ae6185505d28132a5e0ee2c702b5861e052631affdb0ad43368bf112a2477",
+      "name": "deserialization",
+      "files": [
+        {
+          "path": "deserialization/app.py",
+          "sha256": "6028b5116a478d2377e4c7003a971f00e556a9c47f63db0caa6e3b9ef049ad2e"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-502"
+      ]
+    },
+    {
+      "case_id": "ac4e0f69fafc2a727c3faa5117dfe55462b71f9fb4079280556995e5d4fc2db5",
+      "name": "redirect",
+      "files": [
+        {
+          "path": "redirect/app.py",
+          "sha256": "64dbadef953b2b3d2d1add6526ab3e6f04a7a4cc1947f9cb378cd0cb035eb0a3"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-601"
+      ]
+    },
+    {
+      "case_id": "ff8cf0abfc741fdffa8ba439117ce7225ff5d4731d36570456bef7ed07dab861",
+      "name": "object_lookup",
+      "files": [
+        {
+          "path": "object_lookup/app.py",
+          "sha256": "8eb08f3cd285915f84e03b5e0ffef7ac3c4d3d61c54bda60f877d4b331baebde"
+        }
+      ],
+      "expected_cwes": [
+        "CWE-639"
+      ]
+    },
+    {
+      "case_id": "aa38212a53445657269f9c52a1d6a2cdf0f8146da1c451b8141b4771d843a86b",
+      "name": "guarded_object",
+      "files": [
+        {
+          "path": "guarded_object/app.py",
+          "sha256": "b13afc75147635cba57603227eb64e3f02780beb48b93aa814e9bafbe3dc2f5e"
+        }
+      ],
+      "expected_cwes": []
+    }
+  ]
+}

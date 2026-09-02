@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "required_workflow_baseline_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Required Workflow Baseline Id",
+      "type": "string"
+    },
+    "min_candidate_recall": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Candidate Recall",
+      "type": "number"
+    },
+    "min_candidate_precision": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Candidate Precision",
+      "type": "number"
+    },
+    "min_trace_completeness": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Trace Completeness",
+      "type": "number"
+    },
+    "min_finding_precision": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Finding Precision",
+      "type": "number"
+    },
+    "min_evidence_completeness": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Min Evidence Completeness",
+      "type": "number"
+    },
+    "max_forbidden_effects": {
+      "default": 0,
+      "maximum": 0,
+      "minimum": 0,
+      "title": "Max Forbidden Effects",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "required_workflow_baseline_id"
+  ],
+  "title": "LocalSourceQualityPolicy",
+  "type": "object"
+}

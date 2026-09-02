@@ -1,0 +1,55 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "runner_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Runner Calls",
+      "type": "integer"
+    },
+    "broker_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Broker Calls",
+      "type": "integer"
+    },
+    "provider_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Provider Calls",
+      "type": "integer"
+    },
+    "target_processes": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Target Processes",
+      "type": "integer"
+    },
+    "public_network_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Public Network Calls",
+      "type": "integer"
+    },
+    "target_builds": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Target Builds",
+      "type": "integer"
+    },
+    "automatic_approvals": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Automatic Approvals",
+      "type": "integer"
+    },
+    "submissions": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Submissions",
+      "type": "integer"
+    }
+  },
+  "title": "LocalSourceEffectCounters",
+  "type": "object"
+}

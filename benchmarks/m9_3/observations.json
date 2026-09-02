@@ -1,0 +1,176 @@
+{
+  "observation_set_id": "6ca7b7158a0f87679b8741beb8ef811f7c3d553f9e41911745e074b2946bd867",
+  "suite_id": "aa62d10086ae5471c4667c8c2847ce4d654342ede964bad70254259d6b8140f7",
+  "observations": [
+    {
+      "case_id": "d119c477ce500dc896083a60b9c167af78e8e51e29f29cca20f98b5166667ce6",
+      "target_version": "723a2b6b99d36e296f63e30014ad328c21d7f1362c992da768f993c2cdbbc633",
+      "source_graph_id": "c0124a6a9bfc0325b1d3d0f572a6fb61021c97949204afadae8783869252fb9d",
+      "candidate_set_id": "87acbc435c21b1a127699b8a0fe138383a625ac4641e7b480a0862187ceedc3c",
+      "candidates": [
+        {
+          "candidate_id": "8d2000f7-2cbc-5cbb-adfb-cad3a1792487",
+          "cwe": "CWE-89",
+          "duplicate_fingerprint": "bb5018d9caa66e3c16b108ccc558b5f38972246ae817859b36ac52e75f89e9a7",
+          "signal_ids": [
+            "222bb62115d4f6ec6e5f7ca632d180912e693eb8fb632c67f80e36ae6a14a9e2"
+          ],
+          "entry_path": "sql/app.py",
+          "sink_path": "sql/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "9189fa2cba5fa047e9599ff65cea22b0cb9631bce7b8e6314c05e5dc8eb6dd84",
+      "target_version": "d2dad2f124f84c793472e325e000b32f3678137596265c7f29e7d3ce6cd4c366",
+      "source_graph_id": "7f53c0e7f0f01fdeaf4281316dca1aea8d25ca61738e71d97b1d7be345f3ff68",
+      "candidate_set_id": "30ef82cc8e04cd2a78887113f0f6700881280c3dc7086fbf98141065b738b49c",
+      "candidates": [
+        {
+          "candidate_id": "d178f6bf-0cef-5698-a65f-9d3e536489e3",
+          "cwe": "CWE-78",
+          "duplicate_fingerprint": "fee35f8e647075ec5ebe496a911d29319f504d33087396af3fede58a0cc44714",
+          "signal_ids": [
+            "da25e895b4953c1b6ee8d7ceadd2f75d682fe7622b85b3b2a7a3c641221340ec"
+          ],
+          "entry_path": "command/app.py",
+          "sink_path": "command/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "c2b3c0e39537d35f5f34a4d8c593505629e8839148e8d567b246c2e274413e28",
+      "target_version": "35b161b3bc2ad9017bf61e68bcd840bd99159c33607fe16f58a40570d73a59d2",
+      "source_graph_id": "045098aab88afa00d3295eef62c56dd4826910838e71cb5a956db6080818ac13",
+      "candidate_set_id": "085cb1869f0e07b2238497e2cb3579673de1b0379ca5b80ca6ef4d84e4a1cbfd",
+      "candidates": [
+        {
+          "candidate_id": "84c5da0e-fc79-5500-affc-766b971c770f",
+          "cwe": "CWE-22",
+          "duplicate_fingerprint": "ad8e45f221f42e4b8a1c7eb1d4d5d79f2b8e1986d1d3f22da146a8dc103b8640",
+          "signal_ids": [
+            "9f800189869cd8145594a175730dc9befe0ff6642c1b91a4b0afb88a99d9db3d"
+          ],
+          "entry_path": "file/app.py",
+          "sink_path": "file/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "291a66dd080bb4303bf57829e462bc11a35fc363fb0a96e58db8af031bd6d00e",
+      "target_version": "eb5cd7d2e16ef6b15101e423bd52ef1499f9914365636f5c21db20787f8b273b",
+      "source_graph_id": "870c24c3faf3601c4d2a50af9d38d7208e64dbca925e098f776264507506422b",
+      "candidate_set_id": "a6fdb57d60af837ddce58ed9b33bbb6eb78b74a2abfb97bafaaaf7e09e0fa661",
+      "candidates": [
+        {
+          "candidate_id": "8a2b6500-24e9-5da7-9257-4b3bbdb1d7bd",
+          "cwe": "CWE-918",
+          "duplicate_fingerprint": "ded0454c6f125cc0293e65130395d00ad46e096060f02622258e0235b493e390",
+          "signal_ids": [
+            "198067749c91320476305ecfc33d16c3d2f7f3e294fcb070dc4d34eca05891ba"
+          ],
+          "entry_path": "network/app.py",
+          "sink_path": "network/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "7854119edbcdde5d39034e126237ef857d129048d5e90b4c8ec07919c34bba3c",
+      "target_version": "0fc4f22ce054d115616735812d94ba96d8eda0f21c5c809fffe76668c05971cd",
+      "source_graph_id": "5c784a3c9e834867657138d88c535556f6a665e569711140ddfd1a1cc86b9d98",
+      "candidate_set_id": "25f6360d7456874ce96bec299a3beb35aab2618780f8b764fd9361ffc27e013c",
+      "candidates": [
+        {
+          "candidate_id": "c78898c3-d6f0-5957-9435-7f4927c75b75",
+          "cwe": "CWE-1336",
+          "duplicate_fingerprint": "7bacea8454b6ccedd5f19ed051daf423cda2e8eb65157ff57ddf0e88d7ddcabe",
+          "signal_ids": [
+            "4072bb53fbf4448f358bc6a68604c5756147fbd4a566ed2f88ace5004322e7f3"
+          ],
+          "entry_path": "template/app.py",
+          "sink_path": "template/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "062ae6185505d28132a5e0ee2c702b5861e052631affdb0ad43368bf112a2477",
+      "target_version": "72e4e6225d749eb2c95e15f4a3a88fd9e4501de145172f67fc6073d5e18217a9",
+      "source_graph_id": "e8f2b610ffa9bbc93f742c2df4dc2e553cbf2a03303ad7a1fba361af08152b00",
+      "candidate_set_id": "4f8d9efef8b2ab0638bbc637305defa0f66565ef3dc51b840a290b71d419de87",
+      "candidates": [
+        {
+          "candidate_id": "24e3b52a-f4f7-5399-94b7-c84654a69101",
+          "cwe": "CWE-502",
+          "duplicate_fingerprint": "469ba719c9daf95dc695a36dac96ebf4395b5675c4f32a919418d53ade0a7528",
+          "signal_ids": [
+            "b6918a45b4d98868febdbdd4586350defed8529b752b3e0e5920df27732bdeac"
+          ],
+          "entry_path": "deserialization/app.py",
+          "sink_path": "deserialization/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "ac4e0f69fafc2a727c3faa5117dfe55462b71f9fb4079280556995e5d4fc2db5",
+      "target_version": "e6273797b3e71d505530d0774ca7301d0f58b484c980c09a56560193247b8f87",
+      "source_graph_id": "e7aa82c97ecb03b8a93c16552b0a1812935071a1eb34e6776f5c714bf7a96381",
+      "candidate_set_id": "98617c98edea449007595ac0844e43782dcc2a56aa8090337bed30cade1f60ec",
+      "candidates": [
+        {
+          "candidate_id": "63bcfa51-d241-5980-8556-ba4a1052f842",
+          "cwe": "CWE-601",
+          "duplicate_fingerprint": "3121bf1bd6d4f1adaa1921d26d5ba11e3c8f733c705792f2596e28e98a8f6d62",
+          "signal_ids": [
+            "c8a7d6f2a0f0fe8c53bb99f7f5862faa68cf657dda1a2999eb7d06ad792bcf46"
+          ],
+          "entry_path": "redirect/app.py",
+          "sink_path": "redirect/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "ff8cf0abfc741fdffa8ba439117ce7225ff5d4731d36570456bef7ed07dab861",
+      "target_version": "c8322ae8c2c3167d1b474c7576112237931bb47a8800b2374241fbaea290e8af",
+      "source_graph_id": "58475460050767c49e550ff068a8676ef55da89f6b12fac90fd8b45c31313d00",
+      "candidate_set_id": "5914679a502e9d38ec00e19a109b54648ff7454f315d45e01da5aa85630f583a",
+      "candidates": [
+        {
+          "candidate_id": "cb01bec2-a97b-569c-a124-76bd46825540",
+          "cwe": "CWE-639",
+          "duplicate_fingerprint": "a82fbe736cc49f752499cacc62d729c50a09d93a5dfe3cbc58a8462ed7300dcc",
+          "signal_ids": [
+            "0109647cf5feba008ebcb887839ab27fbe07b5ef79b1999bce0ea586d055561f",
+            "34aa88d7460b9ba0ce0de433c7595b3f9b0022a6d5305a1c201d7ee8e28ac5d0"
+          ],
+          "entry_path": "object_lookup/app.py",
+          "sink_path": "object_lookup/app.py",
+          "code_path_count": 2
+        }
+      ]
+    },
+    {
+      "case_id": "aa38212a53445657269f9c52a1d6a2cdf0f8146da1c451b8141b4771d843a86b",
+      "target_version": "39a5131a5995202df05d622408c0700a72b60b37c073997c21816089baec2e91",
+      "source_graph_id": "6cfc702b2caaf242c4f18d4db48439ef06c92f0ebec2977a937994012b1c6820",
+      "candidate_set_id": "37237ff7439b4d001a5f6a27dc2c0d3f22cca8f069b5a18a0cfbfda51ed1d3a2",
+      "candidates": []
+    }
+  ],
+  "effects": {
+    "runner_calls": 0,
+    "broker_calls": 0,
+    "provider_calls": 0,
+    "target_processes": 0,
+    "public_network_calls": 0,
+    "target_builds": 0,
+    "automatic_approvals": 0,
+    "submissions": 0
+  }
+}

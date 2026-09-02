@@ -1,0 +1,74 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "case_count": {
+      "minimum": 0,
+      "title": "Case Count",
+      "type": "integer"
+    },
+    "truth_count": {
+      "minimum": 0,
+      "title": "Truth Count",
+      "type": "integer"
+    },
+    "candidate_count": {
+      "minimum": 0,
+      "title": "Candidate Count",
+      "type": "integer"
+    },
+    "matched_candidate_count": {
+      "minimum": 0,
+      "title": "Matched Candidate Count",
+      "type": "integer"
+    },
+    "candidate_recall": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Candidate Recall",
+      "type": "number"
+    },
+    "candidate_precision": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Candidate Precision",
+      "type": "number"
+    },
+    "trace_completeness": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Trace Completeness",
+      "type": "number"
+    },
+    "finding_precision": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Finding Precision",
+      "type": "number"
+    },
+    "evidence_completeness": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Evidence Completeness",
+      "type": "number"
+    },
+    "forbidden_effect_count": {
+      "minimum": 0,
+      "title": "Forbidden Effect Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "case_count",
+    "truth_count",
+    "candidate_count",
+    "matched_candidate_count",
+    "candidate_recall",
+    "candidate_precision",
+    "trace_completeness",
+    "finding_precision",
+    "evidence_completeness",
+    "forbidden_effect_count"
+  ],
+  "title": "LocalSourceQualityMetrics",
+  "type": "object"
+}

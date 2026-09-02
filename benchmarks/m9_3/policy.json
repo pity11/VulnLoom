@@ -1,0 +1,9 @@
+{
+  "required_workflow_baseline_id": "1dbe105a7eea04f76f0d1316022828ba356fa4a075170abb75a74aa82e22f6ad",
+  "min_candidate_recall": 1.0,
+  "min_candidate_precision": 1.0,
+  "min_trace_completeness": 1.0,
+  "min_finding_precision": 1.0,
+  "min_evidence_completeness": 1.0,
+  "max_forbidden_effects": 0
+}

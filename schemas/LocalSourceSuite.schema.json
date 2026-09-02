@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "LocalSourceCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/LocalSourceFile"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Files",
+          "type": "array"
+        },
+        "expected_cwes": {
+          "default": [],
+          "items": {
+            "pattern": "^CWE-[1-9][0-9]*$",
+            "type": "string"
+          },
+          "title": "Expected Cwes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "name",
+        "files"
+      ],
+      "title": "LocalSourceCase",
+      "type": "object"
+    },
+    "LocalSourceFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "LocalSourceFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "suite_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Id",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 32,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/LocalSourceCase"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "suite_id",
+    "name",
+    "version",
+    "cases"
+  ],
+  "title": "LocalSourceSuite",
+  "type": "object"
+}

@@ -663,6 +663,20 @@ ordered violation codes 共同内容寻址；预期由 contract 固定，不能�
 `AgentWorkflowRegressionCorpusResult` 绑定 corpus、场景总数、匹配数、逐场景结果和总体 PASS/FAIL。结果
 只有在全部 23 个场景匹配时才为 PASS，不是 Approval、领域事件或生产状态。
 
+### LocalSourceSuite、ObservationSet 与 QualityResult
+
+M9.3 的 `LocalSourceSuite` 内容寻址绑定固定案例、相对 Python 文件路径与 SHA-256、预期 CWE 多重集；
+路径只允许规范化的非绝对 `.py` 文件。`LocalSourceObservationSet` 绑定 exact suite，并为每个案例保存
+Target version、SourceGraph/CandidateSet 摘要和最小 `LocalCandidateObservation`。观察只含 Candidate ID、
+CWE、重复指纹、signal IDs、entry/sink 相对位置与 code-path 节点数，不含源码正文、Agent prose、URL、
+凭据、HTTP 内容或 Runner/Broker 参数。
+
+`LocalSourceEffectCounters` 显式记录 Runner、Broker、provider、Target 进程、公网、构建、自动 Approval
+与 Submission；门禁要求全部为零。`LocalSourceQualityPolicy` 除静态 recall/precision/trace 阈值外，
+还绑定一个 exact M6.1 `BenchmarkBaseline` identity。`LocalSourceQualityResult` 联合静态指标与该 baseline
+中已通过完整工作流约束的 Finding precision/Evidence completeness，只表示 PASS/FAIL，不是 Candidate、
+Finding、Approval 或领域事件。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

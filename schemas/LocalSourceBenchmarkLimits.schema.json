@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_source_bytes": {
+      "default": 1000000,
+      "exclusiveMinimum": 0,
+      "title": "Max Source Bytes",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 30.0,
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "LocalSourceBenchmarkLimits",
+  "type": "object"
+}

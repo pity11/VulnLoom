@@ -711,6 +711,24 @@ M9.1 是只读资格评测，不是新的 Agent 权限或生产状态机。它�
 M9.2 不调用任何生产 adapter，不执行 Validation、不改变领域状态、不访问网络，也不授予构建、审批、导出
 或 Submission 权限。
 
+### M9.3：多漏洞类型本地源码基准与联合质量门禁（已完成首版）
+
+- 仓库内密封 9 个最小 Python Web 源码案例，覆盖 SQL 注入、命令注入、路径遍历、SSRF、模板注入、
+  不安全反序列化、开放重定向、对象级授权缺失，以及一个 ownership guard 负例。
+- fixture 只经现有安全归档导入、Python AST Source Mapper 和确定性 Candidate Generator；源码从不导入或
+  执行，不启动 Target、Runner、Broker 或 provider，也不访问网络。
+- `LocalSourceSuite`、逐案例 SourceGraph/CandidateSet 摘要和 Candidate 溯源观察均内容寻址；读取前验证
+  规范化相对路径、常规文件、no-follow、大小、SHA-256 和总预算，超时或漂移 fail-closed 并清理临时目录。
+- 纯 reducer 评估 Candidate recall、Candidate precision 和 entry/sink/code-path/signal 静态溯源完整度；
+  guarded 负例不得产生 Candidate，额外或遗漏 CWE 都会触发稳定 violation code。
+- Finding precision 与 Evidence 完整度不从静态 Candidate 推断，而是精确绑定既有 M6.1 完整工作流 baseline；
+  baseline 身份漂移在评测前拒绝，避免评测数据绕过 Validation、Critic、promotion 或 Evidence gate。
+- 8 类禁止副作用计数固定覆盖 Runner、Broker、provider、Target 进程、公网、构建、自动 Approval 和
+  Submission；任一非零即失败。fixture/schema 漂移和 M9.3 gate 已加入 Python 3.12/3.13/3.14 常规 CI。
+
+M9.3 是离线静态分析质量与既有闭环质量的联合准入，不执行 Validation、不改变 Candidate/Finding、
+不批准操作、不构建 Target、不访问公网，也不创建、导出或发送 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。
