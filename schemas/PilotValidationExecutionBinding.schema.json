@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Action Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "pilot_intake_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Binding Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Outcome Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "source_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Candidate Digest",
+      "type": "string"
+    },
+    "final_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "final_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Candidate Digest",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/ValidationResult"
+    },
+    "evidence_bundle_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evidence Bundle Id"
+    },
+    "evidence_bundle_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Evidence Bundle Digest"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "approval_action_id",
+    "approval_id",
+    "approval_digest",
+    "pilot_intake_binding_id",
+    "intake_record_id",
+    "validation_plan_id",
+    "validation_outcome_digest",
+    "validation_run_id",
+    "candidate_id",
+    "source_candidate_digest",
+    "final_candidate_state",
+    "final_candidate_digest",
+    "result",
+    "completed_at"
+  ],
+  "title": "PilotValidationExecutionBinding",
+  "type": "object"
+}

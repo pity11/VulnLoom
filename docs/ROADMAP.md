@@ -820,6 +820,25 @@ M9.7 只提供后续 M8.1 可重新验证的人工选择 identity。ValidationPl
 M9.8 使 pilot 的 accepted M8.1 Intake 可证明来自 exact M9.7 人工选择，但它仍不是 Validation 授权或执行。
 任何动态验证必须在后续独立阶段重新消费该 binding，并继续服从 Scope、Approval、Runner/Broker 和清理门禁。
 
+### M9.9：Approval-gated offline pilot Validation execution（已完成首版）
+
+- 新增 `RUN_VALIDATION` Approval action 与内容寻址 `PilotValidationApprovalAction`，精确绑定 completed M9.8
+  binding、accepted M8.1 record、既有 ValidationPlan、CandidateSet/Candidate、Scope 和固定预期效果。
+- `PilotValidationExecutionPlan` 再绑定独立 human-granted Approval 的完整 digest、执行窗口与幂等键；pending、
+  denied、revoked、过期、错误 action/digest/Target/Scope/effects 均在执行 checkpoint 前拒绝。
+- 执行前重新打开 M9.8/M8.1/CandidateSet，要求 Candidate 仍为 `PROPOSED`，复核全部 ID/digest，并调用既有
+  `ValidationService.preflight`；已经绕过本门禁形成的 Validation checkpoint 被拒绝。
+- 首版严格限定 offline、零 Broker call 的 ValidationPlan；CLI 使用 `OfflineSandboxRunner`，不开放网络、
+  外部回连、状态变更 HTTP 或 Target build。顶层 Approval 不能替代未来 Broker 自身的逐调用 Approval。
+- 独立 STARTED/COMPLETED ledger 唯一消费 M9.8 plan、ValidationPlan 与 Approval；成功生成 digest-only
+  `PilotValidationExecutionBinding`，完成重放不重复 Runner，遗留 STARTED 或执行中断需显式恢复。
+- 回归覆盖成功/重放、非 granted Approval、超时、门禁前既有 Validation 和 Runner 结果漂移；原 Candidate
+  对象保持不可变，执行结果中的 Candidate 只能按既有状态机成为 `VALIDATED` 或 `INCONCLUSIVE`。
+
+M9.9 是人工批准后的本地离线 Validation 执行入口，不是 Agent 自动验证。它不从 Agent 输出构造 Runner/Broker
+参数，不调用 Broker/provider，不访问网络、不构建 Target、不自动批准、不提升 Candidate 为 Finding，也不进行
+报告导出或 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

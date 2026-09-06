@@ -84,6 +84,14 @@ class ValidationStore:
                 outcome=ValidationOutcome.model_validate_json(row["outcome_json"]),
             )
 
+    def has_checkpoint(self, plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM validation_executions WHERE plan_id = ?", (plan_id,)
+            ).fetchone()
+            is not None
+        )
+
     def complete(self, outcome: ValidationOutcome) -> None:
         encoded = outcome.model_dump_json()
         with self.connection:

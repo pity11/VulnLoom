@@ -747,6 +747,22 @@ ValidationPlan 和 Scope。独立 SQLite 对 selection、IntakePlan 与 Validati
 只读，遗留 STARTED fail-closed。Binding 不是 ValidationRun、Evidence、Candidate 状态转换、Approval、领域
 事件或 Submission。
 
+### PilotValidationApprovalAction、ExecutionPlan 与 Binding
+
+M9.9 的 `PilotValidationApprovalAction` 内容寻址绑定 completed M9.8 binding、accepted M8.1 record、exact
+ValidationPlan、CandidateSet/Candidate、Scope 和固定 `validation:run`/`candidate:validation_result` 效果。
+对应 `ApprovalRequest` 必须由人工以 `RUN_VALIDATION` action 单独 granted，且 action digest、Target、Scope、
+policy version、effects、决定人、决定时间和截止时间全部匹配。
+
+`PilotValidationExecutionPlan` 保存 Approval identity/digest、上述 provenance、窗口和幂等键，不复制
+ValidationPlan 内的 Runner 参数，也不包含 Agent prose、源码、URL、凭据或 Submission 数据。首版只接受
+`broker_calls=()` 的网络隔离 ValidationPlan。
+
+`PilotValidationExecutionBinding` 内容寻址绑定一次 completed Validation outcome/run、原始及结果 Candidate
+digest、result 和 Evidence identity。独立 SQLite 唯一消费 M9.8 plan、ValidationPlan 与 Approval；completed
+replay 只读，遗留 STARTED fail-closed。原始 Candidate 保持不可变，binding 不代表 Critic、Finding promotion、
+报告 Approval 或 Submission。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

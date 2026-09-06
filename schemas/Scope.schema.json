@@ -2,6 +2,7 @@
   "$defs": {
     "ApprovalAction": {
       "enum": [
+        "run_validation",
         "run_untrusted_build",
         "mutate_target_state",
         "use_real_credentials",

@@ -47,6 +47,26 @@ from .outcome_binding_store import (
     AgentValidationOutcomeBindingRecoveryRequired,
     AgentValidationOutcomeBindingStore,
 )
+from .pilot_execution import (
+    PilotValidationExecutionRejected,
+    PilotValidationExecutionService,
+    PilotValidationExecutionTimedOut,
+)
+from .pilot_execution_models import (
+    PILOT_VALIDATION_EFFECTS,
+    PilotValidationApprovalAction,
+    PilotValidationExecutionBinding,
+    PilotValidationExecutionPlan,
+    pilot_validation_approval_action_digest,
+    pilot_validation_execution_binding_digest,
+    pilot_validation_execution_plan_digest,
+)
+from .pilot_execution_store import (
+    PilotValidationExecutionClaim,
+    PilotValidationExecutionConflict,
+    PilotValidationExecutionRecoveryRequired,
+    PilotValidationExecutionStore,
+)
 from .pilot_intake import (
     PilotValidationIntakeRejected,
     PilotValidationIntakeService,
@@ -102,6 +122,17 @@ __all__ = [
     "AgentValidationOutcomeBindingStore",
     "DeterministicHttpJudge",
     "HttpResponseAssertion",
+    "PILOT_VALIDATION_EFFECTS",
+    "PilotValidationApprovalAction",
+    "PilotValidationExecutionBinding",
+    "PilotValidationExecutionClaim",
+    "PilotValidationExecutionConflict",
+    "PilotValidationExecutionPlan",
+    "PilotValidationExecutionRecoveryRequired",
+    "PilotValidationExecutionRejected",
+    "PilotValidationExecutionService",
+    "PilotValidationExecutionStore",
+    "PilotValidationExecutionTimedOut",
     "PilotValidationIntakeBinding",
     "PilotValidationIntakeClaim",
     "PilotValidationIntakeConflict",
@@ -130,4 +161,7 @@ __all__ = [
     "http_response_assertion_digest",
     "pilot_validation_intake_binding_digest",
     "pilot_validation_intake_plan_digest",
+    "pilot_validation_approval_action_digest",
+    "pilot_validation_execution_binding_digest",
+    "pilot_validation_execution_plan_digest",
 ]

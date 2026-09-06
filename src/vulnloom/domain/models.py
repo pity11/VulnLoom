@@ -112,6 +112,7 @@ class ApprovalStatus(StrEnum):
 
 
 class ApprovalAction(StrEnum):
+    RUN_VALIDATION = "run_validation"
     RUN_UNTRUSTED_BUILD = "run_untrusted_build"
     MUTATE_TARGET_STATE = "mutate_target_state"
     USE_REAL_CREDENTIALS = "use_real_credentials"

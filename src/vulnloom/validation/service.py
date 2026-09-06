@@ -100,7 +100,7 @@ class ValidationService:
         now: datetime,
         approvals: tuple[ApprovalRequest, ...] = (),
     ) -> ValidationOutcome:
-        self._preflight(candidate, plan, now)
+        self.preflight(candidate, plan, now=now)
         claim = self.store.claim(plan, now=now)
         if not claim.created:
             assert claim.outcome is not None
@@ -190,6 +190,10 @@ class ValidationService:
         )
         self.store.complete(outcome)
         return outcome
+
+    def preflight(self, candidate: Candidate, plan: ValidationPlan, *, now: datetime) -> None:
+        """Validate trusted execution inputs without claiming or running anything."""
+        self._preflight(candidate, plan, now)
 
     def _preflight(self, candidate: Candidate, plan: ValidationPlan, now: datetime) -> None:
         if candidate.state is not CandidateState.PROPOSED:

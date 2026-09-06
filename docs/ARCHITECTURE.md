@@ -970,3 +970,24 @@ Neither the bridge nor its CLI constructs a ValidationPlan or accepts Agent-deri
 arguments. It creates no ValidationRun or Evidence, leaves the Candidate `PROPOSED`, writes no domain
 event, and has no Runner, Broker, provider, Target-build, network, Approval, report or Submission
 dependency. A later pilot Validation stage must explicitly require the completed binding.
+
+## 55. M9.9 Approval-gated offline pilot Validation execution
+
+M9.9 adds an execution boundary in front of the existing `ValidationService`. The boundary reopens a
+completed M9.8 binding, its accepted M8.1 record and immutable CandidateSet, then verifies the exact
+pre-existing ValidationPlan and current Scope. It exposes the Validation service's pure preflight so
+all Runner/task/profile/policy bindings are checked before either execution ledger is claimed.
+
+Trusted control-plane code derives a content-addressed `PilotValidationApprovalAction` from those
+authoritative identities. A separate human-granted `RUN_VALIDATION` Approval must match that action,
+Target, Scope version, fixed expected effects and validity window. `PilotValidationExecutionPlan`
+seals the Approval digest and complete provenance chain. An existing Validation checkpoint without a
+matching wrapper checkpoint is treated as a bypass and rejected.
+
+The first version accepts only plans with zero Broker calls and runs through the offline Runner
+adapter exposed by `pilot-validation-run-offline`; therefore it has no socket, callback, credential,
+Target-build or state-changing HTTP path. A dedicated STARTED/COMPLETED ledger uniquely consumes the
+M9.8 plan, ValidationPlan and Approval. Successful execution stores a digest-only binding to the
+authoritative Validation outcome. Replay never reruns the Runner, while an interrupted execution
+remains fail-closed for explicit recovery. This layer creates no Approval, Finding, report or
+Submission and cannot derive operational parameters from Agent output.

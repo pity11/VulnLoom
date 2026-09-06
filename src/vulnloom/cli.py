@@ -65,6 +65,7 @@ from vulnloom.benchmark import (
 )
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
+    ApprovalRequest,
     ArtifactKind,
     Engagement,
     EngagementState,
@@ -100,6 +101,8 @@ from vulnloom.validation import (
     AgentValidationIntakePlan,
     AgentValidationIntakeService,
     AgentValidationIntakeStore,
+    PilotValidationExecutionService,
+    PilotValidationExecutionStore,
     PilotValidationIntakeService,
     PilotValidationIntakeStore,
     ValidationPlan,
@@ -596,6 +599,86 @@ def run_validation_offline(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_pilot_validation_offline(args: argparse.Namespace) -> int:
+    """Execute one explicitly approved M9.8-bound plan without Broker/network activity."""
+    now = utc_now()
+    scope = _load_scope(args.scope_file)
+    validation_plan = ValidationPlan.model_validate_json(
+        Path(args.validation_plan_file).read_text(encoding="utf-8")
+    )
+    approval = ApprovalRequest.model_validate_json(
+        Path(args.approval_file).read_text(encoding="utf-8")
+    )
+    if validation_plan.broker_calls:
+        raise SystemExit("offline pilot Validation refuses Broker calls and all network activity")
+    with (
+        PilotCandidateSelectionStore(Path(args.selection_db)) as selection_store,
+        AgentValidationIntakeStore(Path(args.intake_db)) as intake_store,
+        PilotValidationIntakeStore(Path(args.pilot_intake_db)) as pilot_intake_store,
+        ValidationStore(Path(args.validation_db)) as validation_store,
+        PilotValidationExecutionStore(Path(args.pilot_execution_db)) as execution_store,
+    ):
+        intake_service = AgentValidationIntakeService(
+            scope=scope,
+            audit_artifact_store=AgentSessionAuditArtifactStore(Path(args.audit_store)),
+            candidate_set_store=CandidateSetStore(Path(args.candidate_store)),
+            store=intake_store,
+        )
+        pilot_intake_service = PilotValidationIntakeService(
+            selection_store=selection_store,
+            intake_service=intake_service,
+            store=pilot_intake_store,
+        )
+        validation_service = ValidationService(
+            scope=scope,
+            runner=OfflineSandboxRunner(
+                frozenset({validation_plan.runner_request.invocation.tool_id})
+            ),
+            broker=ToolBroker(
+                scope=scope,
+                registry=default_tool_registry(),
+                resolver=StaticResolver({}),
+                http_transport=OfflineHttpTransport({}),
+            ),
+            store=validation_store,
+            evidence_store=EvidenceStore(Path(args.evidence_store)),
+        )
+        service = PilotValidationExecutionService(
+            pilot_intake_service=pilot_intake_service,
+            validation_service=validation_service,
+            store=execution_store,
+        )
+        intake_record = intake_store.load_completed(args.intake_plan_id)
+        plan = service.prepare(
+            pilot_intake_plan_id=args.pilot_intake_plan_id,
+            intake_plan_id=args.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now,
+            deadline=min(scope.valid_until, intake_record.expires_at, approval.expires_at),
+            idempotency_key=args.idempotency_key or f"pilot-validation:{args.pilot_intake_plan_id}",
+        )
+        binding = service.execute(
+            plan,
+            intake_plan_id=args.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now,
+        )
+    print(
+        json.dumps(
+            {
+                "mode": "approved_pilot_validation_offline",
+                "network_accessed": False,
+                "broker_calls": 0,
+                "binding": binding.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def show_report_diff(args: argparse.Namespace) -> int:
     previous = Report.model_validate_json(Path(args.before).read_text(encoding="utf-8"))
     current = Report.model_validate_json(Path(args.after).read_text(encoding="utf-8"))
@@ -1034,6 +1117,25 @@ def build_parser() -> argparse.ArgumentParser:
     pilot_intake.add_argument("--pilot-intake-db", default=".vulnloom/pilot-intakes.db")
     pilot_intake.add_argument("--idempotency-key")
     pilot_intake.set_defaults(handler=bind_pilot_validation_intake_local)
+
+    pilot_validation = sub.add_parser("pilot-validation-run-offline")
+    pilot_validation.add_argument("--pilot-intake-plan-id", required=True)
+    pilot_validation.add_argument("--intake-plan-id", required=True)
+    pilot_validation.add_argument("--scope-file", required=True)
+    pilot_validation.add_argument("--validation-plan-file", required=True)
+    pilot_validation.add_argument("--approval-file", required=True)
+    pilot_validation.add_argument("--audit-store", default=".vulnloom/agent-audits")
+    pilot_validation.add_argument("--candidate-store", default=".vulnloom/candidates")
+    pilot_validation.add_argument("--selection-db", default=".vulnloom/pilot-selections.db")
+    pilot_validation.add_argument("--intake-db", default=".vulnloom/agent-validation-intakes.db")
+    pilot_validation.add_argument("--pilot-intake-db", default=".vulnloom/pilot-intakes.db")
+    pilot_validation.add_argument("--validation-db", default=".vulnloom/validation.db")
+    pilot_validation.add_argument("--evidence-store", default=".vulnloom/evidence")
+    pilot_validation.add_argument(
+        "--pilot-execution-db", default=".vulnloom/pilot-validation-executions.db"
+    )
+    pilot_validation.add_argument("--idempotency-key")
+    pilot_validation.set_defaults(handler=run_pilot_validation_offline)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

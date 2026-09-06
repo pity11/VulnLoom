@@ -1,0 +1,110 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "pilot_intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Plan Id",
+      "type": "string"
+    },
+    "pilot_intake_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Binding Id",
+      "type": "string"
+    },
+    "pilot_intake_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Binding Digest",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Digest",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Digest",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "expected_side_effects": {
+      "default": [
+        "validation:run",
+        "candidate:validation_result"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Side Effects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "action_id",
+    "engagement_id",
+    "target_id",
+    "pilot_intake_plan_id",
+    "pilot_intake_binding_id",
+    "pilot_intake_binding_digest",
+    "intake_record_id",
+    "intake_record_digest",
+    "validation_plan_id",
+    "validation_plan_digest",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "scope_id",
+    "scope_version"
+  ],
+  "title": "PilotValidationApprovalAction",
+  "type": "object"
+}

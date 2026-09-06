@@ -688,6 +688,14 @@ vulnloom pilot-validation-intake-bind-local \
   --intake-plan-file intake-plan.json --intake-command-file intake-command.json \
   --validation-plan-file validation-plan.json
 
+# Execute that exact binding only after a separate human RUN_VALIDATION Approval.
+# This first pilot execution path is offline and refuses every Broker call.
+vulnloom pilot-validation-run-offline \
+  --pilot-intake-plan-id <pilot-intake-plan-sha256> \
+  --intake-plan-id <m8.1-intake-plan-sha256> \
+  --scope-file scope.json --validation-plan-file validation-plan.json \
+  --approval-file run-validation-approval.json
+
 # Exercise a pre-sealed ValidationPlan through the offline control-plane path.
 # The plan must not contain Broker calls.
 vulnloom --db .vulnloom/events.db \
@@ -758,6 +766,8 @@ vulnloom --store .vulnloom/targets analyzer-execution-check-offline \
 `pilot-candidate-select-local` reopens a completed passing readiness checkpoint and its immutable artifact, then verifies the exact SourceGraph, CandidateSet, Snapshot and Scope before recording one human-selected proposed Candidate. The digest-only record is suitable for a later M8.1 binding, but does not construct a ValidationPlan or authorize or execute Validation. One readiness result may select at most one Candidate.
 
 `pilot-validation-intake-bind-local` requires that completed selection before it will apply an exact accepted M8.1 human command. All Audit, Candidate and ValidationPlan files must already exist and are reverified through the existing M8.1 service; the pilot bridge only adds an immutable provenance binding. It never derives Runner/Broker arguments, runs Validation, changes the Candidate, or emits a domain event.
+
+`pilot-validation-run-offline` accepts only a completed M9.8 binding, its accepted M8.1 record, the identical pre-existing ValidationPlan and a separately granted exact `RUN_VALIDATION` Approval. The first version refuses every Broker call and all network activity, uses the offline Runner adapter, and records a digest-only execution binding. It never constructs a ValidationPlan or Approval from Agent output and never writes a Submission.
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 

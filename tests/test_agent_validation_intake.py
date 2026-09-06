@@ -185,6 +185,7 @@ from vulnloom.runners import (
 )
 from vulnloom.runners.models import SandboxRunRequest, sandbox_profile_digest
 from vulnloom.validation import (
+    PILOT_VALIDATION_EFFECTS,
     AgentValidationIntakeCommand,
     AgentValidationIntakeDecision,
     AgentValidationIntakePlan,
@@ -202,6 +203,15 @@ from vulnloom.validation import (
     AgentValidationOutcomeBindingRejected,
     AgentValidationOutcomeBindingService,
     AgentValidationOutcomeBindingStore,
+    PilotValidationApprovalAction,
+    PilotValidationExecutionBinding,
+    PilotValidationExecutionConflict,
+    PilotValidationExecutionPlan,
+    PilotValidationExecutionRecoveryRequired,
+    PilotValidationExecutionRejected,
+    PilotValidationExecutionService,
+    PilotValidationExecutionStore,
+    PilotValidationExecutionTimedOut,
     PilotValidationIntakeBinding,
     PilotValidationIntakeConflict,
     PilotValidationIntakePlan,
@@ -443,6 +453,101 @@ def _pilot_selection(tmp_path, now, scope, candidate, candidate_set, *, candidat
     store.claim(command, now=command.decided_at)
     store.complete(record, now=command.decided_at)
     return store, record
+
+
+def _pilot_intake_case(tmp_path, now, scope, candidate, *, validation_plan=None):
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path / "intake",
+        now,
+        scope,
+        candidate,
+        validation_plan=validation_plan,
+    )
+    candidate_set = intake_service.candidate_set_store.load(intake_plan.candidate_set_id)
+    selection_store, selection = _pilot_selection(tmp_path, now, scope, candidate, candidate_set)
+    pilot_intake_store = PilotValidationIntakeStore(tmp_path / "pilot-intake.sqlite3")
+    pilot_intake_service = PilotValidationIntakeService(
+        selection_store=selection_store,
+        intake_service=intake_service,
+        store=pilot_intake_store,
+    )
+    command = _command(
+        intake_plan, now + timedelta(seconds=1), AgentValidationIntakeDecision.ACCEPT
+    )
+    pilot_intake_plan = pilot_intake_service.prepare(
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+        deadline=now + timedelta(seconds=90),
+        idempotency_key="pilot-intake:m9.9-fixture",
+    )
+    pilot_intake_binding = pilot_intake_service.execute(
+        pilot_intake_plan,
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+    )
+    return (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        pilot_intake_binding,
+    )
+
+
+def _pilot_execution_service(tmp_path, scope, pilot_intake_service, *, runner=None):
+    runner = runner or _CountingScenarioRunner()
+    validation_store = ValidationStore(tmp_path / "validation.sqlite3")
+    validation_service = ValidationService(
+        scope=scope,
+        runner=runner,
+        broker=ToolBroker(
+            scope=scope,
+            registry=default_tool_registry(),
+            resolver=StaticResolver({}),
+            http_transport=OfflineHttpTransport({}),
+        ),
+        store=validation_store,
+        evidence_store=EvidenceStore(tmp_path / "validation-evidence"),
+    )
+    execution_store = PilotValidationExecutionStore(tmp_path / "pilot-execution.sqlite3")
+    service = PilotValidationExecutionService(
+        pilot_intake_service=pilot_intake_service,
+        validation_service=validation_service,
+        store=execution_store,
+    )
+    return service, execution_store, validation_store, runner
+
+
+def _pilot_validation_approval(service, pilot_intake_plan, intake_plan, validation_plan, now):
+    action = service.approval_action(
+        pilot_intake_plan_id=pilot_intake_plan.plan_id,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        now=now,
+    )
+    return ApprovalRequest(
+        engagement_id=service.scope.engagement_id,
+        target_id=validation_plan.target_id,
+        action=ApprovalAction.RUN_VALIDATION,
+        action_digest=action.action_id,
+        expected_side_effects=PILOT_VALIDATION_EFFECTS,
+        evidence_summary="Human approved exact M9.9 pilot Validation execution",
+        policy_version=service.scope.version,
+        expires_at=now + timedelta(minutes=1),
+        status=ApprovalStatus.GRANTED,
+        decided_by="pilot-validation-approver",
+        decided_at=now,
+    )
 
 
 def _validation_plan_with_approval_gate(now, scope, candidate):
@@ -878,6 +983,306 @@ def test_pilot_intake_failure_leaves_recovery_checkpoint_without_validation(
         )
     assert not (tmp_path / "validation.sqlite3").exists()
     bridge_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_validation_execution_requires_binding_and_exact_approval(
+    tmp_path, now, approved_scope, candidate
+):
+    (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        pilot_intake_binding,
+    ) = _pilot_intake_case(tmp_path, now, approved_scope, candidate)
+    service, execution_store, validation_store, runner = _pilot_execution_service(
+        tmp_path, approved_scope, pilot_intake_service
+    )
+    approved_at = now + timedelta(seconds=2)
+    approval = _pilot_validation_approval(
+        service, pilot_intake_plan, intake_plan, validation_plan, approved_at
+    )
+    plan = service.prepare(
+        pilot_intake_plan_id=pilot_intake_plan.plan_id,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=approved_at,
+        deadline=now + timedelta(seconds=60),
+        idempotency_key="pilot-validation:m9.9",
+    )
+    binding = service.execute(
+        plan,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=now + timedelta(seconds=3),
+    )
+    replay = service.execute(
+        plan,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=now + timedelta(seconds=3),
+    )
+    conflicting_plan = service.prepare(
+        pilot_intake_plan_id=pilot_intake_plan.plan_id,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=approved_at,
+        deadline=now + timedelta(seconds=60),
+        idempotency_key="pilot-validation:conflict",
+    )
+    with pytest.raises(PilotValidationExecutionConflict):
+        service.execute(
+            conflicting_plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now + timedelta(seconds=3),
+        )
+
+    assert binding == replay == execution_store.load_completed(plan.execution_plan_id)
+    assert binding.pilot_intake_binding_id == pilot_intake_binding.binding_id
+    assert binding.final_candidate_state is CandidateState.INCONCLUSIVE
+    assert candidate.state is CandidateState.PROPOSED
+    assert runner.calls == 1
+    stored_plan, outcome = validation_store.load_completed(validation_plan.plan_id)
+    assert stored_plan == validation_plan
+    assert outcome.candidate.state is CandidateState.INCONCLUSIVE
+    persisted = (tmp_path / "pilot-execution.sqlite3").read_bytes()
+    assert b"runner_request" not in persisted
+    assert b"broker_calls" not in persisted
+    assert b"credential" not in persisted
+    assert b"submission" not in persisted
+    with validation_store.connection:
+        validation_store.connection.execute(
+            "UPDATE validation_executions SET completed_at=? WHERE plan_id=?",
+            ((now + timedelta(seconds=20)).isoformat(), validation_plan.plan_id),
+        )
+    with pytest.raises(PilotValidationExecutionRejected, match="unavailable"):
+        service.execute(
+            plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now + timedelta(seconds=4),
+        )
+    execution_store.close()
+    validation_store.close()
+    pilot_intake_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+@pytest.mark.parametrize(
+    "status", (ApprovalStatus.PENDING, ApprovalStatus.DENIED, ApprovalStatus.REVOKED)
+)
+def test_pilot_validation_execution_rejects_non_granted_approval_before_checkpoint(
+    tmp_path, now, approved_scope, candidate, status
+):
+    (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        _,
+    ) = _pilot_intake_case(tmp_path, now, approved_scope, candidate)
+    service, execution_store, validation_store, runner = _pilot_execution_service(
+        tmp_path, approved_scope, pilot_intake_service
+    )
+    approved_at = now + timedelta(seconds=2)
+    approval = _pilot_validation_approval(
+        service, pilot_intake_plan, intake_plan, validation_plan, approved_at
+    ).model_copy(update={"status": status})
+
+    with pytest.raises(PilotValidationExecutionRejected, match="Approval"):
+        service.prepare(
+            pilot_intake_plan_id=pilot_intake_plan.plan_id,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=approved_at,
+            deadline=now + timedelta(seconds=60),
+            idempotency_key=f"pilot-validation:{status.value}",
+        )
+    assert runner.calls == 0
+    assert not validation_store.has_checkpoint(validation_plan.plan_id)
+    assert not execution_store.connection.execute(
+        "SELECT 1 FROM pilot_validation_executions"
+    ).fetchone()
+    execution_store.close()
+    validation_store.close()
+    pilot_intake_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_validation_execution_rejects_timeout_and_preexisting_validation(
+    tmp_path, now, approved_scope, candidate
+):
+    (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        _,
+    ) = _pilot_intake_case(tmp_path, now, approved_scope, candidate)
+    service, execution_store, validation_store, runner = _pilot_execution_service(
+        tmp_path, approved_scope, pilot_intake_service
+    )
+    approved_at = now + timedelta(seconds=2)
+    approval = _pilot_validation_approval(
+        service, pilot_intake_plan, intake_plan, validation_plan, approved_at
+    )
+    plan = service.prepare(
+        pilot_intake_plan_id=pilot_intake_plan.plan_id,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=approved_at,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="pilot-validation:timeout",
+    )
+    with pytest.raises(PilotValidationExecutionTimedOut):
+        service.execute(
+            plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=plan.deadline,
+        )
+    assert runner.calls == 0
+    assert not validation_store.has_checkpoint(validation_plan.plan_id)
+
+    service.validation_service.execute(candidate, validation_plan, now=now + timedelta(seconds=3))
+    with pytest.raises(PilotValidationExecutionRejected, match="predates"):
+        service.execute(
+            plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now + timedelta(seconds=4),
+        )
+    assert runner.calls == 1
+    assert not execution_store.has_checkpoint(plan.execution_plan_id)
+    execution_store.close()
+    validation_store.close()
+    pilot_intake_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_validation_failure_requires_explicit_recovery(
+    tmp_path, now, approved_scope, candidate
+):
+    class MismatchedRunner(_CountingScenarioRunner):
+        def execute(self, request, *, now):
+            result = super().execute(request, now=now)
+            return result.model_copy(update={"run_id": uuid4()})
+
+    (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        _,
+    ) = _pilot_intake_case(tmp_path, now, approved_scope, candidate)
+    runner = MismatchedRunner()
+    service, execution_store, validation_store, _ = _pilot_execution_service(
+        tmp_path, approved_scope, pilot_intake_service, runner=runner
+    )
+    approved_at = now + timedelta(seconds=2)
+    approval = _pilot_validation_approval(
+        service, pilot_intake_plan, intake_plan, validation_plan, approved_at
+    )
+    plan = service.prepare(
+        pilot_intake_plan_id=pilot_intake_plan.plan_id,
+        intake_plan_id=intake_plan.intake_plan_id,
+        validation_plan=validation_plan,
+        approval=approval,
+        now=approved_at,
+        deadline=now + timedelta(seconds=60),
+        idempotency_key="pilot-validation:failure",
+    )
+    with pytest.raises(PilotValidationExecutionRejected, match="failed"):
+        service.execute(
+            plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now + timedelta(seconds=3),
+        )
+    with pytest.raises(PilotValidationExecutionRecoveryRequired):
+        service.execute(
+            plan,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            approval=approval,
+            now=now + timedelta(seconds=3),
+        )
+    assert runner.calls == 1
+    assert validation_store.has_checkpoint(validation_plan.plan_id)
+    execution_store.close()
+    validation_store.close()
+    pilot_intake_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_validation_execution_refuses_every_broker_call(
+    tmp_path, now, approved_scope, candidate
+):
+    broker_plan = _validation_plan_with_approval_gate(now, approved_scope, candidate)
+    (
+        pilot_intake_service,
+        pilot_intake_store,
+        selection_store,
+        intake_store,
+        validation_plan,
+        intake_plan,
+        pilot_intake_plan,
+        _,
+    ) = _pilot_intake_case(
+        tmp_path,
+        now,
+        approved_scope,
+        candidate,
+        validation_plan=broker_plan,
+    )
+    service, execution_store, validation_store, runner = _pilot_execution_service(
+        tmp_path, approved_scope, pilot_intake_service
+    )
+    with pytest.raises(PilotValidationExecutionRejected, match="binding drifted"):
+        service.approval_action(
+            pilot_intake_plan_id=pilot_intake_plan.plan_id,
+            intake_plan_id=intake_plan.intake_plan_id,
+            validation_plan=validation_plan,
+            now=now + timedelta(seconds=2),
+        )
+    assert runner.calls == 0
+    assert not validation_store.has_checkpoint(validation_plan.plan_id)
+    assert not execution_store.connection.execute(
+        "SELECT 1 FROM pilot_validation_executions"
+    ).fetchone()
+    execution_store.close()
+    validation_store.close()
+    pilot_intake_store.close()
     selection_store.close()
     intake_store.close()
 
@@ -1454,6 +1859,27 @@ def test_intake_schema_and_sqlite_are_digest_only(tmp_path, now, approved_scope,
     for forbidden in (b"https://", b"Authorization", b"Bearer", b"sandbox.test"):
         assert forbidden not in persisted
     store.close()
+
+
+def test_pilot_validation_execution_contracts_are_digest_only():
+    schemas = " ".join(
+        json.dumps(model.model_json_schema()).lower()
+        for model in (
+            PilotValidationApprovalAction,
+            PilotValidationExecutionPlan,
+            PilotValidationExecutionBinding,
+        )
+    )
+    for forbidden in (
+        '"runner_request"',
+        '"broker_calls"',
+        '"url"',
+        '"credential"',
+        '"evidence_body"',
+        '"agent_summary"',
+        '"submission"',
+    ):
+        assert forbidden not in schemas
 
 
 def test_outcome_binding_schema_and_sqlite_are_digest_only(
