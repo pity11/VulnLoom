@@ -271,6 +271,24 @@ from .pilot_readiness_store import (
     AuthorizedPilotReadinessRecoveryRequired,
     AuthorizedPilotReadinessStore,
 )
+from .pilot_selection_models import (
+    PilotCandidateSelectionCommand,
+    PilotCandidateSelectionRecord,
+    pilot_candidate_selection_command_digest,
+    pilot_candidate_selection_record_digest,
+)
+from .pilot_selection_service import (
+    PilotCandidateSelectionRejected,
+    PilotCandidateSelectionService,
+    PilotCandidateSelectionTimedOut,
+)
+from .pilot_selection_store import (
+    PilotCandidateSelectionClaim,
+    PilotCandidateSelectionConsumptionConflict,
+    PilotCandidateSelectionIdempotencyConflict,
+    PilotCandidateSelectionRecoveryRequired,
+    PilotCandidateSelectionStore,
+)
 from .service import BenchmarkService
 from .store import (
     BenchmarkArtifactStore,
@@ -390,6 +408,16 @@ __all__ = [
     "AuthorizedPilotReadinessStore",
     "AuthorizedPilotReadinessTimedOut",
     "AuthorizedPilotReadinessViolation",
+    "PilotCandidateSelectionClaim",
+    "PilotCandidateSelectionCommand",
+    "PilotCandidateSelectionConsumptionConflict",
+    "PilotCandidateSelectionIdempotencyConflict",
+    "PilotCandidateSelectionRecord",
+    "PilotCandidateSelectionRecoveryRequired",
+    "PilotCandidateSelectionRejected",
+    "PilotCandidateSelectionService",
+    "PilotCandidateSelectionStore",
+    "PilotCandidateSelectionTimedOut",
     "BenchmarkArtifact",
     "BenchmarkArtifactStore",
     "BenchmarkBaseline",
@@ -510,6 +538,8 @@ __all__ = [
     "local_source_suite_digest",
     "observe_local_source_suite",
     "pilot_effect_count",
+    "pilot_candidate_selection_command_digest",
+    "pilot_candidate_selection_record_digest",
     "trivy_registration",
     "validate_admitted_registration",
     "verify_snapshot_directory",

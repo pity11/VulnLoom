@@ -724,6 +724,18 @@ M9.6 不增加领域实体、状态或事件。`shadow-pilot-local` 只从已安
 `selected_candidate_ids` 仍必须为空，所有非空 Candidate 仍必须是 `PROPOSED`。空集合不是 Finding、无漏洞证明、
 人工选择、Validation 计划、Approval 或任何状态迁移。
 
+### PilotCandidateSelectionCommand 与 Record
+
+M9.7 的 `PilotCandidateSelectionCommand` 内容寻址绑定 completed passing readiness result/artifact、重构后的
+pilot manifest、exact CandidateSet/SourceGraph/Snapshot/Scope、唯一 Candidate digest、human reviewer、带时区
+decision time、Scope 截止时间与幂等键。它不包含 ValidationPlan、Runner/Broker 参数、工具调用、URL、凭据、
+源码、Approval 或 Submission。
+
+`PilotCandidateSelectionRecord` 保存同一 identity chain 的 digest-only 选择事实。独立 SQLite 对
+readiness plan 唯一消费并提供 completed replay；记录不会改变 Candidate 的 `PROPOSED` 状态，也不是
+Validation Intake、Validation authority、Approval 或领域事件。后续 M8.1 必须单独验证本记录并绑定可信控制面
+构造的 exact ValidationPlan。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

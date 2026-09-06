@@ -97,6 +97,23 @@ class AuthorizedPilotReadinessStore:
                 "authorized pilot readiness STARTED checkpoint is unavailable"
             )
 
+    def load_completed(self, plan_id: str) -> AuthorizedPilotReadinessOutcome:
+        row = self.connection.execute(
+            "SELECT state,outcome_json FROM authorized_pilot_readiness WHERE plan_id=?", (plan_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("authorized pilot readiness checkpoint is unavailable")
+        if row["state"] != "completed" or row["outcome_json"] is None:
+            raise AuthorizedPilotReadinessRecoveryRequired(
+                "authorized pilot readiness has unfinished STARTED state"
+            )
+        outcome = AuthorizedPilotReadinessOutcome.model_validate_json(row["outcome_json"])
+        if outcome.plan_id != plan_id:
+            raise AuthorizedPilotReadinessRecoveryRequired(
+                "authorized pilot readiness checkpoint binding mismatch"
+            )
+        return outcome
+
     def close(self) -> None:
         self.connection.close()
 

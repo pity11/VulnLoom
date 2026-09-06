@@ -932,3 +932,22 @@ This composition ends before Candidate selection. Its output fixes `selected_can
 empty list and all Candidates remain `PROPOSED`. It has no Validation service, Runner, Broker,
 provider, Target builder, network transport, Approval service, Report exporter or Submission
 adapter, and it writes no domain event.
+
+## 53. M9.7 human Candidate selection bridge
+
+M9.7 adds one narrow human command after a completed passing local shadow pilot. The selection
+service reopens the readiness checkpoint and no-follow artifact, loads the exact immutable
+CandidateSet and SourceGraph, reloads the Snapshot, re-authorizes the current Scope, and reconstructs
+the M9.5 manifest. Only one Candidate that is still `PROPOSED` and belongs to every exact binding may
+be recorded.
+
+The content-addressed command binds the complete readiness/static/Target/Scope identity chain plus a
+human reviewer and explicit timezone-aware decision time. A digest-only record is stored in an
+independent STARTED/COMPLETED SQLite ledger. The readiness plan is uniquely consumed, so a completed
+selection replays read-only while a different Candidate, reused key, concurrent conflict or unfinished
+checkpoint fails closed. There are no temporary execution resources to retain or clean up.
+
+This record is an identity handoff only. It does not modify the Candidate, create a ValidationPlan,
+call M8.1, issue an Approval, or invoke Runner, Broker, provider, Target build, network, report export
+or Submission components. A later pilot Intake must independently reconstruct and authorize its exact
+ValidationPlan through the existing M8.1 boundary.

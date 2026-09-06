@@ -1,0 +1,100 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "readiness_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Readiness Plan Id",
+      "type": "string"
+    },
+    "readiness_result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Readiness Result Id",
+      "type": "string"
+    },
+    "pilot_manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Manifest Id",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "reviewer": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "command_id",
+    "readiness_plan_id",
+    "readiness_result_id",
+    "pilot_manifest_id",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "reviewer",
+    "decided_at",
+    "expires_at"
+  ],
+  "title": "PilotCandidateSelectionRecord",
+  "type": "object"
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -54,6 +55,8 @@ from vulnloom.benchmark import (
     LocalSourceRobustnessProfile,
     LocalSourceSuite,
     OfflineAnalyzerExecutionService,
+    PilotCandidateSelectionService,
+    PilotCandidateSelectionStore,
     create_analyzer_snapshot,
     create_external_snapshot,
     default_analyzer_adapters,
@@ -408,6 +411,54 @@ def run_shadow_pilot_local(args: argparse.Namespace) -> int:
     }
     print(json.dumps(summary, indent=2))
     return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
+
+
+def select_pilot_candidate_local(args: argparse.Namespace) -> int:
+    """Record one explicit human selection without planning or running Validation."""
+    try:
+        decided_at = datetime.fromisoformat(args.decided_at)
+    except ValueError as exc:
+        raise SystemExit("--decided-at must be an ISO 8601 timestamp") from exc
+    now = utc_now()
+    scope = _load_scope(args.scope_file)
+    with (
+        AuthorizedPilotReadinessStore(Path(args.readiness_db)) as readiness_store,
+        PilotCandidateSelectionStore(Path(args.selection_db)) as selection_store,
+    ):
+        service = PilotCandidateSelectionService(
+            scope=scope,
+            ingestion=IngestionService(Path(args.store)),
+            graph_store=SourceGraphStore(Path(args.analysis_store)),
+            candidate_store=CandidateSetStore(Path(args.candidate_store)),
+            readiness_store=readiness_store,
+            readiness_artifact_store=AuthorizedPilotReadinessArtifactStore(
+                Path(args.readiness_store)
+            ),
+            selection_store=selection_store,
+        )
+        command = service.prepare(
+            readiness_plan_id=args.readiness_plan_id,
+            candidate_set_id=args.candidate_set_id,
+            candidate_id=UUID(args.candidate_id),
+            reviewer=args.reviewer,
+            decided_at=decided_at,
+            now=now,
+            idempotency_key=args.idempotency_key
+            or f"pilot-select:{args.readiness_plan_id}:{args.candidate_id}",
+        )
+        record = service.record(command, now=now)
+    print(
+        json.dumps(
+            {
+                "mode": "human_pilot_candidate_selection",
+                "candidate_state": "proposed",
+                "validation_planned": False,
+                "record": record.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
 
 
 def run_validation_offline(args: argparse.Namespace) -> int:
@@ -878,6 +929,21 @@ def build_parser() -> argparse.ArgumentParser:
     shadow.add_argument("--readiness-store", default=".vulnloom/pilot-readiness")
     shadow.add_argument("--idempotency-key")
     shadow.set_defaults(handler=run_shadow_pilot_local)
+
+    selection = sub.add_parser("pilot-candidate-select-local")
+    selection.add_argument("--readiness-plan-id", required=True)
+    selection.add_argument("--candidate-set-id", required=True)
+    selection.add_argument("--candidate-id", required=True)
+    selection.add_argument("--scope-file", required=True)
+    selection.add_argument("--reviewer", required=True)
+    selection.add_argument("--decided-at", required=True)
+    selection.add_argument("--analysis-store", default=".vulnloom/analysis")
+    selection.add_argument("--candidate-store", default=".vulnloom/candidates")
+    selection.add_argument("--readiness-db", default=".vulnloom/pilot-readiness.db")
+    selection.add_argument("--readiness-store", default=".vulnloom/pilot-readiness")
+    selection.add_argument("--selection-db", default=".vulnloom/pilot-selections.db")
+    selection.add_argument("--idempotency-key")
+    selection.set_defaults(handler=select_pilot_candidate_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

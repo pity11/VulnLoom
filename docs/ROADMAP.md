@@ -784,6 +784,23 @@ M9.5 是真实授权项目接入前的离线发布就绪协议与 repository-own
 M9.6 是人工审阅前的本地静态 shadow 入口，不是自动漏洞验证 Agent。它不执行 Validation、不选择或改变
 Candidate、不调用 Runner/Broker/provider、不自动批准、不构建 Target、不访问公网，也不导出或提交报告。
 
+### M9.7：人工 Candidate 选择与 Validation Intake 身份衔接（已完成首版）
+
+- 新增内容寻址 `PilotCandidateSelectionCommand` 与 `PilotCandidateSelectionRecord`；命令只接受 human reviewer、
+  exact Candidate ID、明确带时区的 decision time 和幂等键，不含 ValidationPlan 或操作参数。
+- 选择前重新打开 completed M9.6/M9.5 readiness checkpoint 与只读 artifact，要求 gate 为 PASS、零 violation，
+  并重新验证 exact SourceGraph、CandidateSet、Snapshot、Scope 和重构后的 pilot manifest identity。
+- 只有 CandidateSet 中唯一且仍为 `PROPOSED` 的 Candidate 可被选择；零 Candidate、未知 Candidate、失败
+  readiness、撤销/过期 Scope、artifact 或 digest drift 均在 selection checkpoint 前拒绝。
+- 独立 SQLite 以 STARTED/COMPLETED 唯一消费 readiness plan；同一 pilot 最多选择一个 Candidate，完成重放
+  幂等，冲突和遗留 STARTED fail-closed。持久化内容不含源码、Runner/Broker 参数、凭据或 ValidationPlan。
+- 新增 `pilot-candidate-select-local` 人工 CLI；输出明确标记 Candidate 仍为 `PROPOSED` 且
+  `validation_planned=false`，不写领域事件，也不调用 M8.1、ValidationService 或任何外部 adapter。
+
+M9.7 只提供后续 M8.1 可重新验证的人工选择 identity。ValidationPlan 仍必须由可信控制面独立构造，再经
+既有 M8.1 人工 Intake；选择记录本身不是 Approval，也不执行 Validation、改变 Candidate、构建 Target、
+访问网络、导出报告或 Submission。
+
 ## 延后事项
 
 - 公网资产自主发现。

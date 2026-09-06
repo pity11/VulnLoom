@@ -672,6 +672,14 @@ vulnloom --store .vulnloom/targets shadow-pilot-local \
   --readiness-db .vulnloom/pilot-readiness.db \
   --readiness-store .vulnloom/pilot-readiness
 
+# Record one explicit human Candidate choice from a completed passing shadow pilot.
+# The timestamp is part of the immutable command; no ValidationPlan is created.
+vulnloom --store .vulnloom/targets pilot-candidate-select-local \
+  --readiness-plan-id <readiness-plan-sha256> \
+  --candidate-set-id <candidate-set-sha256> --candidate-id <candidate-uuid> \
+  --scope-file scope.json --reviewer <human-identity> \
+  --decided-at <ISO-8601-with-timezone>
+
 # Exercise a pre-sealed ValidationPlan through the offline control-plane path.
 # The plan must not contain Broker calls.
 vulnloom --db .vulnloom/events.db \
@@ -738,6 +746,8 @@ vulnloom --store .vulnloom/targets analyzer-execution-check-offline \
 ```
 
 `shadow-pilot-local` accepts only an already-ingested local Snapshot and its exact approved Scope. Trusted code rebuilds the SourceGraph and CandidateSet, checks the repository-owned admitted M9.4 baseline, stores immutable static/readiness artifacts, and prints Candidates for human review. An empty CandidateSet is a valid result, not evidence that the target has no vulnerabilities. The command has no Candidate-selection, Validation, Runner, Broker, provider, build, network, Approval, export, or Submission operation.
+
+`pilot-candidate-select-local` reopens a completed passing readiness checkpoint and its immutable artifact, then verifies the exact SourceGraph, CandidateSet, Snapshot and Scope before recording one human-selected proposed Candidate. The digest-only record is suitable for a later M8.1 binding, but does not construct a ValidationPlan or authorize or execute Validation. One readiness result may select at most one Candidate.
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 

@@ -148,6 +148,8 @@ from vulnloom.benchmark import (
     LocalSourceRobustnessResult,
     LocalSourceSuite,
     OfflineAnalyzerExecutionOutcome,
+    PilotCandidateSelectionCommand,
+    PilotCandidateSelectionRecord,
     RegressionViolation,
     SnapshotFile,
     TrivyDatabaseFile,
@@ -480,6 +482,8 @@ MODELS = (
     AuthorizedPilotReadinessResult,
     AuthorizedPilotReadinessArtifact,
     AuthorizedPilotReadinessOutcome,
+    PilotCandidateSelectionCommand,
+    PilotCandidateSelectionRecord,
 )
 
 

@@ -139,6 +139,40 @@ def test_cli_runs_authorized_local_shadow_pilot_without_selecting_candidate(
     assert repeated["graph_created"] is False
     assert repeated["candidate_set_created"] is False
 
+    selection_args = [
+        "--store",
+        str(fixture.target_store_root),
+        "pilot-candidate-select-local",
+        "--readiness-plan-id",
+        first["plan_id"],
+        "--candidate-set-id",
+        first["candidate_set_id"],
+        "--candidate-id",
+        first["candidates"][0]["candidate_id"],
+        "--scope-file",
+        str(scope_file),
+        "--reviewer",
+        "human-reviewer",
+        "--decided-at",
+        PILOT_NOW.isoformat(),
+        "--analysis-store",
+        str(tmp_path / "analysis"),
+        "--candidate-store",
+        str(tmp_path / "candidates"),
+        "--readiness-db",
+        str(tmp_path / "readiness.db"),
+        "--readiness-store",
+        str(tmp_path / "readiness"),
+        "--selection-db",
+        str(tmp_path / "selections.db"),
+    ]
+    assert main(selection_args) == 0
+    selected = json.loads(capsys.readouterr().out)
+    assert selected["mode"] == "human_pilot_candidate_selection"
+    assert selected["candidate_state"] == "proposed"
+    assert selected["validation_planned"] is False
+    assert selected["record"]["candidate_id"] == first["candidates"][0]["candidate_id"]
+
 
 def test_cli_shadow_pilot_rejects_revoked_scope_before_output(tmp_path, monkeypatch):
     fixture = build_pilot_fixture(tmp_path / "fixture")
