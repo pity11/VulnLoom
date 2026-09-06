@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
+from vulnloom.agent_runtime import AgentSessionAuditArtifact, AgentSessionAuditArtifactStore
 from vulnloom.analyzers import PythonWebSourceMapper, SourceGraphStore
 from vulnloom.benchmark import (
     AnalyzerEvaluationArtifactStore,
@@ -94,7 +95,17 @@ from vulnloom.reporting import (
 )
 from vulnloom.runners import OfflineSandboxRunner
 from vulnloom.storage.events import Event, EventStore
-from vulnloom.validation import ValidationPlan, ValidationService, ValidationStore
+from vulnloom.validation import (
+    AgentValidationIntakeCommand,
+    AgentValidationIntakePlan,
+    AgentValidationIntakeService,
+    AgentValidationIntakeStore,
+    PilotValidationIntakeService,
+    PilotValidationIntakeStore,
+    ValidationPlan,
+    ValidationService,
+    ValidationStore,
+)
 
 _ADMITTED_M9_4_PROFILE_ID = "e26b65b236daf7c40631643fe973f1760d33e183748c2c8178f95de1c732021b"
 _ADMITTED_M9_4_RESULT_ID = "fd43cbf7d5833ee2244578d001215daddf28c2f6e51f61f60049e3378ea22c83"
@@ -454,6 +465,70 @@ def select_pilot_candidate_local(args: argparse.Namespace) -> int:
                 "candidate_state": "proposed",
                 "validation_planned": False,
                 "record": record.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def bind_pilot_validation_intake_local(args: argparse.Namespace) -> int:
+    """Consume one pilot selection into M8.1 without executing Validation."""
+    now = utc_now()
+    scope = _load_scope(args.scope_file)
+    audit_artifact = AgentSessionAuditArtifact.model_validate_json(
+        Path(args.audit_artifact_file).read_text(encoding="utf-8")
+    )
+    intake_plan = AgentValidationIntakePlan.model_validate_json(
+        Path(args.intake_plan_file).read_text(encoding="utf-8")
+    )
+    intake_command = AgentValidationIntakeCommand.model_validate_json(
+        Path(args.intake_command_file).read_text(encoding="utf-8")
+    )
+    validation_plan = ValidationPlan.model_validate_json(
+        Path(args.validation_plan_file).read_text(encoding="utf-8")
+    )
+    with (
+        PilotCandidateSelectionStore(Path(args.selection_db)) as selection_store,
+        AgentValidationIntakeStore(Path(args.intake_db)) as intake_store,
+        PilotValidationIntakeStore(Path(args.pilot_intake_db)) as pilot_store,
+    ):
+        intake_service = AgentValidationIntakeService(
+            scope=scope,
+            audit_artifact_store=AgentSessionAuditArtifactStore(Path(args.audit_store)),
+            candidate_set_store=CandidateSetStore(Path(args.candidate_store)),
+            store=intake_store,
+        )
+        service = PilotValidationIntakeService(
+            selection_store=selection_store,
+            intake_service=intake_service,
+            store=pilot_store,
+        )
+        plan = service.prepare(
+            selection_readiness_plan_id=args.selection_readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=intake_command,
+            validation_plan=validation_plan,
+            now=now,
+            deadline=min(intake_plan.decision_deadline, scope.valid_until),
+            idempotency_key=args.idempotency_key or f"pilot-intake:{intake_plan.intake_plan_id}",
+        )
+        binding = service.execute(
+            plan,
+            selection_readiness_plan_id=args.selection_readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=intake_command,
+            audit_artifact=audit_artifact,
+            validation_plan=validation_plan,
+            now=now,
+        )
+    print(
+        json.dumps(
+            {
+                "mode": "pilot_bound_human_validation_intake",
+                "candidate_state": "proposed",
+                "validation_executed": False,
+                "binding": binding.model_dump(mode="json"),
             },
             indent=2,
         )
@@ -944,6 +1019,21 @@ def build_parser() -> argparse.ArgumentParser:
     selection.add_argument("--selection-db", default=".vulnloom/pilot-selections.db")
     selection.add_argument("--idempotency-key")
     selection.set_defaults(handler=select_pilot_candidate_local)
+
+    pilot_intake = sub.add_parser("pilot-validation-intake-bind-local")
+    pilot_intake.add_argument("--selection-readiness-plan-id", required=True)
+    pilot_intake.add_argument("--scope-file", required=True)
+    pilot_intake.add_argument("--audit-artifact-file", required=True)
+    pilot_intake.add_argument("--intake-plan-file", required=True)
+    pilot_intake.add_argument("--intake-command-file", required=True)
+    pilot_intake.add_argument("--validation-plan-file", required=True)
+    pilot_intake.add_argument("--audit-store", default=".vulnloom/agent-audits")
+    pilot_intake.add_argument("--candidate-store", default=".vulnloom/candidates")
+    pilot_intake.add_argument("--selection-db", default=".vulnloom/pilot-selections.db")
+    pilot_intake.add_argument("--intake-db", default=".vulnloom/agent-validation-intakes.db")
+    pilot_intake.add_argument("--pilot-intake-db", default=".vulnloom/pilot-intakes.db")
+    pilot_intake.add_argument("--idempotency-key")
+    pilot_intake.set_defaults(handler=bind_pilot_validation_intake_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

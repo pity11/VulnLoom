@@ -951,3 +951,22 @@ This record is an identity handoff only. It does not modify the Candidate, creat
 call M8.1, issue an Approval, or invoke Runner, Broker, provider, Target build, network, report export
 or Submission components. A later pilot Intake must independently reconstruct and authorize its exact
 ValidationPlan through the existing M8.1 boundary.
+
+## 54. M9.8 pilot-bound M8.1 Intake
+
+M9.8 wraps, but does not replace or weaken, the existing M8.1 human Validation Intake service. A
+trusted-control-plane `ValidationPlan`, M8.1 IntakePlan and explicit human accept command must already
+exist. The bridge reopens the authoritative M9.7 selection and CandidateSet, checks that the same exact
+proposed Candidate, Scope and plan digests appear throughout, and only then claims its own checkpoint
+before invoking M8.1.
+
+The bridge ledger uniquely consumes the selection record, M8.1 IntakePlan and ValidationPlan. On
+success, `PilotValidationIntakeBinding` content-addresses the M9.7 selection and completed M8.1 record.
+Completed replay is read-only. A conflicting input or unfinished STARTED state fails closed; if M8.1's
+final authoritative Audit/Candidate/plan verification rejects after the bridge claim, no automatic
+retry occurs. No temporary execution resource exists in this layer.
+
+Neither the bridge nor its CLI constructs a ValidationPlan or accepts Agent-derived Runner/Broker
+arguments. It creates no ValidationRun or Evidence, leaves the Candidate `PROPOSED`, writes no domain
+event, and has no Runner, Broker, provider, Target-build, network, Approval, report or Submission
+dependency. A later pilot Validation stage must explicitly require the completed binding.

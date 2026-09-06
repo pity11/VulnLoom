@@ -801,6 +801,25 @@ M9.7 只提供后续 M8.1 可重新验证的人工选择 identity。ValidationPl
 既有 M8.1 人工 Intake；选择记录本身不是 Approval，也不执行 Validation、改变 Candidate、构建 Target、
 访问网络、导出报告或 Submission。
 
+### M9.8：pilot Candidate selection 强制绑定 M8.1 Intake（已完成首版）
+
+- 新增内容寻址 `PilotValidationIntakePlan`，精确绑定 completed M9.7 selection record、既有 M8.1
+  `AgentValidationIntakePlan`/human accept command、独立预构造的 exact ValidationPlan、CandidateSet/Candidate
+  和 Scope；不从 Agent 输出或 selection record 派生任何执行参数。
+- pilot service 在调用 M8.1 前重新读取 authoritative selection 和 CandidateSet，要求 Candidate 唯一且仍为
+  `PROPOSED`，并复核 selection、M8.1 plan/command、ValidationPlan 的全部 ID/digest/Scope/时间关系。
+- 只允许显式 `accept` 的 M8.1 command 进入 pilot binding；未知 Candidate、选择/计划漂移、非 accept、过期或
+  超出任一上游 deadline 均在 M8.1 checkpoint 前拒绝。
+- 独立 STARTED/COMPLETED ledger 唯一消费 selection、M8.1 IntakePlan 和 ValidationPlan；成功后生成
+  digest-only `PilotValidationIntakeBinding`。完成重放只读，冲突或遗留 STARTED 不自动恢复。
+- 新增 `pilot-validation-intake-bind-local`，只读取人工提供的既有 typed files 和本地 authoritative stores；
+  输出明确标记 `validation_executed=false`，不调用 ValidationService、Runner、Broker 或外部 adapter。
+- 回归覆盖成功、幂等、错误 selection、超时和 M8.1 authoritative artifact 失败；失败最多留下 fail-closed
+  bridge STARTED，不产生 ValidationRun、Evidence、Candidate 状态变化或临时执行资源。
+
+M9.8 使 pilot 的 accepted M8.1 Intake 可证明来自 exact M9.7 人工选择，但它仍不是 Validation 授权或执行。
+任何动态验证必须在后续独立阶段重新消费该 binding，并继续服从 Scope、Approval、Runner/Broker 和清理门禁。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -736,6 +736,17 @@ readiness plan 唯一消费并提供 completed replay；记录不会改变 Candi
 Validation Intake、Validation authority、Approval 或领域事件。后续 M8.1 必须单独验证本记录并绑定可信控制面
 构造的 exact ValidationPlan。
 
+### PilotValidationIntakePlan 与 Binding
+
+M9.8 的 `PilotValidationIntakePlan` 内容寻址绑定 exact M9.7 selection record/digest、M8.1 IntakePlan 与
+human accept command 的 ID/digest、独立构造的 ValidationPlan ID/digest、CandidateSet/Candidate/Scope、执行
+窗口与幂等键。它不保存 Agent prose、源码、Audit 正文、Runner/Broker 参数、HTTP 数据、凭据或 Approval。
+
+`PilotValidationIntakeBinding` 绑定 completed M8.1 `AgentValidationIntakeRecord` 与来源 selection、Candidate、
+ValidationPlan 和 Scope。独立 SQLite 对 selection、IntakePlan 与 ValidationPlan 唯一消费；completed replay
+只读，遗留 STARTED fail-closed。Binding 不是 ValidationRun、Evidence、Candidate 状态转换、Approval、领域
+事件或 Submission。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

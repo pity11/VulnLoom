@@ -17,6 +17,11 @@ from vulnloom.agent_runtime import (
     AgentSessionRecommendationReason,
     agent_session_audit_bundle_digest,
 )
+from vulnloom.benchmark import (
+    PilotCandidateSelectionCommand,
+    PilotCandidateSelectionRecord,
+    PilotCandidateSelectionStore,
+)
 from vulnloom.broker import (
     BrokerCall,
     HttpRequestPlan,
@@ -197,6 +202,14 @@ from vulnloom.validation import (
     AgentValidationOutcomeBindingRejected,
     AgentValidationOutcomeBindingService,
     AgentValidationOutcomeBindingStore,
+    PilotValidationIntakeBinding,
+    PilotValidationIntakeConflict,
+    PilotValidationIntakePlan,
+    PilotValidationIntakeRecoveryRequired,
+    PilotValidationIntakeRejected,
+    PilotValidationIntakeService,
+    PilotValidationIntakeStore,
+    PilotValidationIntakeTimedOut,
     ValidationPlan,
     ValidationService,
     ValidationStore,
@@ -379,6 +392,57 @@ def _command(plan, now, decision):
         reviewer="human-reviewer",
         decided_at=now,
     )
+
+
+def _pilot_selection(tmp_path, now, scope, candidate, candidate_set, *, candidate_id=None):
+    selected_id = candidate_id or candidate.candidate_id
+    selected_digest = (
+        candidate_content_digest(candidate) if selected_id == candidate.candidate_id else "0" * 64
+    )
+    command = PilotCandidateSelectionCommand.create(
+        readiness_plan_id="1" * 64,
+        readiness_result_id="2" * 64,
+        readiness_result_digest="3" * 64,
+        readiness_artifact_digest="4" * 64,
+        pilot_manifest_id="5" * 64,
+        candidate_set_id=candidate_set.candidate_set_id,
+        candidate_set_digest=canonical_digest(candidate_set.model_dump(mode="python")),
+        candidate_id=selected_id,
+        candidate_digest=selected_digest,
+        source_graph_id=candidate.source_graph_id,
+        source_graph_digest="6" * 64,
+        target_manifest_id="7" * 64,
+        target_id=candidate.target_id,
+        target_version_digest=canonical_digest(candidate.target_version),
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        scope_digest=canonical_digest(scope.model_dump(mode="python")),
+        reviewer="pilot-human-reviewer",
+        decided_at=now - timedelta(seconds=1),
+        expires_at=scope.valid_until,
+        idempotency_key=f"pilot-selection:{selected_id}",
+    )
+    values = {
+        "command_id": command.command_id,
+        "readiness_plan_id": command.readiness_plan_id,
+        "readiness_result_id": command.readiness_result_id,
+        "pilot_manifest_id": command.pilot_manifest_id,
+        "candidate_set_id": command.candidate_set_id,
+        "candidate_id": command.candidate_id,
+        "candidate_digest": command.candidate_digest,
+        "target_id": command.target_id,
+        "target_version_digest": command.target_version_digest,
+        "scope_id": command.scope_id,
+        "scope_version": command.scope_version,
+        "reviewer": command.reviewer,
+        "decided_at": command.decided_at,
+        "expires_at": command.expires_at,
+    }
+    record = PilotCandidateSelectionRecord(record_id=canonical_digest(values), **values)
+    store = PilotCandidateSelectionStore(tmp_path / "pilot-selections.sqlite3")
+    store.claim(command, now=command.decided_at)
+    store.complete(record, now=command.decided_at)
+    return store, record
 
 
 def _validation_plan_with_approval_gate(now, scope, candidate):
@@ -588,6 +652,234 @@ def test_intake_records_human_decision_without_execution_or_state_change(
         == "completed"
     )
     store.close()
+
+
+def test_pilot_selection_is_consumed_before_accepted_m8_1_intake(
+    tmp_path, now, approved_scope, candidate
+):
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path / "intake", now, approved_scope, candidate
+    )
+    candidate_set = intake_service.candidate_set_store.load(intake_plan.candidate_set_id)
+    selection_store, selection = _pilot_selection(
+        tmp_path, now, approved_scope, candidate, candidate_set
+    )
+    bridge_store = PilotValidationIntakeStore(tmp_path / "pilot-intake.sqlite3")
+    bridge = PilotValidationIntakeService(
+        selection_store=selection_store,
+        intake_service=intake_service,
+        store=bridge_store,
+    )
+    command = _command(
+        intake_plan, now + timedelta(seconds=1), AgentValidationIntakeDecision.ACCEPT
+    )
+    plan = bridge.prepare(
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+        deadline=now + timedelta(seconds=90),
+        idempotency_key="pilot-intake:m9.8",
+    )
+    binding = bridge.execute(
+        plan,
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+    )
+    replay = bridge.execute(
+        plan,
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+    )
+    conflicting_plan = bridge.prepare(
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+        deadline=now + timedelta(seconds=90),
+        idempotency_key="pilot-intake:conflict",
+    )
+    with pytest.raises(PilotValidationIntakeConflict):
+        bridge.execute(
+            conflicting_plan,
+            selection_readiness_plan_id=selection.readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=command,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=command.decided_at,
+        )
+
+    assert binding == replay == bridge_store.load_completed(plan.plan_id)
+    assert binding.selection_record_id == selection.record_id
+    assert intake_store.load_completed(intake_plan.intake_plan_id).decision is (
+        AgentValidationIntakeDecision.ACCEPT
+    )
+    assert candidate.state is CandidateState.PROPOSED
+    assert not (tmp_path / "validation.sqlite3").exists()
+    persisted = (tmp_path / "pilot-intake.sqlite3").read_bytes()
+    assert b"runner" not in persisted
+    assert b"broker" not in persisted
+    assert b"credential" not in persisted
+    assert b"submission" not in persisted
+    bridge_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_intake_rejects_wrong_selection_and_timeout_before_m8_1(
+    tmp_path, now, approved_scope, candidate
+):
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path / "intake", now, approved_scope, candidate
+    )
+    candidate_set = intake_service.candidate_set_store.load(intake_plan.candidate_set_id)
+    selection_store, selection = _pilot_selection(
+        tmp_path,
+        now,
+        approved_scope,
+        candidate,
+        candidate_set,
+        candidate_id=uuid4(),
+    )
+    bridge_store = PilotValidationIntakeStore(tmp_path / "pilot-intake.sqlite3")
+    bridge = PilotValidationIntakeService(
+        selection_store=selection_store,
+        intake_service=intake_service,
+        store=bridge_store,
+    )
+    command = _command(
+        intake_plan, now + timedelta(seconds=1), AgentValidationIntakeDecision.ACCEPT
+    )
+    with pytest.raises(PilotValidationIntakeRejected, match="unavailable"):
+        bridge.prepare(
+            selection_readiness_plan_id=selection.readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=command,
+            validation_plan=validation_plan,
+            now=command.decided_at,
+            deadline=now + timedelta(seconds=90),
+            idempotency_key="pilot-intake:wrong-selection",
+        )
+    assert (
+        intake_store.connection.execute("SELECT COUNT(*) FROM agent_validation_intakes").fetchone()[
+            0
+        ]
+        == 0
+    )
+    bridge_store.close()
+    selection_store.close()
+    intake_store.close()
+
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path / "timeout-intake", now, approved_scope, candidate
+    )
+    candidate_set = intake_service.candidate_set_store.load(intake_plan.candidate_set_id)
+    selection_store, selection = _pilot_selection(
+        tmp_path / "timeout", now, approved_scope, candidate, candidate_set
+    )
+    bridge_store = PilotValidationIntakeStore(tmp_path / "timeout-pilot-intake.sqlite3")
+    bridge = PilotValidationIntakeService(
+        selection_store=selection_store,
+        intake_service=intake_service,
+        store=bridge_store,
+    )
+    command = _command(
+        intake_plan, now + timedelta(seconds=1), AgentValidationIntakeDecision.ACCEPT
+    )
+    plan = bridge.prepare(
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="pilot-intake:timeout",
+    )
+    with pytest.raises(PilotValidationIntakeTimedOut):
+        bridge.execute(
+            plan,
+            selection_readiness_plan_id=selection.readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=command,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=plan.deadline,
+        )
+    assert (
+        intake_store.connection.execute("SELECT COUNT(*) FROM agent_validation_intakes").fetchone()[
+            0
+        ]
+        == 0
+    )
+    bridge_store.close()
+    selection_store.close()
+    intake_store.close()
+
+
+def test_pilot_intake_failure_leaves_recovery_checkpoint_without_validation(
+    tmp_path, now, approved_scope, candidate
+):
+    intake_service, intake_store, artifact, validation_plan, intake_plan = _fixture(
+        tmp_path / "intake", now, approved_scope, candidate
+    )
+    candidate_set = intake_service.candidate_set_store.load(intake_plan.candidate_set_id)
+    selection_store, selection = _pilot_selection(
+        tmp_path, now, approved_scope, candidate, candidate_set
+    )
+    bridge_store = PilotValidationIntakeStore(tmp_path / "pilot-intake.sqlite3")
+    bridge = PilotValidationIntakeService(
+        selection_store=selection_store,
+        intake_service=intake_service,
+        store=bridge_store,
+    )
+    command = _command(
+        intake_plan, now + timedelta(seconds=1), AgentValidationIntakeDecision.ACCEPT
+    )
+    plan = bridge.prepare(
+        selection_readiness_plan_id=selection.readiness_plan_id,
+        intake_plan=intake_plan,
+        intake_command=command,
+        validation_plan=validation_plan,
+        now=command.decided_at,
+        deadline=now + timedelta(seconds=90),
+        idempotency_key="pilot-intake:failure",
+    )
+    broken_artifact = artifact.model_copy(update={"json_sha256": "0" * 64})
+    with pytest.raises(AgentValidationIntakeRejected):
+        bridge.execute(
+            plan,
+            selection_readiness_plan_id=selection.readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=command,
+            audit_artifact=broken_artifact,
+            validation_plan=validation_plan,
+            now=command.decided_at,
+        )
+    with pytest.raises(PilotValidationIntakeRecoveryRequired):
+        bridge.execute(
+            plan,
+            selection_readiness_plan_id=selection.readiness_plan_id,
+            intake_plan=intake_plan,
+            intake_command=command,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=command.decided_at,
+        )
+    assert not (tmp_path / "validation.sqlite3").exists()
+    bridge_store.close()
+    selection_store.close()
+    intake_store.close()
 
 
 def test_completed_validation_is_bound_read_only_after_accepted_intake(
@@ -1131,6 +1423,8 @@ def test_intake_schema_and_sqlite_are_digest_only(tmp_path, now, approved_scope,
             AgentValidationIntakePlan,
             AgentValidationIntakeCommand,
             AgentValidationIntakeRecord,
+            PilotValidationIntakePlan,
+            PilotValidationIntakeBinding,
         )
     )
     for forbidden in (
