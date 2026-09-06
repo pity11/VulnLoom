@@ -554,3 +554,19 @@ timeout, conflict, Runner result drift, outcome drift and every Broker-call refu
 uses only the offline Runner, opens no socket, preserves the original proposed Candidate, and adds no
 Agent-derived execution parameter, automatic Approval, Target build, Finding promotion or Submission;
 the concurrent Phase 3 PASS confirms the real isolation boundary remains intact.
+
+
+### M9.10 local verification (remote admission pending)
+
+The pilot M8.2 bridge now requires an authoritative completed M9.9 execution binding. Offline tests
+cover read-only success and CLI replay, missing/unfinished execution, sealed provenance drift,
+Audit/Scope mismatch, pre-existing bare M8.2 checkpoints, deadlines, failed completion and explicit
+recovery. Replay verifies the authoritative M8.2 result rather than trusting a cached pilot record.
+The tests prohibit Validation execution during CLI binding and preserve the proposed input Candidate.
+This is provenance verification, not new process/network isolation evidence. No new CI or Phase 3
+Admission run has been dispatched for M9.10; the M9.9 run IDs above do not qualify this revision.
+
+Local verification for the 0.58.0 working tree: `673 passed, 19 skipped`, total coverage `85.78%`
+(85% required). Ruff, schema regeneration, all benchmark fixture regeneration, M6.1/M6.3 and
+M9.2–M9.5 offline gates, and the M9.5 ablation check passed. The skipped opt-in integration tests
+were not used to make any new isolation claim.

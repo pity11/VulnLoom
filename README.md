@@ -784,3 +784,21 @@ VulnLoom is under active development. The current release provides the trusted d
 Live Docker/Broker validation, the report workflow, and provider transport are exposed through typed library paths, not a production HTTP API or provider CLI. The rootless Linux and OS-level egress admission gate passes; provider transport is qualified only against a local TLS fixture, not a public provider. External disclosure/CVE submission workflows, provider-specific response adapters, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.
+
+
+The M9.10 pilot outcome gate consumes a completed M9.9 execution binding before recording M8.2
+outcome provenance. Supply presealed plans created by trusted control-plane code:
+
+```bash
+vulnloom pilot-validation-outcome-bind-local \
+  --plan-file pilot-outcome-plan.json \
+  --outcome-plan-file agent-validation-outcome-plan.json \
+  --validation-plan-file validation-plan.json \
+  --audit-artifact-file audit-artifact.json \
+  --scope-file scope.json
+```
+
+The command uses local stores (override the `--*-db` and `--*-store` flags as needed). Identical
+sealed plans replay read-only. Missing or unfinished execution, provenance drift, expired windows,
+and a pre-existing bare M8.2 checkpoint fail closed. It does not execute Validation, mutate a
+Candidate, grant Approval, build a Target, access the network or create a Submission.

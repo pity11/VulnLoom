@@ -991,3 +991,27 @@ M9.8 plan, ValidationPlan and Approval. Successful execution stores a digest-onl
 authoritative Validation outcome. Replay never reruns the Runner, while an interrupted execution
 remains fail-closed for explicit recovery. This layer creates no Approval, Finding, report or
 Submission and cannot derive operational parameters from Agent output.
+
+
+## 56. M9.10 pilot Validation outcome provenance gate
+
+`PilotValidationOutcomeService` consumes an authoritative completed M9.9 execution plan and binding
+before invoking the existing read-only M8.2 binding service. It reopens the exact M9.8 binding and
+M8.1 record, current Scope, Audit, immutable CandidateSet, Validation outcome and Evidence. The
+execution's source/final Candidate digests, run/result, Evidence identity and completion time must
+match M8.2's recomputed provenance. M9.9 store reads also verify the sealed plan against ledger
+columns, Approval identity and completion window. No execution or Approval service is a dependency.
+
+A digest-only plan seals both provenance chains. An independent ledger uniquely consumes the
+execution binding, M8.2 plan and ValidationPlan. A pre-existing bare M8.2 checkpoint is refused before
+claiming the pilot ledger. After a claim, a failure leaves STARTED and cannot automatically retry.
+Completed replay reopens upstream inputs and verifies the complete M8.2 binding, without calling its
+execute method. This layer allocates no process, container, network or temporary execution resource.
+The binding window is bounded by M8.2, accepted Intake and current Scope; a historical completed
+execution is a fact and does not renew its Approval or grant any new authority.
+
+`pilot-validation-outcome-bind-local` consumes presealed `--plan-file` and `--outcome-plan-file`, an
+Audit artifact descriptor, the independent ValidationPlan and local stores. It returns a digest-only
+binding and explicit false flags for Validation execution, Candidate mutation and network access.
+The generic M8.2 format/store remain compatible. Later pilot Critic admission must consume this
+additional pilot binding explicitly; this milestone neither executes nor changes Critic admission.

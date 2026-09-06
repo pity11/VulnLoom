@@ -49,6 +49,12 @@ class AgentValidationOutcomeBindingStore:
         )
         self.connection.commit()
 
+    def has_validation_checkpoint(self, validation_plan_id: str) -> bool:
+        return self.connection.execute(
+            "SELECT 1 FROM agent_validation_outcome_bindings WHERE validation_plan_id=?",
+            (validation_plan_id,),
+        ).fetchone() is not None
+
     def claim(self, plan: AgentValidationOutcomeBindingPlan, *, now: datetime):
         row = self.connection.execute(
             "SELECT * FROM agent_validation_outcome_bindings WHERE binding_plan_id = ? "

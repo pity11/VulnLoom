@@ -1,3 +1,3 @@
 """VulnLoom: evidence-first authorized vulnerability research."""
 
-__version__ = "0.57.0"
+__version__ = "0.58.0"

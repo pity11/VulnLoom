@@ -839,6 +839,23 @@ M9.9 是人工批准后的本地离线 Validation 执行入口，不是 Agent �
 参数，不调用 Broker/provider，不访问网络、不构建 Target、不自动批准、不提升 Candidate 为 Finding，也不进行
 报告导出或 Submission。
 
+### M9.10：pilot M8.2 outcome 强制消费 execution binding（已实现，远端准入待运行）
+
+- 新增 digest-only `PilotValidationOutcomePlan`/`Binding`，强制绑定 completed M9.9 execution plan/
+  binding 与 exact M8.2 outcome binding plan；不从 Agent 输出构造任何操作参数。
+- 在 M8.2 checkpoint 前重开 M9.9、M9.8、accepted M8.1、Audit、CandidateSet、Validation outcome 和
+  Evidence，逐项核对 Scope、时间、Candidate、run/result、最终 Candidate digest 与 Evidence identity。
+- 加强 M9.9 store 的 plan/row/Approval identity/时间一致性校验；未知或 STARTED execution 拒绝消费。
+- 独立 STARTED/COMPLETED ledger 唯一消费 execution binding、M8.2 plan 和 ValidationPlan；已经存在的裸
+  M8.2 checkpoint 不可追认为 pilot 来源，完成重放重新检查 M8.2 authoritative binding，失败不自动恢复。
+- `pilot-validation-outcome-bind-local` 只读取预封存的 typed plan files 和本地 authoritative stores；
+  不执行 Validation、改变 Candidate、批准操作、构建 Target、访问网络或 Submission。
+- 离线回归覆盖成功、CLI 幂等、来源漂移、重封摘要篡改、超时、拒绝、完成写入失败和清理路径。
+
+M9.10 是 pilot 专用的 M8.2 provenance gate，通用非 pilot M8.2 协议保持兼容。生成的 M8.2 binding 继续
+保存在原 store，pilot ledger 保存其精确摘要。后续 pilot Critic 消费端仍须显式要求该 pilot binding；
+本阶段不执行 Critic，也不把现有通用 Critic 入口自动变为 pilot 门禁。远端 CI 与 Phase 3 Admission 尚待运行。
+
 ## 延后事项
 
 - 公网资产自主发现。

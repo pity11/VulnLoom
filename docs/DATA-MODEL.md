@@ -763,6 +763,17 @@ digest、result 和 Evidence identity。独立 SQLite 唯一消费 M9.8 plan、V
 replay 只读，遗留 STARTED fail-closed。原始 Candidate 保持不可变，binding 不代表 Critic、Finding promotion、
 报告 Approval 或 Submission。
 
+### PilotValidationOutcomePlan 与 Binding
+
+M9.10 的 `PilotValidationOutcomePlan` 内容寻址绑定 completed M9.9 execution plan/binding 的 ID 与完整
+摘要、exact M8.2 outcome binding plan 的 ID/完整摘要、ValidationPlan ID、Validation outcome 摘要和窗口。
+执行来源字段没有可选或空值路径，不保存 Agent prose、操作参数、URL、凭据、Approval 正文或 Evidence 正文。
+
+`PilotValidationOutcomeBinding` 保存 execution binding、completed M8.2 binding 的 ID/完整摘要及共同的
+Validation outcome identity。独立 SQLite 唯一消费 execution binding、M8.2 plan 与 ValidationPlan；不写领域
+事件、不修改 Candidate，不赋予执行、Approval 或 Submission 权限。原 M8.2 binding 仍使用既有模型与 store。
+completed replay 重查上游来源及 M8.2 binding，STARTED 与预先存在的裸 M8.2 checkpoint 均 fail-closed。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

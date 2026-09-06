@@ -101,10 +101,16 @@ from vulnloom.validation import (
     AgentValidationIntakePlan,
     AgentValidationIntakeService,
     AgentValidationIntakeStore,
+    AgentValidationOutcomeBindingPlan,
+    AgentValidationOutcomeBindingService,
+    AgentValidationOutcomeBindingStore,
     PilotValidationExecutionService,
     PilotValidationExecutionStore,
     PilotValidationIntakeService,
     PilotValidationIntakeStore,
+    PilotValidationOutcomePlan,
+    PilotValidationOutcomeService,
+    PilotValidationOutcomeStore,
     ValidationPlan,
     ValidationService,
     ValidationStore,
@@ -679,6 +685,50 @@ def run_pilot_validation_offline(args: argparse.Namespace) -> int:
     return 0
 
 
+def bind_pilot_validation_outcome_local(args: argparse.Namespace) -> int:
+    """Bind existing M9.9/M8.2 provenance without invoking any execution service."""
+    scope = _load_scope(args.scope_file)
+    plan = PilotValidationOutcomePlan.model_validate_json(Path(args.plan_file).read_text())
+    outcome_plan = AgentValidationOutcomeBindingPlan.model_validate_json(
+        Path(args.outcome_plan_file).read_text()
+    )
+    validation_plan = ValidationPlan.model_validate_json(
+        Path(args.validation_plan_file).read_text()
+    )
+    artifact = AgentSessionAuditArtifact.model_validate_json(
+        Path(args.audit_artifact_file).read_text()
+    )
+    with (
+        AgentValidationIntakeStore(Path(args.intake_db)) as intake_store,
+        PilotValidationIntakeStore(Path(args.pilot_intake_db)) as pilot_intake_store,
+        PilotValidationExecutionStore(Path(args.pilot_execution_db)) as execution_store,
+        ValidationStore(Path(args.validation_db)) as validation_store,
+        AgentValidationOutcomeBindingStore(Path(args.outcome_db)) as outcome_store,
+        PilotValidationOutcomeStore(Path(args.pilot_outcome_db)) as pilot_store,
+    ):
+        outcome_service = AgentValidationOutcomeBindingService(
+            scope=scope,
+            audit_store=AgentSessionAuditArtifactStore(Path(args.audit_store)),
+            candidate_store=CandidateSetStore(Path(args.candidate_store)),
+            intake_store=intake_store, validation_store=validation_store,
+            evidence_store=EvidenceStore(Path(args.evidence_store)), binding_store=outcome_store,
+        )
+        service = PilotValidationOutcomeService(
+            execution_store=execution_store, pilot_intake_store=pilot_intake_store,
+            outcome_service=outcome_service, store=pilot_store,
+        )
+        binding = service.execute(
+            plan, outcome_plan=outcome_plan, audit_artifact=artifact,
+            validation_plan=validation_plan, now=utc_now(),
+        )
+    print(json.dumps({
+        "mode": "pilot_validation_outcome_binding",
+        "validation_executed": False, "candidate_changed": False,
+        "network_accessed": False, "binding": binding.model_dump(mode="json"),
+    }, indent=2))
+    return 0
+
+
 def show_report_diff(args: argparse.Namespace) -> int:
     previous = Report.model_validate_json(Path(args.before).read_text(encoding="utf-8"))
     current = Report.model_validate_json(Path(args.after).read_text(encoding="utf-8"))
@@ -1136,6 +1186,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pilot_validation.add_argument("--idempotency-key")
     pilot_validation.set_defaults(handler=run_pilot_validation_offline)
+
+    pilot_outcome = sub.add_parser("pilot-validation-outcome-bind-local")
+    for name in (
+        "plan-file", "outcome-plan-file", "scope-file", "validation-plan-file",
+        "audit-artifact-file",
+    ):
+        pilot_outcome.add_argument(f"--{name}", required=True)
+    for name, default in (
+        ("audit-store", ".vulnloom/agent-audits"),
+        ("candidate-store", ".vulnloom/candidates"),
+        ("evidence-store", ".vulnloom/evidence"),
+        ("intake-db", ".vulnloom/agent-validation-intakes.db"),
+        ("pilot-intake-db", ".vulnloom/pilot-intakes.db"),
+        ("pilot-execution-db", ".vulnloom/pilot-validation-executions.db"),
+        ("validation-db", ".vulnloom/validation.db"),
+        ("outcome-db", ".vulnloom/agent-validation-outcomes.db"),
+        ("pilot-outcome-db", ".vulnloom/pilot-validation-outcomes.db"),
+    ):
+        pilot_outcome.add_argument(f"--{name}", default=default)
+    pilot_outcome.set_defaults(handler=bind_pilot_validation_outcome_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

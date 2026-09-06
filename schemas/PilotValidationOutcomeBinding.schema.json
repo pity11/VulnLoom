@@ -1,0 +1,63 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "execution_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Binding Id",
+      "type": "string"
+    },
+    "outcome_binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Plan Id",
+      "type": "string"
+    },
+    "outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Id",
+      "type": "string"
+    },
+    "outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Digest",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Outcome Digest",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "plan_id",
+    "execution_binding_id",
+    "outcome_binding_plan_id",
+    "outcome_binding_id",
+    "outcome_binding_digest",
+    "validation_plan_id",
+    "validation_outcome_digest",
+    "completed_at"
+  ],
+  "title": "PilotValidationOutcomeBinding",
+  "type": "object"
+}

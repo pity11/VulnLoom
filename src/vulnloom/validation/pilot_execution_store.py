@@ -124,7 +124,7 @@ class PilotValidationExecutionStore:
 
     def load_completed(self, execution_plan_id: str) -> PilotValidationExecutionBinding:
         row = self.connection.execute(
-            "SELECT state,binding_json FROM pilot_validation_executions WHERE execution_plan_id=?",
+            "SELECT * FROM pilot_validation_executions WHERE execution_plan_id=?",
             (execution_plan_id,),
         ).fetchone()
         if row is None:
@@ -134,11 +134,43 @@ class PilotValidationExecutionStore:
                 "pilot Validation execution has unfinished STARTED state"
             )
         binding = PilotValidationExecutionBinding.model_validate_json(row["binding_json"])
-        if binding.execution_plan_id != execution_plan_id:
+        plan = PilotValidationExecutionPlan.model_validate_json(row["plan_json"])
+        if (
+            binding.execution_plan_id != execution_plan_id
+            or plan.execution_plan_id != execution_plan_id
+            or row["idempotency_key"] != plan.idempotency_key
+            or row["pilot_intake_plan_id"] != plan.pilot_intake_plan_id
+            or row["validation_plan_id"] != plan.validation_plan_id
+            or row["approval_id"] != str(plan.approval_id)
+            or row["started_at"] != binding.completed_at.isoformat()
+            or row["completed_at"] != binding.completed_at.isoformat()
+            or not plan.created_at <= binding.completed_at < plan.deadline
+            or any(
+                getattr(binding, field) != getattr(plan, field)
+                for field in (
+                    "approval_action_id",
+                    "approval_id",
+                    "approval_digest",
+                    "pilot_intake_binding_id",
+                    "intake_record_id",
+                    "validation_plan_id",
+                    "candidate_id",
+                )
+            )
+            or binding.source_candidate_digest != plan.candidate_digest
+        ):
             raise PilotValidationExecutionRecoveryRequired(
                 "pilot Validation execution checkpoint binding mismatch"
             )
         return binding
+
+    def load_completed_plan(self, execution_plan_id: str) -> PilotValidationExecutionPlan:
+        self.load_completed(execution_plan_id)
+        row = self.connection.execute(
+            "SELECT plan_json FROM pilot_validation_executions WHERE execution_plan_id=?",
+            (execution_plan_id,),
+        ).fetchone()
+        return PilotValidationExecutionPlan.model_validate_json(row["plan_json"])
 
     def close(self) -> None:
         self.connection.close()
