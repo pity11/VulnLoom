@@ -185,6 +185,12 @@ The M9.7 human pilot Candidate selection admission run is GitHub Actions
 [`34033041866`](https://github.com/pity11/VulnLoom/actions/runs/34033041866). Both completed
 successfully on 2026-09-06 and qualify the M9.7 human Candidate selection row below.
 
+The M9.8 pilot-bound human Validation Intake admission run is GitHub Actions
+[`34034039079`](https://github.com/pity11/VulnLoom/actions/runs/34034039079) for commit
+`a6e3cc85ab784fa8bd5fcd171d681e2fbfc9c7c1`. The standard Python CI for the same commit is
+[`34034039075`](https://github.com/pity11/VulnLoom/actions/runs/34034039075). Both completed
+successfully on 2026-09-06 and qualify the M9.8 pilot Validation Intake binding row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -225,6 +231,7 @@ successfully on 2026-09-06 and qualify the M9.7 human Candidate selection row be
 | Authorized local-pilot readiness | One content-addressed local pilot binds an approved Scope, fully verified 18-file Snapshot, rebuilt SourceGraph, five exact proposed Candidates, passing M9.4 quality, ten fixed human gates and eight forbidden capabilities; Python 3.12/3.13/3.14 report zero forbidden effects while the concurrent rootless boundary remains admitted | PASS (`33641691100`) |
 | Review-only local shadow pilot | One CLI composition accepts only an already-ingested local Snapshot and exact approved Scope, rebuilds trusted static objects, requires the exact admitted M9.4 baseline, emits proposed-or-empty Candidate review output and selects none; normal CI covers replay, revoked Scope, baseline drift and zero Candidates while the concurrent rootless boundary remains admitted | PASS (`34027167185`) |
 | Human pilot Candidate selection | One explicit human command reopens a completed passing readiness result and immutable artifact, verifies exact SourceGraph/CandidateSet/Snapshot/Scope provenance, and uniquely records one still-proposed Candidate; replay, wrong Candidate, failed readiness, timeout, drift, conflict and unfinished recovery add no ValidationPlan or operational authority | PASS (`34033041866`) |
+| Pilot-bound human Validation Intake | One exact completed M9.7 selection is uniquely consumed with an independently supplied M8.1 Intake plan, explicit human `accept` command and pre-existing ValidationPlan; authoritative identities, digests, Scope and deadlines are rechecked before a digest-only binding, while replay, drift, timeout and unfinished recovery add no Validation execution, Candidate mutation, Runner/Broker parameters or external effect | PASS (`34034039075`) |
 
 ## Reproduction
 
@@ -519,3 +526,13 @@ completed replay is read-only, and an absent Candidate, failed readiness, revoke
 binding drift, conflicting selection or unfinished checkpoint fails closed. The digest-only command
 and record contain no ValidationPlan, Runner/Broker parameters, credentials, Approval or Submission;
 the concurrent Phase 3 PASS confirms the existing real isolation boundary remains intact.
+
+M9.8 reopens that completed M9.7 selection before invoking the existing M8.1 human Intake service. It
+requires an independently supplied, already sealed ValidationPlan and an explicit human `accept`
+command whose CandidateSet, Candidate, Scope, identities, digests and timing exactly match the selected
+still-`PROPOSED` Candidate. A separate STARTED/COMPLETED ledger uniquely consumes the selection,
+M8.1 Intake plan and ValidationPlan and stores only a digest-bound result; completed replay is read-only,
+while drift, timeout, conflict or an interrupted checkpoint fails closed. CI proves this bridge does not
+execute Validation, change Candidate state, derive Runner/Broker parameters, build a Target, access the
+network, approve an action or submit anything; the concurrent Phase 3 PASS confirms the real isolation
+boundary remains intact.
