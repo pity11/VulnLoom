@@ -179,6 +179,12 @@ The M9.6 review-only local shadow pilot admission run is GitHub Actions
 [`34027167185`](https://github.com/pity11/VulnLoom/actions/runs/34027167185). Both completed
 successfully on 2026-09-06 and qualify the M9.6 local shadow pilot row below.
 
+The M9.7 human pilot Candidate selection admission run is GitHub Actions
+[`34033041942`](https://github.com/pity11/VulnLoom/actions/runs/34033041942) for commit
+`178062b2538e0a38162c170d5c790368a96c799a`. The standard Python CI for the same commit is
+[`34033041866`](https://github.com/pity11/VulnLoom/actions/runs/34033041866). Both completed
+successfully on 2026-09-06 and qualify the M9.7 human Candidate selection row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -218,6 +224,7 @@ successfully on 2026-09-06 and qualify the M9.6 local shadow pilot row below.
 | Cross-framework static robustness | A code-owned 13-case contract covers five Flask/FastAPI/Django positive paths and eight safe negatives; exact framework, cross-file provenance, per-case call depth, zero parse failures, zero negative Candidates and the shared zero-effect quality gate pass on Python 3.12/3.13/3.14 | PASS (`33637780947`) |
 | Authorized local-pilot readiness | One content-addressed local pilot binds an approved Scope, fully verified 18-file Snapshot, rebuilt SourceGraph, five exact proposed Candidates, passing M9.4 quality, ten fixed human gates and eight forbidden capabilities; Python 3.12/3.13/3.14 report zero forbidden effects while the concurrent rootless boundary remains admitted | PASS (`33641691100`) |
 | Review-only local shadow pilot | One CLI composition accepts only an already-ingested local Snapshot and exact approved Scope, rebuilds trusted static objects, requires the exact admitted M9.4 baseline, emits proposed-or-empty Candidate review output and selects none; normal CI covers replay, revoked Scope, baseline drift and zero Candidates while the concurrent rootless boundary remains admitted | PASS (`34027167185`) |
+| Human pilot Candidate selection | One explicit human command reopens a completed passing readiness result and immutable artifact, verifies exact SourceGraph/CandidateSet/Snapshot/Scope provenance, and uniquely records one still-proposed Candidate; replay, wrong Candidate, failed readiness, timeout, drift, conflict and unfinished recovery add no ValidationPlan or operational authority | PASS (`34033041866`) |
 
 ## Reproduction
 
@@ -503,3 +510,12 @@ revoked Scope or drifted quality identity, and a valid empty Candidate review qu
 selection to empty and leaves every Candidate proposed. The command has no Validation, Runner, Broker,
 provider, build, network, Approval, export or Submission operation; the concurrent Phase 3 PASS
 confirms the existing real isolation boundary was not regressed.
+
+M9.7 consumes that completed passing readiness checkpoint only through a separately timestamped human
+Candidate selection command. Before checkpointing, the service reopens the no-follow readiness
+artifact, immutable CandidateSet and SourceGraph, reloads the Snapshot, re-authorizes Scope, and
+reconstructs the exact pilot manifest. CI proves one proposed Candidate is recorded without mutation,
+completed replay is read-only, and an absent Candidate, failed readiness, revoked Scope, timeout,
+binding drift, conflicting selection or unfinished checkpoint fails closed. The digest-only command
+and record contain no ValidationPlan, Runner/Broker parameters, credentials, Approval or Submission;
+the concurrent Phase 3 PASS confirms the existing real isolation boundary remains intact.
