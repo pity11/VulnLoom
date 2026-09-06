@@ -173,6 +173,12 @@ The M9.5 authorized local-pilot readiness admission run is GitHub Actions
 [`33641691100`](https://github.com/pity11/VulnLoom/actions/runs/33641691100). Both completed
 successfully on 2026-09-02 and qualify the M9.5 authorized pilot readiness row below.
 
+The M9.6 review-only local shadow pilot admission run is GitHub Actions
+[`34027167183`](https://github.com/pity11/VulnLoom/actions/runs/34027167183) for commit
+`94b7bb8169790f9f65018d7f4224a30771e7ef9b`. The standard Python CI for the same commit is
+[`34027167185`](https://github.com/pity11/VulnLoom/actions/runs/34027167185). Both completed
+successfully on 2026-09-06 and qualify the M9.6 local shadow pilot row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -211,6 +217,7 @@ successfully on 2026-09-02 and qualify the M9.5 authorized pilot readiness row b
 | Local-source Agent quality | Nine sealed local source cases exercise the real archive-ingestion, AST SourceGraph and deterministic Candidate path across eight supported CWE families plus one guarded negative; recall, precision, trace, bound M6.1 Finding/Evidence quality and all forbidden-effect counters pass on Python 3.12/3.13/3.14 | PASS (`33635497379`) |
 | Cross-framework static robustness | A code-owned 13-case contract covers five Flask/FastAPI/Django positive paths and eight safe negatives; exact framework, cross-file provenance, per-case call depth, zero parse failures, zero negative Candidates and the shared zero-effect quality gate pass on Python 3.12/3.13/3.14 | PASS (`33637780947`) |
 | Authorized local-pilot readiness | One content-addressed local pilot binds an approved Scope, fully verified 18-file Snapshot, rebuilt SourceGraph, five exact proposed Candidates, passing M9.4 quality, ten fixed human gates and eight forbidden capabilities; Python 3.12/3.13/3.14 report zero forbidden effects while the concurrent rootless boundary remains admitted | PASS (`33641691100`) |
+| Review-only local shadow pilot | One CLI composition accepts only an already-ingested local Snapshot and exact approved Scope, rebuilds trusted static objects, requires the exact admitted M9.4 baseline, emits proposed-or-empty Candidate review output and selects none; normal CI covers replay, revoked Scope, baseline drift and zero Candidates while the concurrent rootless boundary remains admitted | PASS (`34027167185`) |
 
 ## Reproduction
 
@@ -487,3 +494,12 @@ automatic Validation or Candidate mutation, automatic Approval, Target build, pu
 Submission. The standard CI matrix reproduces the same manifest, plan and PASS result with zero
 forbidden effects; the concurrent Phase 3 run confirms the real rootless isolation boundary remains
 PASS. This admission artifact is readiness evidence only and grants no operational authority.
+
+M9.6 exposes that trusted static/readiness composition as one local operator command for a previously
+ingested authorized Snapshot. The command rechecks Scope and Snapshot integrity, rebuilds SourceGraph
+and CandidateSet, recomputes the repository-owned M9.4 gate and requires its exact admitted identities
+before writing immutable static/readiness artifacts. CI proves deterministic replay, refusal of a
+revoked Scope or drifted quality identity, and a valid empty Candidate review queue. Output fixes
+selection to empty and leaves every Candidate proposed. The command has no Validation, Runner, Broker,
+provider, build, network, Approval, export or Submission operation; the concurrent Phase 3 PASS
+confirms the existing real isolation boundary was not regressed.
