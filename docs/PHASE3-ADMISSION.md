@@ -191,6 +191,12 @@ The M9.8 pilot-bound human Validation Intake admission run is GitHub Actions
 [`34034039075`](https://github.com/pity11/VulnLoom/actions/runs/34034039075). Both completed
 successfully on 2026-09-06 and qualify the M9.8 pilot Validation Intake binding row below.
 
+The M9.9 Approval-gated offline pilot Validation admission run is GitHub Actions
+[`34035435464`](https://github.com/pity11/VulnLoom/actions/runs/34035435464) for commit
+`9aac6169bb5ddfd4a466c83c42dbcd0d308df214`. The standard Python CI for the same commit is
+[`34035435470`](https://github.com/pity11/VulnLoom/actions/runs/34035435470). Both completed
+successfully on 2026-09-06 and qualify the M9.9 pilot Validation execution row below.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -232,6 +238,7 @@ successfully on 2026-09-06 and qualify the M9.8 pilot Validation Intake binding 
 | Review-only local shadow pilot | One CLI composition accepts only an already-ingested local Snapshot and exact approved Scope, rebuilds trusted static objects, requires the exact admitted M9.4 baseline, emits proposed-or-empty Candidate review output and selects none; normal CI covers replay, revoked Scope, baseline drift and zero Candidates while the concurrent rootless boundary remains admitted | PASS (`34027167185`) |
 | Human pilot Candidate selection | One explicit human command reopens a completed passing readiness result and immutable artifact, verifies exact SourceGraph/CandidateSet/Snapshot/Scope provenance, and uniquely records one still-proposed Candidate; replay, wrong Candidate, failed readiness, timeout, drift, conflict and unfinished recovery add no ValidationPlan or operational authority | PASS (`34033041866`) |
 | Pilot-bound human Validation Intake | One exact completed M9.7 selection is uniquely consumed with an independently supplied M8.1 Intake plan, explicit human `accept` command and pre-existing ValidationPlan; authoritative identities, digests, Scope and deadlines are rechecked before a digest-only binding, while replay, drift, timeout and unfinished recovery add no Validation execution, Candidate mutation, Runner/Broker parameters or external effect | PASS (`34034039075`) |
+| Approval-gated offline pilot Validation | One completed M9.8 binding and accepted M8.1 record are consumed only with the identical pre-existing ValidationPlan and a separately granted exact `RUN_VALIDATION` Approval; trusted preflight, unique execution checkpoints and digest-only outcome binding enforce replay, drift, timeout, bypass and recovery refusal while the first version rejects all Broker calls and network activity | PASS (`34035435470`) |
 
 ## Reproduction
 
@@ -536,3 +543,14 @@ while drift, timeout, conflict or an interrupted checkpoint fails closed. CI pro
 execute Validation, change Candidate state, derive Runner/Broker parameters, build a Target, access the
 network, approve an action or submit anything; the concurrent Phase 3 PASS confirms the real isolation
 boundary remains intact.
+
+M9.9 consumes that completed M9.8 binding only after reopening its accepted M8.1 record, immutable
+CandidateSet and identical pre-existing ValidationPlan, and after matching a separately human-granted
+`RUN_VALIDATION` Approval to a content-addressed action. Trusted preflight runs before checkpointing;
+an earlier bare Validation checkpoint is rejected as a bypass. A separate execution ledger uniquely
+consumes the M9.8 plan, ValidationPlan and Approval, binds the completed outcome, and makes replay
+read-only while interrupted execution requires explicit recovery. CI covers non-granted Approval,
+timeout, conflict, Runner result drift, outcome drift and every Broker-call refusal. The first version
+uses only the offline Runner, opens no socket, preserves the original proposed Candidate, and adds no
+Agent-derived execution parameter, automatic Approval, Target build, Finding promotion or Submission;
+the concurrent Phase 3 PASS confirms the real isolation boundary remains intact.
