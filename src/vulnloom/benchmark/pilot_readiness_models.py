@@ -68,7 +68,7 @@ class AuthorizedPilotManifest(DomainModel):
     candidate_set_id: Digest
     candidate_set_digest: Digest
     generator_version: str = Field(min_length=1, max_length=128)
-    candidate_ids: Annotated[tuple[UUID, ...], Field(min_length=1, max_length=2_000)]
+    candidate_ids: Annotated[tuple[UUID, ...], Field(max_length=2_000)]
     source_file_count: int = Field(gt=0, le=1_000_000)
     source_total_bytes: int = Field(gt=0, le=10_737_418_240)
     required_human_gates: tuple[PilotHumanGate, ...] = REQUIRED_PILOT_HUMAN_GATES

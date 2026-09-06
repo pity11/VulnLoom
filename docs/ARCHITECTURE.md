@@ -912,3 +912,23 @@ archive and sends it through the real safe ingestion, AST mapping and Candidate 
 produces five proposed Candidates, but executes no fixture and grants no Validation, mutation,
 Approval, build, network or Submission authority. A concrete project remains out of scope until a
 human supplies its exact authorization and local Snapshot.
+
+## 52. M9.6 review-only local shadow pilot
+
+M9.6 exposes one narrow operator composition over existing trusted components. The operator first
+supplies an exact approved `Scope` and the identity of a local `TargetSnapshot` that has already
+passed the ingestion boundary. The command reloads and re-authorizes the Snapshot, then trusted code
+rebuilds the `SourceGraph` and `CandidateSet`; Agent text cannot provide source paths, Candidates,
+quality thresholds, benchmark locations or execution parameters.
+
+The entry point recomputes the repository-owned admitted M9.4 result and requires its exact profile
+and result identities before constructing the M9.5 manifest and plan. It stores immutable static
+objects, evaluates readiness through the existing digest-only checkpoint and artifact stores, and
+prints a bounded human-review summary. Replay uses the same content identities and does not repeat
+or expand external work. A zero-Candidate set is accepted as an empty review queue, not interpreted
+as proof of vulnerability absence.
+
+This composition ends before Candidate selection. Its output fixes `selected_candidate_ids` to an
+empty list and all Candidates remain `PROPOSED`. It has no Validation service, Runner, Broker,
+provider, Target builder, network transport, Approval service, Report exporter or Submission
+adapter, and it writes no domain event.

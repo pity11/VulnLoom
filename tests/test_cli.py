@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pytest
 
+from vulnloom.benchmark.pilot_readiness_fixture import PILOT_NOW, build_pilot_fixture
 from vulnloom.cli import main
-from vulnloom.domain.models import ArtifactKind, ArtifactScope, Scope, utc_now
+from vulnloom.domain.models import ArtifactKind, ArtifactScope, Scope, ScopeState, utc_now
+from vulnloom.ingestion import IngestionError, IngestionService
 
 
 def test_cli_create_and_status(tmp_path, capsys):
@@ -93,6 +95,163 @@ def test_cli_refuses_expired_scope(tmp_path, approved_scope):
                 "reviewer",
             ]
         )
+
+
+def test_cli_runs_authorized_local_shadow_pilot_without_selecting_candidate(
+    tmp_path, capsys, monkeypatch
+):
+    fixture = build_pilot_fixture(tmp_path / "fixture")
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(fixture.scope.model_dump_json(), encoding="utf-8")
+    monkeypatch.setattr("vulnloom.cli.utc_now", lambda: PILOT_NOW)
+    args = [
+        "--store",
+        str(fixture.target_store_root),
+        "shadow-pilot-local",
+        "--snapshot-id",
+        fixture.snapshot.manifest.manifest_id,
+        "--scope-file",
+        str(scope_file),
+        "--analysis-store",
+        str(tmp_path / "analysis"),
+        "--candidate-store",
+        str(tmp_path / "candidates"),
+        "--readiness-db",
+        str(tmp_path / "readiness.db"),
+        "--readiness-store",
+        str(tmp_path / "readiness"),
+    ]
+
+    assert main(args) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert first["mode"] == "authorized_local_shadow_pilot"
+    assert first["gate_status"] == "passed"
+    assert first["candidate_count"] == 5
+    assert first["selected_candidate_ids"] == []
+    assert {item["state"] for item in first["candidates"]} == {"proposed"}
+    assert Path(first["graph_path"]).is_file()
+    assert Path(first["candidate_set_path"]).is_file()
+    assert not (tmp_path / "validation.db").exists()
+
+    assert main(args) == 0
+    repeated = json.loads(capsys.readouterr().out)
+    assert repeated["plan_id"] == first["plan_id"]
+    assert repeated["graph_created"] is False
+    assert repeated["candidate_set_created"] is False
+
+
+def test_cli_shadow_pilot_rejects_revoked_scope_before_output(tmp_path, monkeypatch):
+    fixture = build_pilot_fixture(tmp_path / "fixture")
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(
+        fixture.scope.model_copy(update={"state": ScopeState.REVOKED}).model_dump_json(),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("vulnloom.cli.utc_now", lambda: PILOT_NOW)
+    with pytest.raises(IngestionError, match="approved"):
+        main(
+            [
+                "--store",
+                str(fixture.target_store_root),
+                "shadow-pilot-local",
+                "--snapshot-id",
+                fixture.snapshot.manifest.manifest_id,
+                "--scope-file",
+                str(scope_file),
+                "--readiness-db",
+                str(tmp_path / "readiness.db"),
+                "--readiness-store",
+                str(tmp_path / "readiness"),
+            ]
+        )
+    assert not (tmp_path / "readiness.db").exists()
+
+
+def test_cli_shadow_pilot_rejects_unadmitted_quality_baseline(tmp_path, monkeypatch):
+    fixture = build_pilot_fixture(tmp_path / "fixture")
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(fixture.scope.model_dump_json(), encoding="utf-8")
+    monkeypatch.setattr("vulnloom.cli.utc_now", lambda: PILOT_NOW)
+    monkeypatch.setattr("vulnloom.cli._ADMITTED_M9_4_RESULT_ID", "0" * 64)
+
+    with pytest.raises(SystemExit, match="unadmitted quality baseline"):
+        main(
+            [
+                "--store",
+                str(fixture.target_store_root),
+                "shadow-pilot-local",
+                "--snapshot-id",
+                fixture.snapshot.manifest.manifest_id,
+                "--scope-file",
+                str(scope_file),
+                "--readiness-db",
+                str(tmp_path / "readiness.db"),
+            ]
+        )
+    assert not (tmp_path / "readiness.db").exists()
+
+
+def test_cli_shadow_pilot_accepts_safe_snapshot_without_candidates(
+    tmp_path, capsys, approved_scope
+):
+    archive = tmp_path / "safe.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr(
+            "app.py",
+            """from flask import Flask
+app = Flask(__name__)
+@app.get('/item/<item_id>')
+def item(item_id):
+    value = Item.query.get(item_id)
+    if value.owner_id != current_user.id:
+        raise PermissionError()
+    return value
+""",
+        )
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    scope = approved_scope.model_copy(
+        update={
+            "artifacts": (
+                ArtifactScope(
+                    kind=ArtifactKind.SOURCE_ARCHIVE,
+                    sha256=digest,
+                    source_name=archive.name,
+                ),
+            )
+        }
+    )
+    scope_file = tmp_path / "scope.json"
+    scope_file.write_text(scope.model_dump_json(), encoding="utf-8")
+    target_store = tmp_path / "targets"
+    snapshot = IngestionService(target_store).ingest_archive(archive, scope=scope)
+
+    assert (
+        main(
+            [
+                "--store",
+                str(target_store),
+                "shadow-pilot-local",
+                "--snapshot-id",
+                snapshot.manifest.manifest_id,
+                "--scope-file",
+                str(scope_file),
+                "--analysis-store",
+                str(tmp_path / "analysis"),
+                "--candidate-store",
+                str(tmp_path / "candidates"),
+                "--readiness-db",
+                str(tmp_path / "readiness.db"),
+                "--readiness-store",
+                str(tmp_path / "readiness"),
+            ]
+        )
+        == 0
+    )
+    output = json.loads(capsys.readouterr().out)
+    assert output["gate_status"] == "passed"
+    assert output["candidate_count"] == 0
+    assert output["candidates"] == []
+    assert output["selected_candidate_ids"] == []
 
 
 def test_cli_ingests_scoped_archive_idempotently(tmp_path, capsys, approved_scope):

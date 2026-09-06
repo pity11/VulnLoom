@@ -713,6 +713,17 @@ Candidate、`PROPOSED` Candidate、人工门禁、禁止能力和禁止副作用
 写入大小受限、no-follow 验证、只读的内容寻址 JSON/Markdown。遗留 STARTED 不自动恢复，重复完成只读复核
 artifact；任何 Scope、Snapshot、静态产物、quality input 或 plan 漂移都在 checkpoint 前 fail-closed。
 
+### M9.6 local shadow pilot composition
+
+M9.6 不增加领域实体、状态或事件。`shadow-pilot-local` 只从已安全导入的 `TargetSnapshot` 与 exact approved
+`Scope` 重建既有 `SourceGraph`、`CandidateSet`、`AuthorizedPilotManifest`、`AuthorizedPilotReadinessPlan`
+和 `AuthorizedPilotReadinessResult`。它只输出这些内容寻址对象的 identity、路径与 Candidate 人工审阅摘要，
+不持久化 Agent prose、源码正文、授权正文、凭据、Runner/Broker 参数或网络目标。
+
+`AuthorizedPilotManifest.candidate_ids` 可以为空，以表达“可信静态流程完成但没有 Candidate”；
+`selected_candidate_ids` 仍必须为空，所有非空 Candidate 仍必须是 `PROPOSED`。空集合不是 Finding、无漏洞证明、
+人工选择、Validation 计划、Approval 或任何状态迁移。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

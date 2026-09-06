@@ -766,6 +766,24 @@ M9.5 是真实授权项目接入前的离线发布就绪协议与 repository-own
 提供 exact Scope 和本地 Snapshot；本阶段不扫描其他仓库、不执行 Validation、不改变 Candidate/Finding、
 不批准操作、不构建 Target、不访问公网，也不创建、导出或发送 Submission。
 
+### M9.6：人工授权本地 shadow pilot 操作入口（已完成首版）
+
+- 新增单一 `shadow-pilot-local` CLI，只接受已由安全 ingestion 保存的 exact local Snapshot、当前有效的
+  approved Scope，以及预配置的本地内容寻址存储；不在同一命令中接收或获取 Target。
+- SourceGraph 与 CandidateSet 均由可信 AST mapper/generator 从复核后的 Snapshot 重新构造；入口不接受
+  Agent 提供的 Candidate、源码路径、质量阈值、Runner/Broker 参数或 benchmark 路径。
+- 入口精确锁定 repository-owned 且已准入的 M9.4 profile/result，随后复用 M9.5 manifest、plan、纯 reducer、
+  SQLite checkpoint 和只读 artifact store；基线 identity 或结果漂移时 fail-closed。
+- 输出只包含本地 artifact identity/path、readiness PASS/FAIL 和仍为 `PROPOSED` 的 Candidate 人工审阅摘要；
+  `selected_candidate_ids` 固定为空，不写 Validation、Finding、Approval、Report、领域事件或 Submission。
+- 允许零 Candidate 的安全项目形成可复核 readiness 结果；这只表示静态流程安全完成且没有候选待审阅，
+  不构成“无漏洞”结论。
+- 定向回归覆盖成功、幂等重放、撤销 Scope 拒绝和零 Candidate；既有 M9.5 测试继续覆盖超时、写入失败、
+  清理、遗留 STARTED、冲突、digest/symlink 与全部八类禁止副作用。
+
+M9.6 是人工审阅前的本地静态 shadow 入口，不是自动漏洞验证 Agent。它不执行 Validation、不选择或改变
+Candidate、不调用 Runner/Broker/provider、不自动批准、不构建 Target、不访问公网，也不导出或提交报告。
+
 ## 延后事项
 
 - 公网资产自主发现。

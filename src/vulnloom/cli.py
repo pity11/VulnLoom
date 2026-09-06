@@ -26,8 +26,15 @@ from vulnloom.benchmark import (
     AnalyzerToolRegistration,
     AnalyzerToolRegistry,
     AnalyzerTruthAlignment,
+    AuthorizedPilotManifest,
+    AuthorizedPilotReadinessArtifactStore,
+    AuthorizedPilotReadinessPlan,
+    AuthorizedPilotReadinessPolicy,
+    AuthorizedPilotReadinessService,
+    AuthorizedPilotReadinessStore,
     AutoPenBenchSnapshotAdapter,
     BenchmarkArtifactStore,
+    BenchmarkBaseline,
     BenchmarkGateStatus,
     BenchmarkObservationSet,
     BenchmarkPlan,
@@ -42,10 +49,15 @@ from vulnloom.benchmark import (
     ExternalBenchmarkKind,
     ExternalBenchmarkSnapshot,
     ExternalImportLimits,
+    LocalSourceEffectCounters,
+    LocalSourceObservationSet,
+    LocalSourceRobustnessProfile,
+    LocalSourceSuite,
     OfflineAnalyzerExecutionService,
     create_analyzer_snapshot,
     create_external_snapshot,
     default_analyzer_adapters,
+    evaluate_local_source_robustness,
 )
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
 from vulnloom.domain.models import (
@@ -80,6 +92,9 @@ from vulnloom.reporting import (
 from vulnloom.runners import OfflineSandboxRunner
 from vulnloom.storage.events import Event, EventStore
 from vulnloom.validation import ValidationPlan, ValidationService, ValidationStore
+
+_ADMITTED_M9_4_PROFILE_ID = "e26b65b236daf7c40631643fe973f1760d33e183748c2c8178f95de1c732021b"
+_ADMITTED_M9_4_RESULT_ID = "fd43cbf7d5833ee2244578d001215daddf28c2f6e51f61f60049e3378ea22c83"
 
 
 def _store(path: str) -> EventStore:
@@ -294,6 +309,107 @@ def generate_candidates(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_admitted_local_quality(root: Path):
+    local = root / "m9_4"
+    suite = LocalSourceSuite.model_validate_json((local / "suite.json").read_text(encoding="utf-8"))
+    observations = LocalSourceObservationSet.model_validate_json(
+        (local / "observations.json").read_text(encoding="utf-8")
+    )
+    profile = LocalSourceRobustnessProfile.model_validate_json(
+        (local / "profile.json").read_text(encoding="utf-8")
+    )
+    baseline = BenchmarkBaseline.model_validate_json(
+        (root / "m6_1" / "baseline.json").read_text(encoding="utf-8")
+    )
+    _, result = evaluate_local_source_robustness(suite, observations, baseline, profile)
+    if (
+        profile.profile_id != _ADMITTED_M9_4_PROFILE_ID
+        or result.result_id != _ADMITTED_M9_4_RESULT_ID
+        or result.gate_status is not BenchmarkGateStatus.PASSED
+    ):
+        raise SystemExit("local shadow pilot refuses an unadmitted quality baseline")
+    return profile, result
+
+
+def run_shadow_pilot_local(args: argparse.Namespace) -> int:
+    """Build a review-only Candidate set from one already-ingested local Snapshot."""
+    now = utc_now()
+    scope = _load_scope(args.scope_file)
+    ingestion = IngestionService(Path(args.store))
+    snapshot = ingestion.load_snapshot(args.snapshot_id)
+    IngestionService.require_snapshot_scope(snapshot, scope, now)
+    graph = PythonWebSourceMapper().analyze(snapshot, ingestion.root, scope=scope, now=now)
+    candidate_set = CandidateGenerator().generate(graph, scope=scope, now=now)
+    profile, quality_result = _load_admitted_local_quality(
+        Path(__file__).resolve().parents[2] / "benchmarks"
+    )
+    manifest = AuthorizedPilotManifest.create(
+        scope=scope,
+        snapshot=snapshot,
+        graph=graph,
+        candidate_set=candidate_set,
+    )
+    plan = AuthorizedPilotReadinessPlan.create(
+        manifest=manifest,
+        quality_profile=profile,
+        quality_result=quality_result,
+        policy=AuthorizedPilotReadinessPolicy(),
+        effects=LocalSourceEffectCounters(),
+        created_at=max(scope.valid_from, snapshot.manifest.created_at),
+        deadline=scope.valid_until,
+        idempotency_key=args.idempotency_key or f"shadow-pilot:{manifest.pilot_manifest_id}",
+    )
+    graph_path, graph_created = SourceGraphStore(Path(args.analysis_store)).put(graph)
+    candidate_path, candidates_created = CandidateSetStore(Path(args.candidate_store)).put(
+        candidate_set
+    )
+    with AuthorizedPilotReadinessStore(Path(args.readiness_db)) as readiness_store:
+        outcome = AuthorizedPilotReadinessService(
+            store=readiness_store,
+            artifact_store=AuthorizedPilotReadinessArtifactStore(Path(args.readiness_store)),
+        ).evaluate(
+            scope=scope,
+            snapshot=snapshot,
+            target_store_root=ingestion.root,
+            graph=graph,
+            candidate_set=candidate_set,
+            quality_profile=profile,
+            quality_result=quality_result,
+            manifest=manifest,
+            plan=plan,
+            now=now,
+        )
+    summary = {
+        "mode": "authorized_local_shadow_pilot",
+        "gate_status": outcome.result.gate_status.value,
+        "pilot_manifest_id": manifest.pilot_manifest_id,
+        "plan_id": plan.plan_id,
+        "graph_id": graph.graph_id,
+        "graph_created": graph_created,
+        "graph_path": str(graph_path),
+        "candidate_set_id": candidate_set.candidate_set_id,
+        "candidate_set_created": candidates_created,
+        "candidate_set_path": str(candidate_path),
+        "candidate_count": len(candidate_set.candidates),
+        "selected_candidate_ids": [],
+        "candidates": [
+            {
+                "candidate_id": str(candidate.candidate_id),
+                "state": candidate.state.value,
+                "cwe": candidate.cwe,
+                "title": candidate.title,
+                "confidence": candidate.confidence,
+                "entry": candidate.entry_point.model_dump(mode="json"),
+                "sink": candidate.sink.model_dump(mode="json"),
+            }
+            for candidate in candidate_set.candidates
+        ],
+        "readiness_artifact": outcome.artifact.model_dump(mode="json"),
+    }
+    print(json.dumps(summary, indent=2))
+    return 0 if outcome.result.gate_status is BenchmarkGateStatus.PASSED else 2
+
+
 def run_validation_offline(args: argparse.Namespace) -> int:
     """Exercise orchestration without executing target code or opening sockets."""
     scope = _load_scope(args.scope_file)
@@ -482,15 +598,11 @@ def export_report_local(args: argparse.Namespace) -> int:
 
 def evaluate_benchmark_offline(args: argparse.Namespace) -> int:
     """Evaluate sealed local observations without running targets or opening sockets."""
-    suite = BenchmarkSuite.model_validate_json(
-        Path(args.suite_file).read_text(encoding="utf-8")
-    )
+    suite = BenchmarkSuite.model_validate_json(Path(args.suite_file).read_text(encoding="utf-8"))
     observations = BenchmarkObservationSet.model_validate_json(
         Path(args.observations_file).read_text(encoding="utf-8")
     )
-    plan = BenchmarkPlan.model_validate_json(
-        Path(args.plan_file).read_text(encoding="utf-8")
-    )
+    plan = BenchmarkPlan.model_validate_json(Path(args.plan_file).read_text(encoding="utf-8"))
     artifact_store = BenchmarkArtifactStore(Path(args.result_store))
     with BenchmarkStore(Path(args.benchmark_db)) as benchmark_store:
         outcome = BenchmarkService(
@@ -586,9 +698,7 @@ def import_analyzer_observations_offline(args: argparse.Namespace) -> int:
     snapshot = AnalyzerResultSnapshot.model_validate_json(
         Path(args.snapshot_file).read_text(encoding="utf-8")
     )
-    plan = AnalyzerImportPlan.model_validate_json(
-        Path(args.plan_file).read_text(encoding="utf-8")
-    )
+    plan = AnalyzerImportPlan.model_validate_json(Path(args.plan_file).read_text(encoding="utf-8"))
     adapter = default_analyzer_adapters()[snapshot.analyzer]
     artifact_store = AnalyzerObservationArtifactStore(Path(args.observation_store))
     with AnalyzerImportStore(Path(args.import_db)) as import_store:
@@ -621,9 +731,7 @@ def import_analyzer_observations_offline(args: argparse.Namespace) -> int:
 
 
 def evaluate_analyzers_offline(args: argparse.Namespace) -> int:
-    suite = BenchmarkSuite.model_validate_json(
-        Path(args.suite_file).read_text(encoding="utf-8")
-    )
+    suite = BenchmarkSuite.model_validate_json(Path(args.suite_file).read_text(encoding="utf-8"))
     observation_sets = tuple(
         AnalyzerObservationSet.model_validate_json(Path(path).read_text(encoding="utf-8"))
         for path in args.observation_set_file
@@ -761,6 +869,16 @@ def build_parser() -> argparse.ArgumentParser:
     candidates.add_argument("--idempotency-key")
     candidates.set_defaults(handler=generate_candidates)
 
+    shadow = sub.add_parser("shadow-pilot-local")
+    shadow.add_argument("--snapshot-id", required=True)
+    shadow.add_argument("--scope-file", required=True)
+    shadow.add_argument("--analysis-store", default=".vulnloom/analysis")
+    shadow.add_argument("--candidate-store", default=".vulnloom/candidates")
+    shadow.add_argument("--readiness-db", default=".vulnloom/pilot-readiness.db")
+    shadow.add_argument("--readiness-store", default=".vulnloom/pilot-readiness")
+    shadow.add_argument("--idempotency-key")
+    shadow.set_defaults(handler=run_shadow_pilot_local)
+
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)
     validation.add_argument("--candidate-store", default=".vulnloom/candidates")
@@ -849,21 +967,15 @@ def build_parser() -> argparse.ArgumentParser:
     analyzer_import.add_argument("--snapshot-file", required=True)
     analyzer_import.add_argument("--plan-file", required=True)
     analyzer_import.add_argument("--import-db", default=".vulnloom/analyzer-imports.db")
-    analyzer_import.add_argument(
-        "--observation-store", default=".vulnloom/analyzer-observations"
-    )
+    analyzer_import.add_argument("--observation-store", default=".vulnloom/analyzer-observations")
     analyzer_import.set_defaults(handler=import_analyzer_observations_offline)
 
     analyzer_evaluation = sub.add_parser("analyzer-evaluate-offline")
     analyzer_evaluation.add_argument("--suite-file", required=True)
-    analyzer_evaluation.add_argument(
-        "--observation-set-file", action="append", required=True
-    )
+    analyzer_evaluation.add_argument("--observation-set-file", action="append", required=True)
     analyzer_evaluation.add_argument("--alignment-file", required=True)
     analyzer_evaluation.add_argument("--plan-file", required=True)
-    analyzer_evaluation.add_argument(
-        "--evaluation-db", default=".vulnloom/analyzer-evaluations.db"
-    )
+    analyzer_evaluation.add_argument("--evaluation-db", default=".vulnloom/analyzer-evaluations.db")
     analyzer_evaluation.add_argument(
         "--result-store", default=".vulnloom/analyzer-evaluation-results"
     )
@@ -874,9 +986,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyzer_execution.add_argument("--snapshot-id", required=True)
     analyzer_execution.add_argument("--registration-file", required=True)
     analyzer_execution.add_argument("--plan-file", required=True)
-    analyzer_execution.add_argument(
-        "--execution-db", default=".vulnloom/analyzer-executions.db"
-    )
+    analyzer_execution.add_argument("--execution-db", default=".vulnloom/analyzer-executions.db")
     analyzer_execution.set_defaults(handler=check_analyzer_execution_offline)
     return parser
 

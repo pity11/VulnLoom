@@ -85,7 +85,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, and an offline benchmark regression gate. External disclosure remains a separate future stage.
+The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, offline benchmark regression gates, and a review-only local shadow pilot for an already-ingested authorized Snapshot. External disclosure remains a separate future stage.
 
 Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
 
@@ -663,6 +663,15 @@ vulnloom --db .vulnloom/events.db \
   candidate-generate --graph-id <graph-sha256> --scope-file scope.json \
   --analysis-store .vulnloom/analysis --candidate-store .vulnloom/candidates
 
+# Rebuild trusted static results for one already-ingested authorized Snapshot and
+# emit a local human-review summary. This does not select or validate a Candidate.
+vulnloom --store .vulnloom/targets shadow-pilot-local \
+  --snapshot-id <manifest-sha256> --scope-file scope.json \
+  --analysis-store .vulnloom/analysis \
+  --candidate-store .vulnloom/candidates \
+  --readiness-db .vulnloom/pilot-readiness.db \
+  --readiness-store .vulnloom/pilot-readiness
+
 # Exercise a pre-sealed ValidationPlan through the offline control-plane path.
 # The plan must not contain Broker calls.
 vulnloom --db .vulnloom/events.db \
@@ -727,6 +736,8 @@ vulnloom --store .vulnloom/targets analyzer-execution-check-offline \
   --registration-file analyzer-registration.json \
   --plan-file analyzer-execution-plan.json
 ```
+
+`shadow-pilot-local` accepts only an already-ingested local Snapshot and its exact approved Scope. Trusted code rebuilds the SourceGraph and CandidateSet, checks the repository-owned admitted M9.4 baseline, stores immutable static/readiness artifacts, and prints Candidates for human review. An empty CandidateSet is a valid result, not evidence that the target has no vulnerabilities. The command has no Candidate-selection, Validation, Runner, Broker, provider, build, network, Approval, export, or Submission operation.
 
 `validation-run-offline` accepts an already sealed, typed `ValidationPlan`. It rejects plans containing Broker calls, does not execute target code or open sockets, and defaults to an `INCONCLUSIVE` verdict. Live Broker/Docker composition currently exists as a library and opt-in integration-test path, not as a production CLI or HTTP API.
 
