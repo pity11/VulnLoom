@@ -632,3 +632,22 @@ The exact implementation commit `a8c2c2b2db1a3cc6da2453024511173f972ecb71` passe
 at 2026-09-07 03:27:01 UTC. The new tests prove Approval-gated pilot Critic execution and outcome
 provenance; the concurrent rootless Admission run confirms the existing real isolation boundary
 remains intact. Synthetic success fixtures do not claim real-target reproduction.
+
+### M9.13 pilot Finding Intake provenance admission
+
+Version 0.61.0 adds a read-only M9.12 result verifier and a pilot wrapper around M8.5 human Finding
+Intake. Accepted Critic provenance, the latest current CLEAR duplicate check, an exact PromotionPlan
+and an independent ACCEPT command are mandatory. Current authority is rechecked before checkpointing.
+The historical RUN_CRITIC Approval is verified as evidence of completed execution; it does not grant
+Finding promotion. No Finding is created and no Candidate, execution, Approval or Submission action
+is performed by this gate.
+
+Local verification: `762 passed, 19 skipped`, coverage `86.08%`. The 25 new tests cover successful
+admission, nonaccepted verdicts, command/plan/scope/evidence/duplicate drift, missing or unfinished
+upstream records, deadlines, bare M8.5 rejection, persistence failures, cleanup, completed-record and
+ledger tampering, historical execution-Approval expiry, and CLI read-only replay. Synthetic offline
+Evidence proves protocol behavior, not real-target reproduction. M6.1/M6.3 and M9.2–M9.5 regression
+gates, M9.5 ablation, schema/fixture regeneration determinism, Ruff and whitespace checks passed.
+
+Remote CI and Phase 3 Admission for the M9.13 implementation commit are pending; the previous
+M9.12 remote runs are not evidence for this new revision.

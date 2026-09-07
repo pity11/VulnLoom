@@ -1,0 +1,136 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "critic_execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Execution Plan Id",
+      "type": "string"
+    },
+    "critic_execution_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Execution Plan Digest",
+      "type": "string"
+    },
+    "critic_execution_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Execution Binding Id",
+      "type": "string"
+    },
+    "critic_execution_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Execution Binding Digest",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Digest",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "command_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Digest",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "promotion_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Digest",
+      "type": "string"
+    },
+    "duplicate_check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Id",
+      "type": "string"
+    },
+    "duplicate_check_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Digest",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "critic_execution_plan_id",
+    "critic_execution_plan_digest",
+    "critic_execution_binding_id",
+    "critic_execution_binding_digest",
+    "intake_plan_id",
+    "intake_plan_digest",
+    "command_id",
+    "command_digest",
+    "promotion_plan_id",
+    "promotion_plan_digest",
+    "duplicate_check_id",
+    "duplicate_check_digest",
+    "finding_id",
+    "candidate_id",
+    "candidate_digest",
+    "scope_id",
+    "scope_version",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "PilotFindingIntakePlan",
+  "type": "object"
+}

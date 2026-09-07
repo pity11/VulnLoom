@@ -1,0 +1,99 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "critic_execution_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Execution Binding Id",
+      "type": "string"
+    },
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "intake_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Digest",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "duplicate_check_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Check Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "plan_id",
+    "critic_execution_binding_id",
+    "intake_plan_id",
+    "intake_record_id",
+    "intake_record_digest",
+    "command_id",
+    "promotion_plan_id",
+    "duplicate_check_id",
+    "finding_id",
+    "candidate_id",
+    "candidate_digest",
+    "scope_id",
+    "scope_version",
+    "completed_at"
+  ],
+  "title": "PilotFindingIntakeBinding",
+  "type": "object"
+}

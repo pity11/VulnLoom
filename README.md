@@ -853,3 +853,27 @@ body text. The command performs a local deterministic review of sealed assessmen
 and pilot bindings; it does not run Validation or target code, create Approval, build, access the
 network or submit. Replays do not review again. Incomplete checkpoints require explicit recovery.
 Accepted Critic outcomes still require separate duplicate-check and Finding-promotion gates.
+
+
+M9.13 adds `pilot-finding-intake-bind-local` for human Finding Intake provenance. Supply the same
+upstream files and authoritative stores as M9.12, replacing `--plan-file` with the sealed
+`PilotFindingIntakePlan`, and add:
+
+```text
+--critic-execution-plan-file pilot-critic-execution-plan.json
+--critic-binding-plan-file agent-critic-outcome-plan.json
+--finding-intake-plan-file agent-finding-intake-plan.json
+--finding-intake-command-file agent-finding-intake-command.json
+--promotion-plan-file finding-promotion-plan.json
+--duplicate-check-file finding-duplicate-check.json
+--duplicate-check-db .vulnloom/finding-duplicate-checks.db
+--finding-intake-db .vulnloom/agent-finding-intakes.db
+--pilot-finding-db .vulnloom/pilot-finding-intakes.db
+```
+
+Prepare sealed plans through trusted control-plane services. `--approval-file` carries the historical
+M9.12 RUN_CRITIC Approval, not a promotion grant. The command requires accepted Critic provenance,
+a current latest CLEAR duplicate check, an exact PromotionPlan and an independent human ACCEPT
+command. It records M8.5 Intake and a digest-only pilot binding. It does not create a Finding, change
+Candidate state, run Critic/Validation/target code, approve an operation, build, access the network or
+submit. Completed replay is read-only; incomplete checkpoints require explicit recovery.

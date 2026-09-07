@@ -45,6 +45,27 @@ class AgentFindingIntakeStore:
         )
         self.connection.commit()
 
+    def has_input_checkpoint(
+        self, plan: AgentFindingIntakePlan, command: AgentFindingIntakeCommand
+    ) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM agent_finding_intakes WHERE intake_plan_id=? OR idempotency_key=? "
+                "OR critic_outcome_binding_id=? OR promotion_plan_id=? OR duplicate_check_id=? "
+                "OR finding_id=? OR command_id=?",
+                (
+                    plan.intake_plan_id,
+                    plan.idempotency_key,
+                    plan.critic_outcome_binding_id,
+                    plan.promotion_plan_id,
+                    plan.duplicate_check_id,
+                    str(plan.finding_id),
+                    command.command_id,
+                ),
+            ).fetchone()
+            is not None
+        )
+
     def claim(
         self, plan: AgentFindingIntakePlan, command: AgentFindingIntakeCommand, *, now: datetime
     ) -> AgentFindingIntakeClaim:

@@ -1068,3 +1068,24 @@ an Approval, runs Validation/target code, invokes Agent/Runner/Broker/provider, 
 a network or submits anything. The original CandidateSet remains immutable; result states follow the
 existing approved Critic state machine. Inconclusive Validation remains ineligible. Tests use synthetic
 Evidence to prove provenance, not real-target reproduction. Finding promotion remains a separate gate.
+
+
+## 59. Pilot Finding Intake provenance gate (M9.13)
+
+`PilotFindingIntakeService` composes read-only M9.12 `load_verified` with M8.5 human Intake.
+It shares authoritative Scope, Critic, M8.4, M8.2, Validation and Evidence stores. Exact execution
+plan/binding digests must match M8.4 and the final reviewed Candidate. Only accepted Critic outcomes
+and an independent ACCEPT command qualify. The latest CLEAR duplicate check must follow Critic
+completion; PromotionPlan, Intake and command follow in order and remain within current windows.
+
+Historical RUN_CRITIC Approval is checked against the original execution plan and completed ledger.
+Its expiration does not invalidate an already completed result; it grants no new execution or
+promotion. Current Scope and upstream/downstream provenance windows are still checked. M8.5 preflight
+now rechecks current authority before claiming, in addition to reproducing its sealed original plan.
+
+The pilot ledger uniquely consumes the execution binding, Intake, promotion, duplicate check, Finding
+ID and human command. A bare M8.5 checkpoint cannot be adopted retrospectively. Interrupted writes
+remain STARTED for explicit recovery; completed replay checks full M8.5 record content without
+repeating Intake. The CLI reads sealed local files and persists only provenance digests/IDs. It does
+not create a Finding, change a Candidate or execute Critic, Validation, target code, network access,
+Approval or Submission. Finding promotion remains a separate approval-gated operation.

@@ -798,6 +798,17 @@ accepted/rejected/inconclusive 分别只对应 CRITIC_REVIEWED/REJECTED/VALIDATE
 独立 SQLite 唯一消费 M9.11 plan、CriticPlan 与 Approval，完成重放只读；裸上游执行记录与 STARTED 拒绝自动
 恢复。完整 CriticOutcome 与 M8.4 binding 保持在既有 stores，pilot ledger 不保存正文，也不代表 Finding 或 Submission。
 
+### PilotFindingIntakePlan 与 Binding
+
+M9.13 `PilotFindingIntakePlan` 封存精确 M9.12 execution plan/binding ID 和摘要、M8.5 Intake、
+独立人工 command、PromotionPlan、duplicate check 的 ID/完整摘要，以及 Finding/Candidate/Scope 身份、
+Candidate 摘要、创建时间、截止时间和幂等键。仅接受 completed accepted Critic 与 ACCEPT Intake。
+
+`PilotFindingIntakeBinding` 保存上述接纳关系和完整 M8.5 record 摘要、完成时间；两种协议均由规范化
+摘要封存且禁止额外字段，不携带 Evidence 正文、影响说明、批准命令或 Runner/Broker 参数。
+独立 ledger 唯一消费执行结果、Intake、晋升计划、去重证明、Finding ID 和人工命令；Finding ID 只是
+计划身份，不代表 Finding 已创建。STARTED 不自动重试，COMPLETED 重放复核完整 record 和 ledger。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

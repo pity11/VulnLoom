@@ -262,6 +262,34 @@ class PilotCriticExecutionService:
         self.store.complete(binding)
         return binding
 
+    def load_verified(
+        self,
+        plan: PilotCriticExecutionPlan,
+        *,
+        approval: ApprovalRequest,
+        now: datetime,
+        **inputs,
+    ) -> PilotCriticExecutionBinding:
+        """Read an approved completed result without claiming, reviewing or binding again."""
+        plan = PilotCriticExecutionPlan.model_validate(plan.model_dump(mode="python"))
+        self._load(now=now, **inputs)
+        expected = self.prepare(
+            approval=approval,
+            now=plan.created_at,
+            deadline=plan.deadline,
+            idempotency_key=plan.idempotency_key,
+            **inputs,
+        )
+        if expected != plan:
+            raise PilotCriticExecutionRejected("pilot Critic execution plan drifted")
+        stored_plan = self.store.load_completed_plan(plan.execution_plan_id)
+        binding = self.store.load_completed(plan.execution_plan_id)
+        if stored_plan != plan or binding != self._completed(
+            plan, inputs["intake_plan"], binding.completed_at, now
+        ):
+            raise PilotCriticExecutionRejected("pilot Critic completed binding drifted")
+        return binding
+
     def _has_bare_checkpoint(self, plan):
         return self.critic.store.has_checkpoint(plan.critic_plan_id) or (
             self.outcome_service.binding_store.has_critic_checkpoint(plan.critic_plan_id)

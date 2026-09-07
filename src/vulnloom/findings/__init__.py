@@ -29,6 +29,17 @@ from .models import (
     finding_duplicate_check_digest,
     finding_promotion_plan_digest,
 )
+from .pilot_intake import (
+    PilotFindingIntakeRejected,
+    PilotFindingIntakeService,
+    PilotFindingIntakeTimedOut,
+)
+from .pilot_intake_models import PilotFindingIntakeBinding, PilotFindingIntakePlan
+from .pilot_intake_store import (
+    PilotFindingIntakeConflict,
+    PilotFindingIntakeRecoveryRequired,
+    PilotFindingIntakeStore,
+)
 from .promotion import FindingPromotionRejected, FindingPromotionService, FindingPromotionTimedOut
 from .promotion_models import (
     FINDING_PROMOTION_SIDE_EFFECTS,
@@ -47,6 +58,15 @@ from .promotion_store import (
 )
 
 __all__ = [
+    "PilotFindingIntakeService",
+    "PilotFindingIntakeRejected",
+    "PilotFindingIntakeTimedOut",
+    "PilotFindingIntakePlan",
+    "PilotFindingIntakeBinding",
+    "PilotFindingIntakeStore",
+    "PilotFindingIntakeConflict",
+    "PilotFindingIntakeRecoveryRequired",
+
     "AgentFindingIntakeClaim",
     "AgentFindingIntakeCommand",
     "AgentFindingIntakeConflict",

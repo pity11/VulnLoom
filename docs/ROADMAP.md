@@ -896,6 +896,22 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 成功路径使用合成离线 Evidence 验证协议，不代表真实目标已复现。默认 offline Validation 仍为 INCONCLUSIVE，
 不会因本阶段而进入 Critic。后续 pilot Finding Intake 必须显式消费本结果绑定并继续要求去重和独立晋升门禁。
 
+### M9.13：pilot Finding Intake 消费精确 Critic execution binding（已实现，待远端验收）
+
+- 新增 digest-only `PilotFindingIntakePlan`/`Binding` 和独立 STARTED/COMPLETED ledger，
+  将 completed M9.12、exact M8.4、M8.5 Intake、PromotionPlan、去重证明与独立人工命令绑定。
+- 只读验证完整上游来源链；仅 accepted Critic/CRITIC_REVIEWED Candidate、当前最新 CLEAR 去重证明
+  和精确 ACCEPT 命令可接纳。复核当前 Scope、Evidence、窗口与完整摘要，所有检查先于 checkpoint。
+- 历史 RUN_CRITIC Approval 证明已完成执行当时的授权，不作为新的晋升授权；执行窗口结束后，
+  只要当前下游与上游来源窗口仍有效即可读取结果。
+- 唯一消费 Critic execution binding、Intake、PromotionPlan、去重证明、Finding ID 和命令；拒绝预存
+  裸 M8.5 checkpoint，未完成写入要求显式恢复，完成重放只读并复核完整 record 与 ledger。
+- 新增 `pilot-finding-intake-bind-local`，只记录人工晋升计划接纳结果，不创建 Finding、改变 Candidate、
+  执行 Critic/Validation、构建目标、批准操作、访问网络或 Submission。
+
+本阶段成功测试只使用合成离线 Evidence。Finding 晋升仍须独立 Approval Gate；本地验证结果见
+`docs/PHASE3-ADMISSION.md`，本阶段实现提交的远端 CI/Admission 待验收。
+
 ## 延后事项
 
 - 公网资产自主发现。

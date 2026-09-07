@@ -130,9 +130,55 @@ class AgentFindingIntakeService:
         duplicate_check: FindingDuplicateCheck,
         now: datetime,
     ) -> AgentFindingIntakeRecord:
+        self.preflight(
+            plan,
+            command,
+            critic_binding_plan=critic_binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=now,
+        )
+        claim = self.store.claim(plan, command, now=now)
+        if not claim.created:
+            assert claim.record is not None
+            return claim.record
+        values = {
+            "intake_plan_id": plan.intake_plan_id,
+            "command_id": command.command_id,
+            "critic_outcome_binding_id": plan.critic_outcome_binding_id,
+            "promotion_plan_id": plan.promotion_plan_id,
+            "promotion_plan_digest": plan.promotion_plan_digest,
+            "duplicate_check_id": plan.duplicate_check_id,
+            "candidate_id": plan.candidate_id,
+            "finding_id": plan.finding_id,
+            "evidence_bundle_id": plan.evidence_bundle_id,
+            "critic_review_id": plan.critic_review_id,
+            "scope_id": plan.scope_id,
+            "scope_version": plan.scope_version,
+            "decision": command.decision,
+            "reason_code": command.reason_code,
+            "reviewer": command.reviewer,
+            "decided_at": command.decided_at,
+            "expires_at": plan.decision_deadline,
+        }
+        record = AgentFindingIntakeRecord(record_id=canonical_digest(values), **values)
+        self.store.complete(record)
+        return record
+
+    def preflight(
+        self,
+        plan: AgentFindingIntakePlan,
+        command: AgentFindingIntakeCommand,
+        *,
+        critic_binding_plan: AgentCriticOutcomeBindingPlan,
+        promotion_plan: FindingPromotionPlan,
+        duplicate_check: FindingDuplicateCheck,
+        now: datetime,
+    ) -> None:
+        """Verify exact command and current authoritative inputs without a checkpoint."""
         try:
-            AgentFindingIntakePlan.model_validate(plan)
-            AgentFindingIntakeCommand.model_validate(command)
+            AgentFindingIntakePlan.model_validate(plan.model_dump(mode="python"))
+            AgentFindingIntakeCommand.model_validate(command.model_dump(mode="python"))
         except ValidationError as exc:
             raise AgentFindingIntakeRejected("Finding Intake boundary validation failed") from exc
         if now < plan.created_at or now >= plan.decision_deadline:
@@ -160,32 +206,7 @@ class AgentFindingIntakeService:
             or command.decided_at > now
         ):
             raise AgentFindingIntakeRejected("Finding Intake command drifted")
-        claim = self.store.claim(plan, command, now=now)
-        if not claim.created:
-            assert claim.record is not None
-            return claim.record
-        values = {
-            "intake_plan_id": plan.intake_plan_id,
-            "command_id": command.command_id,
-            "critic_outcome_binding_id": plan.critic_outcome_binding_id,
-            "promotion_plan_id": plan.promotion_plan_id,
-            "promotion_plan_digest": plan.promotion_plan_digest,
-            "duplicate_check_id": plan.duplicate_check_id,
-            "candidate_id": plan.candidate_id,
-            "finding_id": plan.finding_id,
-            "evidence_bundle_id": plan.evidence_bundle_id,
-            "critic_review_id": plan.critic_review_id,
-            "scope_id": plan.scope_id,
-            "scope_version": plan.scope_version,
-            "decision": command.decision,
-            "reason_code": command.reason_code,
-            "reviewer": command.reviewer,
-            "decided_at": command.decided_at,
-            "expires_at": plan.decision_deadline,
-        }
-        record = AgentFindingIntakeRecord(record_id=canonical_digest(values), **values)
-        self.store.complete(record)
-        return record
+        self.load_authoritative(critic_binding_plan, promotion_plan, duplicate_check, now)
 
     def load_authoritative(self, binding_plan, promotion_plan, duplicate_check, now):
         """Re-read and verify the full M8.4/M8.2/Evidence/promotion provenance chain."""

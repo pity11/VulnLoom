@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
@@ -69,6 +70,7 @@ from vulnloom.critic import (
     AgentCriticIntakePlan,
     AgentCriticIntakeService,
     AgentCriticIntakeStore,
+    AgentCriticOutcomeBindingPlan,
     AgentCriticOutcomeBindingService,
     AgentCriticOutcomeBindingStore,
     CriticPlan,
@@ -95,6 +97,18 @@ from vulnloom.domain.models import (
     utc_now,
 )
 from vulnloom.evidence import EvidenceStore
+from vulnloom.findings import (
+    AgentFindingIntakeCommand,
+    AgentFindingIntakePlan,
+    AgentFindingIntakeService,
+    AgentFindingIntakeStore,
+    FindingDuplicateCheck,
+    FindingDuplicateCheckStore,
+    FindingPromotionPlan,
+    PilotFindingIntakePlan,
+    PilotFindingIntakeService,
+    PilotFindingIntakeStore,
+)
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
 from vulnloom.reporting import (
@@ -727,22 +741,36 @@ def bind_pilot_validation_outcome_local(args: argparse.Namespace) -> int:
             scope=scope,
             audit_store=AgentSessionAuditArtifactStore(Path(args.audit_store)),
             candidate_store=CandidateSetStore(Path(args.candidate_store)),
-            intake_store=intake_store, validation_store=validation_store,
-            evidence_store=EvidenceStore(Path(args.evidence_store)), binding_store=outcome_store,
+            intake_store=intake_store,
+            validation_store=validation_store,
+            evidence_store=EvidenceStore(Path(args.evidence_store)),
+            binding_store=outcome_store,
         )
         service = PilotValidationOutcomeService(
-            execution_store=execution_store, pilot_intake_store=pilot_intake_store,
-            outcome_service=outcome_service, store=pilot_store,
+            execution_store=execution_store,
+            pilot_intake_store=pilot_intake_store,
+            outcome_service=outcome_service,
+            store=pilot_store,
         )
         binding = service.execute(
-            plan, outcome_plan=outcome_plan, audit_artifact=artifact,
-            validation_plan=validation_plan, now=utc_now(),
+            plan,
+            outcome_plan=outcome_plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            now=utc_now(),
         )
-    print(json.dumps({
-        "mode": "pilot_validation_outcome_binding",
-        "validation_executed": False, "candidate_changed": False,
-        "network_accessed": False, "binding": binding.model_dump(mode="json"),
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "mode": "pilot_validation_outcome_binding",
+                "validation_executed": False,
+                "candidate_changed": False,
+                "network_accessed": False,
+                "binding": binding.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -836,14 +864,11 @@ def bind_pilot_critic_intake_local(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_pilot_critic_local(args: argparse.Namespace) -> int:
-    """Execute one approved deterministic Critic review and bind its existing M8.4 outcome."""
-    scope = _load_scope(args.scope_file)
-    plan = PilotCriticExecutionPlan.model_validate_json(Path(args.plan_file).read_text())
+def _load_pilot_critic_inputs(args: argparse.Namespace):
+    """Read the already sealed upstream files; never derive operational parameters."""
     pilot_intake_plan = PilotCriticIntakePlan.model_validate_json(
         Path(args.pilot_intake_plan_file).read_text()
     )
-    approval = ApprovalRequest.model_validate_json(Path(args.approval_file).read_text())
     raw_catalog = json.loads(Path(args.evidence_catalog_file).read_text())
     if not isinstance(raw_catalog, list) or len(raw_catalog) > 256:
         raise ValueError("pilot Critic Evidence catalog must be a bounded array")
@@ -865,6 +890,23 @@ def run_pilot_critic_local(args: argparse.Namespace) -> int:
     artifact = AgentSessionAuditArtifact.model_validate_json(
         Path(args.audit_artifact_file).read_text()
     )
+    return dict(
+        pilot_intake_plan=pilot_intake_plan,
+        evidence=evidence,
+        pilot_outcome_plan=pilot_outcome_plan,
+        intake_plan=intake_plan,
+        command=command,
+        outcome_plan=outcome_plan,
+        audit_artifact=artifact,
+        validation_plan=validation_plan,
+        critic_plan=critic_plan,
+    )
+
+
+@contextmanager
+def _open_pilot_critic_service(args: argparse.Namespace):
+    """Share the same authoritative stores for execution and read-only downstream verification."""
+    scope = _load_scope(args.scope_file)
     with (
         AgentValidationIntakeStore(Path(args.intake_db)) as validation_intake_store,
         PilotValidationIntakeStore(Path(args.pilot_intake_db)) as pilot_intake_store,
@@ -926,20 +968,16 @@ def run_pilot_critic_local(args: argparse.Namespace) -> int:
             outcome_service=critic_outcomes,
             store=pilot_execution_store,
         )
-        binding = execution.execute(
-            plan,
-            approval=approval,
-            pilot_intake_plan=pilot_intake_plan,
-            evidence=evidence,
-            pilot_outcome_plan=pilot_outcome_plan,
-            intake_plan=intake_plan,
-            command=command,
-            outcome_plan=outcome_plan,
-            audit_artifact=artifact,
-            validation_plan=validation_plan,
-            critic_plan=critic_plan,
-            now=utc_now(),
-        )
+        yield execution
+
+
+def run_pilot_critic_local(args: argparse.Namespace) -> int:
+    """Execute one approved deterministic Critic review and bind its M8.4 outcome."""
+    plan = PilotCriticExecutionPlan.model_validate_json(Path(args.plan_file).read_text())
+    approval = ApprovalRequest.model_validate_json(Path(args.approval_file).read_text())
+    inputs = _load_pilot_critic_inputs(args)
+    with _open_pilot_critic_service(args) as execution:
+        binding = execution.execute(plan, approval=approval, now=utc_now(), **inputs)
     print(
         json.dumps(
             {
@@ -947,6 +985,78 @@ def run_pilot_critic_local(args: argparse.Namespace) -> int:
                 "review_recorded": True,
                 "validation_executed": False,
                 "source_candidate_unchanged": True,
+                "network_accessed": False,
+                "binding": binding.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def bind_pilot_finding_intake_local(args: argparse.Namespace) -> int:
+    """Consume completed pilot Critic provenance into human Intake, without promotion."""
+    plan = PilotFindingIntakePlan.model_validate_json(Path(args.plan_file).read_text())
+    execution_plan = PilotCriticExecutionPlan.model_validate_json(
+        Path(args.critic_execution_plan_file).read_text()
+    )
+    approval = ApprovalRequest.model_validate_json(Path(args.approval_file).read_text())
+    execution_inputs = _load_pilot_critic_inputs(args)
+    critic_binding_plan = AgentCriticOutcomeBindingPlan.model_validate_json(
+        Path(args.critic_binding_plan_file).read_text()
+    )
+    intake_plan = AgentFindingIntakePlan.model_validate_json(
+        Path(args.finding_intake_plan_file).read_text()
+    )
+    command = AgentFindingIntakeCommand.model_validate_json(
+        Path(args.finding_intake_command_file).read_text()
+    )
+    promotion_plan = FindingPromotionPlan.model_validate_json(
+        Path(args.promotion_plan_file).read_text()
+    )
+    duplicate_check = FindingDuplicateCheck.model_validate_json(
+        Path(args.duplicate_check_file).read_text()
+    )
+    with (
+        _open_pilot_critic_service(args) as execution,
+        FindingDuplicateCheckStore(Path(args.duplicate_check_db)) as duplicate_store,
+        AgentFindingIntakeStore(Path(args.finding_intake_db)) as intake_store,
+        PilotFindingIntakeStore(Path(args.pilot_finding_db)) as store,
+    ):
+        upstream = execution.outcome_service
+        intake = AgentFindingIntakeService(
+            scope=execution.scope,
+            critic_binding_store=upstream.binding_store,
+            validation_binding_store=upstream.outcome_binding_store,
+            validation_store=upstream.validation_store,
+            critic_store=upstream.critic_store,
+            evidence_store=upstream.evidence_store,
+            duplicate_check_store=duplicate_store,
+            store=intake_store,
+        )
+        service = PilotFindingIntakeService(
+            critic_execution_service=execution, intake_service=intake, store=store
+        )
+        binding = service.execute(
+            plan,
+            critic_execution_plan=execution_plan,
+            execution_approval=approval,
+            execution_inputs=execution_inputs,
+            intake_plan=intake_plan,
+            command=command,
+            critic_binding_plan=critic_binding_plan,
+            promotion_plan=promotion_plan,
+            duplicate_check=duplicate_check,
+            now=utc_now(),
+        )
+    print(
+        json.dumps(
+            {
+                "mode": "pilot_finding_intake_binding",
+                "finding_created": False,
+                "candidate_changed": False,
+                "critic_executed": False,
+                "validation_executed": False,
                 "network_accessed": False,
                 "binding": binding.model_dump(mode="json"),
             },
@@ -1416,7 +1526,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     pilot_outcome = sub.add_parser("pilot-validation-outcome-bind-local")
     for name in (
-        "plan-file", "outcome-plan-file", "scope-file", "validation-plan-file",
+        "plan-file",
+        "outcome-plan-file",
+        "scope-file",
+        "validation-plan-file",
         "audit-artifact-file",
     ):
         pilot_outcome.add_argument(f"--{name}", required=True)
@@ -1436,8 +1549,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     pilot_critic = sub.add_parser("pilot-critic-intake-bind-local")
     for name in (
-        "plan-file", "pilot-outcome-plan-file", "outcome-plan-file", "intake-plan-file",
-        "intake-command-file", "critic-plan-file", "scope-file", "validation-plan-file",
+        "plan-file",
+        "pilot-outcome-plan-file",
+        "outcome-plan-file",
+        "intake-plan-file",
+        "intake-command-file",
+        "critic-plan-file",
+        "scope-file",
+        "validation-plan-file",
         "audit-artifact-file",
     ):
         pilot_critic.add_argument(f"--{name}", required=True)
@@ -1459,9 +1578,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     pilot_critic_run = sub.add_parser("pilot-critic-run-local")
     for name in (
-        "plan-file", "pilot-intake-plan-file", "approval-file", "evidence-catalog-file",
-        "pilot-outcome-plan-file", "outcome-plan-file", "intake-plan-file",
-        "intake-command-file", "critic-plan-file", "scope-file", "validation-plan-file",
+        "plan-file",
+        "pilot-intake-plan-file",
+        "approval-file",
+        "evidence-catalog-file",
+        "pilot-outcome-plan-file",
+        "outcome-plan-file",
+        "intake-plan-file",
+        "intake-command-file",
+        "critic-plan-file",
+        "scope-file",
+        "validation-plan-file",
         "audit-artifact-file",
     ):
         pilot_critic_run.add_argument(f"--{name}", required=True)
@@ -1483,6 +1610,50 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         pilot_critic_run.add_argument(f"--{name}", default=default)
     pilot_critic_run.set_defaults(handler=run_pilot_critic_local)
+
+    pilot_finding = sub.add_parser("pilot-finding-intake-bind-local")
+    for name in (
+        "plan-file",
+        "critic-execution-plan-file",
+        "critic-binding-plan-file",
+        "finding-intake-plan-file",
+        "finding-intake-command-file",
+        "promotion-plan-file",
+        "duplicate-check-file",
+        "pilot-intake-plan-file",
+        "approval-file",
+        "evidence-catalog-file",
+        "pilot-outcome-plan-file",
+        "outcome-plan-file",
+        "intake-plan-file",
+        "intake-command-file",
+        "critic-plan-file",
+        "scope-file",
+        "validation-plan-file",
+        "audit-artifact-file",
+    ):
+        pilot_finding.add_argument(f"--{name}", required=True)
+    for name, default in (
+        ("audit-store", ".vulnloom/agent-audits"),
+        ("candidate-store", ".vulnloom/candidates"),
+        ("evidence-store", ".vulnloom/evidence"),
+        ("intake-db", ".vulnloom/agent-validation-intakes.db"),
+        ("pilot-intake-db", ".vulnloom/pilot-intakes.db"),
+        ("pilot-execution-db", ".vulnloom/pilot-validation-executions.db"),
+        ("validation-db", ".vulnloom/validation.db"),
+        ("outcome-db", ".vulnloom/agent-validation-outcomes.db"),
+        ("pilot-outcome-db", ".vulnloom/pilot-validation-outcomes.db"),
+        ("critic-intake-db", ".vulnloom/agent-critic-intakes.db"),
+        ("pilot-critic-db", ".vulnloom/pilot-critic-intakes.db"),
+        ("critic-db", ".vulnloom/critic.db"),
+        ("critic-outcome-db", ".vulnloom/agent-critic-outcomes.db"),
+        ("pilot-critic-execution-db", ".vulnloom/pilot-critic-executions.db"),
+        ("duplicate-check-db", ".vulnloom/finding-duplicate-checks.db"),
+        ("finding-intake-db", ".vulnloom/agent-finding-intakes.db"),
+        ("pilot-finding-db", ".vulnloom/pilot-finding-intakes.db"),
+    ):
+        pilot_finding.add_argument(f"--{name}", default=default)
+    pilot_finding.set_defaults(handler=bind_pilot_finding_intake_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)
