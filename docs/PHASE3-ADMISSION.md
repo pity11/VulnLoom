@@ -209,6 +209,12 @@ The M9.11 pilot Critic Intake admission run is
 [`34075541729`](https://github.com/pity11/VulnLoom/actions/runs/34075541729).
 Both completed successfully on 2026-09-07 UTC.
 
+The M9.12 approved pilot Critic execution admission run is
+[`34079581400`](https://github.com/pity11/VulnLoom/actions/runs/34079581400) for commit
+`a8c2c2b2db1a3cc6da2453024511173f972ecb71`. The same commit passed standard CI
+[`34079581413`](https://github.com/pity11/VulnLoom/actions/runs/34079581413).
+Both completed successfully on 2026-09-07 UTC.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -253,6 +259,7 @@ Both completed successfully on 2026-09-07 UTC.
 | Approval-gated offline pilot Validation | One completed M9.8 binding and accepted M8.1 record are consumed only with the identical pre-existing ValidationPlan and a separately granted exact `RUN_VALIDATION` Approval; trusted preflight, unique execution checkpoints and digest-only outcome binding enforce replay, drift, timeout, bypass and recovery refusal while the first version rejects all Broker calls and network activity | PASS (`34035435470`) |
 | Pilot Validation outcome provenance | A completed M9.9 execution binding and exact M8.2 plan are required; upstream provenance, bare-checkpoint refusal, read-only replay, drift, timeout and STARTED recovery are verified without executing Validation or changing Candidate state | PASS (`34041988283`) |
 | Pilot human Critic Intake | Completed M9.10 provenance, reproduced Validation, validated result Candidate, complete Evidence and an independent exact human accept command are required before M8.3 checkpointing; bare Intake, drift, timeout and interrupted state fail closed, and replay never executes Critic or Validation | PASS (`34075541729`) |
+| Approval-gated pilot Critic execution | Completed M9.11 provenance and an independent exact RUN_CRITIC Approval gate deterministic review and M8.4 binding; unique consumption, all verdicts, current Evidence, bare-checkpoint refusal, read-only replay and interrupted-state recovery are verified without Validation, target execution, network or Submission | PASS (`34079581413`) |
 
 ## Reproduction
 
@@ -606,7 +613,7 @@ Admission run confirms the existing real isolation boundary remains intact. Synt
 fixtures do not claim real-target reproduction.
 
 
-### M9.12 local verification (remote admission pending)
+### M9.12 approved pilot Critic execution admission
 
 The new pilot Critic execution gate requires completed M9.11 provenance and an independent exact
 human-granted RUN_CRITIC Approval. It composes existing deterministic Critic review and M8.4 outcome
@@ -618,4 +625,10 @@ Local verification on 0.60.0: `737 passed, 19 skipped`, coverage `85.92%`. Tests
 exact/non-granted/wrong/expired Approval, upstream and catalog drift, deadlines, bare Critic/M8.4
 checkpoint rejection, replay integrity, failures at all three persistence stages, cleanup and CLI
 single-review replay. Successful cases use synthetic offline Evidence, not real-target reproduction.
-Remote CI/Phase 3 Admission has not yet qualified M9.12; earlier run IDs do not qualify this revision.
+The exact implementation commit `a8c2c2b2db1a3cc6da2453024511173f972ecb71` passed
+[CI `34079581413`](https://github.com/pity11/VulnLoom/actions/runs/34079581413) at
+2026-09-07 03:26:46 UTC and
+[Phase 3 Admission `34079581400`](https://github.com/pity11/VulnLoom/actions/runs/34079581400)
+at 2026-09-07 03:27:01 UTC. The new tests prove Approval-gated pilot Critic execution and outcome
+provenance; the concurrent rootless Admission run confirms the existing real isolation boundary
+remains intact. Synthetic success fixtures do not claim real-target reproduction.
