@@ -821,6 +821,18 @@ M9.14 `PilotFindingPromotionPlan` 封存 M9.13 plan/binding ID 及完整摘要�
 完整 Finding 及 promoted Candidate 仍由既有 M8.6 outcome store 保存；来源 CandidateSet 不被覆盖。
 独立 ledger 使用唯一约束防止重复消费，STARTED 要求显式恢复，完成重放只读验证全部结果与当前授权。
 
+### ProviderProbeConfig、Plan 与 Result
+
+M9.15 `ProviderProbeConfig` 包含互相精确绑定的 model registration、transport admission、credential
+reference 与 codec registration。只接受有界 live HTTPS、固定 reporter role 和已签发的 grant 引用；
+不携带 Key、自定义 prompt、Target、工具或源码。
+
+`ProviderProbePlan` 封存 config 完整摘要、grant、代码固定 fixture 摘要、创建/截止时间和幂等键。
+窗口不超过 300 秒且必须在 grant 有效期内。`ProviderProbeResult` 保存计划身份、passed/rejected/timed_out、
+已校验 usage 计数、process_started/cleanup_verified、attempt/receipt 摘要及完成时间，禁止响应正文。
+两种记录都有内容摘要校验。STARTED/COMPLETED ledger 唯一消费 plan、幂等键和 grant；失败也不能自动重试。
+这些协议不产生研究领域事件，也不能改变 Candidate/Finding 或批准其他操作。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

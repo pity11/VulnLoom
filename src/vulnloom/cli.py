@@ -1128,6 +1128,64 @@ def promote_pilot_finding_local(args: argparse.Namespace) -> int:
     return 0
 
 
+def provider_probe_local(args: argparse.Namespace) -> int:
+    """Bounded synthetic provider test; errors never include input or provider text."""
+    import os
+    import stat
+    from datetime import timedelta
+
+    from vulnloom.adapters.model_credentials import EnvironmentModelCredentialProvider
+    from vulnloom.agent_runtime.provider_admission import AgentProviderEgressStore
+    from vulnloom.agent_runtime.provider_probe import ProviderProbeService
+    from vulnloom.agent_runtime.provider_probe_models import ProviderProbeConfig, ProviderProbePlan
+    from vulnloom.agent_runtime.provider_probe_store import ProviderProbeStore
+
+    def read_sealed(path):
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > 65536:
+                raise ValueError("invalid provider probe file")
+            content = handle.read(65537)
+            if len(content) > 65536:
+                raise ValueError("provider probe file over budget")
+            return content
+
+    try:
+        if args.probe_run and not args.allow_provider_network:
+            raise ValueError("explicit provider network opt-in required")
+        config = ProviderProbeConfig.model_validate_json(read_sealed(args.config_file))
+        with (
+            AgentProviderEgressStore(Path(args.egress_store)) as egress,
+            ProviderProbeStore(Path(args.probe_db)) as store,
+        ):
+            service = ProviderProbeService(
+                config=config,
+                now=utc_now,
+                egress_store=egress,
+                store=store,
+                credential_provider=EnvironmentModelCredentialProvider(
+                    allowed_references=(config.credential_reference,),
+                ),
+            )
+            if not args.probe_run:
+                now = utc_now()
+                plan = service.prepare(
+                    now=now,
+                    deadline=now + timedelta(seconds=args.ttl_seconds),
+                    idempotency_key=args.idempotency_key,
+                )
+                print(plan.model_dump_json(indent=2))
+                return 0
+            plan = ProviderProbePlan.model_validate_json(read_sealed(args.plan_file))
+            result = service.execute(plan)
+        print(result.model_dump_json(indent=2))
+        return 0 if result.status == "passed" else 1
+    except Exception:
+        print(json.dumps({"status": "rejected", "error_code": "provider_probe_rejected"}))
+        return 1
+
+
 def show_report_diff(args: argparse.Namespace) -> int:
     previous = Report.model_validate_json(Path(args.before).read_text(encoding="utf-8"))
     current = Report.model_validate_json(Path(args.after).read_text(encoding="utf-8"))
@@ -1875,6 +1933,18 @@ def build_parser() -> argparse.ArgumentParser:
     analyzer_execution.add_argument("--plan-file", required=True)
     analyzer_execution.add_argument("--execution-db", default=".vulnloom/analyzer-executions.db")
     analyzer_execution.set_defaults(handler=check_analyzer_execution_offline)
+    for command, run in (("provider-probe-prepare", False), ("provider-probe-run", True)):
+        probe = sub.add_parser(command)
+        probe.add_argument("--config-file", required=True)
+        probe.add_argument("--egress-store", required=True)
+        probe.add_argument("--probe-db", default=".vulnloom/provider-probes.db")
+        if run:
+            probe.add_argument("--plan-file", required=True)
+            probe.add_argument("--allow-provider-network", action="store_true")
+        else:
+            probe.add_argument("--idempotency-key", required=True)
+            probe.add_argument("--ttl-seconds", type=int, default=120)
+        probe.set_defaults(handler=provider_probe_local, probe_run=run)
     return parser
 
 

@@ -59,6 +59,11 @@ from vulnloom.agent_runtime import (
     AgentToolIntent,
     AgentToolObservation,
 )
+from vulnloom.agent_runtime.provider_probe_models import (
+    ProviderProbeConfig,
+    ProviderProbePlan,
+    ProviderProbeResult,
+)
 from vulnloom.analyzers import SourceGraph, SourceMapperLimits
 from vulnloom.benchmark import (
     AgentWorkflowCheckpoint,
@@ -290,6 +295,9 @@ MODELS = (
     AgentProviderTransportReceipt,
     AgentModelRegistration,
     AgentRunLimits,
+    ProviderProbeConfig,
+    ProviderProbePlan,
+    ProviderProbeResult,
     AgentRunPlan,
     AgentToolCallPayload,
     AgentToolHandoffLimits,

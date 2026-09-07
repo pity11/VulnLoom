@@ -676,5 +676,38 @@ deadlines, failures at both persistence stages, cleanup, CLI replay and resealed
 corruption. M6.1/M6.3 and M9.2–M9.5 regression gates, M9.5 ablation, deterministic schema/fixture
 regeneration, Ruff and whitespace checks passed. Existing M8.6 and M9.13 regressions also pass.
 
-Remote CI and Phase 3 Admission for the M9.14 implementation commit remain pending; M9.13
-remote results do not certify these new changes.
+Implementation commit `ea110e17fd04450943600455dd3eba3d3be14760` passed
+[CI `34089910194`](https://github.com/pity11/VulnLoom/actions/runs/34089910194) and
+[Phase 3 Admission `34089910201`](https://github.com/pity11/VulnLoom/actions/runs/34089910201)
+on 2026-09-07 UTC.
+
+### M9.15 standalone fixed Provider probe admission
+
+Version 0.63.0 adds a fixed-content, zero-tool Provider probe independent of the research pilot.
+Preparation seals an exact bounded configuration and requires an existing inference egress grant,
+without resolving DNS or reading credentials. Execution requires explicit CLI network opt-in,
+rechecks the grant, and invokes the existing pinned subprocess HTTPS adapter and Responses codec.
+Neither command issues Approval or egress grants. No research Target, source, Evidence or custom
+prompt can be supplied; only the fixed completion sentinel passes response verification.
+
+The dedicated ledger uniquely consumes plan, idempotency key and grant, including failed attempts.
+Replay reads the result without a second provider call; interrupted persistence requires explicit
+recovery. Results contain only stable status, validated usage counts, process/cleanup flags and
+attempt/receipt digests. CLI errors never print input, raw provider text or exception details.
+Unknown errors cannot claim verified cleanup. Transport/codec timeouts, request/response bytes and
+output tokens are bounded; these limits do not constitute a provider-account currency cap.
+
+Local verification: `813 passed, 19 skipped`, coverage `86.25%`. The 24 new tests cover fixed-message
+success, zero-tool behavior, replay and grant/key conflicts, expired/future/drifted plans, missing
+and revoked grants, revocation between preflight and transport, forbidden DNS, missing credential,
+timeout, unexpected secret-bearing errors, mismatched/blocked/tool-proposal responses, cleanup,
+interrupted writes, ledger drift, CLI opt-in, sanitized errors and bounded no-follow file reads.
+Schema/fixture regeneration determinism, M6.1/M6.3 and M9.2–M9.5 gates, M9.5 ablation, Ruff and
+whitespace checks passed.
+
+New tests use fake DNS/process exchange. No real API key was read and no public Provider was called.
+Existing opt-in loopback TLS/Phase 3 tests cover the reused transport boundary; they do not certify
+real Provider/model compatibility or research effectiveness. Production credentials, exact provider
+configuration, account quota and a real smoke result remain operator-supplied admission evidence.
+See `docs/PROVIDER-PROBE.md`. Remote CI and Phase 3 Admission for this implementation commit are
+pending and are separate from real Provider verification.

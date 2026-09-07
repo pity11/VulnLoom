@@ -913,7 +913,7 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 `docs/PHASE3-ADMISSION.md`。实现提交 `204f1ab` 的 CI `34088676591` 与 Phase 3 Admission
 `34088676621` 已于 2026-09-07 UTC 通过。
 
-### M9.14：精确 Approval 下的 pilot Finding 晋升与结果绑定（已实现，待远端验收）
+### M9.14：精确 Approval 下的 pilot Finding 晋升与结果绑定（已完成首版）
 
 - 新增 digest-only `PilotFindingPromotionPlan`/`Binding`，强制消费精确 completed M9.13 plan/binding、
   M8.5 record、预封存 M8.6 execution plan 和独立人工晋升 Approval；审批时间不得早于 pilot Intake 完成。
@@ -927,7 +927,24 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
   不执行 Critic/Validation/目标代码、生成 Runner/Broker 参数、构建目标、批准操作、访问网络或 Submission。
 
 本地验证详情见 `docs/PHASE3-ADMISSION.md`；成功案例仅使用合成离线 Evidence，不代表真实目标复现。
-下一阶段为 pilot Report Intake 来源绑定，报告生成、审核与导出继续保留各自门禁。
+实现提交 `ea110e1` 的 CI `34089910194` 与 Phase 3 Admission `34089910201` 已通过。
+后续 pilot Report Intake 和报告链仍保留各自门禁；M9.15 优先完成独立 Provider 最小接入。
+
+### M9.15：独立真实 Provider 最小接入与固定消息验收（已实现，待远端验收）
+
+- 新增 `ProviderProbeConfig`/`Plan`/`Result` 和 `provider-probe-prepare`/`provider-probe-run`。
+  只允许固定合成消息，零工具、无 Target/源码/Evidence 输入，不接入漏洞研究工作流。
+- 复用既有 live HTTPS adapter、凭据引用、Responses codec 和独立签发的 inference egress grant；
+  prepare 不读 Key 或联网，run 必须显式选择 Provider 联网且重新检查当前 grant。
+- 固定单次请求、输出 token/请求响应字节/超时上限；独立 ledger 对 plan、幂等键和 grant 唯一消费，
+  完成重放只读，失败不自动重试，STARTED 要求显式恢复。命令不签发/批准/续期任何授权。
+- 只有精确固定测试响应和完整清理证明可通过；模型工具建议及任意其他工作流输出不能触发操作。
+  普通结果只保存摘要、计数和稳定状态，CLI 不打印原始响应、异常正文或密钥。
+- 使用 fake DNS/process 完成本地成功、拒绝、超时、清理、撤销和 CLI 回归；不声称已完成真实 Provider
+  调用或真实漏洞研究验收。操作及剩余验收要求见 `docs/PROVIDER-PROBE.md`。
+
+报告链的 pilot 绑定继续待办。Provider smoke 通过也不授予研究目标网络访问、Validation、Candidate 变更、
+Target build 或 Submission 权限。
 
 ## 延后事项
 

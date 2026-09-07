@@ -899,3 +899,14 @@ the M8.6 outcome store plus a digest-only pilot binding. The source CandidateSet
 Completed replay only verifies persisted results; incomplete checkpoints require explicit recovery.
 The command does not run Validation, Critic or target code, approve operations, derive Runner/Broker
 parameters, build, access the network or submit anything.
+
+
+M9.15 provides a standalone fixed-message Provider probe. `provider-probe-prepare` seals a bounded
+plan without reading credentials or opening a connection; `provider-probe-run` requires an existing
+operator-issued egress grant and explicit `--allow-provider-network`. It uses only synthetic content
+and no tools or research targets. Each grant is consumed once in the authoritative probe ledger,
+including failed attempts; replay is read-only and STARTED requires explicit recovery.
+
+See [Provider probe setup and remaining admission requirements](docs/PROVIDER-PROBE.md) for the
+configuration types and commands. No real-key or public Provider call has been verified by the local
+tests. Passing this smoke does not establish vulnerability-research quality or authorize target testing.

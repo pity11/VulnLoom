@@ -1115,3 +1115,30 @@ Critic grant. The command records the verified Finding and promoted Candidate in
 leaving the source CandidateSet immutable. It never runs targets, Validation, Critic, Runner/Broker,
 Agent/provider, builds, network requests or Submission, and cannot grant Approval. Synthetic offline
 fixtures verify this record workflow; they do not establish real-target exploitability.
+
+
+## 61. Standalone fixed provider probe (M9.15)
+
+Provider probing is independent of pilot Finding/report progression. The CLI accepts only sealed
+provider configuration and a probe plan, with explicit network opt-in for execution. Trusted code
+constructs a fixed synthetic context and synthetic Task identities with no loaded Target or Scope,
+empty allowed tools and zero tool budget. No Agent runtime, tool dispatcher or domain workflow runs.
+Only the exact completion sentinel with no tool call or supporting references can pass.
+
+A pre-existing operator-issued inference egress grant is mandatory; neither command issues one.
+The existing adapter rechecks lifecycle before DNS and credentials, pins the resolved address and
+uses the fixed isolated HTTPS transport process and Responses codec. Config caps output tokens,
+request/response bytes, rate and timeout. Credentials are leased from a single explicit environment
+reference, passed to the transport over its bounded frame, and released through the existing path.
+The new entry point does not introduce another secret store or grant-management interface.
+
+A dedicated SQLite ledger consumes plan, idempotency key and grant exactly once in that authoritative
+store. Failed attempts are terminal; interrupted persistence remains STARTED for explicit recovery.
+Replay validates current authority and reads the result without another model call. Result records
+contain stable status, validated usage counts and attempt/receipt digests, never provider text.
+Unexpected exceptions are sanitized and cannot claim verified cleanup. File inputs are bounded,
+regular and no-follow; missing network opt-in is rejected before reading configuration or secrets.
+
+Local tests stub DNS and process exchange; they are not production provider evidence. Existing
+opt-in transport tests continue to cover actual loopback TLS/process boundaries. Provider-specific
+compatibility, account quotas and a real-key smoke require separate operator execution and evidence.
