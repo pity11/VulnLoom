@@ -41,6 +41,22 @@ from .outcome_binding_store import (
     AgentCriticOutcomeBindingRecoveryRequired,
     AgentCriticOutcomeBindingStore,
 )
+from .pilot_execution import (
+    PilotCriticExecutionRejected,
+    PilotCriticExecutionService,
+    PilotCriticExecutionTimedOut,
+)
+from .pilot_execution_models import (
+    PILOT_CRITIC_EFFECTS,
+    PilotCriticApprovalAction,
+    PilotCriticExecutionBinding,
+    PilotCriticExecutionPlan,
+)
+from .pilot_execution_store import (
+    PilotCriticExecutionConflict,
+    PilotCriticExecutionRecoveryRequired,
+    PilotCriticExecutionStore,
+)
 from .pilot_intake import (
     PilotCriticIntakeRejected,
     PilotCriticIntakeService,
@@ -61,6 +77,17 @@ from .store import (
 )
 
 __all__ = [
+    "PilotCriticExecutionService",
+    "PilotCriticExecutionRejected",
+    "PilotCriticExecutionTimedOut",
+    "PILOT_CRITIC_EFFECTS",
+    "PilotCriticApprovalAction",
+    "PilotCriticExecutionPlan",
+    "PilotCriticExecutionBinding",
+    "PilotCriticExecutionStore",
+    "PilotCriticExecutionConflict",
+    "PilotCriticExecutionRecoveryRequired",
+
     "PilotCriticIntakeService",
     "PilotCriticIntakeRejected",
     "PilotCriticIntakeTimedOut",

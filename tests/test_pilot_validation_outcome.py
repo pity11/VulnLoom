@@ -85,6 +85,7 @@ def _case(tmp_path, now, scope, candidate, *, synthetic_result=None):
                 wall_seconds=0.01, evidence_refs=(evidence.evidence_id,)
             )
             execution.validation_service.judge = _FixedResultJudge(synthetic_result)
+            runner.evidence = evidence
         execution.execute(
             execution_plan,
             intake_plan_id=intake_plan.intake_plan_id,

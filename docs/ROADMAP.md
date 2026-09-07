@@ -876,6 +876,25 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 当前默认 offline pilot 的 `INCONCLUSIVE` 判据保持不变。成功测试使用专门的合成 Evidence 和可信测试 judge，
 不代表真实目标已复现。后续 pilot Critic execution/outcome 阶段仍须显式消费本 binding；本里程碑不提供该执行入口。
 
+### M9.12：精确 Approval 下的 pilot Critic 执行与 M8.4 结果绑定（已实现，远端准入待运行）
+
+- 新增 `RUN_CRITIC` Approval action 和 digest-only `PilotCriticApprovalAction`/`ExecutionPlan`，绑定
+  completed M9.11、accepted M8.3 record、exact CriticPlan、有序 typed Evidence catalog、Candidate、Scope
+  与固定 `critic:review`/`candidate:critic_result` 效果；人工 Intake 不可替代该独立 Approval。
+- 执行前只读复核 M9.11–M9.8/M8.1/M8.2 来源链和当前窗口，并以既有 DeterministicCritic preflight 验证
+  reproduced Validation、validated Candidate、完整 Evidence、独立评估及全部输入摘要。
+- 批准后调用一次本地 DeterministicCritic，再由既有 M8.4 verifier 重算裁决并生成 outcome binding；
+  `PilotCriticExecutionBinding` 保存精确 Approval、CriticOutcome/Review、M8.4 plan/binding 和最终 Candidate 摘要。
+- 独立 STARTED/COMPLETED ledger 唯一消费 M9.11 plan、CriticPlan 与 Approval；预存在的裸 Critic 或 M8.4
+  checkpoint 被拒绝，完成重放只读，Critic/M8.4/wrapper 任一写入失败均不自动重放。
+- 新增 `pilot-critic-run-local`，只接受预封存计划、独立人工 Approval、typed catalog 和本地 stores；不执行
+  Validation、目标代码或 Agent，不生成 Finding、不访问网络、不构建 Target、不批准操作或 Submission。
+- 三类裁决分别产生 `CRITIC_REVIEWED`、`REJECTED`、`VALIDATED` 结果 Candidate；来源 CandidateSet 不变。
+  本地 737 项测试通过、19 项 opt-in 跳过，覆盖率 85.92%；远端 CI/Admission 尚待运行。
+
+成功路径使用合成离线 Evidence 验证协议，不代表真实目标已复现。默认 offline Validation 仍为 INCONCLUSIVE，
+不会因本阶段而进入 Critic。后续 pilot Finding Intake 必须显式消费本结果绑定并继续要求去重和独立晋升门禁。
+
 ## 延后事项
 
 - 公网资产自主发现。

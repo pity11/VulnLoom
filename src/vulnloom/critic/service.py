@@ -50,7 +50,7 @@ class DeterministicCritic:
         *,
         now: datetime,
     ) -> CriticOutcome:
-        catalog = self._preflight(
+        catalog = self.preflight(
             candidate, validation_run, evidence_bundle, evidence, plan, now=now
         )
         claim = self.store.claim(plan, now=now)
@@ -112,6 +112,11 @@ class DeterministicCritic:
         )
         self.store.complete(outcome)
         return outcome
+
+    def preflight(self, candidate, validation_run, evidence_bundle, evidence, plan, *, now):
+        """Verify typed inputs and Evidence without claiming or changing state."""
+        plan = CriticPlan.model_validate(plan.model_dump(mode="python"))
+        return self._preflight(candidate, validation_run, evidence_bundle, evidence, plan, now=now)
 
     def _preflight(
         self,

@@ -1039,3 +1039,32 @@ interruption leaves STARTED and does not automatically resume. No temporary exec
 allocated. `pilot-critic-intake-bind-local` takes presealed files, writes only the local Intake binding,
 and has no Critic execution, Validation execution, Approval, build, network or Submission operation.
 A later pilot Critic execution/outcome boundary must explicitly consume this binding.
+
+
+## 58. M9.12 approved pilot Critic execution and M8.4 binding
+
+`PilotCriticExecutionService` reopens the completed M9.11 Intake through a read-only `load_verified`
+method. It verifies all upstream pilot/Validation provenance, current Scope and active windows, then
+calls the existing deterministic Critic preflight before claiming any execution checkpoint. A typed
+Evidence catalog must exactly cover the sorted Bundle references; the action seals its full metadata
+digest and the Critic verifies every required object's integrity and Target version.
+
+The control plane can prepare `PilotCriticApprovalAction`, but cannot grant its Approval. An independent
+human-granted `RUN_CRITIC` request must match the exact action digest, engagement/Target, Scope version,
+fixed effects, human decision identity/time and expiry. `PilotCriticExecutionPlan` seals the full
+Approval digest, M9.11 binding, M8.3 record, CriticPlan, catalog and execution window. A Validation
+Approval or accepted Intake cannot authorize this step.
+
+After the gate, the existing DeterministicCritic performs one local reduction of sealed assessments
+and creates an immutable result Candidate and CriticReview. M8.4 recomputes verdict/provenance and
+records its original-format binding. A separate digest-only pilot ledger uniquely consumes the M9.11
+plan, CriticPlan and Approval, linking both completed results. It rejects pre-existing bare Critic or
+M8.4 checkpoints; interrupted Critic, M8.4 or final-ledger persistence leaves STARTED and refuses
+automatic retry. Completed replay revalidates inputs and stored results without reviewing or binding
+again. The authoritative Critic and M8.4 stores must be shared by these services.
+
+The new CLI `pilot-critic-run-local` consumes presealed files and an explicit Approval; it never creates
+an Approval, runs Validation/target code, invokes Agent/Runner/Broker/provider, builds a Target, accesses
+a network or submits anything. The original CandidateSet remains immutable; result states follow the
+existing approved Critic state machine. Inconclusive Validation remains ineligible. Tests use synthetic
+Evidence to prove provenance, not real-target reproduction. Finding promotion remains a separate gate.

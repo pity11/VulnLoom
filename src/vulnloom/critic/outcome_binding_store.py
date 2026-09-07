@@ -39,6 +39,15 @@ class AgentCriticOutcomeBindingStore:
         )
         self.connection.commit()
 
+    def has_critic_checkpoint(self, critic_plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM agent_critic_outcome_bindings WHERE critic_plan_id=?",
+                (critic_plan_id,),
+            ).fetchone()
+            is not None
+        )
+
     def claim(self, plan: AgentCriticOutcomeBindingPlan, *, now: datetime):
         row = self.connection.execute(
             "SELECT * FROM agent_critic_outcome_bindings WHERE binding_plan_id=? "

@@ -1,0 +1,157 @@
+{
+  "$defs": {
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "CriticVerdict": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "inconclusive"
+      ],
+      "title": "CriticVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Action Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "pilot_intake_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Binding Id",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "critic_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Plan Id",
+      "type": "string"
+    },
+    "critic_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Outcome Digest",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "critic_review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Review Digest",
+      "type": "string"
+    },
+    "outcome_binding_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Plan Id",
+      "type": "string"
+    },
+    "outcome_binding_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Plan Digest",
+      "type": "string"
+    },
+    "outcome_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Id",
+      "type": "string"
+    },
+    "outcome_binding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Binding Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "validated_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validated Candidate Digest",
+      "type": "string"
+    },
+    "final_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Candidate Digest",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/CriticVerdict"
+    },
+    "final_candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "approval_action_id",
+    "approval_id",
+    "approval_digest",
+    "pilot_intake_binding_id",
+    "intake_record_id",
+    "critic_plan_id",
+    "critic_outcome_digest",
+    "critic_review_id",
+    "critic_review_digest",
+    "outcome_binding_plan_id",
+    "outcome_binding_plan_digest",
+    "outcome_binding_id",
+    "outcome_binding_digest",
+    "candidate_id",
+    "validated_candidate_digest",
+    "final_candidate_digest",
+    "verdict",
+    "final_candidate_state",
+    "completed_at"
+  ],
+  "title": "PilotCriticExecutionBinding",
+  "type": "object"
+}

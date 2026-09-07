@@ -48,6 +48,14 @@ class CriticStore:
         )
         self.connection.commit()
 
+    def has_checkpoint(self, plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM critic_executions WHERE plan_id=?", (plan_id,)
+            ).fetchone()
+            is not None
+        )
+
     def claim(self, plan: CriticPlan, *, now: datetime) -> CriticClaim:
         encoded = plan.model_dump_json()
         try:

@@ -161,6 +161,28 @@ class PilotCriticIntakeService:
         self.store.complete(binding)
         return binding
 
+    def load_verified(self, plan: PilotCriticIntakePlan, *, now: datetime, **inputs):
+        """Read completed human Intake without deciding or claiming again."""
+        plan = PilotCriticIntakePlan.model_validate(plan.model_dump(mode="python"))
+        self._verify(**inputs, now=now)
+        expected = self.prepare(
+            **inputs,
+            now=plan.created_at,
+            deadline=plan.deadline,
+            idempotency_key=plan.idempotency_key,
+        )
+        if expected != plan:
+            raise PilotCriticIntakeRejected("pilot Critic Intake plan drifted")
+        binding = self.store.load_completed(plan.plan_id)
+        record = self.intake_service.store.load_completed(plan.intake_plan_id)
+        self._verify_record(record, inputs["intake_plan"], inputs["command"])
+        if (
+            binding != self._binding(plan, record, binding.completed_at)
+            or binding.completed_at > now
+        ):
+            raise PilotCriticIntakeRejected("pilot Critic completed Intake drifted")
+        return binding
+
     def _verify(
         self,
         *,

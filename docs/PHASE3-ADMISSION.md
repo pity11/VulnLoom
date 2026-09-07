@@ -604,3 +604,18 @@ The exact implementation commit `ca327345d948d176bbd238d0a4eea6a3effa9dd6` passe
 at 2026-09-07 02:14:47 UTC. The new tests prove pilot Intake provenance; the concurrent rootless
 Admission run confirms the existing real isolation boundary remains intact. Synthetic success
 fixtures do not claim real-target reproduction.
+
+
+### M9.12 local verification (remote admission pending)
+
+The new pilot Critic execution gate requires completed M9.11 provenance and an independent exact
+human-granted RUN_CRITIC Approval. It composes existing deterministic Critic review and M8.4 outcome
+binding with a uniquely consumed pilot execution ledger. The original CandidateSet remains unchanged;
+result Candidate states follow the existing Critic state machine. Default inconclusive Validation
+cannot enter Critic. No target process, Runner/Broker/provider, network, build or Submission is added.
+
+Local verification on 0.60.0: `737 passed, 19 skipped`, coverage `85.92%`. Tests cover all three verdicts,
+exact/non-granted/wrong/expired Approval, upstream and catalog drift, deadlines, bare Critic/M8.4
+checkpoint rejection, replay integrity, failures at all three persistence stages, cleanup and CLI
+single-review replay. Successful cases use synthetic offline Evidence, not real-target reproduction.
+Remote CI/Phase 3 Admission has not yet qualified M9.12; earlier run IDs do not qualify this revision.

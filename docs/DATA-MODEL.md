@@ -784,6 +784,20 @@ command ID/完整摘要、独立 CriticPlan ID/完整摘要、Candidate ID/valid
 Submission。SQLite 以 STARTED/COMPLETED 唯一消费 M9.10 binding、M8.3 IntakePlan、CriticPlan 和 command；
 完整 record 仍由既有 M8.3 store 管理。绑定只证明人工接纳来源，不是 CriticReview、Candidate 状态迁移或 Finding。
 
+### PilotCriticApprovalAction、ExecutionPlan 与 Binding
+
+M9.12 的 `PilotCriticApprovalAction` 内容寻址绑定 completed M9.11 binding、accepted M8.3 record、exact
+CriticPlan、有序 typed Evidence catalog 摘要、Candidate、Engagement/Target/Scope 和固定的两个效果。
+独立 `ApprovalRequest` 必须是人工 granted 的 `RUN_CRITIC`，完整 identity、digest、效果与窗口精确匹配。
+
+`PilotCriticExecutionPlan` 再封存 Approval ID/完整摘要、来源链和执行窗口，不持久化 assessments、Evidence
+正文、Approval summary、Agent 输出或操作参数。`PilotCriticExecutionBinding` 绑定 completed CriticOutcome/
+Review、M8.4 plan/binding ID/完整摘要、typed verdict、结果 Candidate 状态/摘要和原 validated Candidate 摘要。
+accepted/rejected/inconclusive 分别只对应 CRITIC_REVIEWED/REJECTED/VALIDATED。
+
+独立 SQLite 唯一消费 M9.11 plan、CriticPlan 与 Approval，完成重放只读；裸上游执行记录与 STARTED 拒绝自动
+恢复。完整 CriticOutcome 与 M8.4 binding 保持在既有 stores，pilot ledger 不保存正文，也不代表 Finding 或 Submission。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

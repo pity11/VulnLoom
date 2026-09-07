@@ -826,3 +826,30 @@ inconclusive result remains rejected. The command records Intake without running
 changing Candidate state, granting Approval, building a Target, accessing the network or submitting
 anything. Completed replay is read-only; missing/STARTED provenance and bare pre-existing M8.3
 checkpoints fail closed. A subsequent pilot Critic execution stage is still required.
+
+
+M9.12 connects approved pilot Critic execution and M8.4 result binding. Prepare a sealed execution
+plan through trusted control-plane code and obtain an independent exact human `RUN_CRITIC` Approval:
+
+```bash
+vulnloom pilot-critic-run-local \
+  --plan-file pilot-critic-execution-plan.json \
+  --approval-file critic-approval.json \
+  --pilot-intake-plan-file pilot-critic-intake-plan.json \
+  --pilot-outcome-plan-file pilot-outcome-plan.json \
+  --outcome-plan-file agent-validation-outcome-plan.json \
+  --intake-plan-file agent-critic-intake-plan.json \
+  --intake-command-file agent-critic-intake-command.json \
+  --critic-plan-file critic-plan.json \
+  --evidence-catalog-file evidence-catalog.json \
+  --validation-plan-file validation-plan.json \
+  --audit-artifact-file audit-artifact.json \
+  --scope-file scope.json
+```
+
+Override the `--*-db`/`--*-store` flags to use the same authoritative stores as previous stages. The
+catalog is a bounded JSON array of typed Evidence metadata in Bundle-reference order, without Evidence
+body text. The command performs a local deterministic review of sealed assessments and records M8.4
+and pilot bindings; it does not run Validation or target code, create Approval, build, access the
+network or submit. Replays do not review again. Incomplete checkpoints require explicit recovery.
+Accepted Critic outcomes still require separate duplicate-check and Finding-promotion gates.

@@ -28,7 +28,7 @@ from vulnloom.domain.models import CandidateState, ValidationResult
 
 
 @contextmanager
-def _case(tmp_path, now, scope, candidate, *, result=ValidationResult.REPRODUCED):
+def _case(tmp_path, now, scope, candidate, *, result=ValidationResult.REPRODUCED, disposition=None):
     with _outcome_case(tmp_path, now, scope, candidate, synthetic_result=result) as (
         upstream,
         outcome_plan,
@@ -54,6 +54,16 @@ def _case(tmp_path, now, scope, candidate, *, result=ValidationResult.REPRODUCED
             critic_plan = _critic_plan(
                 now + timedelta(seconds=1), outcome, outcome.verdict.evidence_refs[0]
             )
+            if disposition is not None:
+                assessments = tuple(
+                    item.model_copy(update={"disposition": disposition})
+                    for item in critic_plan.assessments
+                )
+                values = critic_plan.model_dump(mode="python", exclude={"plan_id"})
+                values["assessments"] = tuple(
+                    item.model_dump(mode="python") for item in assessments
+                )
+                critic_plan = type(critic_plan)(plan_id=canonical_digest(values), **values)
             service = PilotCriticIntakeService(
                 pilot_outcome_service=upstream,
                 intake_service=intake,
