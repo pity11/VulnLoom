@@ -6,13 +6,15 @@ from datetime import timedelta
 import pytest
 from test_agent_validation_intake import (
     _audit_bundle,
+    _FixedResultJudge,
     _pilot_execution_service,
     _pilot_intake_case,
     _pilot_validation_approval,
 )
 
 from vulnloom.domain.digests import canonical_digest
-from vulnloom.domain.models import CandidateState
+from vulnloom.domain.models import CandidateState, EvidenceKind
+from vulnloom.runners import OfflineScenario
 from vulnloom.validation import (
     AgentValidationOutcomeBindingService,
     AgentValidationOutcomeBindingStore,
@@ -34,7 +36,7 @@ from vulnloom.validation.pilot_outcome_store import (
 
 
 @contextmanager
-def _case(tmp_path, now, scope, candidate):
+def _case(tmp_path, now, scope, candidate, *, synthetic_result=None):
     with ExitStack() as stack:
         (
             intake,
@@ -69,6 +71,20 @@ def _case(tmp_path, now, scope, candidate):
             deadline=now + timedelta(seconds=60),
             idempotency_key="m9.10-execution",
         )
+        if synthetic_result is not None:
+            # Test-only synthetic observation; never a production reproduction claim.
+            evidence = execution.validation_service.evidence_store.capture_text(
+                "Synthetic offline provenance fixture",
+                kind=EvidenceKind.TEST,
+                source_ref="pilot-critic-fixture",
+                producer="test.pilot-critic",
+                target_version=candidate.target_version,
+                summary="Synthetic provenance fixture",
+            )
+            runner.scenario = OfflineScenario(
+                wall_seconds=0.01, evidence_refs=(evidence.evidence_id,)
+            )
+            execution.validation_service.judge = _FixedResultJudge(synthetic_result)
         execution.execute(
             execution_plan,
             intake_plan_id=intake_plan.intake_plan_id,

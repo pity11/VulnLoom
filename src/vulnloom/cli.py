@@ -64,6 +64,16 @@ from vulnloom.benchmark import (
     evaluate_local_source_robustness,
 )
 from vulnloom.broker import OfflineHttpTransport, StaticResolver, ToolBroker, default_tool_registry
+from vulnloom.critic import (
+    AgentCriticIntakeCommand,
+    AgentCriticIntakePlan,
+    AgentCriticIntakeService,
+    AgentCriticIntakeStore,
+    CriticPlan,
+    PilotCriticIntakePlan,
+    PilotCriticIntakeService,
+    PilotCriticIntakeStore,
+)
 from vulnloom.domain.models import (
     ApprovalRequest,
     ArtifactKind,
@@ -729,6 +739,96 @@ def bind_pilot_validation_outcome_local(args: argparse.Namespace) -> int:
     return 0
 
 
+def bind_pilot_critic_intake_local(args: argparse.Namespace) -> int:
+    """Apply an independently supplied human Intake without running Critic or Validation."""
+    scope = _load_scope(args.scope_file)
+    plan = PilotCriticIntakePlan.model_validate_json(Path(args.plan_file).read_text())
+    pilot_outcome_plan = PilotValidationOutcomePlan.model_validate_json(
+        Path(args.pilot_outcome_plan_file).read_text()
+    )
+    outcome_plan = AgentValidationOutcomeBindingPlan.model_validate_json(
+        Path(args.outcome_plan_file).read_text()
+    )
+    intake_plan = AgentCriticIntakePlan.model_validate_json(Path(args.intake_plan_file).read_text())
+    command = AgentCriticIntakeCommand.model_validate_json(
+        Path(args.intake_command_file).read_text()
+    )
+    critic_plan = CriticPlan.model_validate_json(Path(args.critic_plan_file).read_text())
+    validation_plan = ValidationPlan.model_validate_json(
+        Path(args.validation_plan_file).read_text()
+    )
+    artifact = AgentSessionAuditArtifact.model_validate_json(
+        Path(args.audit_artifact_file).read_text()
+    )
+    with (
+        AgentValidationIntakeStore(Path(args.intake_db)) as validation_intake_store,
+        PilotValidationIntakeStore(Path(args.pilot_intake_db)) as pilot_intake_store,
+        PilotValidationExecutionStore(Path(args.pilot_execution_db)) as execution_store,
+        ValidationStore(Path(args.validation_db)) as validation_store,
+        AgentValidationOutcomeBindingStore(Path(args.outcome_db)) as outcome_store,
+        PilotValidationOutcomeStore(Path(args.pilot_outcome_db)) as pilot_outcome_store,
+        AgentCriticIntakeStore(Path(args.critic_intake_db)) as critic_intake_store,
+        PilotCriticIntakeStore(Path(args.pilot_critic_db)) as pilot_store,
+    ):
+        audit_store = AgentSessionAuditArtifactStore(Path(args.audit_store))
+        candidate_store = CandidateSetStore(Path(args.candidate_store))
+        evidence_store = EvidenceStore(Path(args.evidence_store))
+        outcome_service = AgentValidationOutcomeBindingService(
+            scope=scope,
+            audit_store=audit_store,
+            candidate_store=candidate_store,
+            intake_store=validation_intake_store,
+            validation_store=validation_store,
+            evidence_store=evidence_store,
+            binding_store=outcome_store,
+        )
+        pilot_outcome_service = PilotValidationOutcomeService(
+            execution_store=execution_store,
+            pilot_intake_store=pilot_intake_store,
+            outcome_service=outcome_service,
+            store=pilot_outcome_store,
+        )
+        intake_service = AgentCriticIntakeService(
+            scope=scope,
+            audit_store=audit_store,
+            candidate_store=candidate_store,
+            outcome_binding_store=outcome_store,
+            validation_store=validation_store,
+            evidence_store=evidence_store,
+            store=critic_intake_store,
+        )
+        service = PilotCriticIntakeService(
+            pilot_outcome_service=pilot_outcome_service,
+            intake_service=intake_service,
+            store=pilot_store,
+        )
+        binding = service.execute(
+            plan,
+            pilot_outcome_plan=pilot_outcome_plan,
+            intake_plan=intake_plan,
+            command=command,
+            outcome_plan=outcome_plan,
+            audit_artifact=artifact,
+            validation_plan=validation_plan,
+            critic_plan=critic_plan,
+            now=utc_now(),
+        )
+    print(
+        json.dumps(
+            {
+                "mode": "pilot_critic_intake_binding",
+                "critic_executed": False,
+                "validation_executed": False,
+                "candidate_changed": False,
+                "network_accessed": False,
+                "binding": binding.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def show_report_diff(args: argparse.Namespace) -> int:
     previous = Report.model_validate_json(Path(args.before).read_text(encoding="utf-8"))
     current = Report.model_validate_json(Path(args.after).read_text(encoding="utf-8"))
@@ -1206,6 +1306,29 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         pilot_outcome.add_argument(f"--{name}", default=default)
     pilot_outcome.set_defaults(handler=bind_pilot_validation_outcome_local)
+
+    pilot_critic = sub.add_parser("pilot-critic-intake-bind-local")
+    for name in (
+        "plan-file", "pilot-outcome-plan-file", "outcome-plan-file", "intake-plan-file",
+        "intake-command-file", "critic-plan-file", "scope-file", "validation-plan-file",
+        "audit-artifact-file",
+    ):
+        pilot_critic.add_argument(f"--{name}", required=True)
+    for name, default in (
+        ("audit-store", ".vulnloom/agent-audits"),
+        ("candidate-store", ".vulnloom/candidates"),
+        ("evidence-store", ".vulnloom/evidence"),
+        ("intake-db", ".vulnloom/agent-validation-intakes.db"),
+        ("pilot-intake-db", ".vulnloom/pilot-intakes.db"),
+        ("pilot-execution-db", ".vulnloom/pilot-validation-executions.db"),
+        ("validation-db", ".vulnloom/validation.db"),
+        ("outcome-db", ".vulnloom/agent-validation-outcomes.db"),
+        ("pilot-outcome-db", ".vulnloom/pilot-validation-outcomes.db"),
+        ("critic-intake-db", ".vulnloom/agent-critic-intakes.db"),
+        ("pilot-critic-db", ".vulnloom/pilot-critic-intakes.db"),
+    ):
+        pilot_critic.add_argument(f"--{name}", default=default)
+    pilot_critic.set_defaults(handler=bind_pilot_critic_intake_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

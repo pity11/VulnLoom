@@ -114,9 +114,54 @@ class AgentCriticIntakeService:
         critic_plan: CriticPlan,
         now: datetime,
     ) -> AgentCriticIntakeRecord:
+        self.preflight(
+            plan,
+            command,
+            outcome_binding_plan=outcome_binding_plan,
+            audit_artifact=audit_artifact,
+            critic_plan=critic_plan,
+            now=now,
+        )
+        claim = self.store.claim(plan, command, now=now)
+        if not claim.created:
+            assert claim.record is not None
+            return claim.record
+        values = {
+            "intake_plan_id": plan.intake_plan_id,
+            "command_id": command.command_id,
+            "outcome_binding_id": plan.outcome_binding_id,
+            "audit_bundle_id": plan.audit_bundle_id,
+            "candidate_id": plan.candidate_id,
+            "validation_run_id": plan.validation_run_id,
+            "evidence_bundle_id": plan.evidence_bundle_id,
+            "critic_plan_id": plan.critic_plan_id,
+            "critic_plan_digest": plan.critic_plan_digest,
+            "scope_id": plan.scope_id,
+            "scope_version": plan.scope_version,
+            "decision": command.decision,
+            "reason_code": command.reason_code,
+            "reviewer": command.reviewer,
+            "decided_at": command.decided_at,
+            "expires_at": plan.decision_deadline,
+        }
+        record = AgentCriticIntakeRecord(record_id=canonical_digest(values), **values)
+        self.store.complete(record)
+        return record
+
+    def preflight(
+        self,
+        plan: AgentCriticIntakePlan,
+        command: AgentCriticIntakeCommand,
+        *,
+        outcome_binding_plan: AgentValidationOutcomeBindingPlan,
+        audit_artifact: AgentSessionAuditArtifact,
+        critic_plan: CriticPlan,
+        now: datetime,
+    ) -> None:
+        """Validate current authority and exact human command without claiming a checkpoint."""
         try:
-            AgentCriticIntakePlan.model_validate(plan)
-            AgentCriticIntakeCommand.model_validate(command)
+            AgentCriticIntakePlan.model_validate(plan.model_dump(mode="python"))
+            AgentCriticIntakeCommand.model_validate(command.model_dump(mode="python"))
         except ValidationError as exc:
             raise AgentCriticIntakeRejected("Critic Intake boundary validation failed") from exc
         if now < plan.created_at or now >= plan.decision_deadline:
@@ -143,31 +188,7 @@ class AgentCriticIntakeService:
             or command.decided_at > now
         ):
             raise AgentCriticIntakeRejected("Critic Intake command drifted")
-        claim = self.store.claim(plan, command, now=now)
-        if not claim.created:
-            assert claim.record is not None
-            return claim.record
-        values = {
-            "intake_plan_id": plan.intake_plan_id,
-            "command_id": command.command_id,
-            "outcome_binding_id": plan.outcome_binding_id,
-            "audit_bundle_id": plan.audit_bundle_id,
-            "candidate_id": plan.candidate_id,
-            "validation_run_id": plan.validation_run_id,
-            "evidence_bundle_id": plan.evidence_bundle_id,
-            "critic_plan_id": plan.critic_plan_id,
-            "critic_plan_digest": plan.critic_plan_digest,
-            "scope_id": plan.scope_id,
-            "scope_version": plan.scope_version,
-            "decision": command.decision,
-            "reason_code": command.reason_code,
-            "reviewer": command.reviewer,
-            "decided_at": command.decided_at,
-            "expires_at": plan.decision_deadline,
-        }
-        record = AgentCriticIntakeRecord(record_id=canonical_digest(values), **values)
-        self.store.complete(record)
-        return record
+        self._load(outcome_binding_plan, audit_artifact, critic_plan, now)
 
     def _load(self, binding_plan, artifact, critic_plan, now):
         try:

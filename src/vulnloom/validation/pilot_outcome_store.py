@@ -135,6 +135,23 @@ class PilotValidationOutcomeStore:
             )
         return binding
 
+    def load_for_plan(self, plan: PilotValidationOutcomePlan) -> PilotValidationOutcomeBinding:
+        binding = self.load_completed(plan.plan_id)
+        row = self.connection.execute(
+            "SELECT * FROM pilot_validation_outcomes WHERE plan_id=?", (plan.plan_id,)
+        ).fetchone()
+        if any(
+            row[field] != getattr(plan, field)
+            for field in (
+                "idempotency_key",
+                "execution_binding_id",
+                "outcome_binding_plan_id",
+                "validation_plan_id",
+            )
+        ):
+            raise PilotValidationOutcomeRecoveryRequired("pilot outcome checkpoint drifted")
+        return binding
+
     def close(self) -> None:
         self.connection.close()
 

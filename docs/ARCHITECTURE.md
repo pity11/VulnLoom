@@ -1015,3 +1015,27 @@ Audit artifact descriptor, the independent ValidationPlan and local stores. It r
 binding and explicit false flags for Validation execution, Candidate mutation and network access.
 The generic M8.2 format/store remain compatible. Later pilot Critic admission must consume this
 additional pilot binding explicitly; this milestone neither executes nor changes Critic admission.
+
+
+## 57. M9.11 pilot-bound human Critic Intake
+
+`PilotCriticIntakeService` requires a completed M9.10 plan/binding before recording an independently
+supplied M8.3 human accept command for an exact preconstructed CriticPlan. The new M9.10
+`load_verified` method reads authoritative stores only: it never claims or executes a binding and
+cannot recover a missing/STARTED result. It rechecks the M9.9/M9.8/M8.1/M8.2 provenance, current Scope,
+Audit, CandidateSet, Validation outcome, Evidence, and upstream validity windows. The M8.3 preflight
+also runs at the current decision time before either Intake checkpoint is claimed.
+
+Only reproduced Validation with a validated result Candidate and complete Evidence can enter M8.3.
+The default offline pilot's inconclusive outcome remains ineligible. Tests exercise success using
+synthetic offline Evidence and a test-only deterministic judge; these are provenance fixtures, not
+claims of reproduction against a real target. This bridge does not change the production judge.
+
+A digest-only pilot plan seals M9.10 identity, M8.3 plan and human command, exact CriticPlan, Candidate,
+Scope and decision window. An independent ledger uniquely consumes the pilot binding, IntakePlan,
+CriticPlan and command. Bare pre-existing M8.3 checkpoints cannot be retrospectively accepted as
+pilot work. Completed replay verifies the complete authoritative human record without deciding again;
+interruption leaves STARTED and does not automatically resume. No temporary execution resource is
+allocated. `pilot-critic-intake-bind-local` takes presealed files, writes only the local Intake binding,
+and has no Critic execution, Validation execution, Approval, build, network or Submission operation.
+A later pilot Critic execution/outcome boundary must explicitly consume this binding.

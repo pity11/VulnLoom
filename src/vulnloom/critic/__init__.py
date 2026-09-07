@@ -41,6 +41,17 @@ from .outcome_binding_store import (
     AgentCriticOutcomeBindingRecoveryRequired,
     AgentCriticOutcomeBindingStore,
 )
+from .pilot_intake import (
+    PilotCriticIntakeRejected,
+    PilotCriticIntakeService,
+    PilotCriticIntakeTimedOut,
+)
+from .pilot_intake_models import PilotCriticIntakeBinding, PilotCriticIntakePlan
+from .pilot_intake_store import (
+    PilotCriticIntakeConflict,
+    PilotCriticIntakeRecoveryRequired,
+    PilotCriticIntakeStore,
+)
 from .service import CriticRejected, DeterministicCritic
 from .store import (
     CriticClaim,
@@ -50,6 +61,15 @@ from .store import (
 )
 
 __all__ = [
+    "PilotCriticIntakeService",
+    "PilotCriticIntakeRejected",
+    "PilotCriticIntakeTimedOut",
+    "PilotCriticIntakePlan",
+    "PilotCriticIntakeBinding",
+    "PilotCriticIntakeStore",
+    "PilotCriticIntakeConflict",
+    "PilotCriticIntakeRecoveryRequired",
+
     "AgentCriticIntakeClaim",
     "AgentCriticIntakeCommand",
     "AgentCriticIntakeConflict",

@@ -774,6 +774,16 @@ Validation outcome identity。独立 SQLite 唯一消费 execution binding、M8.
 事件、不修改 Candidate，不赋予执行、Approval 或 Submission 权限。原 M8.2 binding 仍使用既有模型与 store。
 completed replay 重查上游来源及 M8.2 binding，STARTED 与预先存在的裸 M8.2 checkpoint 均 fail-closed。
 
+### PilotCriticIntakePlan 与 Binding
+
+M9.11 的 `PilotCriticIntakePlan` 内容寻址绑定 M9.10 plan/binding ID 与完整摘要、M8.3 IntakePlan 与人工
+command ID/完整摘要、独立 CriticPlan ID/完整摘要、Candidate ID/validated digest、Scope 和有界决策窗口。
+`PilotCriticIntakeBinding` 保存同一来源链和 authoritative accepted M8.3 record 的 ID/完整摘要。
+
+计划和 binding 均不保存 assessments、rationale、Evidence 正文、Agent 输出、操作参数、凭据、Approval 或
+Submission。SQLite 以 STARTED/COMPLETED 唯一消费 M9.10 binding、M8.3 IntakePlan、CriticPlan 和 command；
+完整 record 仍由既有 M8.3 store 管理。绑定只证明人工接纳来源，不是 CriticReview、Candidate 状态迁移或 Finding。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

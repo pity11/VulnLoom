@@ -126,6 +126,39 @@ class PilotValidationOutcomeService:
         self.store.complete(binding)
         return binding
 
+    def load_verified(
+        self,
+        plan: PilotValidationOutcomePlan,
+        *,
+        outcome_plan: AgentValidationOutcomeBindingPlan,
+        audit_artifact,
+        validation_plan,
+        now: datetime,
+    ) -> PilotValidationOutcomeBinding:
+        """Read completed provenance with current checks, without claiming or executing."""
+        plan = PilotValidationOutcomePlan.model_validate(plan.model_dump(mode="python"))
+        self._verify(plan.execution_plan_id, outcome_plan, audit_artifact, validation_plan, now)
+        expected = self.prepare(
+            execution_plan_id=plan.execution_plan_id,
+            outcome_plan=outcome_plan,
+            audit_artifact=audit_artifact,
+            validation_plan=validation_plan,
+            now=plan.created_at,
+            deadline=plan.deadline,
+            idempotency_key=plan.idempotency_key,
+        )
+        if plan != expected:
+            raise PilotValidationOutcomeRejected("pilot outcome plan drifted")
+        binding = self.store.load_for_plan(plan)
+        result = self.outcome_service.binding_store.load_completed(outcome_plan.binding_plan_id)
+        self._verify_result(plan, outcome_plan, result)
+        if (
+            binding != self._binding(plan, result, binding.completed_at)
+            or not plan.created_at <= binding.completed_at <= now
+        ):
+            raise PilotValidationOutcomeRejected("pilot outcome completed binding drifted")
+        return binding
+
     def _verify_result(self, plan, outcome_plan, result):
         execution = self.execution_store.load_completed(plan.execution_plan_id)
         if (

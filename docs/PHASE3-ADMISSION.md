@@ -197,6 +197,12 @@ The M9.9 Approval-gated offline pilot Validation admission run is GitHub Actions
 [`34035435470`](https://github.com/pity11/VulnLoom/actions/runs/34035435470). Both completed
 successfully on 2026-09-06 and qualify the M9.9 pilot Validation execution row below.
 
+The M9.10 pilot outcome provenance admission run is
+[`34041988318`](https://github.com/pity11/VulnLoom/actions/runs/34041988318) for commit
+`fe0c96b0c9dcfac6b50c1935c0efe2a7f14c7300`. The same commit passed standard CI
+[`34041988283`](https://github.com/pity11/VulnLoom/actions/runs/34041988283).
+Both completed successfully on 2026-09-06 UTC.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -556,17 +562,32 @@ Agent-derived execution parameter, automatic Approval, Target build, Finding pro
 the concurrent Phase 3 PASS confirms the real isolation boundary remains intact.
 
 
-### M9.10 local verification (remote admission pending)
+### M9.10 outcome provenance admission
 
 The pilot M8.2 bridge now requires an authoritative completed M9.9 execution binding. Offline tests
 cover read-only success and CLI replay, missing/unfinished execution, sealed provenance drift,
 Audit/Scope mismatch, pre-existing bare M8.2 checkpoints, deadlines, failed completion and explicit
 recovery. Replay verifies the authoritative M8.2 result rather than trusting a cached pilot record.
 The tests prohibit Validation execution during CLI binding and preserve the proposed input Candidate.
-This is provenance verification, not new process/network isolation evidence. No new CI or Phase 3
-Admission run has been dispatched for M9.10; the M9.9 run IDs above do not qualify this revision.
+The exact implementation commit `fe0c96b0c9dcfac6b50c1935c0efe2a7f14c7300` passed
+[CI `34041988283`](https://github.com/pity11/VulnLoom/actions/runs/34041988283) and
+[Phase 3 Admission `34041988318`](https://github.com/pity11/VulnLoom/actions/runs/34041988318).
+Both completed successfully on 2026-09-06 UTC. The new bridge proves provenance checks; the concurrent
+rootless Admission run confirms that the existing real isolation boundary remains intact.
 
 Local verification for the 0.58.0 working tree: `673 passed, 19 skipped`, total coverage `85.78%`
 (85% required). Ruff, schema regeneration, all benchmark fixture regeneration, M6.1/M6.3 and
 M9.2–M9.5 offline gates, and the M9.5 ablation check passed. The skipped opt-in integration tests
 were not used to make any new isolation claim.
+
+
+### M9.11 local verification (remote admission pending)
+
+The pilot Critic Intake bridge reopens completed M9.10 provenance and applies the existing M8.3
+reproduced/validated/Evidence and human-command requirements before checkpointing. Local verification
+on 0.59.0: `702 passed, 19 skipped`, coverage `85.92%`. Tests cover synthetic offline success,
+inconclusive refusal, missing or unfinished upstream state, resealed digest drift, exact command
+binding, expired authority, pre-existing bare Intake, completion failure, cleanup, replay and ledger
+tampering. CLI tests prohibit Validation, Critic and M9.10 execution while recording Intake.
+These tests add no new isolation or real-target reproduction claim. M9.11 has not been pushed or
+qualified by remote CI/Phase 3 Admission; M9.10 run IDs do not qualify the new revision.

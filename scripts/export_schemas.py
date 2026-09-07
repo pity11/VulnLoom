@@ -172,6 +172,8 @@ from vulnloom.critic import (
     CounterevidenceAssessment,
     CriticOutcome,
     CriticPlan,
+    PilotCriticIntakeBinding,
+    PilotCriticIntakePlan,
 )
 from vulnloom.domain.models import (
     ApprovalRequest,
@@ -325,6 +327,8 @@ MODELS = (
     PilotValidationExecutionBinding,
     AgentValidationOutcomeBinding,
     AgentCriticIntakePlan,
+    PilotCriticIntakePlan,
+    PilotCriticIntakeBinding,
     AgentCriticIntakeCommand,
     AgentCriticIntakeRecord,
     AgentCriticOutcomeBindingPlan,

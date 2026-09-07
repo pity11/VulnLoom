@@ -839,7 +839,7 @@ M9.9 是人工批准后的本地离线 Validation 执行入口，不是 Agent �
 参数，不调用 Broker/provider，不访问网络、不构建 Target、不自动批准、不提升 Candidate 为 Finding，也不进行
 报告导出或 Submission。
 
-### M9.10：pilot M8.2 outcome 强制消费 execution binding（已实现，远端准入待运行）
+### M9.10：pilot M8.2 outcome 强制消费 execution binding（已完成首版）
 
 - 新增 digest-only `PilotValidationOutcomePlan`/`Binding`，强制绑定 completed M9.9 execution plan/
   binding 与 exact M8.2 outcome binding plan；不从 Agent 输出构造任何操作参数。
@@ -854,7 +854,26 @@ M9.9 是人工批准后的本地离线 Validation 执行入口，不是 Agent �
 
 M9.10 是 pilot 专用的 M8.2 provenance gate，通用非 pilot M8.2 协议保持兼容。生成的 M8.2 binding 继续
 保存在原 store，pilot ledger 保存其精确摘要。后续 pilot Critic 消费端仍须显式要求该 pilot binding；
-本阶段不执行 Critic，也不把现有通用 Critic 入口自动变为 pilot 门禁。远端 CI 与 Phase 3 Admission 尚待运行。
+本阶段不执行 Critic，也不把现有通用 Critic 入口自动变为 pilot 门禁。CI `34041988283` 与 Phase 3
+Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过。
+
+### M9.11：pilot Critic Intake 强制消费 M9.10 outcome binding（已实现，远端准入待运行）
+
+- 新增内容寻址 `PilotCriticIntakePlan`/`Binding`，精确绑定 completed M9.10 plan/binding、既有 M8.3
+  IntakePlan、独立 human accept command、预构造 CriticPlan、Candidate 和 Scope；不包含 assessments 正文。
+- M9.10 提供不 claim、不 execute 的 `load_verified`：重开 execution、M9.8/M8.1、M8.2、Audit、CandidateSet、
+  Validation outcome 和 Evidence，核对上游窗口、摘要及 ledger identity；缺失或 STARTED 不自动恢复。
+- M8.3 新增纯 preflight，在 pilot/M8.3 checkpoint 之前同时检查当前权限、完整来源及 exact human command。
+  仍只允许 `REPRODUCED`、`VALIDATED`、完整 Evidence 和独立 CriticPlan；`INCONCLUSIVE` 不可进入。
+- 独立 SQLite 唯一消费 M9.10 binding、IntakePlan、CriticPlan 和 command；预存在的裸 M8.3 checkpoint 拒绝
+  追认，完成重放重读并精确比较人工 record，失败保留 STARTED 并要求显式恢复。
+- 新增 `pilot-critic-intake-bind-local`，只记录 accepted Intake 来源，不执行 Critic/Validation、改变 Candidate、
+  批准操作、构建 Target、联网、生成 Finding 或 Submission。
+- 本地 702 项测试通过、19 项 opt-in 跳过，覆盖率 85.92%；新增测试包含合成离线成功路径、拒绝、超时、
+  写入失败/清理、CLI 幂等、摘要重封及 ledger 篡改。远端 CI/Admission 尚待运行。
+
+当前默认 offline pilot 的 `INCONCLUSIVE` 判据保持不变。成功测试使用专门的合成 Evidence 和可信测试 judge，
+不代表真实目标已复现。后续 pilot Critic execution/outcome 阶段仍须显式消费本 binding；本里程碑不提供该执行入口。
 
 ## 延后事项
 

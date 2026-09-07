@@ -802,3 +802,27 @@ The command uses local stores (override the `--*-db` and `--*-store` flags as ne
 sealed plans replay read-only. Missing or unfinished execution, provenance drift, expired windows,
 and a pre-existing bare M8.2 checkpoint fail closed. It does not execute Validation, mutate a
 Candidate, grant Approval, build a Target, access the network or create a Submission.
+
+
+M9.11 adds pilot-bound human Critic Intake. An operator supplies a sealed M9.11 plan, completed
+M9.10 provenance, and an independently prepared M8.3 human accept command and CriticPlan:
+
+```bash
+vulnloom pilot-critic-intake-bind-local \
+  --plan-file pilot-critic-intake-plan.json \
+  --pilot-outcome-plan-file pilot-outcome-plan.json \
+  --outcome-plan-file agent-validation-outcome-plan.json \
+  --intake-plan-file agent-critic-intake-plan.json \
+  --intake-command-file agent-critic-intake-command.json \
+  --critic-plan-file critic-plan.json \
+  --validation-plan-file validation-plan.json \
+  --audit-artifact-file audit-artifact.json \
+  --scope-file scope.json
+```
+
+Use the `--*-db` and `--*-store` flags for the authoritative local stores. Only reproduced Validation
+with a validated result Candidate and complete Evidence is eligible; the default offline pilot's
+inconclusive result remains rejected. The command records Intake without running Critic or Validation,
+changing Candidate state, granting Approval, building a Target, accessing the network or submitting
+anything. Completed replay is read-only; missing/STARTED provenance and bare pre-existing M8.3
+checkpoints fail closed. A subsequent pilot Critic execution stage is still required.

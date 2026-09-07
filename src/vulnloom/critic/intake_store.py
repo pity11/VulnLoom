@@ -39,6 +39,14 @@ class AgentCriticIntakeStore:
         )
         self.connection.commit()
 
+    def has_critic_checkpoint(self, critic_plan_id: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM agent_critic_intakes WHERE critic_plan_id=?", (critic_plan_id,)
+            ).fetchone()
+            is not None
+        )
+
     def claim(
         self, plan: AgentCriticIntakePlan, command: AgentCriticIntakeCommand, *, now: datetime
     ):
