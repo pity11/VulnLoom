@@ -649,5 +649,32 @@ ledger tampering, historical execution-Approval expiry, and CLI read-only replay
 Evidence proves protocol behavior, not real-target reproduction. M6.1/M6.3 and M9.2–M9.5 regression
 gates, M9.5 ablation, schema/fixture regeneration determinism, Ruff and whitespace checks passed.
 
-Remote CI and Phase 3 Admission for the M9.13 implementation commit are pending; the previous
-M9.12 remote runs are not evidence for this new revision.
+Implementation commit `204f1ab4ec8210125bd5ef101a68748b859134a5` passed
+[CI `34088676591`](https://github.com/pity11/VulnLoom/actions/runs/34088676591) and
+[Phase 3 Admission `34088676621`](https://github.com/pity11/VulnLoom/actions/runs/34088676621)
+on 2026-09-07 UTC.
+
+### M9.14 approved pilot Finding promotion admission
+
+Version 0.62.0 binds completed M9.13 provenance to an independently approved exact M8.6 promotion
+execution plan. Current Scope, accepted Intake, latest CLEAR duplicate proof, PromotionPlan,
+Evidence and Approval are rechecked before any checkpoint. The promotion Approval and execution
+plan must follow completed pilot Intake. M9.12 Critic Approval cannot authorize promotion.
+
+The local operation persists a verified Finding and promoted Candidate in the M8.6 outcome store,
+leaving the source CandidateSet unchanged. A separate pilot ledger uniquely consumes the Intake
+binding, execution plan, Approval, record, PromotionPlan and Finding ID. Bare M8.6 checkpoints are
+rejected; persistence failures leave STARTED for explicit recovery. Replay revalidates complete
+outcome contents and both ledgers without calling promotion execution. The new CLI never executes
+Validation, Critic, target code, Runner/Broker/provider, build, network or Submission, and grants no
+Approval. Success fixtures contain synthetic offline evidence only.
+
+Local verification: `789 passed, 19 skipped`, coverage `86.17%`. The 27 new tests cover successful
+promotion and replay, denied/expired/wrong/early Approval, Scope/plan/command/Evidence drift,
+missing or unfinished M9.13, missing and superseded duplicate proofs, bare M8.6 checkpoints,
+deadlines, failures at both persistence stages, cleanup, CLI replay and resealed result/ledger
+corruption. M6.1/M6.3 and M9.2–M9.5 regression gates, M9.5 ablation, deterministic schema/fixture
+regeneration, Ruff and whitespace checks passed. Existing M8.6 and M9.13 regressions also pass.
+
+Remote CI and Phase 3 Admission for the M9.14 implementation commit remain pending; M9.13
+remote results do not certify these new changes.

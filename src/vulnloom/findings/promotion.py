@@ -105,7 +105,7 @@ class FindingPromotionService:
         }
         return FindingPromotionExecutionPlan.create(**values)
 
-    def execute(
+    def preflight(
         self,
         plan: FindingPromotionExecutionPlan,
         *,
@@ -116,8 +116,9 @@ class FindingPromotionService:
         approval: ApprovalRequest,
         now: datetime,
     ) -> FindingPromotionOutcome:
+        """Validate authority and compute the pure expected result without persisting it."""
         try:
-            FindingPromotionExecutionPlan.model_validate(plan)
+            FindingPromotionExecutionPlan.model_validate(plan.model_dump(mode="python"))
         except ValidationError as exc:
             raise FindingPromotionRejected("Finding promotion execution plan drifted") from exc
         if now < plan.created_at or now >= plan.deadline:
@@ -183,11 +184,24 @@ class FindingPromotionService:
             outcome_id=canonical_digest(partial.model_dump(mode="python", exclude={"outcome_id"})),
             **values,
         )
+        return outcome
+
+    def execute(self, plan: FindingPromotionExecutionPlan, *, now: datetime, **inputs):
+        outcome = self.preflight(plan, now=now, **inputs)
         claim = self.store.claim(plan, now=now)
         if not claim.created:
-            assert claim.outcome is not None
-            return claim.outcome
+            return self.load_verified(plan, now=now, **inputs)
         self.store.complete(outcome)
+        return outcome
+
+    def load_verified(self, plan: FindingPromotionExecutionPlan, *, now: datetime, **inputs):
+        """Verify persisted outcome against the pure state transition, without writes."""
+        self.preflight(plan, now=now, **inputs)
+        outcome = self.store.load_completed(plan.execution_plan_id)
+        self.store.verify_plan(plan)
+        expected = self.preflight(plan, now=outcome.completed_at, **inputs)
+        if outcome.completed_at > now or outcome != expected:
+            raise FindingPromotionRejected("Finding promotion completed outcome drifted")
         return outcome
 
     def approval_action(self, *, record, promotion_plan) -> FindingPromotionApprovalAction:
@@ -224,8 +238,8 @@ class FindingPromotionService:
         now,
     ):
         try:
-            AgentFindingIntakePlan.model_validate(intake_plan)
-            ApprovalRequest.model_validate(approval)
+            AgentFindingIntakePlan.model_validate(intake_plan.model_dump(mode="python"))
+            ApprovalRequest.model_validate(approval.model_dump(mode="python"))
             record = self.intake_service.store.load_completed(intake_plan.intake_plan_id)
             _binding, validation_outcome, critic_outcome = self.intake_service.load_authoritative(
                 critic_binding_plan, promotion_plan, duplicate_check, now

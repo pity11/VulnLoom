@@ -1,0 +1,117 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "pilot_intake_binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pilot Intake Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "intake_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Record Id",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "format": "uuid",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Digest",
+      "type": "string"
+    },
+    "promoted_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promoted Candidate Digest",
+      "type": "string"
+    },
+    "finding_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Finding Digest",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "plan_id",
+    "pilot_intake_binding_id",
+    "execution_plan_id",
+    "approval_id",
+    "approval_digest",
+    "intake_record_id",
+    "promotion_plan_id",
+    "finding_id",
+    "candidate_id",
+    "candidate_digest",
+    "scope_id",
+    "scope_version",
+    "outcome_id",
+    "outcome_digest",
+    "promoted_candidate_digest",
+    "finding_digest",
+    "completed_at"
+  ],
+  "title": "PilotFindingPromotionBinding",
+  "type": "object"
+}

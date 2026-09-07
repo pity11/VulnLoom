@@ -896,7 +896,7 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 成功路径使用合成离线 Evidence 验证协议，不代表真实目标已复现。默认 offline Validation 仍为 INCONCLUSIVE，
 不会因本阶段而进入 Critic。后续 pilot Finding Intake 必须显式消费本结果绑定并继续要求去重和独立晋升门禁。
 
-### M9.13：pilot Finding Intake 消费精确 Critic execution binding（已实现，待远端验收）
+### M9.13：pilot Finding Intake 消费精确 Critic execution binding（已完成首版）
 
 - 新增 digest-only `PilotFindingIntakePlan`/`Binding` 和独立 STARTED/COMPLETED ledger，
   将 completed M9.12、exact M8.4、M8.5 Intake、PromotionPlan、去重证明与独立人工命令绑定。
@@ -910,7 +910,24 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
   执行 Critic/Validation、构建目标、批准操作、访问网络或 Submission。
 
 本阶段成功测试只使用合成离线 Evidence。Finding 晋升仍须独立 Approval Gate；本地验证结果见
-`docs/PHASE3-ADMISSION.md`，本阶段实现提交的远端 CI/Admission 待验收。
+`docs/PHASE3-ADMISSION.md`。实现提交 `204f1ab` 的 CI `34088676591` 与 Phase 3 Admission
+`34088676621` 已于 2026-09-07 UTC 通过。
+
+### M9.14：精确 Approval 下的 pilot Finding 晋升与结果绑定（已实现，待远端验收）
+
+- 新增 digest-only `PilotFindingPromotionPlan`/`Binding`，强制消费精确 completed M9.13 plan/binding、
+  M8.5 record、预封存 M8.6 execution plan 和独立人工晋升 Approval；审批时间不得早于 pilot Intake 完成。
+- 执行前只读重验 M9.13 到上游 Critic/Validation/Evidence 的来源链，以及当前 Scope、最新 CLEAR 去重证明、
+  PromotionPlan、人工命令和授权窗口。历史 Critic Approval 不可替代晋升 Approval。
+- 复用 M8.6 纯状态机及持久化服务；完整比对 Finding、晋升后 Candidate 与 outcome 摘要，结果写入独立 ledger。
+  唯一消费 pilot Intake binding、execution plan、Approval、M8.5 record、PromotionPlan 和 Finding ID。
+- 拒绝预存裸 M8.6 checkpoint；任何写入中断保留 STARTED 并要求显式恢复。完成重放只读复核完整结果，
+  不再调用晋升执行服务。M8.6 通用重放也新增完整结果和 ledger 校验。
+- 新增 `pilot-finding-promote-local`，只执行批准后的本地域记录晋升，原始 CandidateSet 保持不变。
+  不执行 Critic/Validation/目标代码、生成 Runner/Broker 参数、构建目标、批准操作、访问网络或 Submission。
+
+本地验证详情见 `docs/PHASE3-ADMISSION.md`；成功案例仅使用合成离线 Evidence，不代表真实目标复现。
+下一阶段为 pilot Report Intake 来源绑定，报告生成、审核与导出继续保留各自门禁。
 
 ## 延后事项
 

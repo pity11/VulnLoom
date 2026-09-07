@@ -128,6 +128,46 @@ class FindingPromotionStore:
             raise FindingPromotionRecoveryRequired("Finding promotion checkpoint drifted")
         return outcome
 
+    def has_input_checkpoint(self, plan: FindingPromotionExecutionPlan) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM finding_promotions WHERE execution_plan_id=? OR idempotency_key=? "
+                "OR intake_record_id=? OR promotion_plan_id=? OR finding_id=? OR approval_id=?",
+                (
+                    plan.execution_plan_id,
+                    plan.idempotency_key,
+                    plan.intake_record_id,
+                    plan.promotion_plan_id,
+                    str(plan.finding_id),
+                    str(plan.approval_id),
+                ),
+            ).fetchone()
+            is not None
+        )
+
+    def verify_plan(self, plan: FindingPromotionExecutionPlan) -> None:
+        outcome = self.load_completed(plan.execution_plan_id)
+        row = self.connection.execute(
+            "SELECT * FROM finding_promotions WHERE execution_plan_id=?",
+            (plan.execution_plan_id,),
+        ).fetchone()
+        if (
+            any(
+                row[field] != str(getattr(plan, field))
+                for field in (
+                    "idempotency_key",
+                    "intake_record_id",
+                    "promotion_plan_id",
+                    "finding_id",
+                    "approval_id",
+                    "approval_digest",
+                )
+            )
+            or row["started_at"] != outcome.completed_at.isoformat()
+            or not plan.created_at <= outcome.completed_at < plan.deadline
+        ):
+            raise FindingPromotionRecoveryRequired("Finding promotion plan checkpoint drifted")
+
     def close(self) -> None:
         self.connection.close()
 

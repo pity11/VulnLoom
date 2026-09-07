@@ -1089,3 +1089,29 @@ remain STARTED for explicit recovery; completed replay checks full M8.5 record c
 repeating Intake. The CLI reads sealed local files and persists only provenance digests/IDs. It does
 not create a Finding, change a Candidate or execute Critic, Validation, target code, network access,
 Approval or Submission. Finding promotion remains a separate approval-gated operation.
+
+
+## 60. Pilot Finding promotion and result provenance (M9.14)
+
+`PilotFindingPromotionService` requires a completed exact M9.13 binding, a presealed M8.6 execution
+plan and an independent exact M8.6 Finding-promotion Approval. It reuses the existing approval action,
+which seals the M8.5 record, PromotionPlan, Candidate, Finding identity, Scope and fixed effects.
+The pilot plan additionally binds full M9.13 plan/binding and M8.6 plan digests. The promotion Approval
+and execution plan must follow completed pilot Intake. Critic execution Approval is only historical
+upstream evidence. All current windows, Scope, latest duplicate proof and evidence provenance remain
+mandatory at execution and replay.
+
+M9.13 exposes a read-only completed verifier. M8.6 exposes pure preflight and completed-result
+verification: it recomputes the expected domain models without writes, comparing the entire Finding,
+promoted Candidate, outcome and ledger to the trusted input. The wrapper persists through M8.6 once,
+then writes a digest-only binding. Its independent STARTED/COMPLETED ledger uniquely consumes pilot
+Intake binding, execution plan, Approval, M8.5 record, PromotionPlan and Finding ID. Pre-existing bare
+M8.6 checkpoints cannot be retrospectively adopted. Failed persistence requires explicit recovery;
+replay does not invoke promotion execution or create upstream Intake records.
+
+`pilot-finding-promote-local` reads sealed files and explicitly supplied local stores. The
+`--promotion-approval-file` is a new human promotion grant; `--approval-file` remains the historical
+Critic grant. The command records the verified Finding and promoted Candidate in the M8.6 outcome,
+leaving the source CandidateSet immutable. It never runs targets, Validation, Critic, Runner/Broker,
+Agent/provider, builds, network requests or Submission, and cannot grant Approval. Synthetic offline
+fixtures verify this record workflow; they do not establish real-target exploitability.

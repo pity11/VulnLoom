@@ -1,46 +1,46 @@
-"""Crash-safe unique consumption of pilot Critic outcome and human Finding Intake."""
+"""Crash-safe unique consumption of pilot Intake and Finding promotion Approval."""
 
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from .pilot_intake_models import PilotFindingIntakeBinding, PilotFindingIntakePlan
+from .pilot_promotion_models import PilotFindingPromotionBinding, PilotFindingPromotionPlan
 
 # SQL column names are code-owned, never derived from a caller or Agent.
 _UNIQUE_FIELDS = (
     "idempotency_key",
-    "critic_execution_binding_id",
-    "intake_plan_id",
+    "pilot_intake_binding_id",
+    "execution_plan_id",
+    "approval_id",
+    "intake_record_id",
     "promotion_plan_id",
-    "duplicate_check_id",
     "finding_id",
-    "command_id",
 )
 
 
-class PilotFindingIntakeConflict(ValueError):
+class PilotFindingPromotionConflict(ValueError):
     pass
 
 
-class PilotFindingIntakeRecoveryRequired(RuntimeError):
+class PilotFindingPromotionRecoveryRequired(RuntimeError):
     pass
 
 
 @dataclass(frozen=True)
-class PilotFindingIntakeClaim:
+class PilotFindingPromotionClaim:
     created: bool
-    binding: PilotFindingIntakeBinding | None = None
+    binding: PilotFindingPromotionBinding | None = None
 
 
-class PilotFindingIntakeStore:
+class PilotFindingPromotionStore:
     def __init__(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(path)
         self.connection.row_factory = sqlite3.Row
         columns = ", ".join(f"{field} TEXT NOT NULL UNIQUE" for field in _UNIQUE_FIELDS)
         self.connection.execute(
-            f"""CREATE TABLE IF NOT EXISTS pilot_finding_intakes (
+            f"""CREATE TABLE IF NOT EXISTS pilot_finding_promotions (
             plan_id TEXT PRIMARY KEY, {columns}, plan_json TEXT NOT NULL,
             state TEXT NOT NULL CHECK(state IN ('started','completed')),
             started_at TEXT NOT NULL, completed_at TEXT, binding_json TEXT)"""
@@ -50,39 +50,42 @@ class PilotFindingIntakeStore:
     def has_promotion_checkpoint(self, promotion_plan_id: str) -> bool:
         return (
             self.connection.execute(
-                "SELECT 1 FROM pilot_finding_intakes WHERE promotion_plan_id=?",
+                "SELECT 1 FROM pilot_finding_promotions WHERE promotion_plan_id=?",
                 (promotion_plan_id,),
             ).fetchone()
             is not None
         )
 
-    def claim(self, plan: PilotFindingIntakePlan, *, now: datetime) -> PilotFindingIntakeClaim:
+    def claim(
+        self, plan: PilotFindingPromotionPlan, *, now: datetime
+    ) -> PilotFindingPromotionClaim:
         params = (plan.plan_id, *(str(getattr(plan, field)) for field in _UNIQUE_FIELDS))
         conditions = " OR ".join(f"{field}=?" for field in ("plan_id", *_UNIQUE_FIELDS))
         row = self.connection.execute(
-            f"SELECT * FROM pilot_finding_intakes WHERE {conditions}", params
+            f"SELECT * FROM pilot_finding_promotions WHERE {conditions}", params
         ).fetchone()
         if row is not None:
             if row["plan_id"] != plan.plan_id or row["plan_json"] != plan.model_dump_json():
-                raise PilotFindingIntakeConflict("pilot Critic, Intake, promotion or key consumed")
-            return PilotFindingIntakeClaim(False, self.load_completed(plan.plan_id))
+                raise PilotFindingPromotionConflict("pilot Intake, promotion or Approval consumed")
+            return PilotFindingPromotionClaim(False, self.load_completed(plan.plan_id))
         try:
             with self.connection:
                 self.connection.execute(
-                    "INSERT INTO pilot_finding_intakes VALUES "
+                    "INSERT INTO pilot_finding_promotions VALUES "
                     "(?,?,?,?,?,?,?,?,?,'started',?,NULL,NULL)",
                     (*params, plan.model_dump_json(), now.isoformat()),
                 )
         except sqlite3.IntegrityError as exc:
-            raise PilotFindingIntakeConflict("concurrent pilot Finding Intake claim") from exc
-        return PilotFindingIntakeClaim(True)
+            raise PilotFindingPromotionConflict("concurrent pilot Finding promotion claim") from exc
+        return PilotFindingPromotionClaim(True)
 
-    def complete(self, binding: PilotFindingIntakeBinding) -> None:
+    def complete(self, binding: PilotFindingPromotionBinding) -> None:
         fields = _UNIQUE_FIELDS[1:]
         conditions = " AND ".join(f"{field}=?" for field in fields)
         with self.connection:
             changed = self.connection.execute(
-                "UPDATE pilot_finding_intakes SET state='completed',completed_at=?,binding_json=? "
+                "UPDATE pilot_finding_promotions SET state='completed',"
+                "completed_at=?,binding_json=? "
                 f"WHERE plan_id=? AND state='started' AND {conditions} AND started_at=?",
                 (
                     binding.completed_at.isoformat(),
@@ -93,18 +96,22 @@ class PilotFindingIntakeStore:
                 ),
             ).rowcount
         if changed != 1:
-            raise PilotFindingIntakeRecoveryRequired("pilot Finding Intake STARTED unavailable")
+            raise PilotFindingPromotionRecoveryRequired(
+                "pilot Finding promotion STARTED unavailable"
+            )
 
-    def load_completed(self, plan_id: str) -> PilotFindingIntakeBinding:
+    def load_completed(self, plan_id: str) -> PilotFindingPromotionBinding:
         row = self.connection.execute(
-            "SELECT * FROM pilot_finding_intakes WHERE plan_id=?", (plan_id,)
+            "SELECT * FROM pilot_finding_promotions WHERE plan_id=?", (plan_id,)
         ).fetchone()
         if row is None:
-            raise ValueError("pilot Finding Intake unavailable")
+            raise ValueError("pilot Finding promotion unavailable")
         if row["state"] != "completed" or row["binding_json"] is None:
-            raise PilotFindingIntakeRecoveryRequired("pilot Finding Intake unfinished STARTED")
-        plan = PilotFindingIntakePlan.model_validate_json(row["plan_json"])
-        binding = PilotFindingIntakeBinding.model_validate_json(row["binding_json"])
+            raise PilotFindingPromotionRecoveryRequired(
+                "pilot Finding promotion unfinished STARTED"
+            )
+        plan = PilotFindingPromotionPlan.model_validate_json(row["plan_json"])
+        binding = PilotFindingPromotionBinding.model_validate_json(row["binding_json"])
         if (
             plan.plan_id != plan_id
             or binding.plan_id != plan_id
@@ -117,21 +124,17 @@ class PilotFindingIntakeStore:
                     "candidate_digest",
                     "scope_id",
                     "scope_version",
+                    "approval_digest",
                 )
             )
             or row["started_at"] != binding.completed_at.isoformat()
             or row["completed_at"] != binding.completed_at.isoformat()
             or not plan.created_at <= binding.completed_at < plan.deadline
         ):
-            raise PilotFindingIntakeRecoveryRequired("pilot Finding Intake checkpoint drifted")
+            raise PilotFindingPromotionRecoveryRequired(
+                "pilot Finding promotion checkpoint drifted"
+            )
         return binding
-
-    def load_completed_plan(self, plan_id: str) -> PilotFindingIntakePlan:
-        self.load_completed(plan_id)
-        row = self.connection.execute(
-            "SELECT plan_json FROM pilot_finding_intakes WHERE plan_id=?", (plan_id,)
-        ).fetchone()
-        return PilotFindingIntakePlan.model_validate_json(row["plan_json"])
 
     def close(self):
         self.connection.close()

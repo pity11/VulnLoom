@@ -877,3 +877,25 @@ a current latest CLEAR duplicate check, an exact PromotionPlan and an independen
 command. It records M8.5 Intake and a digest-only pilot binding. It does not create a Finding, change
 Candidate state, run Critic/Validation/target code, approve an operation, build, access the network or
 submit. Completed replay is read-only; incomplete checkpoints require explicit recovery.
+
+
+M9.14 adds `pilot-finding-promote-local` for an explicitly approved local Finding state transition.
+Supply the same upstream files and stores as M9.13, replace `--plan-file` with the sealed
+`PilotFindingPromotionPlan`, and add:
+
+```text
+--pilot-finding-intake-plan-file pilot-finding-intake-plan.json
+--promotion-execution-plan-file finding-promotion-execution-plan.json
+--promotion-approval-file finding-promotion-approval.json
+--promotion-db .vulnloom/finding-promotions.db
+--pilot-promotion-db .vulnloom/pilot-finding-promotions.db
+```
+
+Trusted control-plane code prepares the M8.6 execution plan and pilot plan after completed M9.13
+Intake and a separate exact human promotion Approval. The historical Critic `--approval-file` grants
+no promotion authority. Execution rechecks the current Scope, latest CLEAR duplicate proof and the
+entire accepted provenance chain. The result contains a verified Finding and promoted Candidate in
+the M8.6 outcome store plus a digest-only pilot binding. The source CandidateSet remains unchanged.
+Completed replay only verifies persisted results; incomplete checkpoints require explicit recovery.
+The command does not run Validation, Critic or target code, approve operations, derive Runner/Broker
+parameters, build, access the network or submit anything.

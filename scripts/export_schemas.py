@@ -206,6 +206,8 @@ from vulnloom.findings import (
     FindingPromotionPlan,
     PilotFindingIntakeBinding,
     PilotFindingIntakePlan,
+    PilotFindingPromotionBinding,
+    PilotFindingPromotionPlan,
 )
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
@@ -345,6 +347,8 @@ MODELS = (
     FindingPromotionPlan,
     AgentFindingIntakePlan,
     PilotFindingIntakePlan,
+    PilotFindingPromotionBinding,
+    PilotFindingPromotionPlan,
     PilotFindingIntakeBinding,
     AgentFindingIntakeCommand,
     AgentFindingIntakeRecord,

@@ -161,6 +161,30 @@ class PilotFindingIntakeService:
         self.store.complete(binding)
         return binding
 
+    def load_verified(self, plan: PilotFindingIntakePlan, *, now: datetime, **inputs):
+        """Read exact completed Intake provenance without creating or deciding an Intake."""
+        plan = PilotFindingIntakePlan.model_validate(plan.model_dump(mode="python"))
+        if not plan.created_at <= now < plan.deadline:
+            raise PilotFindingIntakeTimedOut("pilot Finding Intake outside its window")
+        self._verify(**inputs, now=now)
+        expected = self.prepare(
+            **inputs,
+            now=plan.created_at,
+            deadline=plan.deadline,
+            idempotency_key=plan.idempotency_key,
+        )
+        binding = self.store.load_completed(plan.plan_id)
+        record = self.intake_service.store.load_completed(plan.intake_plan_id)
+        self._verify_record(record, inputs["intake_plan"], inputs["command"])
+        if (
+            expected != plan
+            or self.store.load_completed_plan(plan.plan_id) != plan
+            or binding != self._binding(plan, record, binding.completed_at)
+            or binding.completed_at > now
+        ):
+            raise PilotFindingIntakeRejected("pilot Finding completed provenance drifted")
+        return binding
+
     def _verify(
         self,
         *,

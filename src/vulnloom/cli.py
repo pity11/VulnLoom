@@ -104,10 +104,16 @@ from vulnloom.findings import (
     AgentFindingIntakeStore,
     FindingDuplicateCheck,
     FindingDuplicateCheckStore,
+    FindingPromotionExecutionPlan,
     FindingPromotionPlan,
+    FindingPromotionService,
+    FindingPromotionStore,
     PilotFindingIntakePlan,
     PilotFindingIntakeService,
     PilotFindingIntakeStore,
+    PilotFindingPromotionPlan,
+    PilotFindingPromotionService,
+    PilotFindingPromotionStore,
 )
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.ingestion import IngestionService
@@ -994,9 +1000,7 @@ def run_pilot_critic_local(args: argparse.Namespace) -> int:
     return 0
 
 
-def bind_pilot_finding_intake_local(args: argparse.Namespace) -> int:
-    """Consume completed pilot Critic provenance into human Intake, without promotion."""
-    plan = PilotFindingIntakePlan.model_validate_json(Path(args.plan_file).read_text())
+def _load_pilot_finding_inputs(args):
     execution_plan = PilotCriticExecutionPlan.model_validate_json(
         Path(args.critic_execution_plan_file).read_text()
     )
@@ -1017,6 +1021,20 @@ def bind_pilot_finding_intake_local(args: argparse.Namespace) -> int:
     duplicate_check = FindingDuplicateCheck.model_validate_json(
         Path(args.duplicate_check_file).read_text()
     )
+    return dict(
+        critic_execution_plan=execution_plan,
+        execution_approval=approval,
+        execution_inputs=execution_inputs,
+        intake_plan=intake_plan,
+        command=command,
+        critic_binding_plan=critic_binding_plan,
+        promotion_plan=promotion_plan,
+        duplicate_check=duplicate_check,
+    )
+
+
+@contextmanager
+def _open_pilot_finding_service(args):
     with (
         _open_pilot_critic_service(args) as execution,
         FindingDuplicateCheckStore(Path(args.duplicate_check_db)) as duplicate_store,
@@ -1037,24 +1055,68 @@ def bind_pilot_finding_intake_local(args: argparse.Namespace) -> int:
         service = PilotFindingIntakeService(
             critic_execution_service=execution, intake_service=intake, store=store
         )
-        binding = service.execute(
-            plan,
-            critic_execution_plan=execution_plan,
-            execution_approval=approval,
-            execution_inputs=execution_inputs,
-            intake_plan=intake_plan,
-            command=command,
-            critic_binding_plan=critic_binding_plan,
-            promotion_plan=promotion_plan,
-            duplicate_check=duplicate_check,
-            now=utc_now(),
-        )
+        yield service
+
+
+def bind_pilot_finding_intake_local(args: argparse.Namespace) -> int:
+    """Consume completed pilot Critic provenance into human Intake, without promotion."""
+    plan = PilotFindingIntakePlan.model_validate_json(Path(args.plan_file).read_text())
+    inputs = _load_pilot_finding_inputs(args)
+    with _open_pilot_finding_service(args) as service:
+        binding = service.execute(plan, **inputs, now=utc_now())
     print(
         json.dumps(
             {
                 "mode": "pilot_finding_intake_binding",
                 "finding_created": False,
                 "candidate_changed": False,
+                "critic_executed": False,
+                "validation_executed": False,
+                "network_accessed": False,
+                "binding": binding.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def promote_pilot_finding_local(args: argparse.Namespace) -> int:
+    """Record an explicitly approved Finding promotion with exact pilot provenance."""
+    plan = PilotFindingPromotionPlan.model_validate_json(Path(args.plan_file).read_text())
+    intake_plan = PilotFindingIntakePlan.model_validate_json(
+        Path(args.pilot_finding_intake_plan_file).read_text()
+    )
+    execution_plan = FindingPromotionExecutionPlan.model_validate_json(
+        Path(args.promotion_execution_plan_file).read_text()
+    )
+    approval = ApprovalRequest.model_validate_json(Path(args.promotion_approval_file).read_text())
+    inputs = _load_pilot_finding_inputs(args)
+    with (
+        _open_pilot_finding_service(args) as intake,
+        FindingPromotionStore(Path(args.promotion_db)) as outcomes,
+        PilotFindingPromotionStore(Path(args.pilot_promotion_db)) as store,
+    ):
+        promotion = FindingPromotionService(intake_service=intake.intake_service, store=outcomes)
+        service = PilotFindingPromotionService(
+            pilot_intake_service=intake,
+            promotion_service=promotion,
+            store=store,
+        )
+        binding = service.execute(
+            plan,
+            pilot_intake_plan=intake_plan,
+            intake_inputs=inputs,
+            execution_plan=execution_plan,
+            approval=approval,
+            now=utc_now(),
+        )
+    print(
+        json.dumps(
+            {
+                "mode": "approved_pilot_finding_promotion",
+                "finding_recorded": True,
+                "source_candidate_unchanged": True,
                 "critic_executed": False,
                 "validation_executed": False,
                 "network_accessed": False,
@@ -1654,6 +1716,55 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         pilot_finding.add_argument(f"--{name}", default=default)
     pilot_finding.set_defaults(handler=bind_pilot_finding_intake_local)
+
+    pilot_promotion = sub.add_parser("pilot-finding-promote-local")
+    for name in (
+        "plan-file",
+        "pilot-finding-intake-plan-file",
+        "promotion-execution-plan-file",
+        "promotion-approval-file",
+        "critic-execution-plan-file",
+        "critic-binding-plan-file",
+        "finding-intake-plan-file",
+        "finding-intake-command-file",
+        "promotion-plan-file",
+        "duplicate-check-file",
+        "pilot-intake-plan-file",
+        "approval-file",
+        "evidence-catalog-file",
+        "pilot-outcome-plan-file",
+        "outcome-plan-file",
+        "intake-plan-file",
+        "intake-command-file",
+        "critic-plan-file",
+        "scope-file",
+        "validation-plan-file",
+        "audit-artifact-file",
+    ):
+        pilot_promotion.add_argument(f"--{name}", required=True)
+    for name, default in (
+        ("audit-store", ".vulnloom/agent-audits"),
+        ("candidate-store", ".vulnloom/candidates"),
+        ("evidence-store", ".vulnloom/evidence"),
+        ("intake-db", ".vulnloom/agent-validation-intakes.db"),
+        ("pilot-intake-db", ".vulnloom/pilot-intakes.db"),
+        ("pilot-execution-db", ".vulnloom/pilot-validation-executions.db"),
+        ("validation-db", ".vulnloom/validation.db"),
+        ("outcome-db", ".vulnloom/agent-validation-outcomes.db"),
+        ("pilot-outcome-db", ".vulnloom/pilot-validation-outcomes.db"),
+        ("critic-intake-db", ".vulnloom/agent-critic-intakes.db"),
+        ("pilot-critic-db", ".vulnloom/pilot-critic-intakes.db"),
+        ("critic-db", ".vulnloom/critic.db"),
+        ("critic-outcome-db", ".vulnloom/agent-critic-outcomes.db"),
+        ("pilot-critic-execution-db", ".vulnloom/pilot-critic-executions.db"),
+        ("duplicate-check-db", ".vulnloom/finding-duplicate-checks.db"),
+        ("finding-intake-db", ".vulnloom/agent-finding-intakes.db"),
+        ("pilot-finding-db", ".vulnloom/pilot-finding-intakes.db"),
+        ("promotion-db", ".vulnloom/finding-promotions.db"),
+        ("pilot-promotion-db", ".vulnloom/pilot-finding-promotions.db"),
+    ):
+        pilot_promotion.add_argument(f"--{name}", default=default)
+    pilot_promotion.set_defaults(handler=promote_pilot_finding_local)
 
     validation = sub.add_parser("validation-run-offline")
     validation.add_argument("--scope-file", required=True)

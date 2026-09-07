@@ -40,6 +40,17 @@ from .pilot_intake_store import (
     PilotFindingIntakeRecoveryRequired,
     PilotFindingIntakeStore,
 )
+from .pilot_promotion import (
+    PilotFindingPromotionRejected,
+    PilotFindingPromotionService,
+    PilotFindingPromotionTimedOut,
+)
+from .pilot_promotion_models import PilotFindingPromotionBinding, PilotFindingPromotionPlan
+from .pilot_promotion_store import (
+    PilotFindingPromotionConflict,
+    PilotFindingPromotionRecoveryRequired,
+    PilotFindingPromotionStore,
+)
 from .promotion import FindingPromotionRejected, FindingPromotionService, FindingPromotionTimedOut
 from .promotion_models import (
     FINDING_PROMOTION_SIDE_EFFECTS,
@@ -58,6 +69,14 @@ from .promotion_store import (
 )
 
 __all__ = [
+    "PilotFindingPromotionRejected",
+    "PilotFindingPromotionService",
+    "PilotFindingPromotionTimedOut",
+    "PilotFindingPromotionBinding",
+    "PilotFindingPromotionPlan",
+    "PilotFindingPromotionConflict",
+    "PilotFindingPromotionRecoveryRequired",
+    "PilotFindingPromotionStore",
     "PilotFindingIntakeService",
     "PilotFindingIntakeRejected",
     "PilotFindingIntakeTimedOut",
@@ -66,7 +85,6 @@ __all__ = [
     "PilotFindingIntakeStore",
     "PilotFindingIntakeConflict",
     "PilotFindingIntakeRecoveryRequired",
-
     "AgentFindingIntakeClaim",
     "AgentFindingIntakeCommand",
     "AgentFindingIntakeConflict",

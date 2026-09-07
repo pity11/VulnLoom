@@ -809,6 +809,18 @@ Candidate 摘要、创建时间、截止时间和幂等键。仅接受 completed
 独立 ledger 唯一消费执行结果、Intake、晋升计划、去重证明、Finding ID 和人工命令；Finding ID 只是
 计划身份，不代表 Finding 已创建。STARTED 不自动重试，COMPLETED 重放复核完整 record 和 ledger。
 
+### PilotFindingPromotionPlan 与 Binding
+
+M9.14 `PilotFindingPromotionPlan` 封存 M9.13 plan/binding ID 及完整摘要、M8.6 execution plan ID
+及完整摘要、精确晋升 Approval 身份及摘要、M8.5 record、PromotionPlan、去重证明、Finding/Candidate/Scope
+身份、Candidate 摘要、时间窗口和幂等键。晋升 Approval 独立于上游 Critic 执行 Approval。
+
+`PilotFindingPromotionBinding` 绑定执行结果的 outcome ID/完整摘要、Finding 和晋升后 Candidate 摘要，
+并保留上游 pilot Intake、执行计划、Approval、接纳记录、晋升计划和 Scope 身份及完成时间。
+两种协议均禁止额外字段并校验规范化内容摘要，不携带 Evidence 正文、影响描述或执行参数。
+完整 Finding 及 promoted Candidate 仍由既有 M8.6 outcome store 保存；来源 CandidateSet 不被覆盖。
+独立 ledger 使用唯一约束防止重复消费，STARTED 要求显式恢复，完成重放只读验证全部结果与当前授权。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
