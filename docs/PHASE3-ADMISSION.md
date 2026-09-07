@@ -203,6 +203,12 @@ The M9.10 pilot outcome provenance admission run is
 [`34041988283`](https://github.com/pity11/VulnLoom/actions/runs/34041988283).
 Both completed successfully on 2026-09-06 UTC.
 
+The M9.11 pilot Critic Intake admission run is
+[`34075541690`](https://github.com/pity11/VulnLoom/actions/runs/34075541690) for commit
+`ca327345d948d176bbd238d0a4eea6a3effa9dd6`. The same commit passed standard CI
+[`34075541729`](https://github.com/pity11/VulnLoom/actions/runs/34075541729).
+Both completed successfully on 2026-09-07 UTC.
+
 ## Enforced admission criteria
 
 | Boundary | Required proof | Result |
@@ -245,6 +251,8 @@ Both completed successfully on 2026-09-06 UTC.
 | Human pilot Candidate selection | One explicit human command reopens a completed passing readiness result and immutable artifact, verifies exact SourceGraph/CandidateSet/Snapshot/Scope provenance, and uniquely records one still-proposed Candidate; replay, wrong Candidate, failed readiness, timeout, drift, conflict and unfinished recovery add no ValidationPlan or operational authority | PASS (`34033041866`) |
 | Pilot-bound human Validation Intake | One exact completed M9.7 selection is uniquely consumed with an independently supplied M8.1 Intake plan, explicit human `accept` command and pre-existing ValidationPlan; authoritative identities, digests, Scope and deadlines are rechecked before a digest-only binding, while replay, drift, timeout and unfinished recovery add no Validation execution, Candidate mutation, Runner/Broker parameters or external effect | PASS (`34034039075`) |
 | Approval-gated offline pilot Validation | One completed M9.8 binding and accepted M8.1 record are consumed only with the identical pre-existing ValidationPlan and a separately granted exact `RUN_VALIDATION` Approval; trusted preflight, unique execution checkpoints and digest-only outcome binding enforce replay, drift, timeout, bypass and recovery refusal while the first version rejects all Broker calls and network activity | PASS (`34035435470`) |
+| Pilot Validation outcome provenance | A completed M9.9 execution binding and exact M8.2 plan are required; upstream provenance, bare-checkpoint refusal, read-only replay, drift, timeout and STARTED recovery are verified without executing Validation or changing Candidate state | PASS (`34041988283`) |
+| Pilot human Critic Intake | Completed M9.10 provenance, reproduced Validation, validated result Candidate, complete Evidence and an independent exact human accept command are required before M8.3 checkpointing; bare Intake, drift, timeout and interrupted state fail closed, and replay never executes Critic or Validation | PASS (`34075541729`) |
 
 ## Reproduction
 
@@ -581,7 +589,7 @@ M9.2–M9.5 offline gates, and the M9.5 ablation check passed. The skipped opt-i
 were not used to make any new isolation claim.
 
 
-### M9.11 local verification (remote admission pending)
+### M9.11 pilot Critic Intake admission
 
 The pilot Critic Intake bridge reopens completed M9.10 provenance and applies the existing M8.3
 reproduced/validated/Evidence and human-command requirements before checkpointing. Local verification
@@ -589,5 +597,10 @@ on 0.59.0: `702 passed, 19 skipped`, coverage `85.92%`. Tests cover synthetic of
 inconclusive refusal, missing or unfinished upstream state, resealed digest drift, exact command
 binding, expired authority, pre-existing bare Intake, completion failure, cleanup, replay and ledger
 tampering. CLI tests prohibit Validation, Critic and M9.10 execution while recording Intake.
-These tests add no new isolation or real-target reproduction claim. M9.11 has not been pushed or
-qualified by remote CI/Phase 3 Admission; M9.10 run IDs do not qualify the new revision.
+The exact implementation commit `ca327345d948d176bbd238d0a4eea6a3effa9dd6` passed
+[CI `34075541729`](https://github.com/pity11/VulnLoom/actions/runs/34075541729) at
+2026-09-07 02:14:03 UTC and
+[Phase 3 Admission `34075541690`](https://github.com/pity11/VulnLoom/actions/runs/34075541690)
+at 2026-09-07 02:14:47 UTC. The new tests prove pilot Intake provenance; the concurrent rootless
+Admission run confirms the existing real isolation boundary remains intact. Synthetic success
+fixtures do not claim real-target reproduction.

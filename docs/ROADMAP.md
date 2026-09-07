@@ -857,7 +857,7 @@ M9.10 是 pilot 专用的 M8.2 provenance gate，通用非 pilot M8.2 协议保�
 本阶段不执行 Critic，也不把现有通用 Critic 入口自动变为 pilot 门禁。CI `34041988283` 与 Phase 3
 Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过。
 
-### M9.11：pilot Critic Intake 强制消费 M9.10 outcome binding（已实现，远端准入待运行）
+### M9.11：pilot Critic Intake 强制消费 M9.10 outcome binding（已完成首版）
 
 - 新增内容寻址 `PilotCriticIntakePlan`/`Binding`，精确绑定 completed M9.10 plan/binding、既有 M8.3
   IntakePlan、独立 human accept command、预构造 CriticPlan、Candidate 和 Scope；不包含 assessments 正文。
@@ -870,7 +870,8 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 - 新增 `pilot-critic-intake-bind-local`，只记录 accepted Intake 来源，不执行 Critic/Validation、改变 Candidate、
   批准操作、构建 Target、联网、生成 Finding 或 Submission。
 - 本地 702 项测试通过、19 项 opt-in 跳过，覆盖率 85.92%；新增测试包含合成离线成功路径、拒绝、超时、
-  写入失败/清理、CLI 幂等、摘要重封及 ledger 篡改。远端 CI/Admission 尚待运行。
+  写入失败/清理、CLI 幂等、摘要重封及 ledger 篡改。exact implementation commit `ca32734` 的
+  CI `34075541729` 与 Phase 3 Admission `34075541690` 已于 2026-09-07 UTC 通过。
 
 当前默认 offline pilot 的 `INCONCLUSIVE` 判据保持不变。成功测试使用专门的合成 Evidence 和可信测试 judge，
 不代表真实目标已复现。后续 pilot Critic execution/outcome 阶段仍须显式消费本 binding；本里程碑不提供该执行入口。
