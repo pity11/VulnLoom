@@ -833,6 +833,17 @@ reference 与 codec registration。只接受有界 live HTTPS、固定 reporter 
 两种记录都有内容摘要校验。STARTED/COMPLETED ledger 唯一消费 plan、幂等键和 grant；失败也不能自动重试。
 这些协议不产生研究领域事件，也不能改变 Candidate/Finding 或批准其他操作。
 
+### CucChatProbeCodecRegistration 与 CUC 结果身份
+
+M9.16 为独立 probe 添加密封 CUC 专用 codec：固定 `cuc/deepseek`、Chat Completions path、
+PONG 请求以及两个精确后端响应名，禁止修改为其他别名或通配符。`ProviderProbeConfig.codec` 允许
+该专用类型或原 Responses 类型；CUC 配置另须匹配固定网关和真实 Key 的环境变量引用。
+
+`ProviderProbePlan.fixture_digest` 区分 Responses 固定结构化消息与 CUC PONG 消息。
+`ProviderProbeResult.response_model` 仅允许上述两个后端名或空值；空值不参与摘要，保留 M9.15
+结果身份。CUC 成功重放必须有响应模型记录，Responses 结果不得带该 CUC 字段。
+新 schema 不增加研究目标、工具执行、授权签发或领域状态变更能力。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

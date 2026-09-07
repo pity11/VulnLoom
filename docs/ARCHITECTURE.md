@@ -1142,3 +1142,24 @@ regular and no-follow; missing network opt-in is rejected before reading configu
 Local tests stub DNS and process exchange; they are not production provider evidence. Existing
 opt-in transport tests continue to cover actual loopback TLS/process boundaries. Provider-specific
 compatibility, account quotas and a real-key smoke require separate operator execution and evidence.
+
+
+## 62. CUC-only fixed Chat probe codec (M9.16)
+
+CUC Chat compatibility is confined to the standalone probe. A distinct sealed codec registration
+binds the exact request alias, the two explicit response aliases, `/v1/chat/completions`, fixed PONG
+content and resource limits. ProviderProbeConfig additionally binds `openai.cuc.edu.cn` and the real
+CUC credential reference. It accepts no general Chat prompts, target inputs or shim credentials.
+
+The codec verifies a zero-tool synthetic envelope, then constructs a code-owned single user PONG
+request. It requires exactly one stopped assistant PONG response, validates the served model against
+the exact allowlist and checks token counts. Optional reasoning content is discarded with the raw
+response, never transferred to model context, logs or records. The internal completion object is
+constructed from the validated PONG; no tool or domain workflow dispatch exists in this path.
+
+The existing HTTPS adapter accepts this fixed codec only where the standalone probe selects it.
+The original Responses codec, including exact request/response model equality, is unchanged. No
+HTTP loopback, redirect, proxy or TLS relaxation is introduced. The result records the validated
+served model; its optional field preserves M9.15 digest identity when absent. Probe fixture digests
+distinguish Chat PONG from Responses structured completion. Both paths consume existing operator
+egress authority, remain single-attempt and share the same recovery and cleanup boundaries.

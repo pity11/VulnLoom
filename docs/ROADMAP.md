@@ -930,7 +930,7 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 实现提交 `ea110e1` 的 CI `34089910194` 与 Phase 3 Admission `34089910201` 已通过。
 后续 pilot Report Intake 和报告链仍保留各自门禁；M9.15 优先完成独立 Provider 最小接入。
 
-### M9.15：独立真实 Provider 最小接入与固定消息验收（已实现，待远端验收）
+### M9.15：独立真实 Provider 最小接入与固定消息验收（已完成首版）
 
 - 新增 `ProviderProbeConfig`/`Plan`/`Result` 和 `provider-probe-prepare`/`provider-probe-run`。
   只允许固定合成消息，零工具、无 Target/源码/Evidence 输入，不接入漏洞研究工作流。
@@ -943,8 +943,28 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 - 使用 fake DNS/process 完成本地成功、拒绝、超时、清理、撤销和 CLI 回归；不声称已完成真实 Provider
   调用或真实漏洞研究验收。操作及剩余验收要求见 `docs/PROVIDER-PROBE.md`。
 
+实现提交 `dc245e2` 的 CI `34091685590` 与 Phase 3 Admission `34091685606` 已通过；
+这些运行没有使用真实 Provider Key。
+
 报告链的 pilot 绑定继续待办。Provider smoke 通过也不授予研究目标网络访问、Validation、Candidate 变更、
 Target build 或 Submission 权限。
+
+### M9.16：CUC 固定 Chat probe 适配与真实连通性验收（适配已实现，真实调用待验收）
+
+- 运营方明确提供 `https://openai.cuc.edu.cn/v1/chat/completions`、请求模型 `cuc/deepseek`
+  和真实凭据引用 `CUC_DEEPSEEK_API_KEY`；本地 shim 的占位 Key 不可替代 CUC Key。
+- 新增仅用于独立 probe 的 `CucChatProbeCodecRegistration`/codec；固定发送 `Reply with exactly PONG.`，
+  只接受单个 assistant `PONG`、`finish_reason=stop`、有效用量和两个精确响应模型名：
+  `deepseek-v4-flash` / `deepseek-v4-flash-0731`。请求别名本身、通配符、前缀匹配均不接受。
+- 直连复用既有 pinned HTTPS subprocess，端点、凭据变量、请求模型、固定内容和资源预算在代码中绑定；
+  不启用本地明文 shim，不放宽通用 Responses 身份检查，不提供通用 Chat 工作流。
+- 新增只读 `provider-cuc-probe-config`，仅消费运营方已经签发的 inference grant；不签发、批准或续期授权。
+  实际响应模型名进入密封结果；旧 M9.15 结果的内容摘要保持兼容。
+- 本地成功、拒绝、模型别名漂移、超时、清理、CLI 重放和写入中断回归已完成；测试不调用真实 CUC。
+
+当前任务进程没有可用的 `CUC_DEEPSEEK_API_KEY`，也没有已提供的 CUC 出口授权 store；因此未发送真实请求，
+M9.16 的真实 Provider 验收仍未完成。先保存并推送适配与本地验证代码；配置齐备后继续单次固定消息验收，
+只提交无敏感信息的实际结果。不得用本地模拟或远端 CI 结果代替真实 Provider 验收。
 
 ## 延后事项
 

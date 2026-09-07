@@ -17,8 +17,11 @@
       "type": "string"
     },
     "fixture_digest": {
-      "const": "bf1ad7ba80591b943820add68571133cf51fdf73634b92964b14d8c9e6f336d5",
       "default": "bf1ad7ba80591b943820add68571133cf51fdf73634b92964b14d8c9e6f336d5",
+      "enum": [
+        "bf1ad7ba80591b943820add68571133cf51fdf73634b92964b14d8c9e6f336d5",
+        "0127dcfd74631fc24ddd0216d6339679ca2780e71910c92e4a99ad85126e1a85"
+      ],
       "title": "Fixture Digest",
       "type": "string"
     },

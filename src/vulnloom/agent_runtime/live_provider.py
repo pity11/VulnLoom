@@ -35,6 +35,7 @@ from .provider_codec import (
     AgentProviderCodecTimedOut,
     OpenAIResponsesV1Codec,
 )
+from .provider_probe_cuc import CucChatProbeCodec
 from .provider_process import (
     SUBPROCESS_HTTPS_ADAPTER_DIGEST,
     ProviderProcessExecutionError,
@@ -84,7 +85,7 @@ class SubprocessHttpsProviderAdapter:
         credential_reference: ModelCredentialReference,
         credential_provider: ModelCredentialProvider,
         egress_store: AgentProviderEgressStore,
-        provider_codec: OpenAIResponsesV1Codec,
+        provider_codec: OpenAIResponsesV1Codec | CucChatProbeCodec,
         ca_bundle: bytes | None = None,
         resolver: ProviderResolver | None = None,
         process_runner: ProviderProcessRunner | None = None,

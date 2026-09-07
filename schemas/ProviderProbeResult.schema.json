@@ -67,6 +67,22 @@
       "format": "date-time",
       "title": "Completed At",
       "type": "string"
+    },
+    "response_model": {
+      "anyOf": [
+        {
+          "enum": [
+            "deepseek-v4-flash",
+            "deepseek-v4-flash-0731"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Model"
     }
   },
   "required": [

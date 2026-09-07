@@ -59,6 +59,7 @@ from vulnloom.agent_runtime import (
     AgentToolIntent,
     AgentToolObservation,
 )
+from vulnloom.agent_runtime.provider_probe_cuc import CucChatProbeCodecRegistration
 from vulnloom.agent_runtime.provider_probe_models import (
     ProviderProbeConfig,
     ProviderProbePlan,
@@ -295,6 +296,7 @@ MODELS = (
     AgentProviderTransportReceipt,
     AgentModelRegistration,
     AgentRunLimits,
+    CucChatProbeCodecRegistration,
     ProviderProbeConfig,
     ProviderProbePlan,
     ProviderProbeResult,

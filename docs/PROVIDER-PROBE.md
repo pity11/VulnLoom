@@ -1,6 +1,6 @@
 # M9.15：真实模型最小接入
 
-本入口只发送仓库固定的合成连通性消息，不读取项目源码、Candidate、Evidence 或任意用户提示词。
+本入口只发送仓库固定的合成连通性消息（M9.15 Responses 或 M9.16 CUC PONG），不读取项目源码、Candidate、Evidence 或任意用户提示词。
 它不运行 Agent 工作流或工具，不连接研究目标。通过表示固定结构化响应、传输及清理检查通过，
 不表示模型的漏洞研究质量、目标验证能力或整个 pilot 已通过真实 Provider 验收。
 
@@ -10,10 +10,10 @@
 签发时必须审阅 exact provider hostname、credential reference、adapter、期限和配额；probe 的
 prepare/run 命令都不会签发或续期 grant。运行时应始终使用同一套权威 egress store 与 probe ledger。
 
-配置由以下四个既有类型组成：`AgentModelRegistration`、`AgentProviderTransportAdmission`、
+M9.15 Responses 配置由以下四个既有类型组成：`AgentModelRegistration`、`AgentProviderTransportAdmission`、
 `ModelCredentialReference` 和 `AgentProviderCodecRegistration`。`ProviderProbeConfig` 进一步要求：
 
-- `live_https` 和固定 subprocess HTTPS adapter、固定 Responses codec；不允许代理、重定向或自定义 CA。
+- `live_https` 和固定 subprocess HTTPS adapter、固定 Responses codec（CUC 专用分支见文末）；不允许代理、重定向或自定义 CA。
 - 所有 provider、credential、codec、admission 身份精确匹配；registration 引用已签发的 grant。
 - registration 的角色固定为 `reporter`，输出预算最多 512 tokens。
 - 请求和响应各最多 32768 bytes，transport 超时最多 20 秒，codec 超时最多 2 秒，每分钟最多一次请求。
@@ -88,7 +88,7 @@ vulnloom provider-probe-run \
 ```
 
 run 不接受自定义消息、Target、Scope、工具参数或原始 Key。固定消息允许的工具集合和调用预算均为零。
-仅精确的 `complete` 测试响应能够通过；工具建议、blocked、额外引用、错误摘要、拒绝、超限和畸形响应均拒绝。
+Responses 分支仅精确的 `complete` 测试响应能够通过；工具建议、blocked、额外引用、错误摘要、拒绝、超限和畸形响应均拒绝。
 
 ## 结果和失败处理
 
@@ -105,3 +105,41 @@ attempt/receipt 摘要与完成时间。CLI 输入错误统一输出 `provider_p
 
 本地测试使用 fake DNS/process 和合成响应，不读取真实凭据、不连接公网 Provider。既有 opt-in loopback TLS
 与 Phase 3 Admission 验证复用的传输边界；真实 Provider 兼容性、实际模型标识和账户配额仍须独立实测记录。
+
+
+## M9.16：CUC 专用 Chat PONG 分支
+
+已确认的接口信息由运营方提供；实际调用尚未在 VulnLoom 中验收：
+
+| 项目 | 固定值 |
+|---|---|
+| 网关 | `https://openai.cuc.edu.cn` |
+| 请求路径 | `/v1/chat/completions` |
+| 请求模型 | `cuc/deepseek` |
+| 可接受响应模型 | `deepseek-v4-flash`、`deepseek-v4-flash-0731` |
+| 真实凭据引用 | `CUC_DEEPSEEK_API_KEY` |
+| 单次请求 | `Reply with exactly PONG.`，非流式，输出上限 256 tokens |
+| 默认预算 | 请求/响应各 32768 bytes，transport 10 秒，无重试 |
+
+本分支直接使用受限 HTTPS transport，不连接本地 `codex-responses-shim`。`SHIM_DUMMY_KEY` 和
+`PI_CUC_DEEPSEEK_APIKEY` 不是该分支的真实凭据引用。通用 Responses codec 的精确模型身份规则不变。
+CUC 专用 codec 只处理固定 PONG，不能作为任意 Chat Completions Agent 接口使用。
+
+运营方可先通过 `vulnloom.agent_runtime.provider_probe.cuc_probe_admission()` 读取并审阅完整的
+固定端点与预算，再通过既有 Control Plane 流程独立签发对应 inference grant。该函数不读 Key、
+不签发授权、不访问网络。提供已签发 grant 后，以下命令只读校验并输出无密钥配置：
+
+```bash
+vulnloom provider-cuc-probe-config \
+  --egress-store .vulnloom/provider-egress \
+  --grant-id REPLACE_WITH_ISSUED_GRANT_ID > cuc-probe-config.json
+```
+
+检查退出码为 0 后，用前述 `provider-probe-prepare` 和 `provider-probe-run`，将配置路径替换成
+`cuc-probe-config.json`；仍需真实 Key 的环境注入、有效 grant、同一权威 probe ledger 和显式联网开关。
+Key 不存在时不要运行或消费一次性 grant。命令不会从 shim 或其他项目搜集、复制凭据。
+
+只接受单个 `assistant` 的精确 `PONG` 内容、`finish_reason=stop`、有效用量和两个精确后端名。
+模型名大小写变化、额外前后缀、请求别名作为响应名，以及工具调用/拒绝/多选择/截断响应均拒绝。
+通过后，结果的 `response_model` 记录实际命中的白名单名称；返回正文与可选 reasoning 内容仍被丢弃。
+当前任务没有可用的真实环境变量和已提供的出口授权 store，因此没有真实 CUC 结果可引用。

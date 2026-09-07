@@ -709,5 +709,39 @@ New tests use fake DNS/process exchange. No real API key was read and no public 
 Existing opt-in loopback TLS/Phase 3 tests cover the reused transport boundary; they do not certify
 real Provider/model compatibility or research effectiveness. Production credentials, exact provider
 configuration, account quota and a real smoke result remain operator-supplied admission evidence.
-See `docs/PROVIDER-PROBE.md`. Remote CI and Phase 3 Admission for this implementation commit are
-pending and are separate from real Provider verification.
+See `docs/PROVIDER-PROBE.md`. Implementation commit
+`dc245e2d98353702da3ee9a45f016d3eb0a6e05b` passed
+[CI `34091685590`](https://github.com/pity11/VulnLoom/actions/runs/34091685590) and
+[Phase 3 Admission `34091685606`](https://github.com/pity11/VulnLoom/actions/runs/34091685606).
+These results are separate from real Provider verification.
+
+### M9.16 CUC fixed Chat probe preparation
+
+Version 0.64.0 adds a CUC-only fixed Chat probe. The operator supplied the endpoint
+`https://openai.cuc.edu.cn/v1/chat/completions`, request model `cuc/deepseek` and exact accepted
+response identities `deepseek-v4-flash` / `deepseek-v4-flash-0731`. The codec sends only a fixed PONG
+request, requires one stopped assistant PONG with bounded valid usage and rejects all other model
+identities, tool calls, refusals, multiple choices, malformed/oversized responses and content drift.
+It is not a general Chat Completions Agent adapter. Original Responses identity checks are unchanged.
+
+Configuration pins the CUC hostname and real `CUC_DEEPSEEK_API_KEY` reference, excluding shim dummy
+credentials. It reuses the existing isolated pinned HTTPS process; no loopback/plaintext exception
+is added. `provider-cuc-probe-config` checks an existing issued grant and prints only non-secret
+configuration. It does not issue, approve or renew grants. The selected response identity is recorded
+in the sealed probe result; legacy M9.15 results retain their content identity when this optional
+field is absent. Completed CUC replay requires the response-model observation.
+
+Local verification: `843 passed, 19 skipped`, coverage `86.34%`. Thirty new tests cover both exact
+backend identities, forbidden logical/prefix/unknown/case variants, content/tool/refusal/role/finish
+mismatches, multiple choices, invalid usage, duplicate JSON, oversized payloads, wrong fixed fixture,
+resealed endpoint/model/credential/alias changes, encode/decode timeout, cleanup, CLI config/run/replay,
+interrupted persistence, missing served-model observations and legacy result identity. All use
+synthetic keys and fake DNS/process exchange. M6.1/M6.3 and M9.2–M9.5 gates, M9.5 ablation,
+schema/fixture determinism, Ruff and whitespace checks passed.
+
+No real CUC request has been made. The current task environment does not expose
+`CUC_DEEPSEEK_API_KEY`; no operational CUC egress store has been supplied. The documented ADroit
+local dotenv path was unavailable; no other credentials were searched or disclosed. Real Provider
+compatibility, measured account usage and real-call cleanup remain pending operator credential and
+authority inputs. Remote CI/Phase 3 Admission for this implementation commit also remain pending;
+they will not substitute for real CUC evidence. See `docs/PROVIDER-PROBE.md` for setup.

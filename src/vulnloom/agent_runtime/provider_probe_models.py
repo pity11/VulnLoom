@@ -12,23 +12,26 @@ from vulnloom.runners.models import Digest
 
 from .models import AgentAdapterKind, AgentModelRegistration
 from .provider_codec import AgentProviderCodecRegistration
+from .provider_probe_cuc import CucChatProbeCodecRegistration
+from .provider_probe_fixture import CUC_PROBE_DIGEST, PROBE_DIGEST, PROBE_SUMMARY, PROBE_TEXT
 from .provider_process import SUBPROCESS_HTTPS_ADAPTER_DIGEST
 from .transport import AgentProviderTransportAdmission, AgentProviderTransportMode
 
-PROBE_SUMMARY = canonical_digest("vulnloom-provider-probe-v1")
-PROBE_TEXT = (
-    "This is a synthetic connectivity check, with no target or research task. "
-    "Return only the complete decision with summary_digest=" + PROBE_SUMMARY + ". "
-    "Use supporting_ref_digests=[] and tool_call=null. Do not propose tools."
-)
-PROBE_DIGEST = canonical_digest(PROBE_TEXT)
+__all__ = [
+    "PROBE_DIGEST",
+    "PROBE_SUMMARY",
+    "PROBE_TEXT",
+    "ProviderProbeConfig",
+    "ProviderProbePlan",
+    "ProviderProbeResult",
+]
 
 
 class ProviderProbeConfig(DomainModel):
     registration: AgentModelRegistration
     admission: AgentProviderTransportAdmission
     credential_reference: ModelCredentialReference
-    codec: AgentProviderCodecRegistration
+    codec: AgentProviderCodecRegistration | CucChatProbeCodecRegistration
 
     @model_validator(mode="after")
     def bounded_live_binding(self) -> Self:
@@ -54,6 +57,12 @@ class ProviderProbeConfig(DomainModel):
             or a.limits.max_requests_per_minute != 1
         ):
             raise ValueError("provider probe config is not a bounded live binding")
+        if isinstance(self.codec, CucChatProbeCodecRegistration) and (
+            r.model != "cuc/deepseek"
+            or a.hostname != "openai.cuc.edu.cn"
+            or self.credential_reference.environment_variable != "CUC_DEEPSEEK_API_KEY"
+        ):
+            raise ValueError("CUC probe endpoint, model or credential reference drifted")
         return self
 
 
@@ -61,7 +70,7 @@ class ProviderProbePlan(DomainModel):
     plan_id: Digest
     config_digest: Digest
     grant_id: Digest
-    fixture_digest: Literal[PROBE_DIGEST] = PROBE_DIGEST
+    fixture_digest: Literal[PROBE_DIGEST, CUC_PROBE_DIGEST] = PROBE_DIGEST
     created_at: AwareDatetime
     deadline: AwareDatetime
     idempotency_key: str = Field(min_length=1, max_length=256)
@@ -78,7 +87,7 @@ class ProviderProbePlan(DomainModel):
 
     @classmethod
     def create(cls, **values):
-        values["fixture_digest"] = PROBE_DIGEST
+        values.setdefault("fixture_digest", PROBE_DIGEST)
         return cls(plan_id=canonical_digest(values), **values)
 
 
@@ -93,6 +102,7 @@ class ProviderProbeResult(DomainModel):
     attempt_digest: Digest | None
     receipt_digest: Digest | None
     completed_at: AwareDatetime
+    response_model: Literal["deepseek-v4-flash", "deepseek-v4-flash-0731"] | None = None
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
@@ -103,12 +113,15 @@ class ProviderProbeResult(DomainModel):
             and self.receipt_digest
         ):
             raise ValueError("successful probe requires transport and cleanup proof")
-        if self.result_id != canonical_digest(
-            self.model_dump(mode="python", exclude={"result_id"})
-        ):
+        values = self.model_dump(mode="python", exclude={"result_id"})
+        if self.response_model is None:
+            values.pop("response_model")  # Preserve M9.15 result identities.
+        if self.result_id != canonical_digest(values):
             raise ValueError("provider probe result digest mismatch")
         return self
 
     @classmethod
     def create(cls, **values):
+        if values.get("response_model") is None:
+            values.pop("response_model", None)
         return cls(result_id=canonical_digest(values), **values)

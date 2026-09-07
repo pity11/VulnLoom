@@ -19,6 +19,8 @@ from .messages import AgentMessageRenderer
 from .models import AgentDecisionPayload, AgentRunLimits, AgentRunPlan, AgentStepRequest
 from .provider_admission import AgentProviderEgressPurpose, AgentProviderEgressStore
 from .provider_codec import OpenAIResponsesV1Codec
+from .provider_probe_cuc import CucChatProbeCodec, CucChatProbeCodecRegistration
+from .provider_probe_fixture import CUC_PROBE_DIGEST, CUC_PROBE_TEXT
 from .provider_probe_models import (
     PROBE_DIGEST,
     PROBE_SUMMARY,
@@ -69,6 +71,9 @@ class ProviderProbeService:
             raise ValueError("provider probe requires active inference authority and time budget")
         return ProviderProbePlan.create(
             config_digest=_digest(config),
+            fixture_digest=CUC_PROBE_DIGEST
+            if isinstance(config.codec, CucChatProbeCodecRegistration)
+            else PROBE_DIGEST,
             grant_id=grant.grant_id,
             created_at=now,
             deadline=deadline,
@@ -90,6 +95,7 @@ class ProviderProbeService:
                 raise ValueError("provider probe completion is in the future")
             return result
         adapter = None
+        codec = None
         status, input_tokens, output_tokens = "rejected", 0, 0
         uncertain_failure = False
         try:
@@ -98,13 +104,18 @@ class ProviderProbeService:
                 plan.deadline - self.now()
             ).total_seconds() <= self.config.admission.limits.timeout_seconds:
                 raise AgentProviderTransportTimedOut("provider probe time budget exhausted")
+            codec = (
+                CucChatProbeCodec(self.config.codec)
+                if isinstance(self.config.codec, CucChatProbeCodecRegistration)
+                else OpenAIResponsesV1Codec(self.config.codec)
+            )
             adapter = SubprocessHttpsProviderAdapter(
                 registration=self.config.registration,
                 admission=self.config.admission,
                 credential_reference=self.config.credential_reference,
                 credential_provider=self.credential_provider,
                 egress_store=self.egress_store,
-                provider_codec=OpenAIResponsesV1Codec(self.config.codec),
+                provider_codec=codec,
                 resolver=self.resolver,
                 process_runner=self.process_runner,
                 now=self.now,
@@ -154,6 +165,7 @@ class ProviderProbeService:
             attempt_digest=_digest(attempts[0]) if len(attempts) == 1 else None,
             receipt_digest=_digest(receipts[0]) if len(receipts) == 1 else None,
             completed_at=completed_at,
+            response_model=getattr(codec, "response_model", None),
         )
         self.store.complete(result)
         return result
@@ -161,18 +173,20 @@ class ProviderProbeService:
     def _message(self, plan):
         # Synthetic identities are derived from the probe only; no Target or Scope is loaded.
         identity = uuid5(NAMESPACE_URL, "vulnloom-provider-probe:" + plan.plan_id)
-        ref = "observation:" + PROBE_DIGEST
+        fixture_digest = plan.fixture_digest
+        fixture_text = CUC_PROBE_TEXT if fixture_digest == CUC_PROBE_DIGEST else PROBE_TEXT
+        ref = "observation:" + fixture_digest
         task = TaskEnvelope(
             task_id=identity,
             engagement_id=identity,
             target_id=identity,
             scope_id=identity,
-            target_version=PROBE_DIGEST,
+            target_version=fixture_digest,
             scope_version=1,
             worker_role=WorkerRole.REPORTER,
-            policy_digest=PROBE_DIGEST,
-            sandbox_profile_digest=PROBE_DIGEST,
-            tool_registry_digest=PROBE_DIGEST,
+            policy_digest=fixture_digest,
+            sandbox_profile_digest=fixture_digest,
+            tool_registry_digest=fixture_digest,
             input_refs=(ref,),
             allowed_tools=frozenset(),
             budget=TaskBudget(wall_seconds=30, model_tokens=512, tool_calls=0),
@@ -185,7 +199,7 @@ class ProviderProbeService:
                 AgentContextSource(
                     source_ref=ref,
                     kind=AgentContextSourceKind.OBSERVATION_SUMMARY,
-                    text=PROBE_TEXT,
+                    text=fixture_text,
                 ),
             ),
             limits=AgentContextLimits(),
@@ -210,3 +224,52 @@ class ProviderProbeService:
         return AgentStepRequest.create(
             plan=run, step=1, remaining_model_tokens=512, message_envelope_id=envelope.envelope_id
         ), envelope
+
+
+def cuc_probe_admission():
+    """Return the exact code-owned CUC endpoint/budget for independent operator review."""
+    from vulnloom.adapters.model_credentials import ModelCredentialReference
+
+    from .provider_process import SUBPROCESS_HTTPS_ADAPTER_DIGEST
+    from .transport import AgentProviderTransportAdmission, AgentProviderTransportLimits
+
+    reference = ModelCredentialReference.create(environment_variable="CUC_DEEPSEEK_API_KEY")
+    return AgentProviderTransportAdmission.create_live_https(
+        provider_id="cuc",
+        hostname="openai.cuc.edu.cn",
+        request_path="/v1/chat/completions",
+        credential_reference_id=reference.reference_id,
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        limits=AgentProviderTransportLimits(
+            max_request_bytes=32768,
+            max_response_bytes=32768,
+            timeout_seconds=10,
+            max_requests_per_minute=1,
+        ),
+    )
+
+
+def create_cuc_probe_config(*, grant_id: str) -> ProviderProbeConfig:
+    """Bind a supplied grant; never issue it, read a key, or enable a shim."""
+    from vulnloom.adapters.model_credentials import ModelCredentialReference
+
+    from .models import AgentModelRegistration
+    from .provider_process import SUBPROCESS_HTTPS_ADAPTER_DIGEST
+
+    reference = ModelCredentialReference.create(environment_variable="CUC_DEEPSEEK_API_KEY")
+    admission = cuc_probe_admission()
+    codec = CucChatProbeCodecRegistration.create()
+    registration = AgentModelRegistration.create_subprocess_https(
+        provider_id="cuc",
+        model="cuc/deepseek",
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        credential_reference_id=reference.reference_id,
+        transport_admission_id=admission.admission_id,
+        egress_grant_id=grant_id,
+        provider_codec_id=codec.codec_id,
+        supported_roles=(WorkerRole.REPORTER,),
+        max_output_tokens=256,
+    )
+    return ProviderProbeConfig(
+        registration=registration, admission=admission, credential_reference=reference, codec=codec
+    )

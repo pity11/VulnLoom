@@ -1,0 +1,89 @@
+{
+  "$defs": {
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Codec Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "cuc",
+      "default": "cuc",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "protocol": {
+      "const": "cuc-chat-pong-probe-v1",
+      "default": "cuc-chat-pong-probe-v1",
+      "title": "Protocol",
+      "type": "string"
+    },
+    "request_path": {
+      "const": "/v1/chat/completions",
+      "default": "/v1/chat/completions",
+      "title": "Request Path",
+      "type": "string"
+    },
+    "request_model": {
+      "const": "cuc/deepseek",
+      "default": "cuc/deepseek",
+      "title": "Request Model",
+      "type": "string"
+    },
+    "accepted_response_models": {
+      "default": [
+        "deepseek-v4-flash",
+        "deepseek-v4-flash-0731"
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Accepted Response Models",
+      "type": "array"
+    },
+    "implementation_digest": {
+      "default": "a0839f34da3745540ad7fd909e3b2dbc00052236698ece17f3e4eb02ac9b8687",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentProviderCodecLimits"
+    }
+  },
+  "required": [
+    "codec_id"
+  ],
+  "title": "CucChatProbeCodecRegistration",
+  "type": "object"
+}

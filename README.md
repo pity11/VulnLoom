@@ -910,3 +910,11 @@ including failed attempts; replay is read-only and STARTED requires explicit rec
 See [Provider probe setup and remaining admission requirements](docs/PROVIDER-PROBE.md) for the
 configuration types and commands. No real-key or public Provider call has been verified by the local
 tests. Passing this smoke does not establish vulnerability-research quality or authorize target testing.
+
+
+M9.16 adds a CUC-only Chat PONG codec for the standalone probe. It binds request model `cuc/deepseek`
+to exactly `deepseek-v4-flash` or `deepseek-v4-flash-0731`, uses direct pinned HTTPS and only the real
+`CUC_DEEPSEEK_API_KEY` reference. `provider-cuc-probe-config` prints bounded configuration for an
+already-issued operator grant; it cannot issue one. No shim, generic Chat workflow or relaxed
+Responses identity check is added. Local adaptation tests pass; real CUC admission remains pending
+an available credential and issued egress configuration. See [CUC setup](docs/PROVIDER-PROBE.md).

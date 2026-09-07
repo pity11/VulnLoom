@@ -3,6 +3,7 @@
 import sqlite3
 from pathlib import Path
 
+from .provider_probe_fixture import CUC_PROBE_DIGEST
 from .provider_probe_models import ProviderProbePlan, ProviderProbeResult
 
 
@@ -42,6 +43,12 @@ class ProviderProbeStore:
                 result.plan_id != plan.plan_id
                 or result.completed_at < plan.created_at
                 or (result.status == "passed" and result.completed_at >= plan.deadline)
+                or (
+                    plan.fixture_digest == CUC_PROBE_DIGEST
+                    and result.status == "passed"
+                    and result.response_model is None
+                )
+                or (plan.fixture_digest != CUC_PROBE_DIGEST and result.response_model is not None)
             ):
                 raise ProviderProbeRecoveryRequired("provider probe result drifted")
             return result

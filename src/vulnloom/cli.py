@@ -1135,8 +1135,11 @@ def provider_probe_local(args: argparse.Namespace) -> int:
     from datetime import timedelta
 
     from vulnloom.adapters.model_credentials import EnvironmentModelCredentialProvider
-    from vulnloom.agent_runtime.provider_admission import AgentProviderEgressStore
-    from vulnloom.agent_runtime.provider_probe import ProviderProbeService
+    from vulnloom.agent_runtime.provider_admission import (
+        AgentProviderEgressPurpose,
+        AgentProviderEgressStore,
+    )
+    from vulnloom.agent_runtime.provider_probe import ProviderProbeService, create_cuc_probe_config
     from vulnloom.agent_runtime.provider_probe_models import ProviderProbeConfig, ProviderProbePlan
     from vulnloom.agent_runtime.provider_probe_store import ProviderProbeStore
 
@@ -1152,6 +1155,16 @@ def provider_probe_local(args: argparse.Namespace) -> int:
             return content
 
     try:
+        if getattr(args, "probe_config", False):
+            config = create_cuc_probe_config(grant_id=args.grant_id)
+            with AgentProviderEgressStore(Path(args.egress_store)) as egress:
+                grant = egress.require_active(
+                    args.grant_id, admission=config.admission, now=utc_now()
+                )
+                if grant.purpose is not AgentProviderEgressPurpose.MODEL_INFERENCE:
+                    raise ValueError("CUC probe needs inference grant")
+            print(config.model_dump_json(indent=2))
+            return 0
         if args.probe_run and not args.allow_provider_network:
             raise ValueError("explicit provider network opt-in required")
         config = ProviderProbeConfig.model_validate_json(read_sealed(args.config_file))
@@ -1933,6 +1946,10 @@ def build_parser() -> argparse.ArgumentParser:
     analyzer_execution.add_argument("--plan-file", required=True)
     analyzer_execution.add_argument("--execution-db", default=".vulnloom/analyzer-executions.db")
     analyzer_execution.set_defaults(handler=check_analyzer_execution_offline)
+    cuc_config = sub.add_parser("provider-cuc-probe-config")
+    cuc_config.add_argument("--egress-store", required=True)
+    cuc_config.add_argument("--grant-id", required=True)
+    cuc_config.set_defaults(handler=provider_probe_local, probe_config=True)
     for command, run in (("provider-probe-prepare", False), ("provider-probe-run", True)):
         probe = sub.add_parser(command)
         probe.add_argument("--config-file", required=True)
