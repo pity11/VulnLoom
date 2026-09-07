@@ -439,7 +439,7 @@
           "type": "array"
         },
         "implementation_digest": {
-          "default": "a0839f34da3745540ad7fd909e3b2dbc00052236698ece17f3e4eb02ac9b8687",
+          "default": "7887368111e432b619bd83bba0647de22cff84ad9de1254b39fdfcb3c44238cc",
           "pattern": "^[0-9a-f]{64}$",
           "title": "Implementation Digest",
           "type": "string"

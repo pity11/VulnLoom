@@ -109,7 +109,7 @@ attempt/receipt 摘要与完成时间。CLI 输入错误统一输出 `provider_p
 
 ## M9.16：CUC 专用 Chat PONG 分支
 
-已确认的接口信息由运营方提供；实际调用尚未在 VulnLoom 中验收：
+接口信息由运营方提供；2026-09-07 固定 PONG 真实调用已验收通过，通用 CUC 模型适配器尚未实现：
 
 | 项目 | 固定值 |
 |---|---|
@@ -139,7 +139,16 @@ vulnloom provider-cuc-probe-config \
 `cuc-probe-config.json`；仍需真实 Key 的环境注入、有效 grant、同一权威 probe ledger 和显式联网开关。
 Key 不存在时不要运行或消费一次性 grant。命令不会从 shim 或其他项目搜集、复制凭据。
 
-只接受单个 `assistant` 的精确 `PONG` 内容、`finish_reason=stop`、有效用量和两个精确后端名。
+只接受单个 `assistant` 的内容在去除首尾空白后精确匹配 `PONG`、`PONG.`、`PONG!` 或反引号包裹的
+`PONG`；同时必须满足 `finish_reason=stop`、有效用量和两个精确后端名。
 模型名大小写变化、额外前后缀、请求别名作为响应名，以及工具调用/拒绝/多选择/截断响应均拒绝。
 通过后，结果的 `response_model` 记录实际命中的白名单名称；返回正文与可选 reasoning 内容仍被丢弃。
-当前任务没有可用的真实环境变量和已提供的出口授权 store，因此没有真实 CUC 结果可引用。
+已通过的 live-010 记录为 `response_content_punctuation_match`，不是字节级精确 PONG。
+响应模型 `deepseek-v4-flash-0731`、输入 10 / 输出 4 tokens、receipt 非空、清理通过且 grant 已撤销。
+结果 ID 为 `a204b843419035391ceb1e33e37e3280db60e1bcc29a09aa3327d8f0f340d3b8`；
+完整脱敏结论与测试记录见 [PHASE3-ADMISSION.md](./PHASE3-ADMISSION.md)。
+
+vLLM 空扩展和 usage 字段使用明确白名单；未知字段仍拒绝。性能指标只接受有界有限 int/float，
+排除 bool/NaN/Infinity；token 计数必须为整数并满足总量等式。诊断只保存闭集分类、计数、
+固定字段类型或未知 usage 键名 SHA-256，不记录正文、未知键名、字段值或凭据。
+设置 Key 和 PONG 通过均不授予研究工具、研究目标网络或领域状态变更权限。

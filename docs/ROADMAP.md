@@ -949,7 +949,7 @@ Admission `34041988318` 已在 exact implementation commit `fe0c96b` 上通过�
 报告链的 pilot 绑定继续待办。Provider smoke 通过也不授予研究目标网络访问、Validation、Candidate 变更、
 Target build 或 Submission 权限。
 
-### M9.16：CUC 固定 Chat probe 适配与真实连通性验收（适配已实现，真实调用待验收）
+### M9.16：CUC 固定 Chat probe 适配与真实连通性验收（固定 PONG 真实验收已通过）
 
 - 运营方明确提供 `https://openai.cuc.edu.cn/v1/chat/completions`、请求模型 `cuc/deepseek`
   和真实凭据引用 `CUC_DEEPSEEK_API_KEY`；本地 shim 的占位 Key 不可替代 CUC Key。
@@ -962,9 +962,47 @@ Target build 或 Submission 权限。
   实际响应模型名进入密封结果；旧 M9.15 结果的内容摘要保持兼容。
 - 本地成功、拒绝、模型别名漂移、超时、清理、CLI 重放和写入中断回归已完成；测试不调用真实 CUC。
 
-当前任务进程没有可用的 `CUC_DEEPSEEK_API_KEY`，也没有已提供的 CUC 出口授权 store；因此未发送真实请求，
-M9.16 的真实 Provider 验收仍未完成。先保存并推送适配与本地验证代码；配置齐备后继续单次固定消息验收，
-只提交无敏感信息的实际结果。不得用本地模拟或远端 CI 结果代替真实 Provider 验收。
+2026-09-07 已按运营方明确授权完成两次独立、各一次的真实固定 PONG 测试。第一次被拒绝且缺少
+安全诊断；补齐诊断后的第二次确认 HTTP 200、TLSv1.3、响应 772 字节，随后以
+`response_codec / response_shape_mismatch` 拒绝。两次均完成清理并撤销短时出口授权；没有自动重试。
+目前无须据此更换 Key，但仍未取得通过协议校验的响应，M9.16 的真实 Provider 验收继续待办。
+
+新增 `ProviderProbeResult.diagnostic` 保存封闭错误码、HTTP 状态、已观察网络状态、响应字节数和 TLS
+版本；旧结果缺失该字段时保持摘要兼容。原始正文、响应头、异常文本和凭据不进入结果或日志。
+后续结构诊断及 vLLM 官方字段审查形成 codec v2 空扩展白名单：顶层六个字段、choice 三个字段、
+message 五个字段和 usage 的 `prompt_tokens_details`；只接受 null 或对应类型的空值，function_call
+仅接受 null。非空工具调用、未知字段、错误模型、非精确 PONG 和无效用量继续拒绝。实现摘要已更新，
+旧 codec 配置和计划须重新准备，旧密封结果可只读验证。
+
+2026-09-07 修复后的单次 live-005 确认根级六个扩展、choice 三个扩展及 message 的
+annotations/audio/function_call/reasoning 均为 null，先前根级和 message 的未知字段已被识别。
+但实际内容仍不是精确 PONG，结果以 `response_content_mismatch` 拒绝，另观察到 `usage_other_fields`。
+因此结构兼容补丁完成，真实 Provider 准入仍未完成；未追加调用或放宽内容/用量规则。
+
+随后 codec v3 增加闭集内容分类和受限 usage details。验收仅允许 exact/trimmed PONG；大小写、标点、
+任意文本仍拒绝，token 总量等式不变。按本阶段仅一次新 grant 的限制执行 live-006，实际分类为
+`response_content_punctuation_match`，因此正确拒绝；还观察到 `usage_other_fields`。清理通过并撤销授权，
+未重试。PONG 准入和第二阶段无工具真实调用验收均未完成，不能宣称 `cuc/deepseek` 已可用于研究任务。
+
+codec v4 按运营方明确要求仅增加 `PONG.`、`PONG!`、反引号包裹 PONG 三种闭集变体，以及
+DeepSeek 的 prompt_cache_hit_tokens / prompt_cache_miss_tokens 有界整数与缓存分量等式。
+实测 live-007 已通过内容校验，但仍因 `usage_unknown_fields` 拒绝，且未观察到两个缓存字段。
+这否定了它们解释本次 usage 未知字段的假设。已完成本轮唯一调用及授权清理，未追加请求；
+PONG 准入继续受阻于真实网关 usage 字段定义，第二阶段真实验收仍未完成。
+
+单次 live-008 指纹诊断及本地词典匹配已确认未知 usage 字段为 time_per_output_token_ms、
+time_to_first_token_ms、tokens_per_second，类型观察均为整数。codec v5 增加这三个明确字段和
+有界整数校验。最终单次 live-009 返回精确 PONG 且无未知 usage 字段，但因 `usage_metrics_mismatch`
+拒绝。具体计量字段及类型/范围失败分支尚未确定，不能宣称 PONG 准入完成；本轮两次授权均已撤销，
+未进一步调用。后续需要计量字段约定或更细的闭集范围诊断，不能猜测负数哨兵或放宽计数规则。
+
+最终 codec v6 将三个性能指标改为有限、非负、有界 JSON 数值（int 或 float，排除 bool），并新增
+闭集 metric_issues（字段名与 type/non_finite/negative/above_limit）诊断。2026-09-07 live-010
+单次验证通过：status=passed、response_model=deepseek-v4-flash-0731、receipt_digest 非空、
+cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销。固定 PONG 准入现已完成。
+
+本地 1080 passed、23 skipped、覆盖率 86.41%。这项结论仅适用于固定、无工具 PONG 探针；
+通用 CucChatCodec 和独立结构化调用验收仍未实现，不代表研究任务的 provider 准入。
 
 ## 延后事项
 

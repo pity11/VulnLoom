@@ -1163,3 +1163,48 @@ HTTP loopback, redirect, proxy or TLS relaxation is introduced. The result recor
 served model; its optional field preserves M9.15 digest identity when absent. Probe fixture digests
 distinguish Chat PONG from Responses structured completion. Both paths consume existing operator
 egress authority, remain single-attempt and share the same recovery and cleanup boundaries.
+
+
+Provider failure diagnostics use a bounded, length-prefixed child-process frame containing only
+closed enums, integer counts/status and TLS/network observations. The parent rejects unknown fields,
+duplicate keys and malformed frames, clears captured buffers, and never reads stderr. HTTP rejection
+bodies are not consumed. Codec rejection categories are code-owned; no provider values are copied
+into diagnostic strings. The optional diagnostic is included in the sealed probe result and is
+observational only: it cannot create a receipt, accept a reply or dispatch a research workflow.
+
+Structural diagnostics distinguish fixed schema branches before codec acceptance. An optional
+bounded observation tuple uses only code-owned identifiers for known optional fields and nullness;
+unknown names collapse to an `other_fields` enum. It never copies dynamic keys or values. Absent
+observations are omitted from serialization to preserve existing sealed diagnostic result identity.
+These observations can guide a separately reviewed compatibility change but do not accept one.
+
+The CUC codec v2 binds a reviewed vLLM empty-extension allowlist into its implementation digest.
+Each extension is checked against its exact null/typed-empty policy; unknown keys are rejected at
+root, choice, message and usage. These additions do not accept arbitrary vLLM requests or responses.
+The fixed PONG, model allowlist, single stopped choice and token budget remain mandatory. Successful
+and rejected decoding both retain only closed-vocabulary shape observations. Previous configuration
+identities require re-preparation; previous sealed results remain readable without re-execution.
+
+The fixed PONG codec v3 records only a closed content classification and accepts exact/trimmed PONG.
+It explicitly rejects case changes, punctuation variants and free text. Usage detail dictionaries
+have closed field sets and bounded integer counts; total tokens must still equal prompt plus
+completion. This changes the sealed codec identity. No general Chat codec is inferred from the
+PONG implementation, and a rejected real PONG cannot serve as stage-two provider acceptance.
+
+PONG codec v4 expands acceptance to exactly three additional punctuation variants after trimming,
+and seals the exact four-string set in its implementation digest. DeepSeek cache fields have bounded
+integer validation and a hit+miss=prompt consistency check when both are present. This is independent
+of the unchanged total-token equation. Unknown usage still rejects; an observed HTTP 200 or accepted
+PONG content alone cannot create a trusted receipt or establish PONG Admission.
+
+Unknown usage fingerprint diagnostics are capped at 32 entries. Only reviewed candidate identifiers,
+or SHA-256 of other field names, plus a closed value-type enum can leave the codec. Values and
+unreviewed names do not. Truncation is explicit and never changes acceptance. A local dictionary
+match guides an explicit policy change; hashes themselves are not an allowlist. Codec v5 seals
+three identified timing/rate metric names and integer bounds without relaxing token accounting.
+
+Codec v6 corrects performance metrics to bounded finite int/float values, excluding bool, while
+preserving strict integer token accounting. Diagnostic metric failures now identify a closed field
+and reason without metric values. Live-010 passed the fixed PONG gate with a trusted receipt and
+verified cleanup. This remains a standalone no-tool connectivity acceptance; it does not implement
+or admit a general CUC research adapter.

@@ -14,6 +14,8 @@ import struct
 import sys
 from typing import BinaryIO
 
+from .provider_diagnostics import ProviderDiagnostic
+
 
 def main() -> int:
     credential = bytearray()
@@ -21,13 +23,27 @@ def main() -> int:
     ca_bundle = bytearray()
     response_body = bytearray()
     connection: http.client.HTTPSConnection | None = None
+    observation = {"network_opened": False, "tls_version": None, "http_status": None}
+
+    def reject(code="transport_rejected", exit_code=20, stage="transport_process"):
+        diagnostic = ProviderDiagnostic(
+            failure_stage=stage,
+            error_code=code,
+            captured_response_bytes=len(response_body),
+            **observation,
+        )
+        frame = diagnostic.model_dump_json().encode("ascii")
+        sys.stdout.buffer.write(struct.pack("!I", len(frame)) + frame)
+        sys.stdout.buffer.flush()
+        return exit_code
+
     try:
         if not _environment_is_minimal():
-            return 20
+            return reject()
         _restrict_process()
         header_size = struct.unpack("!I", _read_exact(sys.stdin.buffer, 4))[0]
         if not 1 <= header_size <= 4096:
-            return 20
+            return reject()
         header = json.loads(_read_exact(sys.stdin.buffer, header_size))
         expected = {
             "ca_bytes",
@@ -42,9 +58,9 @@ def main() -> int:
             "timeout_seconds",
         }
         if not isinstance(header, dict) or set(header) != expected:
-            return 20
+            return reject()
         if header["contract"] != "vulnloom.provider-process.v1":
-            return 20
+            return reject()
         credential_size = _bounded_int(header["credential_bytes"], 1, 16_384)
         request_size = _bounded_int(header["request_bytes"], 1, 2_162_688)
         ca_size = _bounded_int(header["ca_bytes"], 0, 1_048_576)
@@ -58,19 +74,16 @@ def main() -> int:
             not _canonical_hostname(hostname)
             or not isinstance(request_path, str)
             or not request_path.startswith("/")
-            or any(
-                item in request_path
-                for item in ("?", "#", "\\", "%", "..", "\r", "\n", "\x00")
-            )
+            or any(item in request_path for item in ("?", "#", "\\", "%", "..", "\r", "\n", "\x00"))
         ):
-            return 20
+            return reject()
         credential.extend(_read_exact(sys.stdin.buffer, credential_size))
         request_body.extend(_read_exact(sys.stdin.buffer, request_size))
         ca_bundle.extend(_read_exact(sys.stdin.buffer, ca_size))
         if sys.stdin.buffer.read(1):
-            return 20
+            return reject()
         if any(character in credential for character in (0, 10, 13)):
-            return 20
+            return reject()
         context = ssl.create_default_context(
             cadata=None if not ca_bundle else ca_bundle.decode("ascii")
         )
@@ -83,15 +96,17 @@ def main() -> int:
             context=context,
         )
         connection.connect()
+        observation["network_opened"] = True
         if connection.sock is None:
-            return 23
+            return reject(exit_code=23)
         connection.sock.settimeout(timeout)
         peer_ip = str(ipaddress.ip_address(connection.sock.getpeername()[0]))
         if peer_ip != pinned_ip:
-            return 23
+            return reject(exit_code=23)
         tls_version = connection.sock.version()
         if tls_version not in {"TLSv1.2", "TLSv1.3"}:
-            return 20
+            return reject()
+        observation["tls_version"] = tls_version
         authorization = "Bearer " + credential.decode("ascii")
         connection.request(
             "POST",
@@ -106,42 +121,41 @@ def main() -> int:
             },
         )
         response = connection.getresponse()
+        observation["http_status"] = response.status
         headers = tuple(response.getheaders())
         header_bytes = sum(
             len(name.encode("latin-1")) + len(value.encode("latin-1")) + 4
             for name, value in headers
         )
         if header_bytes > 64 * 1024:
-            return 22
-        if response.status != 200 or any(
-            name.lower() == "location" for name, _ in headers
-        ):
-            return 20
+            return reject("response_size_exceeded", 22)
+        if response.status != 200:
+            return reject("http_non_200", stage="http_status")
+        if any(name.lower() == "location" for name, _ in headers):
+            return reject("response_headers_rejected")
         if any(
             name.lower() == "content-encoding" and value.lower() != "identity"
             for name, value in headers
         ):
-            return 20
-        content_lengths = [
-            value for name, value in headers if name.lower() == "content-length"
-        ]
+            return reject("response_headers_rejected")
+        content_lengths = [value for name, value in headers if name.lower() == "content-length"]
         if len(content_lengths) > 1:
-            return 20
+            return reject("response_headers_rejected")
         if content_lengths:
             content_length = int(content_lengths[0])
             if content_length < 0:
-                return 20
+                return reject("response_headers_rejected")
             if content_length > response_limit:
-                return 22
+                return reject("response_size_exceeded", 22)
         while True:
             chunk = response.read(min(64 * 1024, response_limit + 1 - len(response_body)))
             if not chunk:
                 break
             response_body.extend(chunk)
             if len(response_body) > response_limit:
-                return 22
+                return reject("response_size_exceeded", 22)
         if not response_body:
-            return 20
+            return reject("response_empty")
         metadata = json.dumps(
             {
                 "peer_ip": peer_ip,
@@ -158,9 +172,19 @@ def main() -> int:
         sys.stdout.buffer.flush()
         return 0
     except TimeoutError:
-        return 21
-    except (OSError, ssl.SSLError, ValueError, UnicodeError, json.JSONDecodeError):
-        return 20
+        if connection is not None:
+            observation["network_opened"] = connection.network_opened
+        return reject("transport_timeout", 21)
+    except ssl.SSLError:
+        if connection is not None:
+            observation["network_opened"] = connection.network_opened
+        return reject("tls_failed")
+    except OSError:
+        if connection is not None:
+            observation["network_opened"] = connection.network_opened
+        return reject("connect_failed")
+    except (ValueError, UnicodeError, http.client.HTTPException):
+        return reject()
     finally:
         if connection is not None:
             connection.close()
@@ -182,9 +206,11 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
     ):
         super().__init__(host, port, timeout=timeout, context=context)
         self.pinned_ip = pinned_ip
+        self.network_opened = False
 
     def connect(self) -> None:
         raw = socket.create_connection((self.pinned_ip, self.port), self.timeout)
+        self.network_opened = True
         try:
             self.sock = self._context.wrap_socket(raw, server_hostname=self.host)
         except Exception:
@@ -229,8 +255,7 @@ def _canonical_hostname(value: object) -> bool:
         and not label.startswith("-")
         and not label.endswith("-")
         and all(
-            character.isascii() and (character.isalnum() or character == "-")
-            for character in label
+            character.isascii() and (character.isalnum() or character == "-") for character in label
         )
         for label in labels
     )

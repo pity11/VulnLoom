@@ -7,7 +7,7 @@ import ipaddress
 import time
 from collections.abc import Callable
 from datetime import datetime
-from typing import Protocol
+from typing import Protocol, get_args
 
 from vulnloom.adapters.model_credentials import (
     ModelCredentialLease,
@@ -34,6 +34,15 @@ from .provider_codec import (
     AgentProviderCodecRejected,
     AgentProviderCodecTimedOut,
     OpenAIResponsesV1Codec,
+)
+from .provider_diagnostics import (
+    ContentClassification,
+    ProviderDiagnostic,
+    ResponseShapeCode,
+    safe_content_classification,
+    safe_metric_issues,
+    safe_shape_observations,
+    safe_usage_key_observations,
 )
 from .provider_probe_cuc import CucChatProbeCodec
 from .provider_process import (
@@ -130,6 +139,7 @@ class SubprocessHttpsProviderAdapter:
         self.now = now
         self.transport_requests: list[AgentProviderTransportRequest] = []
         self.attempts: list[AgentProviderTransportAttempt] = []
+        self.diagnostic: ProviderDiagnostic | None = None
         self.receipts: list[AgentProviderTransportReceipt] = []
         self.released_leases: list[ModelCredentialLease] = []
         self.released_request_bodies: list[bytearray] = []
@@ -142,10 +152,7 @@ class SubprocessHttpsProviderAdapter:
         *,
         message_envelope: AgentMessageEnvelope | None = None,
     ) -> AgentModelReply:
-        if (
-            message_envelope is None
-            or request.message_envelope_id != message_envelope.envelope_id
-        ):
+        if message_envelope is None or request.message_envelope_id != message_envelope.envelope_id:
             raise AgentProviderTransportRejected(
                 "provider transport request/envelope binding mismatch"
             )
@@ -197,9 +204,7 @@ class SubprocessHttpsProviderAdapter:
                 ) from exc
             except AgentProviderEgressRejected as exc:
                 error_code = "provider_egress_admission_rejected"
-                raise AgentProviderTransportRejected(
-                    "provider egress grant rejected"
-                ) from exc
+                raise AgentProviderTransportRejected("provider egress grant rejected") from exc
             pinned_ip = self._resolve_pinned_ip()
             self._consume_rate_slot()
             lease = self.credential_provider.acquire(self.credential_reference)
@@ -217,6 +222,10 @@ class SubprocessHttpsProviderAdapter:
                         max_response_bytes=self.admission.limits.max_response_bytes,
                     )
                 except ProviderProcessExecutionError as exc:
+                    self.diagnostic = exc.diagnostic or ProviderDiagnostic(
+                        failure_stage="transport_process",
+                        error_code="transport_timeout" if exc.timed_out else "transport_rejected",
+                    )
                     process_started = exc.process_started
                     process_terminated = exc.process_terminated
                     stderr_discarded = exc.stderr_discarded
@@ -243,12 +252,18 @@ class SubprocessHttpsProviderAdapter:
                     or not process_result.stderr_discarded
                 ):
                     error_code = "provider_process_network_proof_mismatch"
-                    raise AgentProviderTransportRejected(
-                        "provider process network proof mismatch"
-                    )
+                    raise AgentProviderTransportRejected("provider process network proof mismatch")
                 peer_ip_digest = canonical_digest(process_result.peer_ip)
                 tls_version = process_result.tls_version
                 response_digest = hashlib.sha256(response_body).hexdigest()
+                self.diagnostic = ProviderDiagnostic(
+                    failure_stage=None,
+                    error_code=None,
+                    http_status=200,
+                    network_opened=True,
+                    captured_response_bytes=captured,
+                    tls_version=tls_version,
+                )
                 try:
                     reply = self.provider_codec.decode(
                         response_body,
@@ -258,14 +273,59 @@ class SubprocessHttpsProviderAdapter:
                 except AgentProviderCodecTimedOut as exc:
                     status = AgentProviderTransportStatus.TIMED_OUT
                     error_code = "provider_codec_timeout"
+                    self.diagnostic = ProviderDiagnostic(
+                        **{
+                            **self.diagnostic.model_dump(),
+                            "failure_stage": "response_codec",
+                            "error_code": "codec_timeout",
+                        }
+                    )
                     raise AgentProviderTransportTimedOut(
                         "provider response decoding timed out"
                     ) from exc
                 except AgentProviderCodecRejected as exc:
                     error_code = "provider_codec_rejected"
+                    observations = safe_shape_observations(self.provider_codec)
+                    diagnostic_code = getattr(self.provider_codec, "diagnostic_code", None)
+                    if diagnostic_code not in {
+                        "response_identity_mismatch",
+                        "response_shape_mismatch",
+                        "response_content_mismatch",
+                        "usage_mismatch",
+                        *get_args(ResponseShapeCode),
+                        *get_args(ContentClassification),
+                        "usage_total_mismatch",
+                        "usage_unknown_fields",
+                        "usage_details_mismatch",
+                        "usage_cache_mismatch",
+                        "usage_metrics_mismatch",
+                    }:
+                        diagnostic_code = "response_shape_mismatch"
+                    self.diagnostic = ProviderDiagnostic(
+                        **{
+                            **self.diagnostic.model_dump(),
+                            "failure_stage": "response_codec",
+                            "error_code": diagnostic_code,
+                            "shape_observations": observations,
+                            **safe_usage_key_observations(self.provider_codec),
+                            "metric_issues": safe_metric_issues(self.provider_codec),
+                            "content_classification": safe_content_classification(
+                                self.provider_codec
+                            ),
+                        }
+                    )
                     raise AgentProviderTransportRejected(
                         "provider response decoding rejected"
                     ) from exc
+                self.diagnostic = ProviderDiagnostic(
+                    **{
+                        **self.diagnostic.model_dump(),
+                        "shape_observations": safe_shape_observations(self.provider_codec),
+                        **safe_usage_key_observations(self.provider_codec),
+                        "metric_issues": safe_metric_issues(self.provider_codec),
+                        "content_classification": safe_content_classification(self.provider_codec),
+                    }
+                )
                 status = AgentProviderTransportStatus.COMPLETED
                 error_code = ""
         except AgentProviderTransportTimedOut:
@@ -273,9 +333,7 @@ class SubprocessHttpsProviderAdapter:
         except AgentProviderTransportRejected:
             raise
         except (OSError, ValueError) as exc:
-            raise AgentProviderTransportRejected(
-                "provider transport preflight rejected"
-            ) from exc
+            raise AgentProviderTransportRejected("provider transport preflight rejected") from exc
         finally:
             if lease is not None:
                 lease.close()
@@ -291,9 +349,7 @@ class SubprocessHttpsProviderAdapter:
                 "status": status,
                 "captured_response_bytes": captured,
                 "error_code": (
-                    None
-                    if status is AgentProviderTransportStatus.COMPLETED
-                    else error_code
+                    None if status is AgentProviderTransportStatus.COMPLETED else error_code
                 ),
                 "credential_released": lease is None or lease.zeroed,
                 "request_body_released": not any(request_body),

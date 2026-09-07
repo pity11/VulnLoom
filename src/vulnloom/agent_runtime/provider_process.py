@@ -14,6 +14,8 @@ from dataclasses import dataclass
 
 from vulnloom.domain.digests import canonical_digest
 
+from .provider_diagnostics import ProviderDiagnostic
+
 SUBPROCESS_HTTPS_ADAPTER_DIGEST = canonical_digest(
     {
         "adapter": "vulnloom.subprocess-https-provider",
@@ -28,8 +30,16 @@ SUBPROCESS_HTTPS_ADAPTER_DIGEST = canonical_digest(
 
 
 class ProviderProcessExecutionError(RuntimeError):
-    def __init__(self, code: str, *, timed_out: bool = False, captured_bytes: int = 0):
+    def __init__(
+        self,
+        code: str,
+        *,
+        timed_out: bool = False,
+        captured_bytes: int = 0,
+        diagnostic: ProviderDiagnostic | None = None,
+    ):
         super().__init__(code)
+        self.diagnostic = diagnostic
         self.code = code
         self.timed_out = timed_out
         self.captured_bytes = captured_bytes
@@ -122,9 +132,7 @@ class SubprocessProviderTransportRunner:
                     break
 
         started = time.monotonic()
-        reader = threading.Thread(
-            target=capture, name="provider-response-capture", daemon=True
-        )
+        reader = threading.Thread(target=capture, name="provider-response-capture", daemon=True)
         try:
             assert process.stdin is not None
             written = process.stdin.write(wire)
@@ -161,10 +169,12 @@ class SubprocessProviderTransportRunner:
                     22: "provider_response_size_exceeded",
                     23: "provider_peer_mismatch",
                 }.get(return_code, "provider_process_failed")
+                diagnostic = _parse_failure_output(captured) if captured else None
                 raise ProviderProcessExecutionError(
                     code,
+                    diagnostic=diagnostic,
                     timed_out=return_code == 21,
-                    captured_bytes=min(len(captured), max_response_bytes),
+                    captured_bytes=diagnostic.captured_response_bytes if diagnostic else 0,
                 )
             if not captured:
                 raise ProviderProcessExecutionError("provider_response_empty")
@@ -191,6 +201,7 @@ class SubprocessProviderTransportRunner:
                 process.wait(timeout=5)
             if reader.ident is not None:
                 reader.join(timeout=5)
+            captured[:] = b"\x00" * len(captured)
 
 
 def _terminate(process: subprocess.Popen[bytes]) -> None:
@@ -236,5 +247,33 @@ def _parse_worker_output(
             "provider_process_output_invalid",
             captured_bytes=min(len(captured), max_response_bytes),
         ) from exc
+    finally:
+        captured[:] = b"\x00" * len(captured)
+
+
+def _parse_failure_output(captured: bytearray) -> ProviderDiagnostic:
+    """Reject extra fields, duplicate keys, trailing bytes and free-form error text."""
+    try:
+        if not 4 < len(captured) <= 4096:
+            raise ValueError()
+        size = struct.unpack("!I", captured[:4])[0]
+        if size != len(captured) - 4:
+            raise ValueError()
+
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError()
+                result[key] = value
+            return result
+
+        value = json.loads(captured[4:], object_pairs_hook=unique)
+        result = ProviderDiagnostic.model_validate(value)
+        if result.failure_stage not in ("transport_process", "http_status"):
+            raise ValueError()
+        return result
+    except (ValueError, TypeError) as exc:
+        raise ProviderProcessExecutionError("provider_process_output_invalid") from exc
     finally:
         captured[:] = b"\x00" * len(captured)

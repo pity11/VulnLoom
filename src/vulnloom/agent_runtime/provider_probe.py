@@ -166,6 +166,7 @@ class ProviderProbeService:
             receipt_digest=_digest(receipts[0]) if len(receipts) == 1 else None,
             completed_at=completed_at,
             response_model=getattr(codec, "response_model", None),
+            diagnostic=getattr(adapter, "diagnostic", None),
         )
         self.store.complete(result)
         return result

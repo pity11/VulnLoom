@@ -33,6 +33,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/PHASE3-ADMISSION.md](./docs/PHASE3-ADMISSION.md): reproducible M4.3 production-isolation admission evidence.
 - [docs/EXTERNAL-BENCHMARKS.md](./docs/EXTERNAL-BENCHMARKS.md): supported upstream layouts and local-snapshot safety boundary.
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
+- [docs/CUC-DEEPSEEK-CONFIG.md](./docs/CUC-DEEPSEEK-CONFIG.md): local, secret-free setup and connectivity checks for the CUC DeepSeek gateway.
 
 ## Project layout
 

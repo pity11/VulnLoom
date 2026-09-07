@@ -739,9 +739,221 @@ interrupted persistence, missing served-model observations and legacy result ide
 synthetic keys and fake DNS/process exchange. M6.1/M6.3 and M9.2–M9.5 gates, M9.5 ablation,
 schema/fixture determinism, Ruff and whitespace checks passed.
 
-No real CUC request has been made. The current task environment does not expose
-`CUC_DEEPSEEK_API_KEY`; no operational CUC egress store has been supplied. The documented ADroit
-local dotenv path was unavailable; no other credentials were searched or disclosed. Real Provider
-compatibility, measured account usage and real-call cleanup remain pending operator credential and
-authority inputs. Remote CI/Phase 3 Admission for this implementation commit also remain pending;
-they will not substitute for real CUC evidence. See `docs/PROVIDER-PROBE.md` for setup.
+### M9.16 safe diagnostics and real CUC observation (2026-09-07)
+
+The operator subsequently supplied the repository-local credential and explicitly authorized
+one fixed PONG test, then one further test after diagnostic hardening. Each used a separate
+short-lived inference grant and consumed exactly one probe attempt; both grants were revoked.
+The first rejected result had insufficient diagnostic detail. The second rejected result records:
+
+- `failure_stage=response_codec`, `error_code=response_shape_mismatch`
+- `http_status=200`, `network_opened=true`, `tls_version=TLSv1.3`
+- `captured_response_bytes=772`, `process_started=true`, `cleanup_verified=true`
+- No trusted receipt or validated response model; reported token counts remain zero and do not
+  establish actual account billing.
+
+Result identity: `d8e350b04992af7822740c941db23f8c1077b4e6415e996b5f9a8a6c91fc4381`.
+This establishes HTTPS connectivity and an HTTP 200 response, but not CUC protocol acceptance.
+No raw response, authentication header, exception text or credential was persisted. The specific
+shape mismatch remains unresolved; there was no further request or relaxation of acceptance rules.
+
+Local diagnostic verification: 866 passed, 19 skipped, coverage 86.33%. Separate real loopback TLS
+verification: 7 passed, 1 skipped (the Docker composition case). New synthetic tests cover closed
+metadata, malformed/duplicate JSON, HTTP rejection, TLS/connect/timeout failures, cleanup, distinct
+codec categories, sealed-result tampering, legacy identity and body-free idempotent persistence.
+Four new loopback cases exercise HTTP 401/403/404 and certificate rejection through the real child
+process. These checks do not substitute for full remote Phase 3 Admission or real CUC acceptance.
+
+
+#### Follow-up structural diagnostics (2026-09-07)
+
+Two subsequent, separate operator-directed diagnostic observations retained the original acceptance
+rules. Attempt 003 returned HTTP 200 / TLSv1.3 / 772 bytes and was rejected with
+`response_root_extra_fields`. Attempt 004 returned HTTP 200 / TLSv1.3 / 778 bytes with the same
+rejection and these closed-vocabulary observations:
+
+- `root_kv_transfer_params_null`, `root_prompt_logprobs_null`, `root_prompt_token_ids_null`
+- `root_other_fields`, `message_function_call_null`, `message_other_fields`
+
+The response still contains unrecognized root and message fields. No arbitrary field names, values,
+body or exception text were persisted. This evidence does not yet establish a complete minimal
+compatibility change. Acceptance rules remain unchanged; no post-fix validation was attempted.
+Both attempts completed cleanup and their separate short-lived grants were revoked. There was no
+retry of an existing plan. Result identities:
+
+- 003: `dfb959fbb7c852f3a9f8116829bd644e62409ffcaa9a12939206219dd0f7fe8d`
+- 004: `b44cef6425e2dc62c5b4ccd9c03d85f446637314a7c8aaae1987f79975d37ffd`
+
+Further compatibility work needs the gateway field schema, without response values or credentials.
+
+Follow-up local verification: 885 passed, 23 skipped, coverage 86.33%; Ruff, whitespace
+and deterministic schema regeneration passed. Existing sealed probe results remain readable.
+
+
+#### Explicit vLLM empty-extension compatibility and live-005 (2026-09-07)
+
+Reviewed the official [vLLM chat protocol](https://github.com/vllm-project/vllm/blob/main/vllm/entrypoints/openai/chat_completion/protocol.py).
+The fixed CUC codec implementation is now version 2 with the exact empty-extension policy included
+in its implementation digest. Old configurations/plans cannot silently consume the new policy.
+This is a narrow fixed-PONG subset, not acceptance of the entire vLLM protocol. It rejects unknown
+fields at root, choice, message and usage; extension values must be null or the prescribed typed
+empty value. Function calls must be null; tool calls must be null or an empty list. Core model,
+content, finish reason and usage checks remain mandatory. Existing `reasoning_content` handling
+remains bounded and discards its text; the newly recognized `reasoning` accepts only null/empty.
+
+The single post-patch live test returned HTTP 200 / TLSv1.3 / 772 bytes, confirming these null fields:
+
+- root: `ec_transfer_params`, `kv_transfer_params`, `metrics`, `prompt_logprobs`, `prompt_text`,
+  `prompt_token_ids`
+- choice: `routed_experts`, `stop_reason`, `token_ids`
+- message: `annotations`, `audio`, `function_call`, `reasoning`
+- usage: `prompt_tokens_details`, plus an unresolved `usage_other_fields` observation
+
+Root/choice/message schema checks passed, but the response content was not exactly PONG.
+Result: `rejected`, `response_codec / response_content_mismatch`, no trusted receipt or validated
+completion. Usage validation occurs after content validation, so the additional usage fields are
+an observation of a further compatibility gap, not a validated usage result. No content, dynamic
+field names, response body or credentials were retained. Cleanup was verified and the temporary
+egress grant was revoked. No additional call followed this verification.
+
+Result identity: `7ac6c6ec9a57da95d3952fddbb87a404f2c0304ef72911fa02aaa530518e1125`.
+Local verification: 967 passed, 23 skipped, coverage 86.35%. Targeted probe/diagnostic regression:
+178 passed, including explicit empty-extension success, payload and falsey wrong-type rejection,
+unknown-field rejection at every level, strict core rejection, cleanup, idempotency and old codec
+identity rejection. Real CUC acceptance remains pending content and usage compatibility evidence.
+
+
+#### PONG content classification and bounded usage, live-006 (2026-09-07)
+
+Codec implementation v3 adds a closed content classifier (type/exact/trimmed/casefold/punctuation/
+empty/other). Only exact PONG or `content.strip() == "PONG"` is accepted. Classification is persisted
+as an optional enum; no text, text prefix or content digest is added to diagnostics. Missing
+classification is omitted from serialization to preserve prior sealed result identity.
+
+Usage now explicitly recognizes `prompt_tokens_details`, `completion_tokens_details` and
+`reasoning_tokens`. Details may be null or closed dictionaries of bounded nonnegative integers:
+prompt details allow cached/audio token counts; completion details allow reasoning/audio/accepted
+prediction/rejected prediction counts. Each count is bounded by its respective prompt/completion
+count. Top-level reasoning tokens must be an integer within completion tokens. Booleans, negative
+counts, unknown fields and total-token disagreement reject; no accounting rule was relaxed.
+`cached_tokens` is observed at usage level but is accepted only inside prompt details.
+
+The operator limited this stage to one new PONG grant and request. After 994 offline tests passed,
+live-006 returned HTTP 200 / TLSv1.3 / 778 bytes, but classification was
+`response_content_punctuation_match`. This is explicitly outside the accepted exact/trimmed policy.
+`usage_other_fields` remains present; because content validation failed first, usage was not accepted.
+Result status is rejected, receipt is null, response model is null, and cleanup is verified. The
+grant was revoked and no retry or second request occurred in this stage. Result identity:
+`b78a7dc447a1473249b756875bc25d4a711084f9b757572e41ff3cb2290b91bf`.
+
+Local verification: 994 passed, 23 skipped, coverage 86.39%. New coverage includes all content
+categories, whitespace acceptance, case/punctuation/free-text rejection, bounded details, unknown
+usage, boolean/negative/out-of-range counts and total mismatch. PONG Admission remains incomplete;
+there is no passed record or stage-two live structured-call acceptance record. General adapter
+work has not started. No research-provider registration or tool execution was enabled.
+
+
+#### Closed punctuation variants and DeepSeek cache fields, live-007 (2026-09-07)
+
+Codec implementation v4 accepts only the trimmed strings `PONG`, `PONG.`, `PONG!` and backtick-wrapped
+PONG. Case changes, substring matches, additional punctuation and arbitrary text remain rejected.
+The exact accepted set is included in the implementation digest. The existing closed content
+classification is retained; no content is persisted.
+
+Reviewed the [DeepSeek Chat Completions API](https://api-docs.deepseek.com/zh-cn/api/create-chat-completion/).
+The usage allowlist adds only `prompt_cache_hit_tokens` and `prompt_cache_miss_tokens`. Each supplied
+value must be a nonnegative integer within prompt tokens; when both exist their sum must equal
+prompt tokens. Invalid values or the cache equation produce `usage_cache_mismatch`. The total-token
+equation and unknown-field rejection remain unchanged. Both field names have fixed observations.
+
+After full offline regression, the operator-authorized single live-007 request returned HTTP 200 /
+TLSv1.3 / 772 bytes. Content classified as punctuation_match and passed the v4 content policy, but
+usage failed with `usage_unknown_fields`. Neither cache field was observed, so this response does
+not support the hypothesis that those two fields caused the previous unknown-usage rejection.
+`usage_prompt_tokens_details_null` and `usage_other_fields` remain the usage observations.
+
+Result: rejected; receipt and response_model null; cleanup_verified true. Grant revoked. No retry
+or additional request occurred. Result identity:
+`e2980cf46b86eebf96a9f23335386b6bf5c5e5694adfe034140f74475d452f80`.
+The remaining blocker is the actual gateway usage field definition. No raw response, dynamic
+field name, credential or exception text was saved, and PONG Admission is still incomplete.
+
+Local verification: 1017 passed, 23 skipped, coverage 86.40%; targeted probe/diagnostic tests:
+228 passed. New cases cover exact punctuation allowlisting, near-match rejection, cache splits,
+single cache fields, booleans, negatives, overflow, null/string/float values, unknown usage and
+unchanged total accounting. Schema regeneration and existing sealed results are checked separately.
+
+
+#### Bounded unknown-key fingerprints and live-008/009 (2026-09-07)
+
+A new optional diagnostic records at most 32 unknown usage keys. The eight operator-reviewed
+candidate names use a closed enum; all other keys are represented only by SHA-256 of their UTF-8
+names. Each entry records only null/int/dict/other, never the value; booleans classify as other.
+Overflow sets a truncation flag and does not change unknown-field rejection. Empty diagnostic
+fields are omitted so existing sealed results retain their identity.
+
+The one diagnostic request (live-008) observed three unknown integer fields, with no match in the
+eight initial candidates. A reviewed local dictionary matched all three hashes without more
+network requests:
+
+| Reviewed field | SHA-256 of name |
+| --- | --- |
+| time_per_output_token_ms | add553a6a63dcf3effcbbdc058483f6e3264404ac057d553cc112d1a25e93094 |
+| time_to_first_token_ms | b23058322ea3b7b6663703c169f0dc22f3e04bbc9ef39cf0dae8a618b40ac0dd |
+| tokens_per_second | 02a44d781333dac43c120a4d74ac2f377da4e69be68f438eb6a1b038f70334a5 |
+
+Codec implementation v5 includes these three exact optional usage names and their bounds in its
+digest: timings must be integers in 0..10000 ms; throughput must be an integer in 0..1000000.
+These are the local acceptance bounds, not measured server values or an asserted upstream contract.
+Core token accounting, total equality and other unknown-field rejection are unchanged.
+
+After offline regression, the separately authorized final live-009 request returned HTTP 200 /
+TLSv1.3 / 776 bytes and exact PONG. All usage field names were recognized, but the result rejected
+with `usage_metrics_mismatch`: at least one metric violated type or bounds. The saved record cannot
+identify which metric or which type/range condition failed. No metric values or raw response were
+saved, so no negative-sentinel or changed-unit explanation is asserted. Receipt and response model
+remain null; cleanup is verified. Both grants were revoked; no further request followed live-009.
+
+Result identities:
+
+- live-008: `5fa69f0554f4930e23ab88d3fbb31bdbeeaa2a6eebff65d34e7fc1a44d6fac6b`
+- live-009: `4fbc4081b944653c45947383720ad2b2f23595c61b0757944b63933a84b4484f`
+
+Local verification: 1053 passed, 23 skipped, coverage 86.41%. New tests cover candidate/type enums,
+unknown-key hashing without values, count limits, malformed identities, sealed persistence and
+replay, and each metric's zero/upper boundary, negative/overflow/bool/float/null/string/dict rejection.
+PONG Admission still awaits a compatible, verified metrics contract; identifying the fields alone
+does not satisfy the required passed result. No general CUC research adapter was enabled.
+
+
+#### Fixed PONG Admission passed: finite numeric metrics, live-010 (2026-09-07)
+
+Codec implementation v6 corrects the three timing/rate fields to finite JSON numbers (int or float)
+within the existing nonnegative bounds, explicitly excluding booleans. Token counts remain strict
+integers and both total-token and cache equations remain enforced. The sealed implementation digest
+records the numeric policy and tuple type declarations. The predicate avoids overflow when parsing
+very large integers. New optional `metric_issues` diagnostics identify only the fixed metric name
+and type/non_finite/negative/above_limit reason; no values or exception text are recorded. Empty
+issues are omitted to preserve historical sealed result identities.
+
+After full offline regression, one operator-authorized request completed successfully:
+
+- `status=passed`, `response_model=deepseek-v4-flash-0731`
+- `receipt_digest=b258028adeeddbc87cf06a9f86bfd3f5fc61aacc83d8f2f9c2254f4417cecb75`
+- `cleanup_verified=true`, `process_started=true`
+- HTTP 200, TLSv1.3, response 772 bytes
+- Validated input tokens 10, output tokens 4
+- `content_classification=response_content_punctuation_match`, accepted by the explicit v4+ policy
+- Result ID: `a204b843419035391ceb1e33e37e3280db60e1bcc29a09aa3327d8f0f340d3b8`
+
+The short-lived grant was revoked after this single request; no retry or additional live request
+was made for this change. No raw response, content, performance metric values or credentials were
+saved. Earlier rejected results are retained without being reclassified. This observation validates
+the new numeric policy for this request; it does not reconstruct the exact cause of live-009.
+
+Local verification: 1080 passed, 23 skipped, coverage 86.41%. Added cases cover integer/float zero,
+normal fractions and float upper bounds; NaN, positive/negative infinity, negatives, over-limit
+floats, boolean/string/dict/null and oversized integers reject. Schema determinism and all ten
+historical sealed results are verified. The fixed PONG Admission gate is now passed; this does not
+constitute general Chat codec acceptance, research provider registration or remote CI acceptance
+for the uncommitted patch. General no-tool structured CUC compatibility remains a separate task.

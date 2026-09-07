@@ -12,6 +12,7 @@ from vulnloom.runners.models import Digest
 
 from .models import AgentAdapterKind, AgentModelRegistration
 from .provider_codec import AgentProviderCodecRegistration
+from .provider_diagnostics import ProviderDiagnostic
 from .provider_probe_cuc import CucChatProbeCodecRegistration
 from .provider_probe_fixture import CUC_PROBE_DIGEST, PROBE_DIGEST, PROBE_SUMMARY, PROBE_TEXT
 from .provider_process import SUBPROCESS_HTTPS_ADAPTER_DIGEST
@@ -102,6 +103,7 @@ class ProviderProbeResult(DomainModel):
     attempt_digest: Digest | None
     receipt_digest: Digest | None
     completed_at: AwareDatetime
+    diagnostic: ProviderDiagnostic | None = None
     response_model: Literal["deepseek-v4-flash", "deepseek-v4-flash-0731"] | None = None
 
     @model_validator(mode="after")
@@ -114,6 +116,12 @@ class ProviderProbeResult(DomainModel):
         ):
             raise ValueError("successful probe requires transport and cleanup proof")
         values = self.model_dump(mode="python", exclude={"result_id"})
+        if self.diagnostic is not None and self.status == 'passed' and (
+            self.diagnostic.error_code is not None or self.diagnostic.http_status != 200
+        ):
+            raise ValueError('passed probe cannot contain failure diagnostic')
+        if self.diagnostic is None:
+            values.pop('diagnostic')  # Preserve legacy result identities.
         if self.response_model is None:
             values.pop("response_model")  # Preserve M9.15 result identities.
         if self.result_id != canonical_digest(values):
@@ -122,6 +130,10 @@ class ProviderProbeResult(DomainModel):
 
     @classmethod
     def create(cls, **values):
+        if isinstance(values.get("diagnostic"), ProviderDiagnostic):
+            values["diagnostic"] = values["diagnostic"].model_dump(mode="python")
+        if values.get("diagnostic") is None:
+            values.pop("diagnostic", None)
         if values.get("response_model") is None:
             values.pop("response_model", None)
         return cls(result_id=canonical_digest(values), **values)

@@ -2178,3 +2178,49 @@ def test_live_provider_session_audit_validation_intake_and_outcome_binding_chain
     )
     assert _TARGET_BODY not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
     assert b"m710-loopback-provider-secret" not in (tmp_path / "m710-sessions.sqlite3").read_bytes()
+
+
+@pytest.mark.provider_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_PROVIDER_INTEGRATION") != "1",
+    reason="set VULNLOOM_PROVIDER_INTEGRATION=1 for the loopback TLS process probe",
+)
+@pytest.mark.parametrize("failure_kind", ["401", "403", "404", "tls"])
+def test_real_subprocess_body_free_failure_diagnostic(tmp_path, monkeypatch, failure_kind):
+    def reject_request(self):
+        self.send_response(int(failure_kind))
+        self.send_header("Content-Length", "0")
+        self.send_header("X-Sensitive", "must-never-be-recorded")
+        self.end_headers()
+
+    if failure_kind != "tls":
+        monkeypatch.setattr(_ProviderHandler, "do_POST", reject_request)
+    server, thread, ca_bundle = _server(tmp_path)
+    try:
+        with pytest.raises(ProviderProcessExecutionError) as failure:
+            SubprocessProviderTransportRunner().exchange(
+                hostname="provider.test", port=server.server_address[1],
+                request_path="/v1/responses", pinned_ip="127.0.0.1",
+                request_body=bytearray(b"{}"),
+                credential=memoryview(bytearray(b"synthetic-private-key")),
+                ca_bundle=None if failure_kind == "tls" else ca_bundle,
+                timeout_seconds=5, max_response_bytes=4096,
+            )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    diagnostic = failure.value.diagnostic
+    assert diagnostic is not None
+    assert diagnostic.network_opened is True
+    assert diagnostic.captured_response_bytes == 0
+    if failure_kind == "tls":
+        assert diagnostic.error_code == "tls_failed"
+        assert diagnostic.http_status is None
+    else:
+        assert diagnostic.error_code == "http_non_200"
+        assert diagnostic.http_status == int(failure_kind)
+        assert diagnostic.tls_version in {"TLSv1.2", "TLSv1.3"}
+    assert failure.value.process_terminated and failure.value.stderr_discarded
+    assert "must-never-be-recorded" not in diagnostic.model_dump_json()
+    assert "synthetic-private-key" not in diagnostic.model_dump_json()

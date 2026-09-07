@@ -1,4 +1,355 @@
 {
+  "$defs": {
+    "MetricIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "enum": [
+            "time_per_output_token_ms",
+            "time_to_first_token_ms",
+            "tokens_per_second"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "type",
+            "non_finite",
+            "negative",
+            "above_limit"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "reason"
+      ],
+      "title": "MetricIssue",
+      "type": "object"
+    },
+    "ProviderDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "metric_issues": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MetricIssue"
+          },
+          "maxItems": 3,
+          "title": "Metric Issues",
+          "type": "array"
+        },
+        "usage_key_observations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/UsageKeyObservation"
+          },
+          "maxItems": 32,
+          "title": "Usage Key Observations",
+          "type": "array"
+        },
+        "usage_keys_truncated": {
+          "default": false,
+          "title": "Usage Keys Truncated",
+          "type": "boolean"
+        },
+        "content_classification": {
+          "anyOf": [
+            {
+              "enum": [
+                "response_content_type",
+                "response_content_exact",
+                "response_content_trimmed_match",
+                "response_content_casefold_match",
+                "response_content_punctuation_match",
+                "response_content_empty",
+                "response_content_other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content Classification"
+        },
+        "shape_observations": {
+          "default": [],
+          "items": {
+            "enum": [
+              "root_prompt_logprobs_null",
+              "root_prompt_logprobs_non_null",
+              "root_kv_transfer_params_null",
+              "root_kv_transfer_params_non_null",
+              "root_prompt_token_ids_null",
+              "root_prompt_token_ids_non_null",
+              "root_prompt_text_null",
+              "root_prompt_text_non_null",
+              "root_ec_transfer_params_null",
+              "root_ec_transfer_params_non_null",
+              "root_metrics_null",
+              "root_metrics_non_null",
+              "root_other_fields",
+              "message_tool_calls_null",
+              "message_tool_calls_non_null",
+              "message_function_call_null",
+              "message_function_call_non_null",
+              "message_annotations_null",
+              "message_annotations_non_null",
+              "message_audio_null",
+              "message_audio_non_null",
+              "message_reasoning_null",
+              "message_reasoning_non_null",
+              "message_other_fields",
+              "choice_stop_reason_null",
+              "choice_stop_reason_non_null",
+              "choice_token_ids_null",
+              "choice_token_ids_non_null",
+              "choice_routed_experts_null",
+              "choice_routed_experts_non_null",
+              "choice_other_fields",
+              "usage_prompt_tokens_details_null",
+              "usage_prompt_tokens_details_non_null",
+              "usage_prompt_cache_hit_tokens_null",
+              "usage_prompt_cache_hit_tokens_non_null",
+              "usage_prompt_cache_miss_tokens_null",
+              "usage_prompt_cache_miss_tokens_non_null",
+              "usage_time_per_output_token_ms_null",
+              "usage_time_per_output_token_ms_non_null",
+              "usage_time_to_first_token_ms_null",
+              "usage_time_to_first_token_ms_non_null",
+              "usage_tokens_per_second_null",
+              "usage_tokens_per_second_non_null",
+              "usage_other_fields",
+              "usage_completion_tokens_details_null",
+              "usage_completion_tokens_details_non_null",
+              "usage_reasoning_tokens_null",
+              "usage_reasoning_tokens_non_null",
+              "usage_cached_tokens_null",
+              "usage_cached_tokens_non_null",
+              "prompt_details_cached_tokens",
+              "completion_details_reasoning_tokens",
+              "prompt_details_other_fields",
+              "completion_details_other_fields"
+            ],
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Shape Observations",
+          "type": "array"
+        },
+        "failure_stage": {
+          "anyOf": [
+            {
+              "enum": [
+                "transport_process",
+                "http_status",
+                "response_codec"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Failure Stage"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "transport_rejected",
+                "tls_failed",
+                "connect_failed",
+                "http_non_200",
+                "response_headers_rejected",
+                "response_empty",
+                "response_size_exceeded",
+                "transport_timeout",
+                "response_identity_mismatch",
+                "response_shape_mismatch",
+                "response_content_mismatch",
+                "usage_mismatch",
+                "codec_timeout"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "response_content_type",
+                "response_content_exact",
+                "response_content_trimmed_match",
+                "response_content_casefold_match",
+                "response_content_punctuation_match",
+                "response_content_empty",
+                "response_content_other"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "usage_total_mismatch",
+                "usage_unknown_fields",
+                "usage_details_mismatch",
+                "usage_cache_mismatch",
+                "usage_metrics_mismatch"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "response_root_extension_nonempty",
+                "response_choice_extension_nonempty",
+                "response_message_extension_nonempty",
+                "response_json_invalid",
+                "response_over_budget",
+                "response_root_type",
+                "response_root_missing_fields",
+                "response_root_extra_fields",
+                "response_root_metadata",
+                "response_choices_type",
+                "response_choices_count",
+                "response_choice_type",
+                "response_choice_missing_fields",
+                "response_choice_extra_fields",
+                "response_choice_index",
+                "response_choice_finish_reason",
+                "response_choice_logprobs",
+                "response_message_type",
+                "response_message_missing_fields",
+                "response_message_extra_fields",
+                "response_message_null_tool_calls",
+                "response_message_null_function_call",
+                "response_message_null_call_fields",
+                "response_message_role",
+                "response_message_refusal",
+                "response_message_reasoning_type"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "http_status": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Http Status"
+        },
+        "network_opened": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Network Opened"
+        },
+        "captured_response_bytes": {
+          "default": 0,
+          "maximum": 2097153,
+          "minimum": 0,
+          "title": "Captured Response Bytes",
+          "type": "integer"
+        },
+        "tls_version": {
+          "anyOf": [
+            {
+              "enum": [
+                "TLSv1.2",
+                "TLSv1.3"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tls Version"
+        }
+      },
+      "required": [
+        "failure_stage",
+        "error_code"
+      ],
+      "title": "ProviderDiagnostic",
+      "type": "object"
+    },
+    "UsageKeyObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "anyOf": [
+            {
+              "enum": [
+                "num_cached_tokens",
+                "cached_prompt_tokens",
+                "prompt_tokens_cached",
+                "cache_read_input_tokens",
+                "cache_creation_input_tokens",
+                "input_tokens_details",
+                "output_tokens_details",
+                "total_tokens_details"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate"
+        },
+        "name_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Sha256"
+        },
+        "value_type": {
+          "enum": [
+            "null",
+            "int",
+            "dict",
+            "other"
+          ],
+          "title": "Value Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value_type"
+      ],
+      "title": "UsageKeyObservation",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "result_id": {
@@ -67,6 +418,17 @@
       "format": "date-time",
       "title": "Completed At",
       "type": "string"
+    },
+    "diagnostic": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProviderDiagnostic"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "response_model": {
       "anyOf": [

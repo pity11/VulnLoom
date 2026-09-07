@@ -844,6 +844,57 @@ PONG 请求以及两个精确后端响应名，禁止修改为其他别名或通
 结果身份。CUC 成功重放必须有响应模型记录，Responses 结果不得带该 CUC 字段。
 新 schema 不增加研究目标、工具执行、授权签发或领域状态变更能力。
 
+### ProviderDiagnostic
+
+`ProviderProbeResult.diagnostic` 为可选封闭类型，参与非空结果摘要；缺失或空值不改变旧结果身份。
+核心字段为 `failure_stage`、`error_code`、`http_status`、`network_opened`、
+`captured_response_bytes` 和 `tls_version`。错误码及阶段为固定枚举，HTTP 状态为严格整数
+100–599，TLS 仅接受 1.2/1.3，字节数有上限。未知字段、异常原文和动态字符串均拒绝。
+`network_opened` 表示观察到 TCP 连接成功；`null` 表示未知（例如父进程强制超时），不等同于
+传输 attempt 的完整网络证明。HTTP 状态需要 TLS 观察，codec 阶段需要 HTTP 200；成功结果不能
+带失败诊断。旧记录不会补造观测值。诊断不代替可信响应回执、模型身份校验或真实用量证据。
+
+`error_code` 进一步区分 JSON、顶层缺失/额外字段、choices 数量/类型、choice 字段/索引/结束原因、
+message 字段/角色/refusal/reasoning 类型等分支。可选 `shape_observations` 仅包含有界固定枚举，
+观察已知可选字段是否为 null；未知字段只记录 `root_other_fields` / `message_other_fields`，不复制字段名。
+空观察在序列化中省略，保持原有诊断结果摘要兼容；观察不能放宽任何接受条件。
+
+CUC codec 实现 v2 的摘要包含精确空扩展字段及其类型策略。顶层识别 `prompt_logprobs`、
+`prompt_token_ids`、`prompt_text`、`kv_transfer_params`、`ec_transfer_params`、`metrics`；
+choice 识别 `stop_reason`、`token_ids`、`routed_experts`；message 识别 `annotations`、
+`audio`、`function_call`、`tool_calls`、`reasoning`；usage 识别 `prompt_tokens_details`。
+只接受 null 或对应类型的空值，function_call 仅为 null；0/false 等错误类型不能伪装成空值。
+`shape_observations` 最多 32 个固定枚举，额外包含 choice/usage 字段观察；没有自由文本字段。
+新策略改变 codec 身份，旧配置不能隐式升级；旧结果的观察枚举及摘要保持兼容。
+
+CUC codec v3 把 exact/strip PONG 策略、usage details 字段及有界计数规则纳入实现摘要。
+`ProviderDiagnostic.content_classification` 是可选闭集枚举：type/exact/trimmed/casefold/punctuation/
+empty/other。缺失时不参与序列化，保持旧结果摘要；字段不携带内容、前缀或内容摘要。
+usage 观察增加 completion details、reasoning/cached tokens 及已知 details 字段是否存在；不保留
+细节值。总量不一致使用 `usage_total_mismatch`，未知字段使用 `usage_unknown_fields`，details
+类型、字段或计数错误使用 `usage_details_mismatch`；这些诊断均不能替代有效用量和响应回执。
+
+CUC codec v4 摘要封存去除首尾空白后的四个精确接受字符串（PONG、PONG.、PONG!、反引号包裹 PONG）。
+usage 的两个缓存字段必须为非负整数且不超过 prompt_tokens；同时存在时二者之和必须等于 prompt_tokens。
+新增闭集错误码 `usage_cache_mismatch` 和两个缓存字段的 null/non_null 观察。未知 usage 字段仍拒绝，
+总 token 等式未改变；新观察不包含缓存计数或任意字段名，旧结果缺省字段的摘要规则不变。
+
+`UsageKeyObservation` 仅允许 candidate（八个固定名称）或 name_sha256（二者恰好一个），以及
+null/int/dict/other 类型枚举。`ProviderDiagnostic.usage_key_observations` 最多 32 条，超过时
+`usage_keys_truncated=true`；缺省空数组和 false 在序列化时省略，保持历史结果摘要。
+未知键哈希不代表允许该字段；匹配必须先对本地审阅词典计算 SHA-256，随后再定义明确验证规则。
+
+codec v5 将已匹配的三种计量字段及范围封存到实现摘要：time_per_output_token_ms 和
+time_to_first_token_ms 为 0..10000 的严格整数，tokens_per_second 为 0..1000000 的严格整数。
+类型或范围不满足时使用 `usage_metrics_mismatch`；这些字段不改变 core token 等式，也不赋予
+工具、研究目标或状态变更权限。边界是当前本地策略，并非对服务端字段约定的实测断言。
+
+codec v6 更正上述三个性能指标为有限 int/float（明确排除 bool），范围不变；token 计数仍须为
+严格整数。类型元数据将指标声明为 (int, float)，摘要支持类型元组，性能指标不经空扩展验证。
+`ProviderDiagnostic.metric_issues` 最多三条 `MetricIssue`：field 仅允许三个明确指标名，reason
+仅允许 type/non_finite/negative/above_limit，不携带数值。空列表在序列化中省略以保持旧摘要。
+超大整数先作整数范围判断，避免浮点转换溢出。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
