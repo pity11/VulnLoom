@@ -74,3 +74,6 @@ def register_candidate_recommendation_commands(sub):
             handler=handle_candidate_recommendation,
             recommendation_mode=mode,
         )
+    from .generation_cli import register_candidate_recommendation_generation_commands
+
+    register_candidate_recommendation_generation_commands(sub)

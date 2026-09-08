@@ -35,7 +35,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
 - [docs/CUC-DEEPSEEK-CONFIG.md](./docs/CUC-DEEPSEEK-CONFIG.md): local, secret-free setup and connectivity checks for the CUC DeepSeek gateway.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
-- [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): deterministic admission for advisory model recommendations over existing Candidates.
+- [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): approved no-tool generation and deterministic admission for advisory Candidate recommendations.
 
 ## Project layout
 

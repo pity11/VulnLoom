@@ -532,8 +532,17 @@ immutable PROPOSED Candidate + SourceGraph + approved Scope
   → completed advisory record requiring human selection
 ```
 
-该链不调用模型或目标，不创建、选择或迁移 Candidate，也不进入 Validation。当前 Provider result 尚未绑定
-Recommendation 响应正文；专用生成结果边界完成前，这条链不能向 M8.1 提供可信模型 recommendation。
+本地 admission 链不调用模型或目标，不创建、选择或迁移 Candidate，也不进入 Validation。模型生成由独立链完成：
+
+```text
+minimal Candidate projection + exact Approval + inference egress grant
+  → one no-tool CUC call
+  → strict projection-bound response
+  → sealed generation outcome + cleanup proof
+  → eligible_for_validation_intake=false
+```
+
+生成结果只有建议权。后续仍需权威 admission 绑定和独立人工 Candidate selection，才能交给既有 M8.1。
 
 ## 5. 重试与恢复
 

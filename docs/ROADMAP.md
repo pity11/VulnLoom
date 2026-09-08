@@ -1048,8 +1048,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 新增两个无网络本地 CLI 和三份 JSON Schema；成功、拒绝、超时、清理证明、重放、恢复与安全文本
   回归已覆盖。新增 34 项定向测试；全量 1199 passed、23 skipped，覆盖率 86.59%。详见
   `docs/CANDIDATE-RECOMMENDATIONS.md`。
-- 当前 Provider 结果尚未把模型响应正文绑定到 Recommendation；因此本阶段不证明模型已经生成或排序
-  Candidate。下一步是专用无工具 codec、最小 Candidate 投影和权威生成结果账本，真实披露仍需精确审批。
+- 新增 `cuc-candidate-recommendation-v1` 无工具 codec、最小 Candidate 投影、单次调用服务和权威
+  generation ledger。投影不含源码、原始路径、标题、假设、前置条件或反证文本；输出绑定 projection、
+  response、Recommendation、Provider receipt 和 cleanup proof。
+- generation outcome 固定 `producer_content_binding_verified=true`，同时固定
+  `eligible_for_validation_intake=false`。下一步是把 completed generation outcome 接入 admission 与独立
+  人工选择边界；首次真实 Candidate 投影披露仍需对 preview 另行精确审批。
+- 生成链新增 25 项定向测试；全量 1224 passed、23 skipped，覆盖率 86.51%。普通测试使用 fake
+  DNS/process，不进行真实 Provider 或目标网络访问。
 
 ## 延后事项
 

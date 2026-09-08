@@ -1,0 +1,662 @@
+{
+  "$defs": {
+    "AgentAdapterKind": {
+      "enum": [
+        "offline_replay",
+        "local_fake_provider",
+        "admission_fake_transport",
+        "subprocess_https_provider"
+      ],
+      "title": "AgentAdapterKind",
+      "type": "string"
+    },
+    "AgentModelRegistration": {
+      "additionalProperties": false,
+      "properties": {
+        "registration_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Registration Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "model": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Model",
+          "type": "string"
+        },
+        "adapter_kind": {
+          "$ref": "#/$defs/AgentAdapterKind",
+          "default": "offline_replay"
+        },
+        "adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Adapter Digest",
+          "type": "string"
+        },
+        "credential_reference_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credential Reference Id"
+        },
+        "transport_admission_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transport Admission Id"
+        },
+        "egress_grant_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Egress Grant Id"
+        },
+        "provider_codec_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Codec Id"
+        },
+        "supported_roles": {
+          "items": {
+            "$ref": "#/$defs/WorkerRole"
+          },
+          "minItems": 1,
+          "title": "Supported Roles",
+          "type": "array"
+        },
+        "max_output_tokens": {
+          "exclusiveMinimum": 0,
+          "maximum": 65536,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "registration_id",
+        "provider_id",
+        "model",
+        "adapter_digest",
+        "supported_roles",
+        "max_output_tokens"
+      ],
+      "title": "AgentModelRegistration",
+      "type": "object"
+    },
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    },
+    "AgentProviderIpPolicy": {
+      "enum": [
+        "none",
+        "loopback_only",
+        "global_only"
+      ],
+      "title": "AgentProviderIpPolicy",
+      "type": "string"
+    },
+    "AgentProviderTransportAdmission": {
+      "additionalProperties": false,
+      "properties": {
+        "admission_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Admission Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "hostname": {
+          "maxLength": 253,
+          "minLength": 3,
+          "title": "Hostname",
+          "type": "string"
+        },
+        "port": {
+          "default": 443,
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "request_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Request Path",
+          "type": "string"
+        },
+        "credential_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Credential Reference Id",
+          "type": "string"
+        },
+        "adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Adapter Digest",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/AgentProviderTransportMode",
+          "default": "admission_fake"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentProviderTransportLimits"
+        },
+        "tls_required": {
+          "default": true,
+          "title": "Tls Required",
+          "type": "boolean"
+        },
+        "redirects_allowed": {
+          "default": false,
+          "title": "Redirects Allowed",
+          "type": "boolean"
+        },
+        "proxy_allowed": {
+          "default": false,
+          "title": "Proxy Allowed",
+          "type": "boolean"
+        },
+        "dns_revalidation_required": {
+          "default": true,
+          "title": "Dns Revalidation Required",
+          "type": "boolean"
+        },
+        "raw_response_persisted": {
+          "default": false,
+          "title": "Raw Response Persisted",
+          "type": "boolean"
+        },
+        "network_enabled": {
+          "default": false,
+          "title": "Network Enabled",
+          "type": "boolean"
+        },
+        "process_isolation_required": {
+          "default": false,
+          "title": "Process Isolation Required",
+          "type": "boolean"
+        },
+        "ip_policy": {
+          "$ref": "#/$defs/AgentProviderIpPolicy",
+          "default": "none"
+        },
+        "ca_bundle_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ca Bundle Digest"
+        },
+        "minimum_tls_version": {
+          "default": "TLSv1.2",
+          "title": "Minimum Tls Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "admission_id",
+        "provider_id",
+        "hostname",
+        "request_path",
+        "credential_reference_id",
+        "adapter_digest",
+        "limits"
+      ],
+      "title": "AgentProviderTransportAdmission",
+      "type": "object"
+    },
+    "AgentProviderTransportLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_request_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2162688,
+          "title": "Max Request Bytes",
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2097152,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_requests_per_minute": {
+          "default": 30,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Max Requests Per Minute",
+          "type": "integer"
+        }
+      },
+      "title": "AgentProviderTransportLimits",
+      "type": "object"
+    },
+    "AgentProviderTransportMode": {
+      "enum": [
+        "admission_fake",
+        "loopback_https_probe",
+        "live_https"
+      ],
+      "title": "AgentProviderTransportMode",
+      "type": "string"
+    },
+    "CandidateLocationProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "maximum": 31,
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "path_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Path Digest",
+          "type": "string"
+        },
+        "line": {
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "path_digest",
+        "line"
+      ],
+      "title": "CandidateLocationProjection",
+      "type": "object"
+    },
+    "CandidateRecommendationCodecRegistration": {
+      "additionalProperties": false,
+      "properties": {
+        "codec_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Codec Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "const": "cuc",
+          "default": "cuc",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "protocol": {
+          "const": "cuc-candidate-recommendation-v1",
+          "default": "cuc-candidate-recommendation-v1",
+          "title": "Protocol",
+          "type": "string"
+        },
+        "request_path": {
+          "const": "/v1/chat/completions",
+          "default": "/v1/chat/completions",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "request_model": {
+          "const": "cuc/deepseek",
+          "default": "cuc/deepseek",
+          "title": "Request Model",
+          "type": "string"
+        },
+        "accepted_response_models": {
+          "default": [
+            "deepseek-v4-flash",
+            "deepseek-v4-flash-0731"
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Accepted Response Models",
+          "type": "array"
+        },
+        "implementation_digest": {
+          "default": "1581e848f1eb39768564359812d558acb98281af2e4f9a7a64cd5a9ac7ef3743",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Implementation Digest",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentProviderCodecLimits"
+        }
+      },
+      "required": [
+        "codec_id"
+      ],
+      "title": "CandidateRecommendationCodecRegistration",
+      "type": "object"
+    },
+    "CandidateRecommendationProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "projection_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Projection Id",
+          "type": "string"
+        },
+        "candidate_set_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Set Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "candidate_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Digest",
+          "type": "string"
+        },
+        "source_graph_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Graph Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Target Version Digest",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "candidate_confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Confidence",
+          "type": "number"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/CandidateLocationProjection"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Locations",
+          "type": "array"
+        },
+        "signals": {
+          "items": {
+            "$ref": "#/$defs/CandidateSignalProjection"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Signals",
+          "type": "array"
+        },
+        "disclosure_profile": {
+          "const": "digests-lines-static-signals-v1",
+          "default": "digests-lines-static-signals-v1",
+          "title": "Disclosure Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projection_id",
+        "candidate_set_id",
+        "candidate_id",
+        "candidate_digest",
+        "source_graph_id",
+        "target_id",
+        "target_version_digest",
+        "scope_id",
+        "scope_version",
+        "cwe",
+        "candidate_confidence",
+        "locations",
+        "signals"
+      ],
+      "title": "CandidateRecommendationProjection",
+      "type": "object"
+    },
+    "CandidateRecommendationProviderConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "registration": {
+          "$ref": "#/$defs/AgentModelRegistration"
+        },
+        "admission": {
+          "$ref": "#/$defs/AgentProviderTransportAdmission"
+        },
+        "credential_reference": {
+          "$ref": "#/$defs/ModelCredentialReference"
+        },
+        "codec": {
+          "$ref": "#/$defs/CandidateRecommendationCodecRegistration"
+        }
+      },
+      "required": [
+        "registration",
+        "admission",
+        "credential_reference",
+        "codec"
+      ],
+      "title": "CandidateRecommendationProviderConfig",
+      "type": "object"
+    },
+    "CandidateSignalProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Signal Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SignalKind"
+        },
+        "rule_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Rule Digest",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "signal_id",
+        "kind",
+        "rule_digest",
+        "confidence"
+      ],
+      "title": "CandidateSignalProjection",
+      "type": "object"
+    },
+    "ModelCredentialReference": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "environment_variable": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Environment Variable",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "environment_variable"
+      ],
+      "title": "ModelCredentialReference",
+      "type": "object"
+    },
+    "SignalKind": {
+      "enum": [
+        "tainted_sink",
+        "object_lookup_without_visible_authorization",
+        "parse_failure",
+        "external_analyzer"
+      ],
+      "title": "SignalKind",
+      "type": "string"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "config": {
+      "$ref": "#/$defs/CandidateRecommendationProviderConfig"
+    },
+    "projection": {
+      "$ref": "#/$defs/CandidateRecommendationProjection"
+    },
+    "scope_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "config",
+    "projection",
+    "scope_digest",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "CandidateRecommendationGenerationPlan",
+  "type": "object"
+}

@@ -1216,5 +1216,7 @@ SourceGraph/CandidateSet 中一个唯一 `PROPOSED` Candidate 的内容寻址建
 Signal、代码位置和 Provider 清理证明。成功只写入独立 recommendation ledger，不写 Candidate store，记录
 明确要求人工选择，并固定标记其 Provider 正文绑定尚未验证、不可进入 Validation Intake。
 
-此服务不执行 Provider 调用，也不把普通 `ProviderProbeResult` 解释成模型正文来源证明。专用生成 codec
-和结果 store 完成前，Recommendation 只能作为接纳协议的本地 fixture 使用，不能进入 M8.1 Intake。
+普通 admission 服务不把 `ProviderProbeResult` 解释成模型正文来源证明。独立
+`cuc-candidate-recommendation-v1` codec 只发送摘要化 Candidate 投影，无工具接口；generation service
+要求精确人工批准和 egress grant，并把投影、解析响应、Recommendation、transport receipt 与清理证明
+封存在单次消费账本中。生成结果仍固定不可进入 M8.1，直到独立 admission 与人工选择绑定完成。

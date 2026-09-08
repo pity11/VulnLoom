@@ -1,0 +1,56 @@
+{
+  "$defs": {
+    "RecommendationPriority": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "RecommendationPriority",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "projection_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Projection Id",
+      "type": "string"
+    },
+    "priority": {
+      "$ref": "#/$defs/RecommendationPriority"
+    },
+    "rationale": {
+      "maxLength": 600,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "review_questions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Review Questions",
+      "type": "array"
+    },
+    "cited_location_indexes": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Cited Location Indexes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "projection_id",
+    "priority",
+    "rationale",
+    "cited_location_indexes"
+  ],
+  "title": "CandidateRecommendationResponse",
+  "type": "object"
+}

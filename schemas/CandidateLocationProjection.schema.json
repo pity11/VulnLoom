@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "index": {
+      "maximum": 31,
+      "minimum": 0,
+      "title": "Index",
+      "type": "integer"
+    },
+    "path_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Path Digest",
+      "type": "string"
+    },
+    "line": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "title": "Line",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "index",
+    "path_digest",
+    "line"
+  ],
+  "title": "CandidateLocationProjection",
+  "type": "object"
+}

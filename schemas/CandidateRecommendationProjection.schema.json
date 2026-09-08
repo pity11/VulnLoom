@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "CandidateLocationProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "maximum": 31,
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "path_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Path Digest",
+          "type": "string"
+        },
+        "line": {
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "path_digest",
+        "line"
+      ],
+      "title": "CandidateLocationProjection",
+      "type": "object"
+    },
+    "CandidateSignalProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Signal Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SignalKind"
+        },
+        "rule_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Rule Digest",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "signal_id",
+        "kind",
+        "rule_digest",
+        "confidence"
+      ],
+      "title": "CandidateSignalProjection",
+      "type": "object"
+    },
+    "SignalKind": {
+      "enum": [
+        "tainted_sink",
+        "object_lookup_without_visible_authorization",
+        "parse_failure",
+        "external_analyzer"
+      ],
+      "title": "SignalKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "projection_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Projection Id",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Cwe",
+      "type": "string"
+    },
+    "candidate_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Candidate Confidence",
+      "type": "number"
+    },
+    "locations": {
+      "items": {
+        "$ref": "#/$defs/CandidateLocationProjection"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Locations",
+      "type": "array"
+    },
+    "signals": {
+      "items": {
+        "$ref": "#/$defs/CandidateSignalProjection"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Signals",
+      "type": "array"
+    },
+    "disclosure_profile": {
+      "const": "digests-lines-static-signals-v1",
+      "default": "digests-lines-static-signals-v1",
+      "title": "Disclosure Profile",
+      "type": "string"
+    }
+  },
+  "required": [
+    "projection_id",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "source_graph_id",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "cwe",
+    "candidate_confidence",
+    "locations",
+    "signals"
+  ],
+  "title": "CandidateRecommendationProjection",
+  "type": "object"
+}

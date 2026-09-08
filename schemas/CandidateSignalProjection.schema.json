@@ -1,0 +1,44 @@
+{
+  "$defs": {
+    "SignalKind": {
+      "enum": [
+        "tainted_sink",
+        "object_lookup_without_visible_authorization",
+        "parse_failure",
+        "external_analyzer"
+      ],
+      "title": "SignalKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "signal_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Signal Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/SignalKind"
+    },
+    "rule_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rule Digest",
+      "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    }
+  },
+  "required": [
+    "signal_id",
+    "kind",
+    "rule_digest",
+    "confidence"
+  ],
+  "title": "CandidateSignalProjection",
+  "type": "object"
+}

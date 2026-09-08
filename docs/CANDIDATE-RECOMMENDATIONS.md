@@ -50,15 +50,42 @@ vulnloom candidate-recommendation-admit-local \
 CLI 对普通错误只输出固定的 `recommendation_rejected` 或 `recommendation_timed_out`，避免把不可信正文
 或异常内容写入日志。
 
+## 专用模型生成链
+
+`cuc-candidate-recommendation-v1` 已提供独立的无工具 codec、单次调用服务和权威账本。发送给模型的
+`CandidateRecommendationProjection` 只包含 Candidate/Target/Scope 摘要、CWE、置信度、静态 Signal
+类型与规则摘要，以及路径摘要和行号索引。源码、原始路径、Candidate 标题、假设、前置条件和反证文本
+均不进入模型上下文。
+
+模型必须返回精确 `projection_id`、优先级、简短理由、最多三个复核问题和投影内的位置索引。未知字段、
+越界或重复索引、敏感文本、错误模型、工具调用、截断结果及超预算用量均拒绝。成功结果把投影、结构化
+响应、Recommendation、Provider result/plan/receipt 和清理证明封存在一个
+`CandidateRecommendationGenerationOutcome` 中，并固定
+`producer_content_binding_verified=true`、`eligible_for_validation_intake=false`。
+
+操作顺序是：
+
+```bash
+vulnloom candidate-recommendation-preview ...
+vulnloom candidate-recommendation-generate-prepare ... > generation-plan.json
+vulnloom candidate-recommendation-generate-approval-request \
+  --scope-file scope.json --plan-file generation-plan.json > approval-request.json
+vulnloom candidate-recommendation-generate-run ... --allow-provider-network
+```
+
+preview 和 prepare 不读取凭据、不联网；run 必须具备精确 `USE_REAL_CREDENTIALS` 人工批准、有效的
+`MODEL_INFERENCE` egress grant 和显式联网选项。账本对 plan、幂等键、grant、approval 作唯一消费，
+遗留 `started` 不自动重试。
+
 ## 当前限制与下一边界
 
-本阶段建立的是确定性接纳边界，还没有实现生成 Candidate Recommendation 的专用 Provider codec、调用服务
-和权威结果账本。当前 `ProviderProbeResult` 只能证明一次受控 Provider 调用完成并清理，不能证明
-`CandidateRecommendation` 的正文来自该响应。因此这项能力尚不能称为“LLM 已参与 Candidate 排序”。
-
-下一阶段需要让专用 codec 将发给模型的最小 Candidate 投影、响应正文摘要和解析后的 Recommendation
-绑定在同一个密封结果中。任何真实调用仍需单独预览披露内容、精确人工审批、有效 egress grant 和显式
-联网选项。模型结果接纳后仍只供人工选择，现有 M8.1 Validation Intake 与 Approval Gate 保持不变。
+专用生成结果尚未接入前述本地 admission ledger，也没有人工 Candidate selection 绑定，所以类型固定禁止
+进入 M8.1。下一阶段是让 admission 只接受权威 completed generation outcome，再记录独立人工选择；现有
+Validation Intake 与 Approval Gate 保持不变。首次真实 Candidate 投影调用仍需对 preview 的精确内容另行授权。
 
 2026-09-08 本地验收：34 项定向测试通过；全量 1199 passed、23 skipped，覆盖率 86.59%。
 `ruff check src tests scripts`、CLI 注册、Schema 重复导出、JSON 解析和 diff 空白检查均通过。
+
+专用生成链新增 25 项测试；合并后全量 1224 passed、23 skipped，覆盖率 86.51%。测试覆盖成功、
+内容/传输拒绝、审批和 Scope 漂移、超时、清理失败、只读重放、账本中断/篡改，以及 preview 不披露
+源码与原始路径。

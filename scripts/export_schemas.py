@@ -222,9 +222,17 @@ from vulnloom.findings import (
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.recommendations import (
+    CandidateLocationProjection,
     CandidateRecommendation,
     CandidateRecommendationAdmissionPlan,
+    CandidateRecommendationCodecRegistration,
+    CandidateRecommendationGenerationOutcome,
+    CandidateRecommendationGenerationPlan,
+    CandidateRecommendationProjection,
+    CandidateRecommendationProviderConfig,
     CandidateRecommendationRecord,
+    CandidateRecommendationResponse,
+    CandidateSignalProjection,
 )
 from vulnloom.reporting import (
     AgentReportDraftExecutionPlan,
@@ -328,6 +336,14 @@ MODELS = (
     CodeReviewPlan,
     CandidateRecommendation,
     CandidateRecommendationAdmissionPlan,
+    CandidateLocationProjection,
+    CandidateSignalProjection,
+    CandidateRecommendationProjection,
+    CandidateRecommendationResponse,
+    CandidateRecommendationCodecRegistration,
+    CandidateRecommendationProviderConfig,
+    CandidateRecommendationGenerationPlan,
+    CandidateRecommendationGenerationOutcome,
     CandidateRecommendationRecord,
     ProviderProbeConfig,
     ProviderProbePlan,
