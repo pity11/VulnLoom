@@ -1070,6 +1070,9 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   `PROPOSED`，仍需独立人工选择且不可进入 Validation Intake。
 - generated admission 新增 4 项回归；全量 1237 passed、23 skipped，覆盖率 86.48%。真实成功 outcome 的
   离线接纳记录也已验证为单条 completed，未产生模型、目标网络或 Validation 调用。
+- 新增 Recommendation 人工选择 command/record、独立 checkpoint ledger、离线 CLI 和 loopback-only Web
+  UI。两步确认记录 accept/reject/defer；只有 accept selection 标记可供后续 Intake 核验，Candidate 始终
+  不变且动态 Validation 仍需单独 Approval。UI 无外部资源，执行 Host/Origin/CSRF/大小/字段闭集检查。
 
 ## 延后事项
 

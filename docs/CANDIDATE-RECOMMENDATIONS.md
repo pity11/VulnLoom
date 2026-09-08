@@ -104,11 +104,53 @@ Validation Intake。旧的本地 advisory admission 仍可读取和重放，但�
 generated admission 新增 4 项成功、拒绝、超时、重放及 CLI 回归；合并后全量 1237 passed、23 skipped，
 覆盖率 86.48%。真实成功 generation outcome 的离线接纳验收也通过，账本只有一个 completed 记录。
 
+## 人工选择与本地 Web UI
+
+人工选择只消费权威 generated admission record，并从 generation ledger 重新核对 Recommendation、outcome、
+Provider result 与当前 Candidate/SourceGraph。`accept`、`reject` 是终态；`defer` 可由后续新命令继续处理。
+所有决定使用独立 `started → completed` SQLite checkpoint。`accept` 只令选择记录具备
+`eligible_for_validation_intake=true`，不会修改 Candidate 或启动 Validation，后续仍需独立 Validation
+计划与 Approval Gate。
+
+CLI 支持分离的 prepare/record：
+
+```bash
+vulnloom candidate-recommendation-selection-prepare-local \
+  --scope-file scope.json --generation-db generations.db \
+  --recommendation-db recommendations.db --selection-db selections.db \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --admission-record-id ADMISSION_RECORD_ID --decision accept \
+  --reviewer-id workspace-owner --idempotency-key selection-001 > selection-command.json
+
+vulnloom candidate-recommendation-selection-record-local \
+  --scope-file scope.json --generation-db generations.db \
+  --recommendation-db recommendations.db --selection-db selections.db \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --command-file selection-command.json
+```
+
+本地 UI 使用同一领域服务，可通过以下命令启动：
+
+```bash
+vulnloom candidate-recommendation-review-web \
+  --scope-file scope.json --generation-db generations.db \
+  --recommendation-db recommendations.db --selection-db selections.db \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --reviewer-id workspace-owner --port 8765
+```
+
+服务固定监听 `127.0.0.1`，不接受自定义监听地址，不加载外部脚本、字体或资源。页面使用 CSRF、Host、Origin、
+请求大小和闭集字段校验，禁用缓存并设置 CSP。决定采用两步确认：先显示 exact command digest，再写账本。
+浏览器不接触模型凭据或网关配置。
+
+2026-09-08 本地验收：新增 7 项默认回归通过、1 项真实 loopback socket 集成回归通过；全量
+1244 passed、24 skipped，覆盖率 86.14%。桌面与 375px 移动视口均完成实际浏览器检查，过程中未提交决定。
+
 ## 当前限制与下一边界
 
-专用生成结果已经可以接入本地 admission ledger，但尚没有独立人工 Candidate selection 绑定，因此仍禁止
-进入 M8.1。下一阶段是增加只消费权威 admission record 的人工选择命令与记录；现有 Validation Intake 与
-Approval Gate 保持不变。
+专用生成结果已经可以接入本地 admission ledger，并由独立人工选择记录 accept/reject/defer。现有
+Validation Intake 尚未接受这类选择记录；下一阶段是增加只读 intake adapter，重新核对 accepted selection
+及其完整来源。动态执行仍必须经过现有 Validation 与 Approval Gate。
 
 2026-09-08 本地验收：34 项定向测试通过；全量 1199 passed、23 skipped，覆盖率 86.59%。
 `ruff check src tests scripts`、CLI 注册、Schema 重复导出、JSON 解析和 diff 空白检查均通过。

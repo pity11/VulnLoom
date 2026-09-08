@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "CandidateRecommendationSelectionDecision": {
+      "enum": [
+        "accept",
+        "reject",
+        "defer"
+      ],
+      "title": "CandidateRecommendationSelectionDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "admission_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Plan Id",
+      "type": "string"
+    },
+    "admission_record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Record Id",
+      "type": "string"
+    },
+    "admission_record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Record Digest",
+      "type": "string"
+    },
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "generation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Generation Plan Id",
+      "type": "string"
+    },
+    "generation_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Generation Outcome Id",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "decision": {
+      "$ref": "#/$defs/CandidateRecommendationSelectionDecision"
+    },
+    "reviewer_id": {
+      "pattern": "^[a-zA-Z0-9_.:@-]{1,128}$",
+      "title": "Reviewer Id",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "candidate_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Unchanged",
+      "type": "boolean"
+    },
+    "requires_separate_validation_approval": {
+      "const": true,
+      "default": true,
+      "title": "Requires Separate Validation Approval",
+      "type": "boolean"
+    },
+    "eligible_for_validation_intake": {
+      "title": "Eligible For Validation Intake",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "record_id",
+    "command_id",
+    "admission_plan_id",
+    "admission_record_id",
+    "admission_record_digest",
+    "recommendation_id",
+    "generation_plan_id",
+    "generation_outcome_id",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "decision",
+    "reviewer_id",
+    "decided_at",
+    "recorded_at",
+    "eligible_for_validation_intake"
+  ],
+  "title": "CandidateRecommendationSelectionRecord",
+  "type": "object"
+}

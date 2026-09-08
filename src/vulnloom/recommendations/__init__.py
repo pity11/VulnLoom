@@ -24,6 +24,13 @@ from .provider import (
     CandidateRecommendationGenerationPlan,
     CandidateRecommendationProviderConfig,
 )
+from .selection_models import (
+    CandidateRecommendationSelectionCommand,
+    CandidateRecommendationSelectionDecision,
+    CandidateRecommendationSelectionRecord,
+)
+from .selection_service import CandidateRecommendationSelectionService
+from .selection_store import CandidateRecommendationSelectionStore
 from .service import CandidateRecommendationAdmissionService
 from .store import CandidateRecommendationStore
 
@@ -42,6 +49,11 @@ __all__ = [
     "CandidateRecommendationProviderConfig",
     "CandidateRecommendationRecord",
     "CandidateRecommendationResponse",
+    "CandidateRecommendationSelectionCommand",
+    "CandidateRecommendationSelectionDecision",
+    "CandidateRecommendationSelectionRecord",
+    "CandidateRecommendationSelectionService",
+    "CandidateRecommendationSelectionStore",
     "CandidateRecommendationStore",
     "CandidateSignalProjection",
     "RecommendationPriority",

@@ -1222,3 +1222,8 @@ Signal、代码位置和 Provider 清理证明。成功只写入独立 recommend
 封存在单次消费账本中。generated admission 会从该权威账本重新读取 completed outcome，重新核对生成计划、
 投影、receipt、清理证明和当前 Candidate/SourceGraph，并在独立记录中绑定 outcome ID 与摘要。记录仍固定
 不可进入 M8.1，直到独立人工选择完成。
+
+人工选择服务只从 recommendation、generation、Candidate 与 SourceGraph 权威存储重建输入，并生成独立
+内容寻址 command/record。accept 仅标记选择记录可供后续 Intake 核验；reject/defer 均不可进入 Intake，
+所有决定都保持 Candidate 不变且要求独立 Validation Approval。本地 Web adapter 固定绑定 IPv4 loopback，
+采用无脚本两步确认，UI 不能绕过相同的领域服务与 SQLite checkpoint。

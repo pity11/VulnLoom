@@ -232,6 +232,8 @@ from vulnloom.recommendations import (
     CandidateRecommendationProviderConfig,
     CandidateRecommendationRecord,
     CandidateRecommendationResponse,
+    CandidateRecommendationSelectionCommand,
+    CandidateRecommendationSelectionRecord,
     CandidateSignalProjection,
 )
 from vulnloom.reporting import (
@@ -345,6 +347,8 @@ MODELS = (
     CandidateRecommendationGenerationPlan,
     CandidateRecommendationGenerationOutcome,
     CandidateRecommendationRecord,
+    CandidateRecommendationSelectionCommand,
+    CandidateRecommendationSelectionRecord,
     ProviderProbeConfig,
     ProviderProbePlan,
     ProviderProbeResult,

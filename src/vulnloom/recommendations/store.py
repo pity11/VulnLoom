@@ -86,6 +86,39 @@ class CandidateRecommendationStore:
                 "recommendation admission STARTED checkpoint unavailable"
             )
 
+    def list_completed(self):
+        rows = self.connection.execute(
+            "SELECT plan_json, record_json FROM candidate_recommendations "
+            "WHERE state='completed' ORDER BY rowid"
+        ).fetchall()
+        records = []
+        for row in rows:
+            if row["record_json"] is None:
+                raise CandidateRecommendationRecoveryRequired(
+                    "completed recommendation admission has no record"
+                )
+            try:
+                plan = CandidateRecommendationAdmissionPlan.model_validate_json(row["plan_json"])
+                record = CandidateRecommendationRecord.model_validate_json(row["record_json"])
+            except ValidationError as exc:
+                raise CandidateRecommendationRecoveryRequired(
+                    "completed recommendation admission is invalid"
+                ) from exc
+            if record.plan_id != plan.plan_id or record.recommendation_id != plan.recommendation_id:
+                raise CandidateRecommendationRecoveryRequired(
+                    "completed recommendation admission binding mismatch"
+                )
+            records.append(record)
+        return tuple(records)
+
+    def load_completed(self, record_id):
+        matches = tuple(record for record in self.list_completed() if record.record_id == record_id)
+        if len(matches) != 1:
+            raise CandidateRecommendationRecoveryRequired(
+                "completed recommendation admission record unavailable"
+            )
+        return matches[0]
+
     def __enter__(self):
         return self
 

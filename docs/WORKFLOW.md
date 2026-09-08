@@ -545,8 +545,8 @@ minimal Candidate projection + exact Approval + inference egress grant
 ```
 
 生成结果只有建议权。generated admission 不接受调用方单独提供的 Recommendation/Provider result，而是从
-权威 generation ledger 读取 completed outcome 并重验静态来源。后续仍需独立人工 Candidate selection，
-才能交给既有 M8.1。
+权威 generation ledger 读取 completed outcome 并重验静态来源。人工选择随后以两步 command/record 记录
+accept/reject/defer；只有 accept record 可交给后续 Validation Intake 重新核验，且不会直接执行 Validation。
 
 ## 5. 重试与恢复
 
