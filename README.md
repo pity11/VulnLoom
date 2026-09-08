@@ -692,6 +692,17 @@ vulnloom pilot-validation-intake-bind-local \
   --intake-plan-file intake-plan.json --intake-command-file intake-command.json \
   --validation-plan-file validation-plan.json
 
+# Bind one accepted model Recommendation selection to a prebuilt offline
+# ValidationPlan. This writes Intake only and still requires RUN_VALIDATION Approval.
+vulnloom candidate-recommendation-validation-intake-local \
+  --scope-file scope.json --generation-db generations.db \
+  --recommendation-db recommendations.db --selection-db selections.db \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --validation-intake-db validation-intakes.db \
+  --selection-record-id <selection-record-sha256> \
+  --validation-plan-file validation-plan.json \
+  --idempotency-key recommendation-intake-001
+
 # Execute that exact binding only after a separate human RUN_VALIDATION Approval.
 # This first pilot execution path is offline and refuses every Broker call.
 vulnloom pilot-validation-run-offline \

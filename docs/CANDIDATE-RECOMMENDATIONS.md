@@ -148,9 +148,27 @@ vulnloom candidate-recommendation-review-web \
 
 ## 当前限制与下一边界
 
-专用生成结果已经可以接入本地 admission ledger，并由独立人工选择记录 accept/reject/defer。现有
-Validation Intake 尚未接受这类选择记录；下一阶段是增加只读 intake adapter，重新核对 accepted selection
-及其完整来源。动态执行仍必须经过现有 Validation 与 Approval Gate。
+专用生成结果已经可以接入本地 admission ledger，并由独立人工选择记录 accept/reject/defer。新增的
+`candidate-recommendation-validation-intake-local` 只接受权威 completed accept selection 与可信控制面预先
+构造的 exact、无网络、无 Broker `ValidationPlan`。它重新核对完整 generation/admission/selection/Candidate/
+SourceGraph/Scope 来源后写入独立 Intake 账本，Candidate 保持 `PROPOSED`，且不调用 ValidationService。
+
+下一阶段是增加只消费该 completed Intake record、exact `RUN_VALIDATION` Approval 和相同 ValidationPlan 的
+离线执行 adapter。当前 Intake record 明确固定 `requires_run_validation_approval=true`、
+`validation_executed=false`；没有该后续边界时动态执行仍不可达。
+
+本阶段新增 7 项 Intake 回归；合并后全量 1251 passed、24 skipped，覆盖率 86.12%。
+
+```bash
+vulnloom candidate-recommendation-validation-intake-local \
+  --scope-file scope.json --generation-db generations.db \
+  --recommendation-db recommendations.db --selection-db selections.db \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --validation-intake-db validation-intakes.db \
+  --selection-record-id SELECTION_RECORD_ID \
+  --validation-plan-file validation-plan.json \
+  --idempotency-key recommendation-intake-001
+```
 
 2026-09-08 本地验收：34 项定向测试通过；全量 1199 passed、23 skipped，覆盖率 86.59%。
 `ruff check src tests scripts`、CLI 注册、Schema 重复导出、JSON 解析和 diff 空白检查均通过。

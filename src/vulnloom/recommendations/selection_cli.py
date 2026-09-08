@@ -9,6 +9,11 @@ from vulnloom.analyzers import SourceGraphStore
 from vulnloom.domain.models import Scope, utc_now
 from vulnloom.hypotheses import CandidateSetStore
 from vulnloom.review_assist.source import _read
+from vulnloom.validation import (
+    CandidateRecommendationValidationIntakeService,
+    CandidateRecommendationValidationIntakeStore,
+    ValidationPlan,
+)
 
 from .generation_store import CandidateRecommendationGenerationStore
 from .review_web import CandidateRecommendationReviewApplication, create_review_server
@@ -89,6 +94,50 @@ def handle_candidate_recommendation_review_web(args):
         return 1
 
 
+def handle_candidate_recommendation_validation_intake(args):
+    """Bind an accepted selection to a prebuilt offline plan without executing it."""
+    try:
+        now = utc_now()
+        validation_plan = _load(args.validation_plan_file, ValidationPlan)
+        with ExitStack() as stack:
+            recommendation_selection = selection_service(args, stack)
+            intake_store = stack.enter_context(
+                CandidateRecommendationValidationIntakeStore(Path(args.validation_intake_db))
+            )
+            service = CandidateRecommendationValidationIntakeService(
+                scope=recommendation_selection.scope,
+                selection_service=recommendation_selection,
+                store=intake_store,
+            )
+            plan = service.prepare(
+                selection_record_id=args.selection_record_id,
+                validation_plan=validation_plan,
+                now=now,
+                deadline=min(
+                    recommendation_selection.scope.valid_until,
+                    validation_plan.runner_request.task.deadline,
+                ),
+                idempotency_key=args.idempotency_key,
+            )
+            record = service.intake(plan, validation_plan=validation_plan, now=now)
+        print(
+            json.dumps(
+                {
+                    "status": "intake_ready",
+                    "candidate_state": "proposed",
+                    "validation_executed": False,
+                    "requires_run_validation_approval": True,
+                    "record": record.model_dump(mode="json"),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    except Exception:
+        print(json.dumps({"status": "rejected", "error_code": "validation_intake_rejected"}))
+        return 1
+
+
 def _common(parser):
     parser.add_argument("--scope-file", required=True)
     parser.add_argument("--generation-db", required=True)
@@ -120,3 +169,11 @@ def register_candidate_recommendation_selection_commands(sub):
     web.add_argument("--reviewer-id", required=True)
     web.add_argument("--port", type=int, default=8765)
     web.set_defaults(handler=handle_candidate_recommendation_review_web)
+
+    intake = sub.add_parser("candidate-recommendation-validation-intake-local")
+    _common(intake)
+    intake.add_argument("--validation-intake-db", required=True)
+    intake.add_argument("--selection-record-id", required=True)
+    intake.add_argument("--validation-plan-file", required=True)
+    intake.add_argument("--idempotency-key", required=True)
+    intake.set_defaults(handler=handle_candidate_recommendation_validation_intake)

@@ -133,6 +133,14 @@ class CandidateRecommendationSelectionStore:
                 "completed recommendation selection is invalid"
             ) from exc
 
+    def load_completed(self, record_id):
+        matches = tuple(item for item in self.list_completed() if item.record_id == record_id)
+        if len(matches) != 1:
+            raise CandidateRecommendationSelectionRecoveryRequired(
+                "completed recommendation selection is unavailable"
+            )
+        return matches[0]
+
     def __enter__(self):
         return self
 

@@ -1227,3 +1227,8 @@ Signal、代码位置和 Provider 清理证明。成功只写入独立 recommend
 内容寻址 command/record。accept 仅标记选择记录可供后续 Intake 核验；reject/defer 均不可进入 Intake，
 所有决定都保持 Candidate 不变且要求独立 Validation Approval。本地 Web adapter 固定绑定 IPv4 loopback，
 采用无脚本两步确认，UI 不能绕过相同的领域服务与 SQLite checkpoint。
+
+Recommendation Validation Intake adapter 从 completed selection ledger 开始，要求决定为 `accept`，重新打开
+generation、admission、CandidateSet、SourceGraph 和 Scope，并绑定可信控制面独立构造的 exact
+`ValidationPlan`。首版只接纳无 Broker、Runner `network_mode=none` 的计划。独立 checkpoint 只记录摘要和
+身份，明确声明尚未执行 Validation 且仍需 `RUN_VALIDATION` Approval；它不持有 Runner、Broker 或凭据。

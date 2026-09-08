@@ -1073,6 +1073,9 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 新增 Recommendation 人工选择 command/record、独立 checkpoint ledger、离线 CLI 和 loopback-only Web
   UI。两步确认记录 accept/reject/defer；只有 accept selection 标记可供后续 Intake 核验，Candidate 始终
   不变且动态 Validation 仍需单独 Approval。UI 无外部资源，执行 Host/Origin/CSRF/大小/字段闭集检查。
+- 新增 Recommendation Validation Intake plan/record 与独立 checkpoint ledger。它只消费权威 accept
+  selection 和预构造的 exact 离线 ValidationPlan，拒绝 Broker/网络计划，保持 Candidate 为 `PROPOSED`，
+  并固定要求后续独立 `RUN_VALIDATION` Approval；本阶段不调用 ValidationService 或任何执行 adapter。
 
 ## 延后事项
 

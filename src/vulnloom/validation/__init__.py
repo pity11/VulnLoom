@@ -95,6 +95,23 @@ from .pilot_outcome_store import (
     PilotValidationOutcomeRecoveryRequired,
     PilotValidationOutcomeStore,
 )
+from .recommendation_intake import (
+    CandidateRecommendationValidationIntakeRejected,
+    CandidateRecommendationValidationIntakeService,
+    CandidateRecommendationValidationIntakeTimedOut,
+)
+from .recommendation_intake_models import (
+    CandidateRecommendationValidationIntakePlan,
+    CandidateRecommendationValidationIntakeRecord,
+    candidate_recommendation_validation_intake_plan_digest,
+    candidate_recommendation_validation_intake_record_digest,
+)
+from .recommendation_intake_store import (
+    CandidateRecommendationValidationIntakeClaim,
+    CandidateRecommendationValidationIntakeConflict,
+    CandidateRecommendationValidationIntakeRecoveryRequired,
+    CandidateRecommendationValidationIntakeStore,
+)
 from .service import (
     InconclusiveValidationJudge,
     ValidationJudge,
@@ -109,6 +126,15 @@ from .store import (
 )
 
 __all__ = [
+    "CandidateRecommendationValidationIntakeClaim",
+    "CandidateRecommendationValidationIntakeConflict",
+    "CandidateRecommendationValidationIntakePlan",
+    "CandidateRecommendationValidationIntakeRecord",
+    "CandidateRecommendationValidationIntakeRecoveryRequired",
+    "CandidateRecommendationValidationIntakeRejected",
+    "CandidateRecommendationValidationIntakeService",
+    "CandidateRecommendationValidationIntakeStore",
+    "CandidateRecommendationValidationIntakeTimedOut",
     "PilotValidationOutcomeRejected",
     "PilotValidationOutcomeService",
     "PilotValidationOutcomeTimedOut",
@@ -173,6 +199,8 @@ __all__ = [
     "ValidationStore",
     "ValidationVerdict",
     "candidate_content_digest",
+    "candidate_recommendation_validation_intake_plan_digest",
+    "candidate_recommendation_validation_intake_record_digest",
     "agent_validation_intake_command_digest",
     "agent_validation_intake_plan_digest",
     "agent_validation_intake_record_digest",

@@ -15,6 +15,7 @@ from .selection_models import (
     CandidateRecommendationSelectionDecision,
     CandidateRecommendationSelectionRecord,
 )
+from .selection_store import CandidateRecommendationSelectionRecoveryRequired
 from .store import CandidateRecommendationRecoveryRequired
 
 
@@ -164,6 +165,49 @@ class CandidateRecommendationSelectionService:
             admission_record_id, at=at, started=self.clock()
         )
         return admission, outcome.recommendation, candidate
+
+    def load_verified(self, record_id, *, at):
+        """Reload one completed selection and every authoritative upstream object."""
+        started = self.clock()
+        try:
+            record = self.selection_store.load_completed(record_id)
+        except (
+            ValueError,
+            ValidationError,
+            CandidateRecommendationSelectionRecoveryRequired,
+        ) as exc:
+            raise CandidateRecommendationSelectionRejected(
+                "recommendation selection record is unavailable"
+            ) from exc
+        admission, outcome, candidate_set, graph, candidate = self._inputs(
+            record.admission_record_id, at=at, started=started
+        )
+        if (
+            record.admission_plan_id != admission.plan_id
+            or record.admission_record_id != admission.record_id
+            or record.admission_record_digest
+            != canonical_digest(admission.model_dump(mode="python"))
+            or record.recommendation_id != admission.recommendation_id
+            or record.generation_plan_id != outcome.plan_id
+            or record.generation_outcome_id != outcome.outcome_id
+            or record.candidate_set_id != candidate_set.candidate_set_id
+            or record.candidate_id != candidate.candidate_id
+            or record.candidate_digest != candidate_content_digest(candidate)
+            or record.target_id != candidate.target_id
+            or record.target_version_digest != canonical_digest(candidate.target_version)
+            or record.scope_id != self.scope.scope_id
+            or record.scope_version != self.scope.version
+            or record.decided_at > at
+            or not record.candidate_unchanged
+            or not record.requires_separate_validation_approval
+            or record.eligible_for_validation_intake
+            != (record.decision is CandidateRecommendationSelectionDecision.ACCEPT)
+        ):
+            raise CandidateRecommendationSelectionRejected(
+                "recommendation selection completed record drifted"
+            )
+        self._check(started)
+        return record, admission, outcome, candidate_set, graph, candidate
 
     def _inputs(self, admission_record_id, *, at, started):
         if (
