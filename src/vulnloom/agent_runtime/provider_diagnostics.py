@@ -18,6 +18,31 @@ ContentClassification = Literal[
     "response_content_other",
 ]
 
+ContentShapeObservation = Literal[
+    "recommendation_json_invalid",
+    "recommendation_root_type",
+    "recommendation_missing_fields",
+    "recommendation_extra_fields",
+    "recommendation_projection_id_type",
+    "recommendation_projection_id_mismatch",
+    "recommendation_priority_type",
+    "recommendation_priority_value",
+    "recommendation_rationale_type",
+    "recommendation_rationale_empty",
+    "recommendation_rationale_over_budget",
+    "recommendation_rationale_untrimmed",
+    "recommendation_rationale_unsafe",
+    "recommendation_questions_type",
+    "recommendation_questions_count",
+    "recommendation_question_item_type",
+    "recommendation_question_unsafe",
+    "recommendation_indexes_type",
+    "recommendation_indexes_count",
+    "recommendation_index_item_type",
+    "recommendation_indexes_order_or_duplicate",
+    "recommendation_index_out_of_range",
+]
+
 
 ResponseShapeCode = Literal[
     "response_root_extension_nonempty",
@@ -170,6 +195,9 @@ class ProviderDiagnostic(DomainModel):
     usage_key_observations: tuple[UsageKeyObservation, ...] = Field(default=(), max_length=32)
     usage_keys_truncated: bool = Field(default=False, strict=True)
     content_classification: ContentClassification | None = None
+    content_shape_observations: tuple[ContentShapeObservation, ...] = Field(
+        default=(), max_length=32
+    )
     shape_observations: tuple[ShapeObservation, ...] = Field(default=(), max_length=32)
 
     @model_serializer(mode="wrap")
@@ -183,6 +211,8 @@ class ProviderDiagnostic(DomainModel):
             result.pop("usage_keys_truncated", None)
         if self.content_classification is None:
             result.pop("content_classification", None)
+        if not self.content_shape_observations:
+            result.pop("content_shape_observations", None)
         if not self.shape_observations:
             result.pop("shape_observations", None)  # Preserve existing result digests.
         return result
@@ -252,6 +282,17 @@ def safe_shape_observations(codec):
 def safe_content_classification(codec):
     code = getattr(codec, "content_classification", None)
     return code if code in get_args(ContentClassification) else None
+
+
+def safe_content_shape_observations(codec):
+    observations = getattr(codec, "content_shape_observations", ())
+    if (
+        not isinstance(observations, tuple)
+        or len(observations) > 32
+        or any(item not in get_args(ContentShapeObservation) for item in observations)
+    ):
+        return ()
+    return observations
 
 
 def safe_usage_key_observations(codec):

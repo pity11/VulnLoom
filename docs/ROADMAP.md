@@ -1059,6 +1059,9 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 2026-09-08 首次真实最小投影调用返回 HTTP 200 / TLSv1.3，但正文分类为
   `response_content_other`，因此正确拒绝；清理通过、单条账本完成、grant 已撤销且未重试。随后修正
   outcome 标志语义：只有 `recommendation_ready` 才写 `producer_content_binding_verified=true`。
+- 补充 Candidate 推荐正文的闭集结构诊断，只记录代码定义的 JSON/字段/类型/范围/安全类别；未知键和值、
+  正文及 reasoning 不落盘。诊断不放宽 Schema、不改变接受结果，也不触发自动重试或新 Provider 调用。
+- 闭集诊断新增 9 项回归测试；全量 1233 passed、23 skipped，覆盖率 86.49%。
 
 ## 延后事项
 

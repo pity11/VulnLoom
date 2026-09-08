@@ -103,3 +103,11 @@ Outcome ID 为 `0fb313ddc7ec06dd248291e8a1aa51817e23d80470b5b889b2be1c2d84d0ee7c
 该 v1 拒绝 artifact 在字段命名修正前生成，历史 JSON 中的
 `producer_content_binding_verified=true` 表示当时启用了绑定协议，并不表示正文校验通过。后续实现已改为
 仅在 `recommendation_ready` 时写 true；判断历史结果必须同时检查 `status`。
+
+首次拒绝后新增闭集内容结构诊断。诊断只能保存代码定义的类别，例如 JSON 无效、根对象类型、必需或
+额外字段、projection ID 类型/不匹配、priority 类型/取值、理由为空/超长/未裁剪/不安全、问题列表
+类型/数量/条目安全，以及位置索引类型/数量/顺序/越界。未知字段名、字段值、正文和 reasoning 均不会
+进入诊断。该诊断只解释拒绝分支，不参与接受判定，也不允许重放或自动重试。
+
+闭集诊断新增 9 项回归测试；合并后全量 1233 passed、23 skipped，覆盖率 86.49%。
+`ruff check src tests scripts`、Schema 重复导出和 diff 空白检查均通过。

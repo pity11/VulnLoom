@@ -40,6 +40,7 @@ from .provider_diagnostics import (
     ProviderDiagnostic,
     ResponseShapeCode,
     safe_content_classification,
+    safe_content_shape_observations,
     safe_metric_issues,
     safe_shape_observations,
     safe_usage_key_observations,
@@ -312,6 +313,9 @@ class SubprocessHttpsProviderAdapter:
                             "content_classification": safe_content_classification(
                                 self.provider_codec
                             ),
+                            "content_shape_observations": safe_content_shape_observations(
+                                self.provider_codec
+                            ),
                         }
                     )
                     raise AgentProviderTransportRejected(
@@ -324,6 +328,9 @@ class SubprocessHttpsProviderAdapter:
                         **safe_usage_key_observations(self.provider_codec),
                         "metric_issues": safe_metric_issues(self.provider_codec),
                         "content_classification": safe_content_classification(self.provider_codec),
+                        "content_shape_observations": safe_content_shape_observations(
+                            self.provider_codec
+                        ),
                     }
                 )
                 status = AgentProviderTransportStatus.COMPLETED

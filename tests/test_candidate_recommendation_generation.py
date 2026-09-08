@@ -33,6 +33,7 @@ from vulnloom.recommendations import (
 from vulnloom.recommendations.generation_store import (
     CandidateRecommendationGenerationRecoveryRequired,
 )
+from vulnloom.recommendations.provider import _observe_recommendation_content
 
 
 class Resolver:
@@ -182,6 +183,7 @@ def test_generation_success_is_bound_read_only_and_replay_safe(tmp_path, approve
         assert outcome.recommendation.candidate_id == candidate.candidate_id
         assert outcome.recommendation.producer_result_id == outcome.transport.result_id
         assert outcome.response.projection_id == plan.projection.projection_id
+        assert not outcome.transport.diagnostic.content_shape_observations
         assert execute(service, plan, approval) == outcome and runner.calls == 1
         assert service.candidates.load(candidate_set.candidate_set_id).model_dump_json() == original
         assert "private_app.py" not in json.dumps(runner.packet)
@@ -200,9 +202,18 @@ def test_generation_success_is_bound_read_only_and_replay_safe(tmp_path, approve
 
 
 @pytest.mark.parametrize(
-    "kind", ["projection", "outside", "duplicate", "secret", "extra", "priority", "empty"]
+    "kind,diagnostic",
+    [
+        ("projection", "recommendation_projection_id_mismatch"),
+        ("outside", "recommendation_index_out_of_range"),
+        ("duplicate", "recommendation_indexes_order_or_duplicate"),
+        ("secret", "recommendation_rationale_unsafe"),
+        ("extra", "recommendation_extra_fields"),
+        ("priority", "recommendation_priority_value"),
+        ("empty", "recommendation_rationale_empty"),
+    ],
 )
-def test_generation_rejects_invalid_model_content(tmp_path, approved_scope, now, kind):
+def test_generation_rejects_invalid_model_content(tmp_path, approved_scope, now, kind, diagnostic):
     with case(tmp_path, approved_scope, now) as values:
         service, plan, approval, runner, *_ = values
 
@@ -229,6 +240,7 @@ def test_generation_rejects_invalid_model_content(tmp_path, approved_scope, now,
         assert not outcome.producer_content_binding_verified
         assert outcome.response is None and outcome.recommendation is None
         assert outcome.transport.cleanup_verified
+        assert diagnostic in outcome.transport.diagnostic.content_shape_observations
         assert execute(service, plan, approval) == outcome and runner.calls == 1
 
 
@@ -259,6 +271,10 @@ def test_generation_rejects_invalid_wire(tmp_path, approved_scope, now, kind):
         assert outcome.status == "rejected" and outcome.recommendation is None
         assert not outcome.producer_content_binding_verified
         assert outcome.transport.cleanup_verified and not any(runner.credential)
+        if kind == "malformed":
+            assert outcome.transport.diagnostic.content_shape_observations == (
+                "recommendation_json_invalid",
+            )
 
 
 @pytest.mark.parametrize(
@@ -317,6 +333,52 @@ def test_generation_interruption_and_tamper_require_recovery(
         with pytest.raises(CandidateRecommendationGenerationRecoveryRequired):
             execute(service, plan, approval)
         assert runner.calls == 1
+
+
+@pytest.mark.parametrize(
+    "change,expected",
+    [
+        (lambda value: "```json\n" + json.dumps(value) + "\n```", "recommendation_json_invalid"),
+        (lambda value: json.dumps([value]), "recommendation_root_type"),
+        (
+            lambda value: json.dumps(
+                {key: item for key, item in value.items() if key != "priority"}
+            ),
+            "recommendation_missing_fields",
+        ),
+        (
+            lambda value: json.dumps({**value, "unknown-secret-field": "secret-value"}),
+            "recommendation_extra_fields",
+        ),
+        (
+            lambda value: json.dumps({**value, "review_questions": "not-a-list"}),
+            "recommendation_questions_type",
+        ),
+        (
+            lambda value: json.dumps({**value, "review_questions": ["a", "b", "c", "d"]}),
+            "recommendation_questions_count",
+        ),
+        (
+            lambda value: json.dumps({**value, "cited_location_indexes": [True]}),
+            "recommendation_index_item_type",
+        ),
+    ],
+)
+def test_content_diagnostics_are_closed(tmp_path, approved_scope, now, change, expected):
+    with case(tmp_path, approved_scope, now) as values:
+        _, plan, _, _, *_ = values
+        payload = {
+            "projection_id": plan.projection.projection_id,
+            "priority": "high",
+            "rationale": "仅供人工复核。",
+            "review_questions": [],
+            "cited_location_indexes": [0],
+        }
+        observed = _observe_recommendation_content(change(payload), plan.projection)
+        assert expected in observed
+        serialized = json.dumps(observed)
+        assert "unknown-secret-field" not in serialized
+        assert "secret-value" not in serialized
 
 
 def test_generation_completed_tamper_requires_recovery(tmp_path, approved_scope, now):

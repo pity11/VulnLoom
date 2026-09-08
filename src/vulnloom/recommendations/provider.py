@@ -22,6 +22,7 @@ from vulnloom.domain.protocol import WorkerRole
 from vulnloom.runners.models import Digest
 
 from .generation_models import CandidateRecommendationProjection, CandidateRecommendationResponse
+from .models import _safe_text
 
 RECOMMENDATION_INSTRUCTION = (
     "Prioritize one static Candidate for human review using only the supplied minimal metadata. "
@@ -104,6 +105,7 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
         super().__init__(registration, **kwargs)
         self.projection = CandidateRecommendationProjection.model_validate(projection.model_dump())
         self.response = None
+        self.content_shape_observations = ()
 
     def encode(self, *, model_registration, envelope):
         started = self.clock()
@@ -151,6 +153,7 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
 
     def decode(self, *args, **kwargs):
         self.response = None
+        self.content_shape_observations = ()
         try:
             return super().decode(*args, **kwargs)
         except Exception:
@@ -158,6 +161,7 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
             raise
 
     def _classify_content(self, content):
+        self.content_shape_observations = _observe_recommendation_content(content, self.projection)
         if not isinstance(content, str):
             return "response_content_type"
         try:
@@ -169,3 +173,74 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
             return "response_content_other"
         self.response = response
         return "response_content_exact"
+
+
+def _observe_recommendation_content(content, projection):
+    """Return only closed structural facts; never copy response keys or values."""
+    if not isinstance(content, str):
+        return ("recommendation_root_type",)
+    try:
+        payload = _strict_json(content, "recommendation diagnostic")
+    except ValueError:
+        return ("recommendation_json_invalid",)
+    if not isinstance(payload, dict):
+        return ("recommendation_root_type",)
+    required = {
+        "projection_id",
+        "priority",
+        "rationale",
+        "review_questions",
+        "cited_location_indexes",
+    }
+    observed = []
+    if not required <= set(payload):
+        observed.append("recommendation_missing_fields")
+    if not set(payload) <= required:
+        observed.append("recommendation_extra_fields")
+    projection_id = payload.get("projection_id")
+    if not isinstance(projection_id, str):
+        observed.append("recommendation_projection_id_type")
+    elif projection_id != projection.projection_id:
+        observed.append("recommendation_projection_id_mismatch")
+    priority = payload.get("priority")
+    if not isinstance(priority, str):
+        observed.append("recommendation_priority_type")
+    elif priority not in {"low", "medium", "high"}:
+        observed.append("recommendation_priority_value")
+    rationale = payload.get("rationale")
+    if not isinstance(rationale, str):
+        observed.append("recommendation_rationale_type")
+    else:
+        if not rationale.strip():
+            observed.append("recommendation_rationale_empty")
+        if len(rationale) > 600:
+            observed.append("recommendation_rationale_over_budget")
+        if rationale != rationale.strip():
+            observed.append("recommendation_rationale_untrimmed")
+        if rationale.strip() and not _safe_text(rationale):
+            observed.append("recommendation_rationale_unsafe")
+    questions = payload.get("review_questions")
+    if not isinstance(questions, list):
+        observed.append("recommendation_questions_type")
+    else:
+        if len(questions) > 3:
+            observed.append("recommendation_questions_count")
+        if any(not isinstance(item, str) for item in questions):
+            observed.append("recommendation_question_item_type")
+        elif any(not _safe_text(item) for item in questions):
+            observed.append("recommendation_question_unsafe")
+    indexes = payload.get("cited_location_indexes")
+    if not isinstance(indexes, list):
+        observed.append("recommendation_indexes_type")
+    else:
+        if not 1 <= len(indexes) <= 8:
+            observed.append("recommendation_indexes_count")
+        if any(type(item) is not int for item in indexes):
+            observed.append("recommendation_index_item_type")
+        else:
+            if indexes != sorted(set(indexes)):
+                observed.append("recommendation_indexes_order_or_duplicate")
+            allowed = {item.index for item in projection.locations}
+            if not set(indexes) <= allowed:
+                observed.append("recommendation_index_out_of_range")
+    return tuple(observed)

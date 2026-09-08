@@ -33,6 +33,7 @@ def frame(value):
         {"tls_version": "secret"},
         {"body": "sensitive-body"},
         {"failure_stage": "response_codec"},
+        {"content_shape_observations": ["sensitive-response-value"]},
     ],
 )
 def test_untrusted_diagnostics_are_closed_and_zeroed(change):
@@ -202,3 +203,17 @@ def test_usage_fingerprint_rejects_arbitrary_labels():
         UsageKeyObservation(name_sha256='a'*64, value_type='sensitive-value')
     with pytest.raises(ValidationError):
         UsageKeyObservation(candidate='num_cached_tokens', name_sha256='a'*64, value_type='int')
+
+
+def test_content_shape_observations_are_closed():
+    from vulnloom.agent_runtime.provider_diagnostics import safe_content_shape_observations
+
+    assert safe_content_shape_observations(
+        SimpleNamespace(content_shape_observations=("recommendation_json_invalid",))
+    ) == ("recommendation_json_invalid",)
+    assert not safe_content_shape_observations(
+        SimpleNamespace(content_shape_observations=("sensitive-response-value",))
+    )
+    assert not safe_content_shape_observations(
+        SimpleNamespace(content_shape_observations=["recommendation_json_invalid"])
+    )

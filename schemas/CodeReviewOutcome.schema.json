@@ -139,6 +139,39 @@
           "default": null,
           "title": "Content Classification"
         },
+        "content_shape_observations": {
+          "default": [],
+          "items": {
+            "enum": [
+              "recommendation_json_invalid",
+              "recommendation_root_type",
+              "recommendation_missing_fields",
+              "recommendation_extra_fields",
+              "recommendation_projection_id_type",
+              "recommendation_projection_id_mismatch",
+              "recommendation_priority_type",
+              "recommendation_priority_value",
+              "recommendation_rationale_type",
+              "recommendation_rationale_empty",
+              "recommendation_rationale_over_budget",
+              "recommendation_rationale_untrimmed",
+              "recommendation_rationale_unsafe",
+              "recommendation_questions_type",
+              "recommendation_questions_count",
+              "recommendation_question_item_type",
+              "recommendation_question_unsafe",
+              "recommendation_indexes_type",
+              "recommendation_indexes_count",
+              "recommendation_index_item_type",
+              "recommendation_indexes_order_or_duplicate",
+              "recommendation_index_out_of_range"
+            ],
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Content Shape Observations",
+          "type": "array"
+        },
         "shape_observations": {
           "default": [],
           "items": {
