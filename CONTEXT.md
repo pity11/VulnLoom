@@ -38,6 +38,10 @@ _Avoid_: Finding, Vulnerability
 由一个或多个 Signal 支撑、具有漏洞类型、入口、危险点和前置条件的待证伪假设。
 _Avoid_: Finding, Confirmed bug
 
+**Candidate Recommendation**：
+模型针对一个既有 Candidate 生成的优先级和人工复核建议；它不能创建或修改 Candidate，也不能直接进入 Validation Run。
+_Avoid_: Candidate Draft, Model Finding, Auto-selected Candidate
+
 **Validation Run**：
 在确定版本、确定沙盒和确定策略下，对一个 Candidate 进行的一次可重复实验。
 _Avoid_: Exploit, Attack

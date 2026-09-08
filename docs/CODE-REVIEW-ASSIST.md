@@ -90,8 +90,26 @@ SQLite 账本使用事务完成 `未领取 → started → completed` 转移，�
 ## 验收范围
 
 本轮使用合成代码与 fake DNS/process 验证成功、拒绝、超时、清理、CLI 和重放路径。
-此前真实固定 JSON 探针的通过记录不等于本功能的真实模型验收；本轮没有向 Provider 发送项目代码。
-首次真实审阅需由操作方选定代码并批准具体计划，再单独记录验收结果。
+此前真实固定 JSON 探针的通过记录不等于本功能的真实模型验收。首次真实代码审阅验收记录见下节。
 
 2026-09-08 本地验证：新增 43 项审阅测试通过；全量 1165 passed，23 项集成测试排除，
 覆盖率 86.49%。`ruff check src tests scripts`、Schema 重复导出一致性和 diff 空白检查通过。
+
+## 首次真实代码审阅验收（2026-09-08）
+
+用户明确授权将已预览的 VulnLoom `source.py` 第 28–46 行脱敏片段发送到固定 CUC 网关。
+目标是已提交并导入的 `43710b8d13fc47837ade68c00bcc26710b38da90` 快照；发送内容中的
+字符串、数值和注释均已掩蔽。调用未携带工具、完整项目、原始路径或凭据。
+
+- 执行一次，无自动重试；`status=review_ready`，`requires_human_review=true`。
+- HTTP 200、TLSv1.3，响应模型 `deepseek-v4-flash-0731`，输入/输出 890/303 tokens。
+- `content_classification=response_content_exact`，响应 1845 bytes，行号与输入摘要校验通过。
+- Result ID：`2cc496c7d2626d2fa145922b611d827bd2c4c56cfbf5ccd28636bf5e45b75f93`。
+- Receipt digest：`67a54548fe8118aeaebaa2c73f14fbe8e74d9fe6f4aee344bdcd828ee88cb47f`。
+- `cleanup_verified=true`；短时 grant 已撤销。离线复核确认一个 completed ledger 条目、
+  密封结果一致且本地记录不含原始凭据。
+
+人工质量核查发现：模型对 `O_NOFOLLOW`、逐级目录打开、普通文件/大小检查和二次长度检查的解释
+基本准确；但“`finally` 可能重复关闭描述符”的建议不符合该片段的实际控制流。目标文件描述符由
+`fdopen` 管理，`finally` 关闭的是当前目录描述符。这次结果证明真实只读审阅链可以工作，
+也证明结构和引用校验不能替代语义核查，输出必须继续由人工审阅。

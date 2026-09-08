@@ -1,0 +1,190 @@
+{
+  "$defs": {
+    "RecommendationPriority": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "RecommendationPriority",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "supporting_signal_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Supporting Signal Ids",
+      "type": "array"
+    },
+    "cited_locations": {
+      "items": {
+        "$ref": "#/$defs/SourceLocation"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Cited Locations",
+      "type": "array"
+    },
+    "priority": {
+      "$ref": "#/$defs/RecommendationPriority"
+    },
+    "rationale": {
+      "maxLength": 600,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "review_questions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Review Questions",
+      "type": "array"
+    },
+    "producer_protocol": {
+      "const": "candidate-recommendation-v1",
+      "default": "candidate-recommendation-v1",
+      "title": "Producer Protocol",
+      "type": "string"
+    },
+    "producer_protocol_digest": {
+      "default": "7da7544650770882a39b71d526f18f6c64b7a3a8c22f9d40a27349e745777a75",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Protocol Digest",
+      "type": "string"
+    },
+    "producer_result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Result Id",
+      "type": "string"
+    },
+    "producer_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Plan Id",
+      "type": "string"
+    },
+    "producer_receipt_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Receipt Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "requires_human_review": {
+      "const": true,
+      "default": true,
+      "title": "Requires Human Review",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "source_graph_id",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "supporting_signal_ids",
+    "cited_locations",
+    "priority",
+    "rationale",
+    "producer_result_id",
+    "producer_plan_id",
+    "producer_receipt_digest",
+    "created_at"
+  ],
+  "title": "CandidateRecommendation",
+  "type": "object"
+}

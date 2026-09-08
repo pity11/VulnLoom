@@ -1970,6 +1970,9 @@ def build_parser() -> argparse.ArgumentParser:
     from vulnloom.review_assist.cli import register_review_commands
 
     register_review_commands(sub)
+    from vulnloom.recommendations.cli import register_candidate_recommendation_commands
+
+    register_candidate_recommendation_commands(sub)
     return parser
 
 

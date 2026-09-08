@@ -1,0 +1,123 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "recommendation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "recommendation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recommendation Digest",
+      "type": "string"
+    },
+    "producer_result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Result Id",
+      "type": "string"
+    },
+    "producer_result_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Result Digest",
+      "type": "string"
+    },
+    "candidate_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Set Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "source_graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Graph Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Version Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "admitted_at": {
+      "format": "date-time",
+      "title": "Admitted At",
+      "type": "string"
+    },
+    "candidate_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Candidate Unchanged",
+      "type": "boolean"
+    },
+    "requires_human_selection": {
+      "const": true,
+      "default": true,
+      "title": "Requires Human Selection",
+      "type": "boolean"
+    },
+    "producer_content_binding_verified": {
+      "const": false,
+      "default": false,
+      "title": "Producer Content Binding Verified",
+      "type": "boolean"
+    },
+    "eligible_for_validation_intake": {
+      "const": false,
+      "default": false,
+      "title": "Eligible For Validation Intake",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "record_id",
+    "plan_id",
+    "recommendation_id",
+    "recommendation_digest",
+    "producer_result_id",
+    "producer_result_digest",
+    "candidate_set_id",
+    "candidate_id",
+    "candidate_digest",
+    "source_graph_id",
+    "target_id",
+    "target_version_digest",
+    "scope_id",
+    "scope_version",
+    "admitted_at"
+  ],
+  "title": "CandidateRecommendationRecord",
+  "type": "object"
+}

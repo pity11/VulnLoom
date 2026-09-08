@@ -35,6 +35,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
 - [docs/CUC-DEEPSEEK-CONFIG.md](./docs/CUC-DEEPSEEK-CONFIG.md): local, secret-free setup and connectivity checks for the CUC DeepSeek gateway.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
+- [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): deterministic admission for advisory model recommendations over existing Candidates.
 
 ## Project layout
 
@@ -911,13 +912,13 @@ and no tools or research targets. Each grant is consumed once in the authoritati
 including failed attempts; replay is read-only and STARTED requires explicit recovery.
 
 See [Provider probe setup and remaining admission requirements](docs/PROVIDER-PROBE.md) for the
-configuration types and commands. No real-key or public Provider call has been verified by the local
-tests. Passing this smoke does not establish vulnerability-research quality or authorize target testing.
+configuration types and commands. A real fixed PONG probe and a separate structured JSON probe have
+passed against CUC; these calls do not establish vulnerability-research quality or authorize target testing.
 
 
 M9.16 adds a CUC-only Chat PONG codec for the standalone probe. It binds request model `cuc/deepseek`
 to exactly `deepseek-v4-flash` or `deepseek-v4-flash-0731`, uses direct pinned HTTPS and only the real
 `CUC_DEEPSEEK_API_KEY` reference. `provider-cuc-probe-config` prints bounded configuration for an
 already-issued operator grant; it cannot issue one. No shim, generic Chat workflow or relaxed
-Responses identity check is added. Local adaptation tests pass; real CUC admission remains pending
-an available credential and issued egress configuration. See [CUC setup](docs/PROVIDER-PROBE.md).
+Responses identity check is added. The fixed CUC PONG and structured probes have passed real calls;
+the generic research adapter remains unavailable. See [CUC setup](docs/PROVIDER-PROBE.md).

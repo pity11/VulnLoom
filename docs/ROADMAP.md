@@ -1020,7 +1020,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   receipt 非空且清理通过。复用既有权威账本，结束后撤销授权，无重试；持久化结果已离线核验。
 - 通用 CUC Chat 适配与研究任务端到端接入仍未完成；此探针不能作为这些能力的验收证明。
 
-### 独立只读代码审阅助手（离线实现，真实代码审阅验收待办）
+### 独立只读代码审阅助手（首个真实代码审阅验收已完成）
 
 - 人工选择已授权快照的 Python 文件与行号；只读解析、掩蔽全部字面量与注释，保留原始行号。
 - 新增 preview / prepare / approval-request / run 操作入口；计划摘要绑定输入、Scope 和 Provider。
@@ -1028,9 +1028,28 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 新增独立 `cuc-code-review-v1` 协议，只输出需要人工核查的解释和建议；检查内容结构、输入摘要、
   行号范围、用量与清理证明，无工具调用或 Candidate/Finding 状态变更接口。
 - 单次调用使用事务性账本，完成重放只读，中断必须人工核查；不自动重试或自动授权。
-- 本功能尚未进行真实项目代码的 Provider 调用。详见 `docs/CODE-REVIEW-ASSIST.md`。
+- 2026-09-08 已对提交 `43710b8` 中人工选择并脱敏的 19 行代码执行一次真实 CUC 审阅：
+  `review_ready`、HTTP 200 / TLSv1.3、模型 `deepseek-v4-flash-0731`、890/303 tokens，
+  receipt 非空、清理通过且授权已撤销，无重试。人工复核同时发现一条错误建议，证明结果仍须审阅。
+  详见 `docs/CODE-REVIEW-ASSIST.md`。
 - 本地验证：43 项新增审阅测试；全量 1165 passed、23 项集成测试排除，覆盖率 86.49%；
   lint 与 Schema 重复导出一致性检查通过。
+
+### Candidate Recommendation 确定性接纳边界（本地首版已完成）
+
+- 新增内容寻址的 `CandidateRecommendation`，只为一个既有 `PROPOSED` Candidate 保存优先级、
+  人工复核理由、问题和 Candidate `code_path` 内引用，不创建或修改 Candidate。
+- 接纳计划重新读取权威 SourceGraph/CandidateSet，精确绑定 Target/version、Scope/version、Candidate
+  内容摘要、完整 Signal 集合，以及通过并完成清理的 Provider result/plan/receipt。
+- SQLite 使用唯一 `started → completed` checkpoint；完成态可只读重放，遗留开始态、篡改和身份冲突
+  均 fail-closed。接纳记录固定 `candidate_unchanged=true`、`requires_human_selection=true`。
+- 类型同时固定 `producer_content_binding_verified=false` 和 `eligible_for_validation_intake=false`，
+  防止下游把尚未绑定模型正文的本地记录当作 M8.1 来源证明。
+- 新增两个无网络本地 CLI 和三份 JSON Schema；成功、拒绝、超时、清理证明、重放、恢复与安全文本
+  回归已覆盖。新增 34 项定向测试；全量 1199 passed、23 skipped，覆盖率 86.59%。详见
+  `docs/CANDIDATE-RECOMMENDATIONS.md`。
+- 当前 Provider 结果尚未把模型响应正文绑定到 Recommendation；因此本阶段不证明模型已经生成或排序
+  Candidate。下一步是专用无工具 codec、最小 Candidate 投影和权威生成结果账本，真实披露仍需精确审批。
 
 ## 延后事项
 

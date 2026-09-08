@@ -1208,3 +1208,13 @@ preserving strict integer token accounting. Diagnostic metric failures now ident
 and reason without metric values. Live-010 passed the fixed PONG gate with a trusted receipt and
 verified cleanup. This remains a standalone no-tool connectivity acceptance; it does not implement
 or admit a general CUC research adapter.
+
+## Candidate Recommendation 接纳边界
+
+`CandidateRecommendationAdmissionService` 位于模型输出与领域状态机之间。它只接受指向权威
+SourceGraph/CandidateSet 中一个唯一 `PROPOSED` Candidate 的内容寻址建议，并重新核对 Target、版本、Scope、
+Signal、代码位置和 Provider 清理证明。成功只写入独立 recommendation ledger，不写 Candidate store，记录
+明确要求人工选择，并固定标记其 Provider 正文绑定尚未验证、不可进入 Validation Intake。
+
+此服务不执行 Provider 调用，也不把普通 `ProviderProbeResult` 解释成模型正文来源证明。专用生成 codec
+和结果 store 完成前，Recommendation 只能作为接纳协议的本地 fixture 使用，不能进入 M8.1 Intake。

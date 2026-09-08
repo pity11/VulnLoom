@@ -522,6 +522,19 @@ accepted 只表示人工选择了 exact ValidationPlan，不调用 ValidationSer
 也不是 Approval。后续执行必须由独立入口显式发起，并重新通过原有 Validation、Scope、Policy、Sandbox、Broker、
 Evidence、预算和 Approval 门禁。非 completed recommendation、对象漂移、过期决定、重复消费和遗留 STARTED 均拒绝。
 
+### Candidate Recommendation 本地接纳
+
+```text
+immutable PROPOSED Candidate + SourceGraph + approved Scope
+  + typed CandidateRecommendation + completed Provider result
+  → recompute all identities and provenance
+  → sealed admission plan
+  → completed advisory record requiring human selection
+```
+
+该链不调用模型或目标，不创建、选择或迁移 Candidate，也不进入 Validation。当前 Provider result 尚未绑定
+Recommendation 响应正文；专用生成结果边界完成前，这条链不能向 M8.1 提供可信模型 recommendation。
+
 ## 5. 重试与恢复
 
 - 模型或 Worker 失败最多 fallback 一次。
