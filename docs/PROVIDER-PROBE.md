@@ -1,6 +1,6 @@
 # M9.15：真实模型最小接入
 
-本入口只发送仓库固定的合成连通性消息（M9.15 Responses 或 M9.16 CUC PONG），不读取项目源码、Candidate、Evidence 或任意用户提示词。
+本入口只发送仓库固定的合成连通性消息（Responses、CUC PONG 或固定 JSON），不读取项目源码、Candidate、Evidence 或任意用户提示词。
 它不运行 Agent 工作流或工具，不连接研究目标。通过表示固定结构化响应、传输及清理检查通过，
 不表示模型的漏洞研究质量、目标验证能力或整个 pilot 已通过真实 Provider 验收。
 
@@ -152,3 +152,11 @@ vLLM 空扩展和 usage 字段使用明确白名单；未知字段仍拒绝。�
 排除 bool/NaN/Infinity；token 计数必须为整数并满足总量等式。诊断只保存闭集分类、计数、
 固定字段类型或未知 usage 键名 SHA-256，不记录正文、未知键名、字段值或凭据。
 设置 Key 和 PONG 通过均不授予研究工具、研究目标网络或领域状态变更权限。
+
+## 独立固定 JSON 验收
+
+在 `provider-cuc-probe-config` 增加 `--structured` 可选择独立固定 JSON 协议；
+prepare/run 和授权要求保持不变。固定测试仅要求返回 `{"status":"ok","count":3}`，
+不接受工具调用、额外字段或类型转换。2026-09-08 单次真实验收已通过，授权已撤销。
+详见 [CUC-DEEPSEEK-CONFIG.md](./CUC-DEEPSEEK-CONFIG.md) 与
+[PHASE3-ADMISSION.md](./PHASE3-ADMISSION.md)。

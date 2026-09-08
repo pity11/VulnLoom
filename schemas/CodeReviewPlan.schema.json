@@ -136,72 +136,6 @@
       "title": "AgentProviderCodecLimits",
       "type": "object"
     },
-    "AgentProviderCodecRegistration": {
-      "additionalProperties": false,
-      "properties": {
-        "codec_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Codec Id",
-          "type": "string"
-        },
-        "provider_id": {
-          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
-          "title": "Provider Id",
-          "type": "string"
-        },
-        "protocol": {
-          "$ref": "#/$defs/AgentProviderWireProtocol",
-          "default": "openai-responses-v1"
-        },
-        "request_path": {
-          "default": "/v1/responses",
-          "title": "Request Path",
-          "type": "string"
-        },
-        "decision_schema_digest": {
-          "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Decision Schema Digest",
-          "type": "string"
-        },
-        "implementation_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Implementation Digest",
-          "type": "string"
-        },
-        "limits": {
-          "$ref": "#/$defs/AgentProviderCodecLimits"
-        },
-        "streaming_allowed": {
-          "default": false,
-          "title": "Streaming Allowed",
-          "type": "boolean"
-        },
-        "storage_allowed": {
-          "default": false,
-          "title": "Storage Allowed",
-          "type": "boolean"
-        },
-        "tools_allowed": {
-          "default": false,
-          "title": "Tools Allowed",
-          "type": "boolean"
-        },
-        "arbitrary_parameters_allowed": {
-          "default": false,
-          "title": "Arbitrary Parameters Allowed",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "codec_id",
-        "provider_id",
-        "implementation_digest",
-        "limits"
-      ],
-      "title": "AgentProviderCodecRegistration",
-      "type": "object"
-    },
     "AgentProviderIpPolicy": {
       "enum": [
         "none",
@@ -381,14 +315,7 @@
       "title": "AgentProviderTransportMode",
       "type": "string"
     },
-    "AgentProviderWireProtocol": {
-      "enum": [
-        "openai-responses-v1"
-      ],
-      "title": "AgentProviderWireProtocol",
-      "type": "string"
-    },
-    "CucChatProbeCodecRegistration": {
+    "CodeReviewCodecRegistration": {
       "additionalProperties": false,
       "properties": {
         "codec_id": {
@@ -403,8 +330,8 @@
           "type": "string"
         },
         "protocol": {
-          "const": "cuc-chat-pong-probe-v1",
-          "default": "cuc-chat-pong-probe-v1",
+          "const": "cuc-code-review-v1",
+          "default": "cuc-code-review-v1",
           "title": "Protocol",
           "type": "string"
         },
@@ -439,7 +366,7 @@
           "type": "array"
         },
         "implementation_digest": {
-          "default": "7887368111e432b619bd83bba0647de22cff84ad9de1254b39fdfcb3c44238cc",
+          "default": "619f32c48ebd94fd7f2b5151d3e90236529a61ddb4717a4767210e539b9d9194",
           "pattern": "^[0-9a-f]{64}$",
           "title": "Implementation Digest",
           "type": "string"
@@ -451,73 +378,87 @@
       "required": [
         "codec_id"
       ],
-      "title": "CucChatProbeCodecRegistration",
+      "title": "CodeReviewCodecRegistration",
       "type": "object"
     },
-    "CucChatStructuredProbeCodecRegistration": {
+    "CodeReviewConfig": {
       "additionalProperties": false,
       "properties": {
-        "codec_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Codec Id",
-          "type": "string"
+        "registration": {
+          "$ref": "#/$defs/AgentModelRegistration"
         },
-        "provider_id": {
-          "const": "cuc",
-          "default": "cuc",
-          "title": "Provider Id",
-          "type": "string"
+        "admission": {
+          "$ref": "#/$defs/AgentProviderTransportAdmission"
         },
-        "protocol": {
-          "const": "cuc-chat-structured-probe-v1",
-          "default": "cuc-chat-structured-probe-v1",
-          "title": "Protocol",
-          "type": "string"
+        "credential_reference": {
+          "$ref": "#/$defs/ModelCredentialReference"
         },
-        "request_path": {
-          "const": "/v1/chat/completions",
-          "default": "/v1/chat/completions",
-          "title": "Request Path",
-          "type": "string"
-        },
-        "request_model": {
-          "const": "cuc/deepseek",
-          "default": "cuc/deepseek",
-          "title": "Request Model",
-          "type": "string"
-        },
-        "accepted_response_models": {
-          "default": [
-            "deepseek-v4-flash",
-            "deepseek-v4-flash-0731"
-          ],
-          "maxItems": 2,
-          "minItems": 2,
-          "prefixItems": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "title": "Accepted Response Models",
-          "type": "array"
-        },
-        "implementation_digest": {
-          "default": "70613f46628afb7b2f5446a24bcc2d0082d3e2b18b6832bf2736cbde1b34da20",
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Implementation Digest",
-          "type": "string"
-        },
-        "limits": {
-          "$ref": "#/$defs/AgentProviderCodecLimits"
+        "codec": {
+          "$ref": "#/$defs/CodeReviewCodecRegistration"
         }
       },
       "required": [
-        "codec_id"
+        "registration",
+        "admission",
+        "credential_reference",
+        "codec"
       ],
-      "title": "CucChatStructuredProbeCodecRegistration",
+      "title": "CodeReviewConfig",
+      "type": "object"
+    },
+    "CodeReviewSnippet": {
+      "additionalProperties": false,
+      "properties": {
+        "snippet_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snippet Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "path_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Path Digest",
+          "type": "string"
+        },
+        "file_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "File Digest",
+          "type": "string"
+        },
+        "redaction_policy": {
+          "const": "python-literals-comments-v1",
+          "default": "python-literals-comments-v1",
+          "title": "Redaction Policy",
+          "type": "string"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/ReviewLine"
+          },
+          "maxItems": 80,
+          "minItems": 1,
+          "title": "Lines",
+          "type": "array"
+        }
+      },
+      "required": [
+        "snippet_id",
+        "snapshot_id",
+        "target_id",
+        "path_digest",
+        "file_digest",
+        "lines"
+      ],
+      "title": "CodeReviewSnippet",
       "type": "object"
     },
     "ModelCredentialReference": {
@@ -541,6 +482,28 @@
       "title": "ModelCredentialReference",
       "type": "object"
     },
+    "ReviewLine": {
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Number",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 2048,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "text"
+      ],
+      "title": "ReviewLine",
+      "type": "object"
+    },
     "WorkerRole": {
       "enum": [
         "scope_interpreter",
@@ -557,36 +520,47 @@
   },
   "additionalProperties": false,
   "properties": {
-    "registration": {
-      "$ref": "#/$defs/AgentModelRegistration"
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
     },
-    "admission": {
-      "$ref": "#/$defs/AgentProviderTransportAdmission"
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
     },
-    "credential_reference": {
-      "$ref": "#/$defs/ModelCredentialReference"
+    "idempotency_key": {
+      "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+      "title": "Idempotency Key",
+      "type": "string"
     },
-    "codec": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/AgentProviderCodecRegistration"
-        },
-        {
-          "$ref": "#/$defs/CucChatStructuredProbeCodecRegistration"
-        },
-        {
-          "$ref": "#/$defs/CucChatProbeCodecRegistration"
-        }
-      ],
-      "title": "Codec"
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "config": {
+      "$ref": "#/$defs/CodeReviewConfig"
+    },
+    "snippet": {
+      "$ref": "#/$defs/CodeReviewSnippet"
+    },
+    "scope_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Digest",
+      "type": "string"
     }
   },
   "required": [
-    "registration",
-    "admission",
-    "credential_reference",
-    "codec"
+    "created_at",
+    "deadline",
+    "idempotency_key",
+    "plan_id",
+    "config",
+    "snippet",
+    "scope_digest"
   ],
-  "title": "ProviderProbeConfig",
+  "title": "CodeReviewPlan",
   "type": "object"
 }

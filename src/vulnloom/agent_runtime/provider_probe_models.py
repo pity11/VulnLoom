@@ -13,8 +13,17 @@ from vulnloom.runners.models import Digest
 from .models import AgentAdapterKind, AgentModelRegistration
 from .provider_codec import AgentProviderCodecRegistration
 from .provider_diagnostics import ProviderDiagnostic
-from .provider_probe_cuc import CucChatProbeCodecRegistration
-from .provider_probe_fixture import CUC_PROBE_DIGEST, PROBE_DIGEST, PROBE_SUMMARY, PROBE_TEXT
+from .provider_probe_cuc import (
+    CucChatProbeCodecRegistration,
+    CucChatStructuredProbeCodecRegistration,
+)
+from .provider_probe_fixture import (
+    CUC_PROBE_DIGEST,
+    CUC_STRUCTURED_PROBE_DIGEST,
+    PROBE_DIGEST,
+    PROBE_SUMMARY,
+    PROBE_TEXT,
+)
 from .provider_process import SUBPROCESS_HTTPS_ADAPTER_DIGEST
 from .transport import AgentProviderTransportAdmission, AgentProviderTransportMode
 
@@ -32,7 +41,11 @@ class ProviderProbeConfig(DomainModel):
     registration: AgentModelRegistration
     admission: AgentProviderTransportAdmission
     credential_reference: ModelCredentialReference
-    codec: AgentProviderCodecRegistration | CucChatProbeCodecRegistration
+    codec: (
+        AgentProviderCodecRegistration
+        | CucChatStructuredProbeCodecRegistration
+        | CucChatProbeCodecRegistration
+    )
 
     @model_validator(mode="after")
     def bounded_live_binding(self) -> Self:
@@ -71,7 +84,9 @@ class ProviderProbePlan(DomainModel):
     plan_id: Digest
     config_digest: Digest
     grant_id: Digest
-    fixture_digest: Literal[PROBE_DIGEST, CUC_PROBE_DIGEST] = PROBE_DIGEST
+    fixture_digest: Literal[
+        PROBE_DIGEST, CUC_PROBE_DIGEST, CUC_STRUCTURED_PROBE_DIGEST
+    ] = PROBE_DIGEST
     created_at: AwareDatetime
     deadline: AwareDatetime
     idempotency_key: str = Field(min_length=1, max_length=256)

@@ -20,7 +20,8 @@
       "default": "bf1ad7ba80591b943820add68571133cf51fdf73634b92964b14d8c9e6f336d5",
       "enum": [
         "bf1ad7ba80591b943820add68571133cf51fdf73634b92964b14d8c9e6f336d5",
-        "0127dcfd74631fc24ddd0216d6339679ca2780e71910c92e4a99ad85126e1a85"
+        "0127dcfd74631fc24ddd0216d6339679ca2780e71910c92e4a99ad85126e1a85",
+        "54d905981611501cb85c288895cf15791bc0fe4c44789dbcfe36c137f34c886b"
       ],
       "title": "Fixture Digest",
       "type": "string"

@@ -18,3 +18,10 @@ CUC_PROBE_DIGEST = canonical_digest(
     }
 )
 CUC_RESPONSE_MODELS = ("deepseek-v4-flash", "deepseek-v4-flash-0731")
+CUC_STRUCTURED_PROBE_TEXT = (
+    'This is a synthetic connectivity check. Return only the JSON object '
+    '{"status":"ok","count":3}. Do not include markdown or other fields.'
+)
+CUC_STRUCTURED_PROBE_DIGEST = canonical_digest(
+    {"probe": "cuc-chat-structured-probe-v1", "request": CUC_STRUCTURED_PROBE_TEXT}
+)

@@ -3,9 +3,9 @@
 import json
 import math
 from time import monotonic
-from typing import Literal, Self
+from typing import ClassVar, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationError, model_validator
 
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel
@@ -21,7 +21,12 @@ from .provider_codec import (
     _strict_json,
 )
 from .provider_diagnostics import MetricIssue, observe_usage_keys
-from .provider_probe_fixture import CUC_PROBE_TEXT, CUC_RESPONSE_MODELS, PROBE_SUMMARY
+from .provider_probe_fixture import (
+    CUC_PROBE_TEXT,
+    CUC_RESPONSE_MODELS,
+    CUC_STRUCTURED_PROBE_TEXT,
+    PROBE_SUMMARY,
+)
 
 # Reviewed vLLM extension subset; values are unused and must be null or typed empty.
 ROOT_EMPTY_FIELDS = {
@@ -182,6 +187,7 @@ CUC_PROBE_CODEC_DIGEST = canonical_digest(
 
 
 class CucChatProbeCodecRegistration(DomainModel):
+    expected_implementation_digest: ClassVar[str] = CUC_PROBE_CODEC_DIGEST
     codec_id: Digest
     provider_id: Literal["cuc"] = "cuc"
     protocol: Literal["cuc-chat-pong-probe-v1"] = "cuc-chat-pong-probe-v1"
@@ -200,7 +206,7 @@ class CucChatProbeCodecRegistration(DomainModel):
     def sealed(self) -> Self:
         if (
             self.accepted_response_models != CUC_RESPONSE_MODELS
-            or self.implementation_digest != CUC_PROBE_CODEC_DIGEST
+            or self.implementation_digest != self.expected_implementation_digest
             or self.limits.max_structured_output_bytes > 32768
             or self.limits.timeout_seconds > 2
             or self.codec_id
@@ -217,8 +223,11 @@ class CucChatProbeCodecRegistration(DomainModel):
 
 
 class CucChatProbeCodec:
+    registration_type = CucChatProbeCodecRegistration
+    request_text = CUC_PROBE_TEXT
+
     def __init__(self, registration: CucChatProbeCodecRegistration, *, clock=monotonic):
-        self.registration = CucChatProbeCodecRegistration.model_validate(
+        self.registration = self.registration_type.model_validate(
             registration.model_dump(mode="python")
         )
         self.clock = clock
@@ -258,13 +267,13 @@ class CucChatProbeCodec:
             or envelope.authorized_call_set_id is not None
             or envelope.authorized_call_commitments
             or len(fragments) != 1
-            or fragments[0]["text"] != CUC_PROBE_TEXT
+            or fragments[0]["text"] != self.request_text
             or envelope.max_output_tokens > model_registration.max_output_tokens
         ):
             raise AgentProviderCodecRejected("CUC codec only accepts the fixed tool-free probe")
         payload = {
             "model": "cuc/deepseek",
-            "messages": [{"role": "user", "content": CUC_PROBE_TEXT}],
+            "messages": [{"role": "user", "content": self.request_text}],
             "stream": False,
             "max_tokens": envelope.max_output_tokens,
         }
@@ -368,7 +377,7 @@ class CucChatProbeCodec:
             or isinstance(message["reasoning_content"], str),
             "response_message_reasoning_type",
         )
-        self.content_classification = classify_pong_content(message["content"])
+        self.content_classification = self._classify_content(message["content"])
         require(
             self.content_classification
             in {
@@ -396,6 +405,51 @@ class CucChatProbeCodec:
                 "supporting_ref_digests": [],
             },
         )
+
+    def _classify_content(self, content):
+        return classify_pong_content(content)
+
+
+class CucStructuredProbeResponse(DomainModel):
+    """Synthetic schema acceptance only; never an Agent decision or tool instruction."""
+
+    status: Literal["ok"]
+    count: int = Field(strict=True, ge=3, le=3)
+
+
+CUC_STRUCTURED_CODEC_DIGEST = canonical_digest(
+    {
+        "contract": "vulnloom.cuc-chat-structured-probe",
+        "version": 1,
+        "wire_contract": CUC_PROBE_CODEC_DIGEST,
+        "request_text": CUC_STRUCTURED_PROBE_TEXT,
+        "response_schema": CucStructuredProbeResponse.model_json_schema(),
+        "duplicate_keys": "reject",
+        "tools": False,
+    }
+)
+
+
+class CucChatStructuredProbeCodecRegistration(CucChatProbeCodecRegistration):
+    expected_implementation_digest: ClassVar[str] = CUC_STRUCTURED_CODEC_DIGEST
+    protocol: Literal["cuc-chat-structured-probe-v1"] = "cuc-chat-structured-probe-v1"
+    implementation_digest: Digest = CUC_STRUCTURED_CODEC_DIGEST
+
+
+class CucChatStructuredProbeCodec(CucChatProbeCodec):
+    """Fixed JSON compatibility test, without arbitrary prompts or tool dispatch."""
+
+    registration_type = CucChatStructuredProbeCodecRegistration
+    request_text = CUC_STRUCTURED_PROBE_TEXT
+
+    def _classify_content(self, content):
+        if not isinstance(content, str):
+            return "response_content_type"
+        try:
+            CucStructuredProbeResponse.model_validate(_strict_json(content, "structured probe"))
+        except (AgentProviderCodecRejected, ValidationError):
+            return "response_content_other"
+        return "response_content_exact"
 
 
 def _observe_shape(payload):

@@ -19,8 +19,18 @@ from .messages import AgentMessageRenderer
 from .models import AgentDecisionPayload, AgentRunLimits, AgentRunPlan, AgentStepRequest
 from .provider_admission import AgentProviderEgressPurpose, AgentProviderEgressStore
 from .provider_codec import OpenAIResponsesV1Codec
-from .provider_probe_cuc import CucChatProbeCodec, CucChatProbeCodecRegistration
-from .provider_probe_fixture import CUC_PROBE_DIGEST, CUC_PROBE_TEXT
+from .provider_probe_cuc import (
+    CucChatProbeCodec,
+    CucChatProbeCodecRegistration,
+    CucChatStructuredProbeCodec,
+    CucChatStructuredProbeCodecRegistration,
+)
+from .provider_probe_fixture import (
+    CUC_PROBE_DIGEST,
+    CUC_PROBE_TEXT,
+    CUC_STRUCTURED_PROBE_DIGEST,
+    CUC_STRUCTURED_PROBE_TEXT,
+)
 from .provider_probe_models import (
     PROBE_DIGEST,
     PROBE_SUMMARY,
@@ -71,7 +81,9 @@ class ProviderProbeService:
             raise ValueError("provider probe requires active inference authority and time budget")
         return ProviderProbePlan.create(
             config_digest=_digest(config),
-            fixture_digest=CUC_PROBE_DIGEST
+            fixture_digest=CUC_STRUCTURED_PROBE_DIGEST
+            if isinstance(config.codec, CucChatStructuredProbeCodecRegistration)
+            else CUC_PROBE_DIGEST
             if isinstance(config.codec, CucChatProbeCodecRegistration)
             else PROBE_DIGEST,
             grant_id=grant.grant_id,
@@ -105,7 +117,9 @@ class ProviderProbeService:
             ).total_seconds() <= self.config.admission.limits.timeout_seconds:
                 raise AgentProviderTransportTimedOut("provider probe time budget exhausted")
             codec = (
-                CucChatProbeCodec(self.config.codec)
+                CucChatStructuredProbeCodec(self.config.codec)
+                if isinstance(self.config.codec, CucChatStructuredProbeCodecRegistration)
+                else CucChatProbeCodec(self.config.codec)
                 if isinstance(self.config.codec, CucChatProbeCodecRegistration)
                 else OpenAIResponsesV1Codec(self.config.codec)
             )
@@ -145,7 +159,10 @@ class ProviderProbeService:
             status = "timed_out"
         attempts = adapter.attempts if adapter else []
         receipts = adapter.receipts if adapter else []
-        cleanup = not uncertain_failure and all(
+        # A request without its final attempt has no trustworthy cleanup proof.
+        # In particular, an invalid cleanup record must not pass via all([]).
+        attempts_complete = adapter is None or len(attempts) == len(adapter.transport_requests)
+        cleanup = not uncertain_failure and attempts_complete and all(
             a.credential_released
             and a.request_body_released
             and a.raw_response_discarded
@@ -175,7 +192,11 @@ class ProviderProbeService:
         # Synthetic identities are derived from the probe only; no Target or Scope is loaded.
         identity = uuid5(NAMESPACE_URL, "vulnloom-provider-probe:" + plan.plan_id)
         fixture_digest = plan.fixture_digest
-        fixture_text = CUC_PROBE_TEXT if fixture_digest == CUC_PROBE_DIGEST else PROBE_TEXT
+        fixture_text = {
+            CUC_PROBE_DIGEST: CUC_PROBE_TEXT,
+            CUC_STRUCTURED_PROBE_DIGEST: CUC_STRUCTURED_PROBE_TEXT,
+            PROBE_DIGEST: PROBE_TEXT,
+        }[fixture_digest]
         ref = "observation:" + fixture_digest
         task = TaskEnvelope(
             task_id=identity,
@@ -250,7 +271,7 @@ def cuc_probe_admission():
     )
 
 
-def create_cuc_probe_config(*, grant_id: str) -> ProviderProbeConfig:
+def create_cuc_probe_config(*, grant_id: str, structured: bool = False) -> ProviderProbeConfig:
     """Bind a supplied grant; never issue it, read a key, or enable a shim."""
     from vulnloom.adapters.model_credentials import ModelCredentialReference
 
@@ -259,7 +280,11 @@ def create_cuc_probe_config(*, grant_id: str) -> ProviderProbeConfig:
 
     reference = ModelCredentialReference.create(environment_variable="CUC_DEEPSEEK_API_KEY")
     admission = cuc_probe_admission()
-    codec = CucChatProbeCodecRegistration.create()
+    codec = (
+        CucChatStructuredProbeCodecRegistration.create()
+        if structured
+        else CucChatProbeCodecRegistration.create()
+    )
     registration = AgentModelRegistration.create_subprocess_https(
         provider_id="cuc",
         model="cuc/deepseek",

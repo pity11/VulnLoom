@@ -79,6 +79,40 @@ workflow. See [PHASE3-ADMISSION.md](./PHASE3-ADMISSION.md) for the evidence reco
 
 ## VulnLoom's built-in probe boundary
 
+### Separate fixed JSON compatibility probe
+
+`provider-cuc-probe-config --structured` selects the independent
+`cuc-chat-structured-probe-v1` contract. It uses the same required `--egress-store`
+and `--grant-id` arguments and does not issue a grant, read a credential, or call
+the provider. Its output is consumed by the existing `provider-probe-prepare`
+and explicitly opted-in `provider-probe-run` commands documented in
+[PROVIDER-PROBE.md](./PROVIDER-PROBE.md).
+
+The only request is a code-owned synthetic prompt asking for
+`{"status":"ok","count":3}`. The response must be a JSON object with exactly
+these fields and values; key order and JSON whitespace may vary. Markdown,
+duplicate keys, extra fields, numeric coercion, tool instructions and nonempty
+wire-level tool calls are rejected. The response schema, prompt and wire contract
+are bound into a separate codec digest and fixture identity. A PONG plan or
+result cannot be reused as structured acceptance.
+
+Both modes retain the existing single-request ledger, explicit inference grant,
+bounded HTTPS process transport, redacted diagnostics and cleanup checks.
+Completed replay does not call the provider again; interrupted execution requires
+explicit recovery. Results persist only acceptance metadata, not model content.
+
+**Status:** live acceptance passed on 2026-09-08 in one user-authorized request
+(`cuc-structured-live-001`): HTTP 200, TLSv1.3, response model
+`deepseek-v4-flash-0731`, validated input/output usage 34/10 tokens, non-null
+receipt and verified cleanup. The single-use grant was revoked and no retry was
+made. Sealed configuration, plan, result and the one completed ledger entry were
+rechecked offline. See [PHASE3-ADMISSION.md](./PHASE3-ADMISSION.md).
+This is a fixed schema compatibility probe, not a general Chat adapter,
+arbitrary-prompt interface, or research workflow integration. The earlier live
+PONG acceptance remains unchanged.
+
+### PONG boundary
+
 VulnLoom already contains a fixed, tool-free CUC PONG codec at
 `src/vulnloom/agent_runtime/provider_probe_cuc.py`. It pins the hostname,
 endpoint, requested model, accepted response identities, request size, response

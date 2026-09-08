@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "CodeReviewComment": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "explanation",
+            "review_suggestion"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "lines": {
+          "items": {
+            "maximum": 65536,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Lines",
+          "type": "array"
+        }
+      },
+      "required": [
+        "category",
+        "text",
+        "lines"
+      ],
+      "title": "CodeReviewComment",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "source_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Digest",
+      "type": "string"
+    },
+    "comments": {
+      "items": {
+        "$ref": "#/$defs/CodeReviewComment"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Comments",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_digest",
+    "comments"
+  ],
+  "title": "CodeReviewResponse",
+  "type": "object"
+}

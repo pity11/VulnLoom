@@ -1,0 +1,89 @@
+{
+  "$defs": {
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Codec Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "cuc",
+      "default": "cuc",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "protocol": {
+      "const": "cuc-code-review-v1",
+      "default": "cuc-code-review-v1",
+      "title": "Protocol",
+      "type": "string"
+    },
+    "request_path": {
+      "const": "/v1/chat/completions",
+      "default": "/v1/chat/completions",
+      "title": "Request Path",
+      "type": "string"
+    },
+    "request_model": {
+      "const": "cuc/deepseek",
+      "default": "cuc/deepseek",
+      "title": "Request Model",
+      "type": "string"
+    },
+    "accepted_response_models": {
+      "default": [
+        "deepseek-v4-flash",
+        "deepseek-v4-flash-0731"
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Accepted Response Models",
+      "type": "array"
+    },
+    "implementation_digest": {
+      "default": "619f32c48ebd94fd7f2b5151d3e90236529a61ddb4717a4767210e539b9d9194",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentProviderCodecLimits"
+    }
+  },
+  "required": [
+    "codec_id"
+  ],
+  "title": "CodeReviewCodecRegistration",
+  "type": "object"
+}

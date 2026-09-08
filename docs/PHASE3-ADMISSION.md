@@ -957,3 +957,35 @@ floats, boolean/string/dict/null and oversized integers reject. Schema determini
 historical sealed results are verified. The fixed PONG Admission gate is now passed; this does not
 constitute general Chat codec acceptance, research provider registration or remote CI acceptance
 for the uncommitted patch. General no-tool structured CUC compatibility remains a separate task.
+
+#### Fixed JSON compatibility acceptance passed (2026-09-08)
+
+The user explicitly requested live structured acceptance after offline implementation.
+`cuc-structured-live-001` sent one code-owned synthetic JSON request using
+`cuc-chat-structured-probe-v1`, with zero tools, no source or research context,
+256 output tokens maximum and the existing bounded pinned HTTPS subprocess.
+The existing `operator-cuc-smoke` policy issued a 120-second MODEL_INFERENCE
+grant. Execution reused `.vulnloom/m916-cuc-live-010/egress` and its sibling
+`probe.db`; it did not replace the authority or execution ledger to retry.
+
+- `status=passed`, `response_model=deepseek-v4-flash-0731`
+- HTTP 200, TLSv1.3, response 799 bytes
+- Validated input tokens 34, output tokens 10
+- `content_classification=response_content_exact`: the fixed JSON schema passed
+- `process_started=true`, `cleanup_verified=true`
+- Result ID: `2076564db4fa12489986392051c610af0a56e5f2aad7054925cafe1f220ade8e`
+- Receipt digest: `b12bec49674321708a4a453f4ac6bcacbe500546a07a4236224399a3a6ef4b54`
+- Completion: `2026-09-08T01:49:38.220543Z`
+
+The grant was revoked in the execution cleanup path. Subsequent offline checks
+validated the sealed config/plan/result binding, exactly one completed ledger
+entry for the grant, equality of persisted and exported results, and revoked
+authorization status. No retry or additional provider request was made.
+Secret-free records are under `.vulnloom/cuc-structured-live-001/`; raw response
+text, reasoning and credentials were not printed or archived.
+
+Before calling the provider, 307 probe regression tests passed and a local
+credential/config preflight completed without network access. The prior full
+offline run had 1122 passed, 23 integration tests deselected, coverage 86.45%.
+This acceptance proves the fixed JSON probe only, not a general Chat interface,
+model-driven research, target validation, or an autonomous tool workflow.

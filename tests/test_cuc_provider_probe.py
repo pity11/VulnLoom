@@ -22,8 +22,15 @@ from vulnloom.agent_runtime.provider_probe import (
 )
 from vulnloom.agent_runtime.provider_probe_cuc import (
     CucChatProbeCodec,
+    CucChatStructuredProbeCodec,
 )
-from vulnloom.agent_runtime.provider_probe_fixture import CUC_RESPONSE_MODELS, PROBE_DIGEST
+from vulnloom.agent_runtime.provider_probe_fixture import (
+    CUC_PROBE_TEXT,
+    CUC_RESPONSE_MODELS,
+    CUC_STRUCTURED_PROBE_DIGEST,
+    CUC_STRUCTURED_PROBE_TEXT,
+    PROBE_DIGEST,
+)
 from vulnloom.agent_runtime.provider_probe_models import (
     ProviderProbeConfig,
     ProviderProbePlan,
@@ -41,9 +48,127 @@ class Resolver:
         return ("8.8.8.8",)
 
 
+@pytest.mark.parametrize("content", [
+    '{"status":"ok","count":3}',
+    ' \n {"count":3, "status":"ok"}\n',
+])
+def test_structured_probe_success_and_cleanup(tmp_path, now, content):
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        assert plan.fixture_digest == CUC_STRUCTURED_PROBE_DIGEST
+        runner.payload["choices"][0]["message"]["content"] = content
+        result = service.execute(plan)
+        assert result.status == "passed" and result.receipt_digest and result.cleanup_verified
+        assert service.execute(plan) == result and runner.calls == 1
+        assert not any(runner.request) and not any(runner.response) and not any(runner.credential)
+        assert b"synthetic-cuc-key" not in (tmp_path / "probe.db").read_bytes()
+        assert content.encode() not in (tmp_path / "probe.db").read_bytes()
+
+
+@pytest.mark.parametrize("content", [
+    'PONG', '```json\n{"status":"ok","count":3}\n```',
+    '{"status":"ok","count":"3"}', '{"status":"ok","count":true}',
+    '{"status":"ok","count":3.0}', '{"status":"ok","count":NaN}',
+    '{"status":"ok","count":4}', '{"status":"ok"}',
+    '{"status":"ok","count":3,"tool_call":{"tool":"shell"}}',
+    '{"status":"ok","count":4,"count":3}', '[]', 'null', None,
+])
+def test_structured_probe_rejects_malformed_or_actionable_content(tmp_path, now, content):
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        runner.payload["choices"][0]["message"]["content"] = content
+        result = service.execute(plan)
+        assert result.status == "rejected" and result.cleanup_verified
+        assert not result.receipt_digest
+        assert service.execute(plan) == result and runner.calls == 1
+        assert not any(runner.response) and not any(runner.credential)
+
+
+def test_structured_probe_cannot_use_pong_plan_or_codec(tmp_path, now):
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        from vulnloom.agent_runtime.provider_probe_fixture import CUC_PROBE_DIGEST
+
+        values = plan.model_dump(mode="python", exclude={"plan_id"})
+        values["fixture_digest"] = CUC_PROBE_DIGEST
+        with pytest.raises(ValueError):
+            service.execute(ProviderProbePlan.create(**values))
+        with pytest.raises(ValueError):
+            CucChatProbeCodec(service.config.codec)
+        assert runner.calls == 0
+
+
+def test_structured_probe_codec_timeout(tmp_path, now):
+    from vulnloom.agent_runtime.provider_codec import AgentProviderCodecTimedOut
+
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        _, envelope = service._message(plan)
+        for operation in ("encode", "decode"):
+            ticks = iter((0, 3))
+            codec = CucChatStructuredProbeCodec(
+                service.config.codec, clock=lambda ticks=ticks: next(ticks)
+            )
+            with pytest.raises(AgentProviderCodecTimedOut):
+                if operation == "encode":
+                    codec.encode(model_registration=service.config.registration, envelope=envelope)
+                else:
+                    codec.decode(
+                        bytearray(json.dumps(runner.payload).encode()),
+                        model_registration=service.config.registration,
+                        latency_seconds=0.1,
+                    )
+        assert runner.calls == 0
+
+
+def test_structured_probe_transport_timeout_does_not_retry(tmp_path, now):
+    from vulnloom.agent_runtime.provider_process import ProviderProcessExecutionError
+
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        captured = {}
+
+        def timeout(**values):
+            runner.calls += 1
+            captured.update(values)
+            raise ProviderProcessExecutionError("probe_timeout", timed_out=True)
+
+        runner.exchange = timeout
+        result = service.execute(plan)
+        assert result.status == "timed_out" and result.cleanup_verified
+        assert not any(captured["credential"]) and not any(captured["request_body"])
+        assert service.execute(plan) == result and runner.calls == 1
+
+
+@pytest.mark.parametrize("structured", [False, True])
+def test_probe_unverified_cleanup_cannot_pass(tmp_path, now, structured):
+    from dataclasses import replace
+
+    with _case(tmp_path, now, structured=structured) as (service, plan, runner):
+        original = runner.exchange
+
+        def unclean(**values):
+            return replace(original(**values), process_terminated=False)
+
+        runner.exchange = unclean
+        result = service.execute(plan)
+        assert result.status == "rejected" and not result.cleanup_verified
+        assert not any(runner.credential) and not any(runner.response)
+        assert service.execute(plan) == result and runner.calls == 1
+
+
+def test_structured_probe_cli_config_selects_separate_contract(tmp_path, now, monkeypatch, capsys):
+    from vulnloom import cli
+
+    with _case(tmp_path, now, structured=True) as (service, plan, runner):
+        monkeypatch.setattr(cli, "utc_now", lambda: now)
+        assert cli.main([
+            "provider-cuc-probe-config", "--structured", "--egress-store", str(tmp_path / "egress"),
+            "--grant-id", plan.grant_id,
+        ]) == 0
+        assert ProviderProbeConfig.model_validate_json(capsys.readouterr().out) == service.config
+        assert runner.calls == 0
+
+
 class Runner:
-    def __init__(self):
+    def __init__(self, *, structured=False):
         self.calls = 0
+        self.request_text = CUC_STRUCTURED_PROBE_TEXT if structured else CUC_PROBE_TEXT
         self.payload = {
             "id": "test-cuc-response",
             "object": "chat.completion",
@@ -63,6 +188,8 @@ class Runner:
             "usage": {"prompt_tokens": 8, "completion_tokens": 2, "total_tokens": 10},
         }
         self.raw_override = None
+        if structured:
+            self.payload["choices"][0]["message"]["content"] = '{"status":"ok","count":3}'
 
     def exchange(self, **values):
         self.calls += 1
@@ -70,7 +197,7 @@ class Runner:
         assert values["request_path"] == "/v1/chat/completions"
         assert json.loads(values["request_body"]) == {
             "model": "cuc/deepseek",
-            "messages": [{"role": "user", "content": "Reply with exactly PONG."}],
+            "messages": [{"role": "user", "content": self.request_text}],
             "stream": False,
             "max_tokens": 256,
         }
@@ -87,7 +214,7 @@ class Runner:
 
 
 @contextmanager
-def _case(tmp_path, now):
+def _case(tmp_path, now, *, structured=False):
     admission = cuc_probe_admission()
     policy = AgentProviderEgressIssuerPolicy.create(
         issuer_id="test-operator",
@@ -108,8 +235,8 @@ def _case(tmp_path, now):
             deadline=now + timedelta(seconds=5),
             idempotency_key="test-grant",
         )
-        config = create_cuc_probe_config(grant_id=grant.grant_id)
-        runner = Runner()
+        config = create_cuc_probe_config(grant_id=grant.grant_id, structured=structured)
+        runner = Runner(structured=structured)
         service = ProviderProbeService(
             config=config,
             egress_store=egress,
@@ -169,8 +296,9 @@ def test_cuc_probe_strict_alias_success_cleanup_replay(tmp_path, now, model):
         "wrong-fixture",
     ],
 )
-def test_cuc_probe_rejects_untrusted_results(tmp_path, now, change):
-    with _case(tmp_path, now) as (service, plan, runner):
+@pytest.mark.parametrize("structured", [False, True])
+def test_cuc_probe_rejects_untrusted_results(tmp_path, now, change, structured):
+    with _case(tmp_path, now, structured=structured) as (service, plan, runner):
         choice = runner.payload["choices"][0]
         if change in {"logical-name", "prefix", "unknown-model", "model-case"}:
             runner.payload["model"] = {
@@ -315,11 +443,12 @@ def test_cuc_cli_config_is_read_only_and_requires_issued_grant(tmp_path, now, mo
         assert runner.calls == 0
 
 
-def test_cuc_probe_cli_run_and_replay(tmp_path, now, monkeypatch, capsys):
+@pytest.mark.parametrize("structured", [False, True])
+def test_cuc_probe_cli_run_and_replay(tmp_path, now, monkeypatch, capsys, structured):
     from vulnloom import cli
     from vulnloom.agent_runtime import provider_probe
 
-    with _case(tmp_path, now) as (service, plan, runner):
+    with _case(tmp_path, now, structured=structured) as (service, plan, runner):
         config_path, plan_path = tmp_path / "config.json", tmp_path / "plan.json"
         config_path.write_text(service.config.model_dump_json())
         plan_path.write_text(plan.model_dump_json())
@@ -352,10 +481,11 @@ def test_cuc_probe_cli_run_and_replay(tmp_path, now, monkeypatch, capsys):
         assert runner.calls == 1
 
 
-def test_cuc_probe_interrupted_completion_no_retry(tmp_path, now, monkeypatch):
+@pytest.mark.parametrize("structured", [False, True])
+def test_cuc_probe_interrupted_completion_no_retry(tmp_path, now, monkeypatch, structured):
     from vulnloom.agent_runtime.provider_probe_store import ProviderProbeRecoveryRequired
 
-    with _case(tmp_path, now) as (service, plan, runner):
+    with _case(tmp_path, now, structured=structured) as (service, plan, runner):
 
         def fail(_):
             raise OSError("synthetic ledger failure")
@@ -370,10 +500,11 @@ def test_cuc_probe_interrupted_completion_no_retry(tmp_path, now, monkeypatch):
         assert not tuple(tmp_path.rglob("*.tmp"))
 
 
-def test_cuc_completed_result_requires_served_model(tmp_path, now):
+@pytest.mark.parametrize("structured", [False, True])
+def test_cuc_completed_result_requires_served_model(tmp_path, now, structured):
     from vulnloom.agent_runtime.provider_probe_store import ProviderProbeRecoveryRequired
 
-    with _case(tmp_path, now) as (service, plan, runner):
+    with _case(tmp_path, now, structured=structured) as (service, plan, runner):
         result = service.execute(plan)
         values = result.model_dump(mode="python", exclude={"result_id"})
         values["response_model"] = None

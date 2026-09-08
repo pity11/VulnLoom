@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "ReviewLine": {
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Number",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 2048,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "text"
+      ],
+      "title": "ReviewLine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snippet_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snippet Id",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "path_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Path Digest",
+      "type": "string"
+    },
+    "file_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "File Digest",
+      "type": "string"
+    },
+    "redaction_policy": {
+      "const": "python-literals-comments-v1",
+      "default": "python-literals-comments-v1",
+      "title": "Redaction Policy",
+      "type": "string"
+    },
+    "lines": {
+      "items": {
+        "$ref": "#/$defs/ReviewLine"
+      },
+      "maxItems": 80,
+      "minItems": 1,
+      "title": "Lines",
+      "type": "array"
+    }
+  },
+  "required": [
+    "snippet_id",
+    "snapshot_id",
+    "target_id",
+    "path_digest",
+    "file_digest",
+    "lines"
+  ],
+  "title": "CodeReviewSnippet",
+  "type": "object"
+}

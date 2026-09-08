@@ -1,0 +1,23 @@
+{
+  "additionalProperties": false,
+  "description": "Synthetic schema acceptance only; never an Agent decision or tool instruction.",
+  "properties": {
+    "status": {
+      "const": "ok",
+      "title": "Status",
+      "type": "string"
+    },
+    "count": {
+      "maximum": 3,
+      "minimum": 3,
+      "title": "Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "status",
+    "count"
+  ],
+  "title": "CucStructuredProbeResponse",
+  "type": "object"
+}

@@ -1004,6 +1004,34 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 本地 1080 passed、23 skipped、覆盖率 86.41%。这项结论仅适用于固定、无工具 PONG 探针；
 通用 CucChatCodec 和独立结构化调用验收仍未实现，不代表研究任务的 provider 准入。
 
+### 后续：独立固定 JSON 兼容探针（固定 JSON 真实验收已通过）
+
+- 新增独立 `cuc-chat-structured-probe-v1` 协议、固定合成输入和严格 JSON 响应模型。
+- `provider-cuc-probe-config --structured` 选择该协议，复用已有 prepare/run、单次授权、
+  幂等 ledger、超时与清理机制；不自动签发授权或进行重试。
+- 不接受任意提示词、源码、研究目标或工具调用。测试覆盖成功、拒绝、超时、清理失败、
+  中断恢复要求、CLI 重放以及旧 PONG 协议兼容。
+- 修复请求已建立但最终 attempt 记录缺失时，空记录集合错误证明清理完成的问题；
+  PONG 和结构化探针均有拒绝路径回归。
+- 本地验证：1122 passed、23 项集成测试排除，覆盖率 86.45%；
+  `ruff check src tests scripts` 和 Schema 重复导出一致性检查通过。
+- 2026-09-08 按用户明确授权执行一次 `cuc-structured-live-001`：status=passed，
+  HTTP 200 / TLSv1.3，模型 `deepseek-v4-flash-0731`，输入/输出 34/10 tokens，
+  receipt 非空且清理通过。复用既有权威账本，结束后撤销授权，无重试；持久化结果已离线核验。
+- 通用 CUC Chat 适配与研究任务端到端接入仍未完成；此探针不能作为这些能力的验收证明。
+
+### 独立只读代码审阅助手（离线实现，真实代码审阅验收待办）
+
+- 人工选择已授权快照的 Python 文件与行号；只读解析、掩蔽全部字面量与注释，保留原始行号。
+- 新增 preview / prepare / approval-request / run 操作入口；计划摘要绑定输入、Scope 和 Provider。
+  真实调用同时要求有效 inference grant、精确人工审批与显式联网选项。
+- 新增独立 `cuc-code-review-v1` 协议，只输出需要人工核查的解释和建议；检查内容结构、输入摘要、
+  行号范围、用量与清理证明，无工具调用或 Candidate/Finding 状态变更接口。
+- 单次调用使用事务性账本，完成重放只读，中断必须人工核查；不自动重试或自动授权。
+- 本功能尚未进行真实项目代码的 Provider 调用。详见 `docs/CODE-REVIEW-ASSIST.md`。
+- 本地验证：43 项新增审阅测试；全量 1165 passed、23 项集成测试排除，覆盖率 86.49%；
+  lint 与 Schema 重复导出一致性检查通过。
+
 ## 延后事项
 
 - 公网资产自主发现。

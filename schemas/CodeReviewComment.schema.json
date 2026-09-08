@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "enum": [
+        "explanation",
+        "review_suggestion"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "text": {
+      "maxLength": 400,
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "lines": {
+      "items": {
+        "maximum": 65536,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Lines",
+      "type": "array"
+    }
+  },
+  "required": [
+    "category",
+    "text",
+    "lines"
+  ],
+  "title": "CodeReviewComment",
+  "type": "object"
+}

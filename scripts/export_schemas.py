@@ -59,7 +59,11 @@ from vulnloom.agent_runtime import (
     AgentToolIntent,
     AgentToolObservation,
 )
-from vulnloom.agent_runtime.provider_probe_cuc import CucChatProbeCodecRegistration
+from vulnloom.agent_runtime.provider_probe_cuc import (
+    CucChatProbeCodecRegistration,
+    CucChatStructuredProbeCodecRegistration,
+    CucStructuredProbeResponse,
+)
 from vulnloom.agent_runtime.provider_probe_models import (
     ProviderProbeConfig,
     ProviderProbePlan,
@@ -247,6 +251,17 @@ from vulnloom.reporting import (
     ReportReviewPlan,
     ReportReviewRecord,
 )
+from vulnloom.review_assist.models import (
+    CodeReviewComment,
+    CodeReviewOutcome,
+    CodeReviewResponse,
+    CodeReviewSnippet,
+)
+from vulnloom.review_assist.provider import (
+    CodeReviewCodecRegistration,
+    CodeReviewConfig,
+    CodeReviewPlan,
+)
 from vulnloom.runners import (
     RunnerCheckpoint,
     SandboxOutput,
@@ -297,6 +312,15 @@ MODELS = (
     AgentModelRegistration,
     AgentRunLimits,
     CucChatProbeCodecRegistration,
+    CucChatStructuredProbeCodecRegistration,
+    CucStructuredProbeResponse,
+    CodeReviewComment,
+    CodeReviewOutcome,
+    CodeReviewResponse,
+    CodeReviewSnippet,
+    CodeReviewCodecRegistration,
+    CodeReviewConfig,
+    CodeReviewPlan,
     ProviderProbeConfig,
     ProviderProbePlan,
     ProviderProbeResult,

@@ -1156,7 +1156,9 @@ def provider_probe_local(args: argparse.Namespace) -> int:
 
     try:
         if getattr(args, "probe_config", False):
-            config = create_cuc_probe_config(grant_id=args.grant_id)
+            config = create_cuc_probe_config(
+                grant_id=args.grant_id, structured=getattr(args, "structured", False)
+            )
             with AgentProviderEgressStore(Path(args.egress_store)) as egress:
                 grant = egress.require_active(
                     args.grant_id, admission=config.admission, now=utc_now()
@@ -1949,6 +1951,9 @@ def build_parser() -> argparse.ArgumentParser:
     cuc_config = sub.add_parser("provider-cuc-probe-config")
     cuc_config.add_argument("--egress-store", required=True)
     cuc_config.add_argument("--grant-id", required=True)
+    cuc_config.add_argument(
+        "--structured", action="store_true", help="Use the fixed, tool-free JSON probe"
+    )
     cuc_config.set_defaults(handler=provider_probe_local, probe_config=True)
     for command, run in (("provider-probe-prepare", False), ("provider-probe-run", True)):
         probe = sub.add_parser(command)
@@ -1962,6 +1967,9 @@ def build_parser() -> argparse.ArgumentParser:
             probe.add_argument("--idempotency-key", required=True)
             probe.add_argument("--ttl-seconds", type=int, default=120)
         probe.set_defaults(handler=provider_probe_local, probe_run=run)
+    from vulnloom.review_assist.cli import register_review_commands
+
+    register_review_commands(sub)
     return parser
 
 

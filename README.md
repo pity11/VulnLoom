@@ -34,6 +34,7 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 - [docs/EXTERNAL-BENCHMARKS.md](./docs/EXTERNAL-BENCHMARKS.md): supported upstream layouts and local-snapshot safety boundary.
 - [docs/REFERENCE-PROJECTS.md](./docs/REFERENCE-PROJECTS.md): reference projects, adopted ideas, and rejected assumptions.
 - [docs/CUC-DEEPSEEK-CONFIG.md](./docs/CUC-DEEPSEEK-CONFIG.md): local, secret-free setup and connectivity checks for the CUC DeepSeek gateway.
+- [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
 
 ## Project layout
 
@@ -63,8 +64,9 @@ VulnLoom/
 └── tests/                  # Offline tests and opt-in integration probes
 ```
 
-An HTTP API, live model-provider adapter, and disclosure submission adapters are planned components;
-they are not present in the current tree. M7.1a-M8.12 include deterministic replay, fixed provider
+An HTTP API and disclosure submission adapters remain planned components. A bounded live HTTPS
+provider adapter exists; CUC live acceptance covers the fixed PONG and fixed JSON probes.
+General research-provider integration remains incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
