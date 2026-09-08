@@ -107,7 +107,7 @@ class CandidateRecommendationGenerationOutcome(DomainModel):
     transport: ProviderProbeResult
     response: CandidateRecommendationResponse | None = None
     recommendation: CandidateRecommendation | None = None
-    producer_content_binding_verified: Literal[True] = True
+    producer_content_binding_verified: bool
     eligible_for_validation_intake: Literal[False] = False
 
     @model_validator(mode="after")
@@ -133,6 +133,7 @@ class CandidateRecommendationGenerationOutcome(DomainModel):
             or self.recommendation.priority != self.response.priority
             or self.recommendation.rationale != self.response.rationale
             or self.recommendation.review_questions != self.response.review_questions
+            or not self.producer_content_binding_verified
             or not self.recommendation.requires_human_review
         ):
             raise ValueError("generation outcome recommendation binding mismatch")
@@ -144,6 +145,9 @@ class CandidateRecommendationGenerationOutcome(DomainModel):
 
     @classmethod
     def create(cls, **values):
-        values.setdefault("producer_content_binding_verified", True)
+        values.setdefault(
+            "producer_content_binding_verified",
+            values.get("status") == "recommendation_ready",
+        )
         values.setdefault("eligible_for_validation_intake", False)
         return _sealed(cls, "outcome_id", values)

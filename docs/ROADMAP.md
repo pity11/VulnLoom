@@ -1056,6 +1056,9 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   人工选择边界；首次真实 Candidate 投影披露仍需对 preview 另行精确审批。
 - 生成链新增 25 项定向测试；全量 1224 passed、23 skipped，覆盖率 86.51%。普通测试使用 fake
   DNS/process，不进行真实 Provider 或目标网络访问。
+- 2026-09-08 首次真实最小投影调用返回 HTTP 200 / TLSv1.3，但正文分类为
+  `response_content_other`，因此正确拒绝；清理通过、单条账本完成、grant 已撤销且未重试。随后修正
+  outcome 标志语义：只有 `recommendation_ready` 才写 `producer_content_binding_verified=true`。
 
 ## 延后事项
 

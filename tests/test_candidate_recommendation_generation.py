@@ -226,6 +226,7 @@ def test_generation_rejects_invalid_model_content(tmp_path, approved_scope, now,
         runner.transform = change
         outcome = execute(service, plan, approval)
         assert outcome.status == "rejected"
+        assert not outcome.producer_content_binding_verified
         assert outcome.response is None and outcome.recommendation is None
         assert outcome.transport.cleanup_verified
         assert execute(service, plan, approval) == outcome and runner.calls == 1
@@ -256,6 +257,7 @@ def test_generation_rejects_invalid_wire(tmp_path, approved_scope, now, kind):
         runner.wire_transform = change
         outcome = execute(service, plan, approval)
         assert outcome.status == "rejected" and outcome.recommendation is None
+        assert not outcome.producer_content_binding_verified
         assert outcome.transport.cleanup_verified and not any(runner.credential)
 
 
@@ -291,6 +293,7 @@ def test_generation_timeout_and_cleanup_failure_are_not_ready(tmp_path, approved
         runner.error = ProviderProcessExecutionError("synthetic_timeout", timed_out=True)
         outcome = execute(service, plan, approval)
         assert outcome.status == "timed_out" and outcome.recommendation is None
+        assert not outcome.producer_content_binding_verified
         assert outcome.transport.cleanup_verified
 
     unclean = tmp_path / "unclean"
@@ -300,6 +303,7 @@ def test_generation_timeout_and_cleanup_failure_are_not_ready(tmp_path, approved
         runner.clean = False
         outcome = execute(service, plan, approval)
         assert outcome.status == "rejected" and not outcome.transport.cleanup_verified
+        assert not outcome.producer_content_binding_verified
 
 
 def test_generation_interruption_and_tamper_require_recovery(

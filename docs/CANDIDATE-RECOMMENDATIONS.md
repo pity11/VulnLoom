@@ -60,8 +60,9 @@ CLI 对普通错误只输出固定的 `recommendation_rejected` 或 `recommendat
 模型必须返回精确 `projection_id`、优先级、简短理由、最多三个复核问题和投影内的位置索引。未知字段、
 越界或重复索引、敏感文本、错误模型、工具调用、截断结果及超预算用量均拒绝。成功结果把投影、结构化
 响应、Recommendation、Provider result/plan/receipt 和清理证明封存在一个
-`CandidateRecommendationGenerationOutcome` 中，并固定
-`producer_content_binding_verified=true`、`eligible_for_validation_intake=false`。
+`CandidateRecommendationGenerationOutcome` 中。只有 `recommendation_ready` 才标记
+`producer_content_binding_verified=true`；拒绝和超时结果为 false。所有结果均固定
+`eligible_for_validation_intake=false`。
 
 操作顺序是：
 
@@ -89,3 +90,16 @@ Validation Intake 与 Approval Gate 保持不变。首次真实 Candidate 投影
 专用生成链新增 25 项测试；合并后全量 1224 passed、23 skipped，覆盖率 86.51%。测试覆盖成功、
 内容/传输拒绝、审批和 Scope 漂移、超时、清理失败、只读重放、账本中断/篡改，以及 preview 不披露
 源码与原始路径。
+
+## 首次真实 Candidate 推荐验收（2026-09-08）
+
+用户明确授权将 `projection_id=b21fa340a44f607e70c9027aaa7147d8dd5753ca0279f7a0501a971366048b37`
+的合成 CWE-639 最小投影发送到固定 CUC 端点一次。调用无工具、无重试；HTTP 200、TLSv1.3，
+但模型正文未通过严格响应协议，闭集诊断为 `response_content_other`，因此结果正确拒绝且没有生成
+Recommendation。Result ID 为 `fda33e50ab216f3d374468f66bacc88ff7a9b3af7aafac9eac082dcf3442663c`，
+Outcome ID 为 `0fb313ddc7ec06dd248291e8a1aa51817e23d80470b5b889b2be1c2d84d0ee7c`。
+`cleanup_verified=true`，账本只有一个 completed 条目，grant 已撤销，凭据未进入验收 artifacts。
+
+该 v1 拒绝 artifact 在字段命名修正前生成，历史 JSON 中的
+`producer_content_binding_verified=true` 表示当时启用了绑定协议，并不表示正文校验通过。后续实现已改为
+仅在 `recommendation_ready` 时写 true；判断历史结果必须同时检查 `status`。

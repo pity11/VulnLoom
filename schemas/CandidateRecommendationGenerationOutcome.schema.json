@@ -748,8 +748,6 @@
       "default": null
     },
     "producer_content_binding_verified": {
-      "const": true,
-      "default": true,
       "title": "Producer Content Binding Verified",
       "type": "boolean"
     },
@@ -765,7 +763,8 @@
     "plan_id",
     "status",
     "projection_id",
-    "transport"
+    "transport",
+    "producer_content_binding_verified"
   ],
   "title": "CandidateRecommendationGenerationOutcome",
   "type": "object"
