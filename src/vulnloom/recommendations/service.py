@@ -14,6 +14,7 @@ from vulnloom.hypotheses import CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.validation.models import candidate_content_digest
 
+from .generation_store import CandidateRecommendationGenerationStore
 from .models import (
     CandidateRecommendation,
     CandidateRecommendationAdmissionPlan,
@@ -38,6 +39,7 @@ class CandidateRecommendationAdmissionService:
         graph_store: SourceGraphStore,
         candidate_store: CandidateSetStore,
         store: CandidateRecommendationStore,
+        generation_store: CandidateRecommendationGenerationStore | None = None,
         timeout_seconds: float = 2.0,
         clock=time.monotonic,
     ):
@@ -47,6 +49,7 @@ class CandidateRecommendationAdmissionService:
         self.graph_store = graph_store
         self.candidate_store = candidate_store
         self.store = store
+        self.generation_store = generation_store
         self.timeout_seconds = timeout_seconds
         self.clock = clock
 
@@ -59,6 +62,43 @@ class CandidateRecommendationAdmissionService:
         deadline: datetime,
         idempotency_key: str,
     ) -> CandidateRecommendationAdmissionPlan:
+        return self._prepare(
+            recommendation,
+            provider_result,
+            now=now,
+            deadline=deadline,
+            idempotency_key=idempotency_key,
+            generation_outcome=None,
+        )
+
+    def prepare_generated(
+        self,
+        *,
+        generation_plan_id: str,
+        now: datetime,
+        deadline: datetime,
+        idempotency_key: str,
+    ) -> CandidateRecommendationAdmissionPlan:
+        outcome = self._generation_outcome(generation_plan_id)
+        return self._prepare(
+            outcome.recommendation,
+            outcome.transport,
+            now=now,
+            deadline=deadline,
+            idempotency_key=idempotency_key,
+            generation_outcome=outcome,
+        )
+
+    def _prepare(
+        self,
+        recommendation,
+        provider_result,
+        *,
+        now,
+        deadline,
+        idempotency_key,
+        generation_outcome,
+    ):
         started = self.clock()
         recommendation, provider_result, candidate_set, graph, candidate = self._inputs(
             recommendation, provider_result, now=now, started=started
@@ -81,6 +121,16 @@ class CandidateRecommendationAdmissionService:
             "deadline": deadline,
             "idempotency_key": idempotency_key,
         }
+        if generation_outcome is not None:
+            values.update(
+                {
+                    "generation_plan_id": generation_outcome.plan_id,
+                    "generation_outcome_id": generation_outcome.outcome_id,
+                    "generation_outcome_digest": canonical_digest(
+                        generation_outcome.model_dump(mode="python")
+                    ),
+                }
+            )
         try:
             plan = CandidateRecommendationAdmissionPlan.create(**values)
         except ValidationError as exc:
@@ -97,6 +147,52 @@ class CandidateRecommendationAdmissionService:
         *,
         now: datetime,
     ) -> CandidateRecommendationRecord:
+        try:
+            plan = CandidateRecommendationAdmissionPlan.model_validate(plan)
+        except ValidationError as exc:
+            raise CandidateRecommendationRejected("recommendation plan boundary rejected") from exc
+        if plan.generation_outcome_id is not None:
+            raise CandidateRecommendationRejected(
+                "generated recommendation requires authoritative admission"
+            )
+        return self._admit(
+            plan,
+            recommendation,
+            provider_result,
+            now=now,
+            generation_outcome=None,
+        )
+
+    def admit_generated(
+        self,
+        plan: CandidateRecommendationAdmissionPlan,
+        *,
+        now: datetime,
+    ) -> CandidateRecommendationRecord:
+        try:
+            plan = CandidateRecommendationAdmissionPlan.model_validate(plan)
+        except ValidationError as exc:
+            raise CandidateRecommendationRejected("recommendation plan boundary rejected") from exc
+        if plan.generation_plan_id is None:
+            raise CandidateRecommendationRejected("recommendation generation binding is required")
+        outcome = self._generation_outcome(plan.generation_plan_id)
+        return self._admit(
+            plan,
+            outcome.recommendation,
+            outcome.transport,
+            now=now,
+            generation_outcome=outcome,
+        )
+
+    def _admit(
+        self,
+        plan,
+        recommendation,
+        provider_result,
+        *,
+        now,
+        generation_outcome,
+    ):
         started = self.clock()
         try:
             plan = CandidateRecommendationAdmissionPlan.model_validate(plan)
@@ -107,12 +203,13 @@ class CandidateRecommendationAdmissionService:
         recommendation, provider_result, candidate_set, graph, candidate = self._inputs(
             recommendation, provider_result, now=now, started=started
         )
-        expected = self.prepare(
+        expected = self._prepare(
             recommendation,
             provider_result,
             now=plan.created_at,
             deadline=plan.deadline,
             idempotency_key=plan.idempotency_key,
+            generation_outcome=generation_outcome,
         )
         if plan != expected:
             raise CandidateRecommendationRejected("recommendation admission binding drifted")
@@ -138,9 +235,36 @@ class CandidateRecommendationAdmissionService:
             scope_id=self.scope.scope_id,
             scope_version=self.scope.version,
             admitted_at=now,
+            generation_plan_id=plan.generation_plan_id,
+            generation_outcome_id=plan.generation_outcome_id,
+            generation_outcome_digest=plan.generation_outcome_digest,
+            producer_content_binding_verified=generation_outcome is not None,
         )
         self.store.complete(record)
         return record
+
+    def _generation_outcome(self, generation_plan_id):
+        if self.generation_store is None:
+            raise CandidateRecommendationRejected(
+                "authoritative recommendation generation store is required"
+            )
+        try:
+            outcome = self.generation_store.load_completed(generation_plan_id)
+        except (ValueError, ValidationError) as exc:
+            raise CandidateRecommendationRejected(
+                "authoritative recommendation generation outcome rejected"
+            ) from exc
+        if (
+            outcome.status != "recommendation_ready"
+            or outcome.recommendation is None
+            or outcome.response is None
+            or not outcome.producer_content_binding_verified
+            or outcome.eligible_for_validation_intake
+        ):
+            raise CandidateRecommendationRejected(
+                "completed recommendation generation outcome is not admissible"
+            )
+        return outcome
 
     def _inputs(self, recommendation, provider_result, *, now, started):
         try:
@@ -203,6 +327,7 @@ class CandidateRecommendationAdmissionService:
         return recommendation, provider_result, candidate_set, graph, candidate
 
     def _verify_record(self, record, plan, candidate):
+        generated = plan.generation_outcome_id is not None
         if (
             record.plan_id != plan.plan_id
             or record.recommendation_id != plan.recommendation_id
@@ -210,9 +335,12 @@ class CandidateRecommendationAdmissionService:
             or record.producer_result_id != plan.producer_result_id
             or record.producer_result_digest != plan.producer_result_digest
             or record.candidate_digest != candidate_content_digest(candidate)
+            or record.generation_plan_id != plan.generation_plan_id
+            or record.generation_outcome_id != plan.generation_outcome_id
+            or record.generation_outcome_digest != plan.generation_outcome_digest
             or not record.candidate_unchanged
             or not record.requires_human_selection
-            or record.producer_content_binding_verified
+            or record.producer_content_binding_verified != generated
             or record.eligible_for_validation_intake
         ):
             raise CandidateRecommendationRejected("recommendation admission record drifted")

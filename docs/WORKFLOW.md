@@ -539,10 +539,14 @@ minimal Candidate projection + exact Approval + inference egress grant
   → one no-tool CUC call
   → strict projection-bound response
   → sealed generation outcome + cleanup proof
+  → authoritative generation ledger reload
+  → generation-bound admission record requiring human selection
   → eligible_for_validation_intake=false
 ```
 
-生成结果只有建议权。后续仍需权威 admission 绑定和独立人工 Candidate selection，才能交给既有 M8.1。
+生成结果只有建议权。generated admission 不接受调用方单独提供的 Recommendation/Provider result，而是从
+权威 generation ledger 读取 completed outcome 并重验静态来源。后续仍需独立人工 Candidate selection，
+才能交给既有 M8.1。
 
 ## 5. 重试与恢复
 

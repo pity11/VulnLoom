@@ -1219,4 +1219,6 @@ Signal、代码位置和 Provider 清理证明。成功只写入独立 recommend
 普通 admission 服务不把 `ProviderProbeResult` 解释成模型正文来源证明。独立
 `cuc-candidate-recommendation-v1` codec 只发送摘要化 Candidate 投影，无工具接口；generation service
 要求精确人工批准和 egress grant，并把投影、解析响应、Recommendation、transport receipt 与清理证明
-封存在单次消费账本中。生成结果仍固定不可进入 M8.1，直到独立 admission 与人工选择绑定完成。
+封存在单次消费账本中。generated admission 会从该权威账本重新读取 completed outcome，重新核对生成计划、
+投影、receipt、清理证明和当前 Candidate/SourceGraph，并在独立记录中绑定 outcome ID 与摘要。记录仍固定
+不可进入 M8.1，直到独立人工选择完成。

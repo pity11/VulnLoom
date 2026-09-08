@@ -104,12 +104,14 @@ def test_admission_keeps_candidate_unchanged_and_replays(tmp_path, approved_scop
         service, recommendation, provider, _, candidate, _, store = values
         original = candidate.model_dump_json()
         plan = prepare(service, recommendation, provider, now)
+        assert "generation_outcome_id" not in plan.model_dump()
         record = service.admit(plan, recommendation, provider, now=now)
         assert record.candidate_id == candidate.candidate_id
         assert record.candidate_digest == candidate_content_digest(candidate)
         assert record.candidate_unchanged and record.requires_human_selection
         assert not record.producer_content_binding_verified
         assert not record.eligible_for_validation_intake
+        assert "generation_outcome_id" not in record.model_dump()
         assert candidate.model_dump_json() == original
         assert service.admit(plan, recommendation, provider, now=now) == record
         row = store.connection.execute("SELECT state FROM candidate_recommendations").fetchone()

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from vulnloom.domain.digests import canonical_digest
 
 from .generation_models import CandidateRecommendationGenerationOutcome
+from .provider import CandidateRecommendationGenerationPlan
 
 
 class CandidateRecommendationGenerationRecoveryRequired(ValueError):
@@ -46,31 +47,7 @@ class CandidateRecommendationGenerationStore:
                 raise CandidateRecommendationGenerationRecoveryRequired(
                     "recommendation generation interrupted"
                 )
-            try:
-                outcome = CandidateRecommendationGenerationOutcome.model_validate_json(rows[0][3])
-            except ValidationError as exc:
-                raise CandidateRecommendationGenerationRecoveryRequired(
-                    "recommendation generation result is invalid"
-                ) from exc
-            if (
-                outcome.plan_id != plan.plan_id
-                or outcome.projection_id != plan.projection.projection_id
-            ):
-                raise CandidateRecommendationGenerationRecoveryRequired(
-                    "recommendation generation result binding mismatch"
-                )
-            if outcome.status == "recommendation_ready" and (
-                outcome.transport.completed_at >= plan.deadline
-                or outcome.transport.completed_at < plan.created_at
-                or outcome.response is None
-                or outcome.recommendation is None
-            ):
-                raise CandidateRecommendationGenerationRecoveryRequired(
-                    "recommendation generation completion invalid"
-                )
-            if outcome.status == "recommendation_ready":
-                self._verify_ready(outcome, plan)
-            return outcome
+            return self._validated_outcome(rows[0][3], plan)
         try:
             with self.db:
                 self.db.execute(
@@ -102,6 +79,55 @@ class CandidateRecommendationGenerationStore:
             raise CandidateRecommendationGenerationRecoveryRequired(
                 "recommendation generation STARTED checkpoint unavailable"
             )
+
+    def load_completed(self, plan_id):
+        row = self.db.execute(
+            "SELECT plan_json, state, result_json FROM candidate_recommendation_generations "
+            "WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None or row[1] != "completed" or not row[2]:
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation completed outcome unavailable"
+            )
+        try:
+            plan = CandidateRecommendationGenerationPlan.model_validate_json(row[0])
+        except ValidationError as exc:
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation plan is invalid"
+            ) from exc
+        if plan.plan_id != plan_id:
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation plan identity mismatch"
+            )
+        return self._validated_outcome(row[2], plan)
+
+    def _validated_outcome(self, value, plan):
+        try:
+            outcome = CandidateRecommendationGenerationOutcome.model_validate_json(value)
+        except ValidationError as exc:
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation result is invalid"
+            ) from exc
+        if (
+            outcome.plan_id != plan.plan_id
+            or outcome.projection_id != plan.projection.projection_id
+        ):
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation result binding mismatch"
+            )
+        if outcome.status == "recommendation_ready" and (
+            outcome.transport.completed_at >= plan.deadline
+            or outcome.transport.completed_at < plan.created_at
+            or outcome.response is None
+            or outcome.recommendation is None
+        ):
+            raise CandidateRecommendationGenerationRecoveryRequired(
+                "recommendation generation completion invalid"
+            )
+        if outcome.status == "recommendation_ready":
+            self._verify_ready(outcome, plan)
+        return outcome
 
     def _verify_ready(self, outcome, plan):
         response = outcome.response

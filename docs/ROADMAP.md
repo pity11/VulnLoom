@@ -1062,6 +1062,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 补充 Candidate 推荐正文的闭集结构诊断，只记录代码定义的 JSON/字段/类型/范围/安全类别；未知键和值、
   正文及 reasoning 不落盘。诊断不放宽 Schema、不改变接受结果，也不触发自动重试或新 Provider 调用。
 - 闭集诊断新增 9 项回归测试；全量 1233 passed、23 skipped，覆盖率 86.49%。
+- 第二次精确授权的最小投影调用通过严格正文协议，生成的 Recommendation 与投影、receipt 和清理证明完整
+  绑定；调用一次、无工具、无重试，grant 已撤销，凭据未进入 artifact。运行材料位于已忽略且仅所有者可
+  访问的 `.vulnloom/`，未新增网关或凭据信息到 Git。
+- 新增 generated admission：只从权威 generation ledger 读取 completed `recommendation_ready` outcome，
+  重新核对生成计划和静态来源后绑定 outcome ID/摘要。成功记录正文绑定已验证，但 Candidate 保持
+  `PROPOSED`，仍需独立人工选择且不可进入 Validation Intake。
+- generated admission 新增 4 项回归；全量 1237 passed、23 skipped，覆盖率 86.48%。真实成功 outcome 的
+  离线接纳记录也已验证为单条 completed，未产生模型、目标网络或 Validation 调用。
 
 ## 延后事项
 

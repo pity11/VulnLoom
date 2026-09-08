@@ -25,15 +25,21 @@ from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import ApprovalStatus, CandidateState
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.recommendations import (
+    CandidateRecommendationAdmissionService,
     CandidateRecommendationGenerationOutcome,
     CandidateRecommendationGenerationService,
     CandidateRecommendationGenerationStore,
+    CandidateRecommendationStore,
     recommendation_generation_approval_request,
 )
 from vulnloom.recommendations.generation_store import (
     CandidateRecommendationGenerationRecoveryRequired,
 )
 from vulnloom.recommendations.provider import _observe_recommendation_content
+from vulnloom.recommendations.service import (
+    CandidateRecommendationRejected,
+    CandidateRecommendationTimedOut,
+)
 
 
 class Resolver:
@@ -199,6 +205,167 @@ def test_generation_success_is_bound_read_only_and_replay_safe(tmp_path, approve
             CandidateRecommendationGenerationOutcome.model_validate_json(outcome.model_dump_json())
             == outcome
         )
+
+
+def test_completed_generation_is_authoritatively_admitted_and_replays(
+    tmp_path, approved_scope, now
+):
+    with case(tmp_path, approved_scope, now) as values:
+        generation, generation_plan, approval, _, candidate_set, candidate, generation_store = (
+            values
+        )
+        original = candidate_set.model_dump_json()
+        outcome = execute(generation, generation_plan, approval)
+        with CandidateRecommendationStore(tmp_path / "admitted.db") as admission_store:
+            service = CandidateRecommendationAdmissionService(
+                scope=generation.scope,
+                graph_store=generation.graphs,
+                candidate_store=generation.candidates,
+                store=admission_store,
+                generation_store=generation_store,
+            )
+            plan = service.prepare_generated(
+                generation_plan_id=generation_plan.plan_id,
+                now=now,
+                deadline=now + timedelta(seconds=30),
+                idempotency_key="generated-recommendation-admission",
+            )
+            record = service.admit_generated(plan, now=now)
+            assert record.generation_plan_id == generation_plan.plan_id
+            assert record.generation_outcome_id == outcome.outcome_id
+            assert record.producer_content_binding_verified
+            assert record.requires_human_selection
+            assert not record.eligible_for_validation_intake
+            assert service.admit_generated(plan, now=now) == record
+            with pytest.raises(CandidateRecommendationRejected):
+                service.admit(plan, outcome.recommendation, outcome.transport, now=now)
+        assert (
+            generation.candidates.load(candidate_set.candidate_set_id).model_dump_json() == original
+        )
+        assert candidate.state is CandidateState.PROPOSED
+
+
+def test_generated_admission_rejects_failed_or_missing_authoritative_outcome(
+    tmp_path, approved_scope, now
+):
+    with case(tmp_path, approved_scope, now) as values:
+        generation, generation_plan, approval, runner, _, _, generation_store = values
+        runner.transform = lambda value: {**value, "priority": "urgent"}
+        assert execute(generation, generation_plan, approval).status == "rejected"
+        with CandidateRecommendationStore(tmp_path / "admitted.db") as admission_store:
+            service = CandidateRecommendationAdmissionService(
+                scope=generation.scope,
+                graph_store=generation.graphs,
+                candidate_store=generation.candidates,
+                store=admission_store,
+                generation_store=generation_store,
+            )
+            with pytest.raises(CandidateRecommendationRejected, match="not admissible"):
+                service.prepare_generated(
+                    generation_plan_id=generation_plan.plan_id,
+                    now=now,
+                    deadline=now + timedelta(seconds=30),
+                    idempotency_key="rejected-generation",
+                )
+            with pytest.raises(CandidateRecommendationRejected, match="authoritative"):
+                service.prepare_generated(
+                    generation_plan_id="f" * 64,
+                    now=now,
+                    deadline=now + timedelta(seconds=30),
+                    idempotency_key="missing-generation",
+                )
+            assert (
+                admission_store.connection.execute(
+                    "SELECT COUNT(*) FROM candidate_recommendations"
+                ).fetchone()[0]
+                == 0
+            )
+
+
+def test_generated_admission_timeout_prevents_write(tmp_path, approved_scope, now):
+    with case(tmp_path, approved_scope, now) as values:
+        generation, generation_plan, approval, _, _, _, generation_store = values
+        execute(generation, generation_plan, approval)
+        with CandidateRecommendationStore(tmp_path / "admitted.db") as admission_store:
+            service = CandidateRecommendationAdmissionService(
+                scope=generation.scope,
+                graph_store=generation.graphs,
+                candidate_store=generation.candidates,
+                store=admission_store,
+                generation_store=generation_store,
+            )
+            plan = service.prepare_generated(
+                generation_plan_id=generation_plan.plan_id,
+                now=now,
+                deadline=now + timedelta(seconds=1),
+                idempotency_key="expired-generated-admission",
+            )
+            with pytest.raises(CandidateRecommendationTimedOut):
+                service.admit_generated(plan, now=plan.deadline)
+            assert (
+                admission_store.connection.execute(
+                    "SELECT COUNT(*) FROM candidate_recommendations"
+                ).fetchone()[0]
+                == 0
+            )
+
+
+def test_generated_admission_cli_uses_authoritative_ledger(
+    tmp_path, approved_scope, now, monkeypatch, capsys
+):
+    from vulnloom import cli
+    from vulnloom.recommendations import cli as recommendation_cli
+
+    with case(tmp_path, approved_scope, now) as values:
+        generation, generation_plan, approval, _, _, _, _ = values
+        execute(generation, generation_plan, approval)
+        scope_path = tmp_path / "scope.json"
+        plan_path = tmp_path / "admission-plan.json"
+        scope_path.write_text(generation.scope.model_dump_json())
+        monkeypatch.setattr(recommendation_cli, "utc_now", lambda: now)
+        common = [
+            "--scope-file",
+            str(scope_path),
+            "--generation-db",
+            str(tmp_path / "generations.db"),
+            "--graph-store",
+            str(tmp_path / "graphs"),
+            "--candidate-store",
+            str(tmp_path / "candidates"),
+            "--recommendation-db",
+            str(tmp_path / "cli-admitted.db"),
+        ]
+        assert (
+            cli.main(
+                [
+                    "candidate-recommendation-generated-prepare-local",
+                    *common,
+                    "--generation-plan-id",
+                    generation_plan.plan_id,
+                    "--ttl-seconds",
+                    "30",
+                    "--idempotency-key",
+                    "cli-generated-admission",
+                ]
+            )
+            == 0
+        )
+        plan = json.loads(capsys.readouterr().out)
+        assert plan["generation_outcome_id"]
+        plan_path.write_text(json.dumps(plan))
+        command = [
+            "candidate-recommendation-generated-admit-local",
+            *common,
+            "--plan-file",
+            str(plan_path),
+        ]
+        assert cli.main(command) == 0
+        record = json.loads(capsys.readouterr().out)
+        assert record["producer_content_binding_verified"]
+        assert record["requires_human_selection"]
+        assert not record["eligible_for_validation_intake"]
+        assert cli.main(command) == 0
+        assert json.loads(capsys.readouterr().out) == record
 
 
 @pytest.mark.parametrize(

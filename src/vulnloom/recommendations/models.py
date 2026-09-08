@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, model_serializer, model_validator
 
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel, SourceLocation
@@ -107,20 +107,44 @@ class CandidateRecommendationAdmissionPlan(DomainModel):
     created_at: AwareDatetime
     deadline: AwareDatetime
     idempotency_key: str = Field(min_length=1, max_length=256)
+    generation_plan_id: Digest | None = None
+    generation_outcome_id: Digest | None = None
+    generation_outcome_digest: Digest | None = None
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
         if not 0 < (self.deadline - self.created_at).total_seconds() <= 300:
             raise ValueError("recommendation admission window invalid")
+        generation_binding = (
+            self.generation_plan_id,
+            self.generation_outcome_id,
+            self.generation_outcome_digest,
+        )
+        if any(generation_binding) and not all(generation_binding):
+            raise ValueError("recommendation generation binding is incomplete")
         if "\x00" in self.idempotency_key or self.plan_id != canonical_digest(
-            self.model_dump(mode="python", exclude={"plan_id"})
+            self.model_dump(mode="python", exclude={"plan_id"}, exclude_none=True)
         ):
             raise ValueError("recommendation admission plan mismatch")
         return self
 
+    @model_serializer(mode="wrap")
+    def omit_absent_generation_binding(self, handler):
+        result = handler(self)
+        if self.generation_plan_id is None:
+            result.pop("generation_plan_id", None)
+            result.pop("generation_outcome_id", None)
+            result.pop("generation_outcome_digest", None)
+        return result
+
     @classmethod
     def create(cls, **values):
-        return cls(plan_id=canonical_digest(values), **values)
+        return cls(
+            plan_id=canonical_digest(
+                {key: value for key, value in values.items() if value is not None}
+            ),
+            **values,
+        )
 
 
 class CandidateRecommendationRecord(DomainModel):
@@ -139,18 +163,39 @@ class CandidateRecommendationRecord(DomainModel):
     scope_id: UUID
     scope_version: int = Field(ge=1)
     admitted_at: AwareDatetime
+    generation_plan_id: Digest | None = None
+    generation_outcome_id: Digest | None = None
+    generation_outcome_digest: Digest | None = None
     candidate_unchanged: Literal[True] = True
     requires_human_selection: Literal[True] = True
-    producer_content_binding_verified: Literal[False] = False
+    producer_content_binding_verified: bool = False
     eligible_for_validation_intake: Literal[False] = False
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
+        generation_binding = (
+            self.generation_plan_id,
+            self.generation_outcome_id,
+            self.generation_outcome_digest,
+        )
+        if any(generation_binding) != all(
+            generation_binding
+        ) or self.producer_content_binding_verified != all(generation_binding):
+            raise ValueError("recommendation record generation binding mismatch")
         if self.record_id != canonical_digest(
-            self.model_dump(mode="python", exclude={"record_id"})
+            self.model_dump(mode="python", exclude={"record_id"}, exclude_none=True)
         ):
             raise ValueError("recommendation admission record mismatch")
         return self
+
+    @model_serializer(mode="wrap")
+    def omit_absent_generation_binding(self, handler):
+        result = handler(self)
+        if self.generation_plan_id is None:
+            result.pop("generation_plan_id", None)
+            result.pop("generation_outcome_id", None)
+            result.pop("generation_outcome_digest", None)
+        return result
 
     @classmethod
     def create(cls, **values):
@@ -158,4 +203,9 @@ class CandidateRecommendationRecord(DomainModel):
         values.setdefault("requires_human_selection", True)
         values.setdefault("producer_content_binding_verified", False)
         values.setdefault("eligible_for_validation_intake", False)
-        return cls(record_id=canonical_digest(values), **values)
+        return cls(
+            record_id=canonical_digest(
+                {key: value for key, value in values.items() if value is not None}
+            ),
+            **values,
+        )

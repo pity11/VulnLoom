@@ -78,11 +78,37 @@ preview 和 prepare 不读取凭据、不联网；run 必须具备精确 `USE_RE
 `MODEL_INFERENCE` egress grant 和显式联网选项。账本对 plan、幂等键、grant、approval 作唯一消费，
 遗留 `started` 不自动重试。
 
+成功生成后只能通过权威 generation ledger 接纳，不能把调用方提供的 Recommendation 或 Provider result
+冒充为正文绑定证明：
+
+```bash
+vulnloom candidate-recommendation-generated-prepare-local \
+  --scope-file scope.json --generation-db generations.db \
+  --generation-plan-id GENERATION_PLAN_ID \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --recommendation-db .vulnloom/recommendations.db \
+  --idempotency-key generated-admission-001 > admission-plan.json
+
+vulnloom candidate-recommendation-generated-admit-local \
+  --scope-file scope.json --generation-db generations.db \
+  --plan-file admission-plan.json \
+  --graph-store .vulnloom/graphs --candidate-store .vulnloom/candidates \
+  --recommendation-db .vulnloom/recommendations.db
+```
+
+该路径重新校验 generation plan、completed outcome、投影、Provider receipt、清理证明与当前权威
+Candidate/SourceGraph。成功记录绑定 generation plan/outcome ID 与摘要，并标记
+`producer_content_binding_verified=true`；Candidate 仍保持 `PROPOSED`，记录仍要求独立人工选择且不能进入
+Validation Intake。旧的本地 advisory admission 仍可读取和重放，但其正文绑定标记保持 false。
+
+generated admission 新增 4 项成功、拒绝、超时、重放及 CLI 回归；合并后全量 1237 passed、23 skipped，
+覆盖率 86.48%。真实成功 generation outcome 的离线接纳验收也通过，账本只有一个 completed 记录。
+
 ## 当前限制与下一边界
 
-专用生成结果尚未接入前述本地 admission ledger，也没有人工 Candidate selection 绑定，所以类型固定禁止
-进入 M8.1。下一阶段是让 admission 只接受权威 completed generation outcome，再记录独立人工选择；现有
-Validation Intake 与 Approval Gate 保持不变。首次真实 Candidate 投影调用仍需对 preview 的精确内容另行授权。
+专用生成结果已经可以接入本地 admission ledger，但尚没有独立人工 Candidate selection 绑定，因此仍禁止
+进入 M8.1。下一阶段是增加只消费权威 admission record 的人工选择命令与记录；现有 Validation Intake 与
+Approval Gate 保持不变。
 
 2026-09-08 本地验收：34 项定向测试通过；全量 1199 passed、23 skipped，覆盖率 86.59%。
 `ruff check src tests scripts`、CLI 注册、Schema 重复导出、JSON 解析和 diff 空白检查均通过。
