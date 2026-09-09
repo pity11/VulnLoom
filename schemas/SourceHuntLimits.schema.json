@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_files": {
+      "default": 20000,
+      "maximum": 100000,
+      "minimum": 1,
+      "title": "Max Files",
+      "type": "integer"
+    },
+    "max_total_bytes": {
+      "default": 209715200,
+      "minimum": 1,
+      "title": "Max Total Bytes",
+      "type": "integer"
+    },
+    "max_single_file_bytes": {
+      "default": 2097152,
+      "minimum": 1,
+      "title": "Max Single File Bytes",
+      "type": "integer"
+    },
+    "max_files_per_partition": {
+      "default": 500,
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Max Files Per Partition",
+      "type": "integer"
+    },
+    "max_queries": {
+      "default": 64,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Max Queries",
+      "type": "integer"
+    },
+    "max_observations": {
+      "default": 64,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Max Observations",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 120.0,
+      "exclusiveMinimum": 0,
+      "maximum": 3600,
+      "title": "Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "SourceHuntLimits",
+  "type": "object"
+}

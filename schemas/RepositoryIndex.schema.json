@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "BuildSystem": {
+      "enum": [
+        "pyproject",
+        "requirements",
+        "npm"
+      ],
+      "title": "BuildSystem",
+      "type": "string"
+    },
+    "SourceLanguage": {
+      "enum": [
+        "python",
+        "javascript",
+        "typescript"
+      ],
+      "title": "SourceLanguage",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "SourcePartition": {
+      "additionalProperties": false,
+      "properties": {
+        "partition_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2000,
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "total_bytes": {
+          "minimum": 0,
+          "title": "Total Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partition_id",
+        "ordinal",
+        "paths",
+        "total_bytes"
+      ],
+      "title": "SourcePartition",
+      "type": "object"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "language": {
+          "$ref": "#/$defs/SourceLanguage"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceReferenceKind"
+        },
+        "source_symbol": {
+          "title": "Source Symbol",
+          "type": "string"
+        },
+        "target_name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Target Name",
+          "type": "string"
+        },
+        "resolved_symbol_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved Symbol Id"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        }
+      },
+      "required": [
+        "reference_id",
+        "language",
+        "kind",
+        "source_symbol",
+        "target_name",
+        "location"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "SourceReferenceKind": {
+      "enum": [
+        "call",
+        "import"
+      ],
+      "title": "SourceReferenceKind",
+      "type": "string"
+    },
+    "SourceSymbol": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Symbol Id",
+          "type": "string"
+        },
+        "language": {
+          "$ref": "#/$defs/SourceLanguage"
+        },
+        "qualified_name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Qualified Name",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceSymbolKind"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        }
+      },
+      "required": [
+        "symbol_id",
+        "language",
+        "qualified_name",
+        "kind",
+        "location"
+      ],
+      "title": "SourceSymbol",
+      "type": "object"
+    },
+    "SourceSymbolKind": {
+      "enum": [
+        "function",
+        "class"
+      ],
+      "title": "SourceSymbolKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "index_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Index Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "manifest_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "adapter_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/SourceLanguage"
+      },
+      "title": "Adapter Versions",
+      "type": "object"
+    },
+    "files_indexed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Files Indexed",
+      "type": "array"
+    },
+    "symbols": {
+      "items": {
+        "$ref": "#/$defs/SourceSymbol"
+      },
+      "title": "Symbols",
+      "type": "array"
+    },
+    "references": {
+      "items": {
+        "$ref": "#/$defs/SourceReference"
+      },
+      "title": "References",
+      "type": "array"
+    },
+    "build_systems": {
+      "items": {
+        "$ref": "#/$defs/BuildSystem"
+      },
+      "title": "Build Systems",
+      "type": "array"
+    },
+    "partitions": {
+      "items": {
+        "$ref": "#/$defs/SourcePartition"
+      },
+      "maxItems": 10000,
+      "title": "Partitions",
+      "type": "array"
+    },
+    "skipped_files": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Skipped Files",
+      "type": "array"
+    }
+  },
+  "required": [
+    "index_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "manifest_id",
+    "adapter_versions",
+    "files_indexed",
+    "symbols",
+    "references",
+    "build_systems",
+    "partitions"
+  ],
+  "title": "RepositoryIndex",
+  "type": "object"
+}

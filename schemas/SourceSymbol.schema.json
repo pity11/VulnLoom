@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "SourceLanguage": {
+      "enum": [
+        "python",
+        "javascript",
+        "typescript"
+      ],
+      "title": "SourceLanguage",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "SourceSymbolKind": {
+      "enum": [
+        "function",
+        "class"
+      ],
+      "title": "SourceSymbolKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "symbol_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Symbol Id",
+      "type": "string"
+    },
+    "language": {
+      "$ref": "#/$defs/SourceLanguage"
+    },
+    "qualified_name": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Qualified Name",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/SourceSymbolKind"
+    },
+    "location": {
+      "$ref": "#/$defs/SourceLocation"
+    }
+  },
+  "required": [
+    "symbol_id",
+    "language",
+    "qualified_name",
+    "kind",
+    "location"
+  ],
+  "title": "SourceSymbol",
+  "type": "object"
+}

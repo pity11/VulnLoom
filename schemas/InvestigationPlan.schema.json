@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "SourceHuntLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_files": {
+          "default": 20000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Files",
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "default": 209715200,
+          "minimum": 1,
+          "title": "Max Total Bytes",
+          "type": "integer"
+        },
+        "max_single_file_bytes": {
+          "default": 2097152,
+          "minimum": 1,
+          "title": "Max Single File Bytes",
+          "type": "integer"
+        },
+        "max_files_per_partition": {
+          "default": 500,
+          "maximum": 2000,
+          "minimum": 1,
+          "title": "Max Files Per Partition",
+          "type": "integer"
+        },
+        "max_queries": {
+          "default": 64,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Queries",
+          "type": "integer"
+        },
+        "max_observations": {
+          "default": 64,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Observations",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 120.0,
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "SourceHuntLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "index_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Index Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "seed_signal_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Seed Signal Ids",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/SourceHuntLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "index_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "InvestigationPlan",
+  "type": "object"
+}

@@ -1,0 +1,370 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "source_graph_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Graph Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "cwe": {
+          "pattern": "^CWE-[1-9][0-9]*$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "entry_point": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "sink": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "code_path": {
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "minItems": 1,
+          "title": "Code Path",
+          "type": "array"
+        },
+        "preconditions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "security_invariant": {
+          "minLength": 1,
+          "title": "Security Invariant",
+          "type": "string"
+        },
+        "hypothesis": {
+          "minLength": 1,
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "signal_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Signal Ids",
+          "type": "array"
+        },
+        "cheapest_disproof": {
+          "minLength": 1,
+          "title": "Cheapest Disproof",
+          "type": "string"
+        },
+        "duplicate_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Duplicate Fingerprint",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "state": {
+          "$ref": "#/$defs/CandidateState",
+          "default": "proposed"
+        }
+      },
+      "required": [
+        "target_id",
+        "target_version",
+        "source_graph_id",
+        "scope_id",
+        "scope_version",
+        "title",
+        "cwe",
+        "entry_point",
+        "sink",
+        "code_path",
+        "security_invariant",
+        "hypothesis",
+        "signal_ids",
+        "cheapest_disproof",
+        "duplicate_fingerprint",
+        "confidence"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    },
+    "EvidenceBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "format": "uuid",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "sealed_at": {
+          "format": "date-time",
+          "title": "Sealed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "evidence_refs"
+      ],
+      "title": "EvidenceBundle",
+      "type": "object"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    },
+    "ValidationRun": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "sandbox_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sandbox Image Digest",
+          "type": "string"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "plan": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Plan",
+          "type": "array"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "side_effects": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Side Effects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "resource_usage": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": "Resource Usage",
+          "type": "object"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "target_version",
+        "scope_version",
+        "sandbox_image_digest",
+        "policy_digest",
+        "plan",
+        "started_at",
+        "finished_at",
+        "result"
+      ],
+      "title": "ValidationRun",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "execution_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Outcome Digest",
+      "type": "string"
+    },
+    "source_candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Candidate Digest",
+      "type": "string"
+    },
+    "validated_candidate": {
+      "$ref": "#/$defs/Candidate"
+    },
+    "validation_run": {
+      "$ref": "#/$defs/ValidationRun"
+    },
+    "evidence_bundle": {
+      "$ref": "#/$defs/EvidenceBundle"
+    },
+    "bound_at": {
+      "format": "date-time",
+      "title": "Bound At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "execution_plan_id",
+    "execution_outcome_digest",
+    "source_candidate_digest",
+    "validated_candidate",
+    "validation_run",
+    "evidence_bundle",
+    "bound_at"
+  ],
+  "title": "SourceValidationBinding",
+  "type": "object"
+}

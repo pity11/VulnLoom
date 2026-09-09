@@ -1,0 +1,98 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "proposal_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "entry_symbol_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Entry Symbol Id",
+      "type": "string"
+    },
+    "sink_symbol_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sink Symbol Id",
+      "type": "string"
+    },
+    "code_path_symbol_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Code Path Symbol Ids",
+      "type": "array"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Cwe",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "preconditions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "security_invariant": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Security Invariant",
+      "type": "string"
+    },
+    "hypothesis": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Hypothesis",
+      "type": "string"
+    },
+    "cheapest_disproof": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Cheapest Disproof",
+      "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    }
+  },
+  "required": [
+    "proposal_id",
+    "entry_symbol_id",
+    "sink_symbol_id",
+    "code_path_symbol_ids",
+    "observation_ids",
+    "cwe",
+    "title",
+    "security_invariant",
+    "hypothesis",
+    "cheapest_disproof",
+    "confidence"
+  ],
+  "title": "SourceCandidateProposal",
+  "type": "object"
+}

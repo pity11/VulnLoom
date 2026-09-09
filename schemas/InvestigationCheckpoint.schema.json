@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "InvestigationStatus": {
+      "enum": [
+        "active",
+        "ready_for_candidates",
+        "cancelled",
+        "timed_out"
+      ],
+      "title": "InvestigationStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "index_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Index Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/InvestigationStatus"
+    },
+    "revision": {
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "queries_used": {
+      "minimum": 0,
+      "title": "Queries Used",
+      "type": "integer"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "query_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Query Digests",
+      "type": "array"
+    },
+    "conclusion_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conclusion Digest"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "plan_id",
+    "index_id",
+    "status",
+    "revision",
+    "queries_used",
+    "observation_ids",
+    "query_digests",
+    "updated_at"
+  ],
+  "title": "InvestigationCheckpoint",
+  "type": "object"
+}

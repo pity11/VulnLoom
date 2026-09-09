@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "SourceLanguage": {
+      "enum": [
+        "python",
+        "javascript",
+        "typescript"
+      ],
+      "title": "SourceLanguage",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path",
+        "line"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "SourceReferenceKind": {
+      "enum": [
+        "call",
+        "import"
+      ],
+      "title": "SourceReferenceKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Id",
+      "type": "string"
+    },
+    "language": {
+      "$ref": "#/$defs/SourceLanguage"
+    },
+    "kind": {
+      "$ref": "#/$defs/SourceReferenceKind"
+    },
+    "source_symbol": {
+      "title": "Source Symbol",
+      "type": "string"
+    },
+    "target_name": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Name",
+      "type": "string"
+    },
+    "resolved_symbol_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolved Symbol Id"
+    },
+    "location": {
+      "$ref": "#/$defs/SourceLocation"
+    }
+  },
+  "required": [
+    "reference_id",
+    "language",
+    "kind",
+    "source_symbol",
+    "target_name",
+    "location"
+  ],
+  "title": "SourceReference",
+  "type": "object"
+}

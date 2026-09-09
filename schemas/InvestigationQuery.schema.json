@@ -1,0 +1,39 @@
+{
+  "$defs": {
+    "InvestigationQueryKind": {
+      "enum": [
+        "symbol",
+        "callers",
+        "callees",
+        "references"
+      ],
+      "title": "InvestigationQueryKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/InvestigationQueryKind"
+    },
+    "term": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Term",
+      "type": "string"
+    },
+    "max_results": {
+      "default": 32,
+      "maximum": 128,
+      "minimum": 1,
+      "title": "Max Results",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "kind",
+    "term"
+  ],
+  "title": "InvestigationQuery",
+  "type": "object"
+}

@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "partition_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Partition Id",
+      "type": "string"
+    },
+    "ordinal": {
+      "minimum": 0,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Paths",
+      "type": "array"
+    },
+    "total_bytes": {
+      "minimum": 0,
+      "title": "Total Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "partition_id",
+    "ordinal",
+    "paths",
+    "total_bytes"
+  ],
+  "title": "SourcePartition",
+  "type": "object"
+}
