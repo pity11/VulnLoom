@@ -12,7 +12,7 @@
       "type": "boolean"
     },
     "implementation_digest": {
-      "default": "582e04172dd77e2c1e9e18b8ad602d84b84f1c6220f2a17cdabe994d4416af7a",
+      "default": "5c88edc5b884fc8e152f37f6bff127ba95ea95b1c9b22c32d57133de8154e949",
       "pattern": "^[0-9a-f]{64}$",
       "title": "Implementation Digest",
       "type": "string"

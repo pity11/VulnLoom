@@ -22,7 +22,7 @@
       "type": "string"
     },
     "template_version": {
-      "default": "builtin-v1",
+      "default": "builtin-v2",
       "title": "Template Version",
       "type": "string"
     },

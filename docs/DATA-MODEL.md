@@ -368,7 +368,9 @@ redaction policy、fragment 列表、总字节和装配时间。`AgentRunPlan.co
 
 ### AgentPromptTemplateRegistration 与 AgentMessageEnvelope
 
-`AgentPromptTemplateRegistration` 只表达 `builtin-v1`、Worker role 和可信 system message 摘要。
+`AgentPromptTemplateRegistration` 只表达 `builtin-v2`、Worker role 和可信 system message 摘要。v2 在固定
+system message 中给出 exact `AgentDecisionPayload` JSON 形状，要求无 Markdown、无额外正文；该说明只约束
+输出格式，不能授予工具或状态变更权限。
 `AgentProviderMessage` 保存 role、正文、摘要、UTF-8 字节数和 untrusted-context 标记；system 固定为 trusted，
 user 固定包含 untrusted context。
 
@@ -428,9 +430,12 @@ Agent decision schema、字节/时间限制，以及逐层审核过的空扩展�
 固定关闭。Provider 返回的 content 必须是严格 JSON `AgentDecisionPayload`；其中 tool proposal 仍只是无权限的
 类型化建议，不能越过 Broker、Scope 或 Approval Gate 执行。
 
-响应必须是单个 `stop` assistant choice，模型身份在 allowlist 中，usage 为相加一致的有界非负整数。
+响应必须是单个 `stop` assistant choice，模型身份在 allowlist 中，usage core 为相加一致的有界非负整数。
+经审核的 usage 扩展只能由 registration 显式开启，且固定为缓存计数、reasoning 计数、token details 和三项
+有界有限性能指标；details 使用字段闭集，缓存与 reasoning 计数必须受 core totals 约束。默认保持 core-only。
 未知字段、非空兼容扩展、refusal、Provider 原生 tools、重复 JSON key、身份漂移、usage 漂移、超时或超限均
-fail-closed。wire request/response 仍是瞬时可归零缓冲，codec 不持有 endpoint 或 secret。
+fail-closed。解析与类型验证失败只产生稳定领域错误，不把底层 JSON/Pydantic 异常或 Provider 内容挂入异常链。
+wire request/response 仍是瞬时可归零缓冲，codec 不持有 endpoint 或 secret。
 
 ### CucChatCompatibilityBaseline
 

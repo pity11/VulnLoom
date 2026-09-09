@@ -87,6 +87,9 @@ network access, and creates a model registration only after the authoritative Eg
 That assembly now drives complete local fake-process Agent turns for two distinct Provider/model configurations. Negative
 turns cover authentication rejection, rate limiting, timeout, malformed output, zeroed credential leases, cleared wire
 buffers, and absence of receipts on failure.
+The generic path has also passed one authorized synthetic CUC Agent-decision acceptance run with a short-lived revoked
+grant, strict response identity and usage validation, zero tools, and verified buffer cleanup. Existing CUC feature paths
+remain unchanged while default-route migration is reviewed separately.
 Provider Center UI/CLI, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.

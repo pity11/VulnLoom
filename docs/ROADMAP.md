@@ -1077,6 +1077,20 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   selection 和预构造的 exact 离线 ValidationPlan，拒绝 Broker/网络计划，保持 Candidate 为 `PROPOSED`，
   并固定要求后续独立 `RUN_VALIDATION` Approval；本阶段不调用 ValidationService 或任何执行 adapter。
 
+### 通用 Model Profile P1（真实 CUC 新路径验收已完成）
+
+- 通用 OpenAI-compatible Chat codec、两阶段 Profile prepare/bind、Endpoint 引用解析、Capability/Flow/Role/
+  budget 校验及权威 Egress Grant 绑定已完成；双假 Provider 的完整 Agent turn 覆盖成功、401、429、超时、
+  畸形响应和全部敏感缓冲清理。
+- 2026-09-09 经用户既有真实模型调用授权，使用固定合成上下文、零工具权限和短期 Grant 执行通用 Profile
+  路径验收。首次因输出不符合 `AgentDecisionPayload` 正确拒绝、无 receipt；据此将 prompt 升级为 v2，并
+  消除 JSON/Pydantic 原始响应在异常链中的保留。
+- 第二次调用通过严格结构、模型身份和有界 usage 校验：626 input / 64 output tokens，receipt 非空，凭据、
+  请求和响应缓冲均归零；Grant 在 finally 路径撤销。验收材料只在已忽略的 `.vulnloom/` 中保存稳定诊断和
+  摘要，不保存 Provider 正文、凭据或完整认证响应。
+- 当前全量验证为 1301 passed、24 skipped，覆盖率 86.23%；lint、289 份 JSON Schema 解析及 Grant 撤销账本
+  检查通过。P1 新路径门禁已经满足，默认路由切换与 Provider Center CLI/API 属于后续独立变更。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -199,6 +199,39 @@ def test_codec_rejects_duplicate_json_keys_and_oversized_structured_output():
         )
 
 
+def test_codec_validation_rejection_does_not_retain_provider_content():
+    codec_registration, model_registration, _ = _codec_fixture()
+    private_value = "must-not-reach-responses-exception-chain"
+    raw = _response(
+        output=[
+            {
+                "content": [
+                    {
+                        "annotations": [],
+                        "text": json.dumps({"private": private_value}),
+                        "type": "output_text",
+                    }
+                ],
+                "id": "msg_test",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message",
+            }
+        ]
+    )
+
+    with pytest.raises(AgentProviderCodecRejected) as captured:
+        OpenAIResponsesV1Codec(codec_registration).decode(
+            raw,
+            model_registration=model_registration,
+            latency_seconds=0.1,
+        )
+
+    assert captured.value.__cause__ is None
+    assert captured.value.__context__ is None
+    assert private_value not in str(captured.value)
+
+
 def test_codec_binding_and_safeguard_drift_fail_closed():
     codec_registration, model_registration, envelope = _codec_fixture()
     other_codec = AgentProviderCodecRegistration.create(provider_id="other")

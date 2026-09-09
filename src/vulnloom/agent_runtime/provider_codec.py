@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from contextlib import suppress
 from enum import StrEnum
 from time import monotonic
 from typing import Self
@@ -275,12 +276,13 @@ class OpenAIResponsesV1Codec:
         structured_output = _strict_json(text, "provider structured output")
         if not isinstance(structured_output, dict):
             raise AgentProviderCodecRejected("provider structured output shape mismatch")
-        try:
+        decision: AgentDecisionPayload | None = None
+        with suppress(ValidationError):
             decision = AgentDecisionPayload.model_validate(structured_output)
-        except ValidationError as exc:
+        if decision is None:
             raise AgentProviderCodecRejected(
                 "provider structured output validation failed"
-            ) from exc
+            )
         usage = payload["usage"]
         if not isinstance(usage, dict) or not {"input_tokens", "output_tokens"} <= set(usage):
             raise AgentProviderCodecRejected("provider usage shape mismatch")
@@ -326,10 +328,15 @@ def _strict_json(raw: bytearray | str, label: str) -> object:
             result[key] = value
         return result
 
+    parsed: object | None = None
+    rejected = False
     try:
-        return json.loads(raw, object_pairs_hook=reject_duplicate)
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-        raise AgentProviderCodecRejected(f"{label} is not strict JSON") from exc
+        parsed = json.loads(raw, object_pairs_hook=reject_duplicate)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        rejected = True
+    if rejected:
+        raise AgentProviderCodecRejected(f"{label} is not strict JSON")
+    return parsed
 
 
 _RESPONSE_REQUIRED = {"id", "model", "object", "output", "status", "usage"}

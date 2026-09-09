@@ -8,8 +8,10 @@ credential authority.
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Callable
+from contextlib import suppress
 from time import monotonic
 from typing import Annotated, Literal, Self
 
@@ -37,7 +39,7 @@ from .provider_codec import (
 OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST = canonical_digest(
     {
         "contract": "vulnloom.openai-compatible-chat-completions",
-        "version": 1,
+        "version": 2,
         "request": {
             "messages": "sealed_agent_envelope",
             "stream": False,
@@ -50,7 +52,7 @@ OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST = canonical_digest(
             "content": "strict_agent_decision_json",
             "refusal": False,
             "native_tools": False,
-            "usage": "bounded_exact_totals",
+            "usage": "bounded_exact_totals_with_explicit_reviewed_extensions",
         },
         "decision_schema_digest": AGENT_DECISION_SCHEMA_DIGEST,
     }
@@ -100,6 +102,7 @@ class OpenAIChatCompletionsCodecRegistration(DomainModel):
     allowed_empty_root_fields: Annotated[tuple[str, ...], Field(max_length=32)] = ()
     allowed_empty_choice_fields: Annotated[tuple[str, ...], Field(max_length=32)] = ()
     allowed_empty_message_fields: Annotated[tuple[str, ...], Field(max_length=32)] = ()
+    reviewed_usage_extensions_allowed: bool = False
     streaming_allowed: bool = False
     native_tools_allowed: bool = False
     arbitrary_parameters_allowed: bool = False
@@ -152,6 +155,7 @@ class OpenAIChatCompletionsCodecRegistration(DomainModel):
         allowed_empty_root_fields: tuple[str, ...] = (),
         allowed_empty_choice_fields: tuple[str, ...] = (),
         allowed_empty_message_fields: tuple[str, ...] = (),
+        reviewed_usage_extensions_allowed: bool = False,
     ) -> OpenAIChatCompletionsCodecRegistration:
         values = {
             "provider_id": provider_id,
@@ -167,6 +171,7 @@ class OpenAIChatCompletionsCodecRegistration(DomainModel):
             "allowed_empty_root_fields": tuple(sorted(set(allowed_empty_root_fields))),
             "allowed_empty_choice_fields": tuple(sorted(set(allowed_empty_choice_fields))),
             "allowed_empty_message_fields": tuple(sorted(set(allowed_empty_message_fields))),
+            "reviewed_usage_extensions_allowed": reviewed_usage_extensions_allowed,
             "streaming_allowed": False,
             "native_tools_allowed": False,
             "arbitrary_parameters_allowed": False,
@@ -336,16 +341,26 @@ class OpenAIChatCompletionsV1Codec:
             "response_content_mismatch",
         )
         structured_output = _strict_json(content, "OpenAI Chat structured output")
-        try:
+        decision: AgentDecisionPayload | None = None
+        with suppress(ValidationError):
             decision = AgentDecisionPayload.model_validate(structured_output)
-        except ValidationError as exc:
+        if decision is None:
             self.diagnostic_code = "response_content_mismatch"
             raise AgentProviderCodecRejected(
                 "OpenAI Chat structured output validation failed"
-            ) from exc
+            )
 
         usage = payload["usage"]
-        self._require(isinstance(usage, dict) and set(usage) == _USAGE_FIELDS, "usage_mismatch")
+        allowed_usage = _USAGE_FIELDS | (
+            _REVIEWED_USAGE_EXTENSION_FIELDS
+            if self.registration.reviewed_usage_extensions_allowed
+            else set()
+        )
+        self._require(
+            isinstance(usage, dict)
+            and _USAGE_FIELDS <= set(usage) <= allowed_usage,
+            "usage_mismatch",
+        )
         counts = tuple(usage[name] for name in sorted(_USAGE_FIELDS))
         self._require(
             all(type(value) is int and 0 <= value <= 10_000_000 for value in counts),
@@ -360,6 +375,7 @@ class OpenAIChatCompletionsV1Codec:
             == usage["prompt_tokens"] + usage["completion_tokens"],
             "usage_total_mismatch",
         )
+        self._require(_reviewed_usage_extensions_valid(usage), "usage_details_mismatch")
         self._check_timeout(started)
         self.response_model = payload["model"]
         return AgentModelReply(
@@ -402,3 +418,62 @@ _ROOT_OPTIONAL = {"service_tier", "system_fingerprint"}
 _CHOICE_REQUIRED = {"index", "message", "finish_reason"}
 _MESSAGE_REQUIRED = {"role", "content"}
 _USAGE_FIELDS = {"prompt_tokens", "completion_tokens", "total_tokens"}
+_REVIEWED_USAGE_EXTENSION_FIELDS = {
+    "completion_tokens_details",
+    "prompt_cache_hit_tokens",
+    "prompt_cache_miss_tokens",
+    "prompt_tokens_details",
+    "reasoning_tokens",
+    "time_per_output_token_ms",
+    "time_to_first_token_ms",
+    "tokens_per_second",
+}
+_PROMPT_DETAIL_FIELDS = {"audio_tokens", "cached_tokens"}
+_COMPLETION_DETAIL_FIELDS = {
+    "accepted_prediction_tokens",
+    "audio_tokens",
+    "reasoning_tokens",
+    "rejected_prediction_tokens",
+}
+_METRIC_LIMITS = {
+    "time_per_output_token_ms": 10_000,
+    "time_to_first_token_ms": 10_000,
+    "tokens_per_second": 1_000_000,
+}
+
+
+def _reviewed_usage_extensions_valid(usage: dict[str, object]) -> bool:
+    prompt = usage["prompt_tokens"]
+    completion = usage["completion_tokens"]
+    for name, limit in _METRIC_LIMITS.items():
+        value = usage.get(name)
+        if value is not None and (
+            type(value) not in (int, float)
+            or (type(value) is float and not math.isfinite(value))
+            or not 0 <= value <= limit
+        ):
+            return False
+    for name in ("prompt_cache_hit_tokens", "prompt_cache_miss_tokens"):
+        value = usage.get(name)
+        if value is not None and (type(value) is not int or not 0 <= value <= prompt):
+            return False
+    cache_names = {"prompt_cache_hit_tokens", "prompt_cache_miss_tokens"}
+    if cache_names <= set(usage) and sum(usage[name] for name in cache_names) != prompt:
+        return False
+    reasoning = usage.get("reasoning_tokens")
+    if reasoning is not None and (
+        type(reasoning) is not int or not 0 <= reasoning <= completion
+    ):
+        return False
+    for name, allowed, bound in (
+        ("prompt_tokens_details", _PROMPT_DETAIL_FIELDS, prompt),
+        ("completion_tokens_details", _COMPLETION_DETAIL_FIELDS, completion),
+    ):
+        details = usage.get(name)
+        if details is not None and (
+            not isinstance(details, dict)
+            or not set(details) <= allowed
+            or any(type(value) is not int or not 0 <= value <= bound for value in details.values())
+        ):
+            return False
+    return True

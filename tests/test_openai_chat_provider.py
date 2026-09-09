@@ -300,6 +300,89 @@ def test_chat_codec_accepts_only_registered_empty_compatibility_extensions():
         )
 
 
+def test_chat_codec_accepts_only_explicit_reviewed_usage_extensions():
+    _, model_registration, _ = _codec_fixture()
+    registration = OpenAIChatCompletionsCodecRegistration.create(
+        provider_id="test-provider",
+        request_model="test-model",
+        reviewed_usage_extensions_allowed=True,
+    )
+    model_registration = AgentModelRegistration.create_subprocess_https(
+        provider_id="test-provider",
+        model="test-model",
+        adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
+        credential_reference_id="b" * 64,
+        transport_admission_id="c" * 64,
+        egress_grant_id="d" * 64,
+        provider_codec_id=registration.codec_id,
+        supported_roles=(WorkerRole.HYPOTHESIS,),
+        max_output_tokens=64,
+    )
+    usage = {
+        "completion_tokens": 4,
+        "completion_tokens_details": {"reasoning_tokens": 2},
+        "prompt_cache_hit_tokens": 2,
+        "prompt_cache_miss_tokens": 1,
+        "prompt_tokens": 3,
+        "prompt_tokens_details": {"cached_tokens": 2},
+        "reasoning_tokens": 2,
+        "time_to_first_token_ms": 10.5,
+        "tokens_per_second": 20,
+        "total_tokens": 7,
+    }
+
+    reply = _enabled_codec(registration).decode(
+        _chat_response(usage=usage),
+        model_registration=model_registration,
+        latency_seconds=0.1,
+    )
+    assert (reply.input_tokens, reply.output_tokens) == (3, 4)
+
+    usage["prompt_cache_hit_tokens"] = 4
+    with pytest.raises(AgentProviderCodecRejected):
+        _enabled_codec(registration).decode(
+            _chat_response(usage=usage),
+            model_registration=model_registration,
+            latency_seconds=0.1,
+        )
+
+
+def test_chat_codec_rejection_does_not_chain_provider_content():
+    registration, model_registration, _ = _codec_fixture()
+    response = _chat_response(
+        decision={"provider_private_value": "must-not-reach-exception-chain"}
+    )
+
+    with pytest.raises(AgentProviderCodecRejected) as captured:
+        _enabled_codec(registration).decode(
+            response,
+            model_registration=model_registration,
+            latency_seconds=0.1,
+        )
+
+    assert captured.value.__cause__ is None
+    assert captured.value.__context__ is None
+    assert "must-not-reach-exception-chain" not in str(captured.value)
+
+
+def test_chat_codec_malformed_json_does_not_chain_provider_content():
+    registration, model_registration, _ = _codec_fixture()
+    response = _chat_response()
+    private_value = b'must-not-reach-json-exception-chain'
+    response.extend(private_value)
+
+    with pytest.raises(AgentProviderCodecRejected) as captured:
+        _enabled_codec(registration).decode(
+            response,
+            model_registration=model_registration,
+            latency_seconds=0.1,
+        )
+
+    assert captured.value.__cause__ is None
+    assert captured.value.__context__ is None
+    assert private_value.decode() not in str(captured.value)
+
+
 def test_chat_codec_rejects_duplicate_json_and_enforces_wall_budget():
     codec_registration, model_registration, envelope = _codec_fixture(
         limits=AgentProviderCodecLimits(timeout_seconds=1)

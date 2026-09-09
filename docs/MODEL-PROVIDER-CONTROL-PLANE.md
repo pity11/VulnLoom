@@ -407,9 +407,23 @@ lifecycle 与 Flow Snapshot，并仅在权威 Egress Store 证明 Grant active �
 429、transport timeout 和畸形 JSON；所有失败都没有 receipt，credential lease、请求缓冲和已取得的响应缓冲
 均完成清理。该测试没有发起 DNS 或网络连接，也没有创建工具调用、Candidate 或 Finding。
 
-P1 离线范围已经完成。剩余发布门禁是在用户另行明确授权后执行新路径的固定 CUC 实时验收。只有实时响应的
-模型身份、结构化 decision、usage、失败与清理结果同冻结兼容基线相容，默认开发路由才允许迁移；在此之前
-仍使用现有 CUC 路径。
+P1 离线范围已经完成。原剩余发布门禁是经用户明确授权后执行新路径的固定 CUC 实时验收；该门禁已由下述
+2026-09-09 验收通过。默认开发路由迁移仍是独立改动，在完成现有入口回归前继续使用原 CUC 路径。
+
+### P1 通用新路径 CUC 实时验收（2026-09-09）
+
+用户延续此前真实模型调用授权后，通用 Profile adapter 使用固定合成上下文执行两次单请求验收。第一次请求
+到达 Provider 并返回合法 JSON，但字段未遵循 `AgentDecisionPayload`，因此 codec fail-closed、无 receipt，
+凭据及 wire buffers 均完成清理，Grant 随后撤销。该次失败还发现异常链可能携带 Pydantic 输入摘要；codec
+现已使用无原始 cause/context 的稳定拒绝异常，并增加回归测试，Provider 内容不再进入控制台异常链。
+
+固定 prompt template 升级为 v2，明确 exact JSON decision shape；reviewed usage extensions 作为 registration
+绑定开关加入，默认仍关闭。第二次单请求验收通过：response model 为配置的 CUC alias，626 input tokens、
+64 output tokens，产生内容寻址 receipt；credential lease、请求缓冲和响应缓冲均归零，零工具权限。短期
+Grant 在 finally 路径撤销。验收记录仅位于被忽略的 `.vulnloom/`，没有保存响应正文、凭据或完整认证响应。
+
+该结果通过 P1 的真实 CUC 新路径门禁，但不自动切换现有代码审阅、Candidate 建议或固定探针入口。默认路由
+迁移应作为独立改动进行回归；CUC/DeepSeek 继续作为前期默认 Provider。
 
 ### P2：Provider Center CLI/API
 

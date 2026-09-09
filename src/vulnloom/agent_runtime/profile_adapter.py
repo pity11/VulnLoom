@@ -139,6 +139,10 @@ def prepare_openai_chat_profile(
     transport_limits: AgentProviderTransportLimits,
     codec_limits: AgentProviderCodecLimits,
     accepted_response_models: tuple[str, ...] | None = None,
+    allowed_empty_root_fields: tuple[str, ...] = (),
+    allowed_empty_choice_fields: tuple[str, ...] = (),
+    allowed_empty_message_fields: tuple[str, ...] = (),
+    reviewed_usage_extensions_allowed: bool = False,
     now: datetime,
     deadline: datetime,
 ) -> OpenAIChatProfilePreparation:
@@ -176,6 +180,10 @@ def prepare_openai_chat_profile(
         request_model=manifest.provider_model_id,
         accepted_response_models=accepted_response_models,
         limits=codec_limits,
+        allowed_empty_root_fields=allowed_empty_root_fields,
+        allowed_empty_choice_fields=allowed_empty_choice_fields,
+        allowed_empty_message_fields=allowed_empty_message_fields,
+        reviewed_usage_extensions_allowed=reviewed_usage_extensions_allowed,
     )
     admission = AgentProviderTransportAdmission.create_live_https(
         provider_id=profile.provider_id,
