@@ -5,6 +5,7 @@
         "register",
         "update",
         "probe",
+        "probe_bind",
         "enable",
         "disable",
         "route_set"

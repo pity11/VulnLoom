@@ -27,6 +27,7 @@ class ProviderCenterAction(StrEnum):
     REGISTER = "register"
     UPDATE = "update"
     PROBE = "probe"
+    PROBE_BIND = "probe_bind"
     ENABLE = "enable"
     DISABLE = "disable"
     ROUTE_SET = "route_set"
@@ -288,13 +289,76 @@ class ProviderHealthView(DomainModel):
     diagnostic_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,63}$")
 
 
+class CapabilityProbeFixture(DomainModel):
+    observation: CapabilityProbeObservation
+
+
+class BindProviderProbeCommand(DomainModel):
+    command_id: Digest
+    idempotency_key: IdempotencyKey
+    provider_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")
+    expected_profile_digest: Digest
+    probe_plan_id: Digest
+    probe_config_digest: Digest
+    expected_capabilities: Annotated[tuple[ModelCapability, ...], Field(min_length=1)]
+    actor_ref: Digest
+    issued_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        ordered = tuple(sorted(set(self.expected_capabilities), key=lambda item: item.value))
+        if self.expected_capabilities != ordered:
+            raise ValueError("bound probe capabilities must be unique and sorted")
+        if self.command_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"command_id"})
+        ):
+            raise ValueError("bind Provider probe command digest mismatch")
+        return self
+
+
+class ProviderProbeBindingRecord(DomainModel):
+    binding_id: Digest
+    command_id: Digest
+    provider_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")
+    provider_profile_digest: Digest
+    source_plan_id: Digest
+    source_result_id: Digest
+    status: CapabilityProbeStatus
+    capabilities: tuple[ModelCapability, ...]
+    manifest: CapabilityManifest | None = None
+    cleanup_verified: bool
+    source_attempt_digest: Digest | None = None
+    source_receipt_digest: Digest | None = None
+    diagnostic_code: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    completed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        ordered = tuple(sorted(set(self.capabilities), key=lambda item: item.value))
+        if self.capabilities != ordered:
+            raise ValueError("bound Provider capabilities must be unique and sorted")
+        if (self.status is CapabilityProbeStatus.PASSED) != (self.manifest is not None):
+            raise ValueError("only a passed Provider probe binding may publish a manifest")
+        if self.status is CapabilityProbeStatus.PASSED and not (
+            self.cleanup_verified
+            and self.source_attempt_digest
+            and self.source_receipt_digest
+            and self.capabilities
+        ):
+            raise ValueError("passed Provider probe binding requires complete proof")
+        if self.status is not CapabilityProbeStatus.PASSED and self.capabilities:
+            raise ValueError("unsuccessful Provider probe cannot bind capabilities")
+        if self.binding_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"binding_id"})
+        ):
+            raise ValueError("Provider probe binding digest mismatch")
+        return self
+
+
 class ProviderCenterView(DomainModel):
     profiles: tuple[ProviderProfile, ...]
     health: tuple[ProviderHealthView, ...]
     capability_manifests: tuple[CapabilityManifest, ...]
+    probe_bindings: tuple[ProviderProbeBindingRecord, ...]
     default_routes: tuple[ModelRoute, ...]
     recent_audit: tuple[ProviderAuditEvent, ...]
-
-
-class CapabilityProbeFixture(DomainModel):
-    observation: CapabilityProbeObservation

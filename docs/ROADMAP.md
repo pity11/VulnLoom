@@ -1110,8 +1110,24 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - CUC/DeepSeek 固定 probe、代码审阅和 Candidate Recommendation 默认入口保持不变；Provider Center Route
   只供显式采用 registry 的新 Flow 使用，不会静默接管旧入口或失败后跨 Provider 降级。
 
-操作合同与剩余 P2 边界见 `docs/PROVIDER-CENTER.md`。后续继续实现真实 capability probe 结果导入/绑定、
-模型目录同步、权限受限的凭据替换 adapter 和薄 HTTP API；Web UI 不在当前阶段。
+操作合同与剩余 P2 边界见 `docs/PROVIDER-CENTER.md`。下述 P2.1 接入既有真实 capability probe 的结果；
+模型目录同步、权限受限的凭据替换 adapter 和薄 HTTP API 继续后置，Web UI 不在当前阶段。
+
+### Provider Center P2.1（权威 Probe 结果绑定）
+
+- 新增只含摘要/引用的 `BindProviderProbeCommand` 与 `ProviderProbeBindingRecord`，Provider Center 不保存
+  `ProviderProbeConfig`、hostname、认证响应或 Provider token。
+- 复用既有 probe ledger 的只读 completed loader，重新验证 plan/result、config digest、Provider/模型、
+  credential ref、EndpointRef 临时解析、deadline、attempt、receipt 和 cleanup；STARTED 或篡改记录拒绝。
+- CUC PONG 只能证明 chat/usage，固定结构化 JSON 只能证明 chat/strict structured output/usage；调用方必须声明
+  exact 闭集，不能把 connectivity overclaim 为工具、推理或其他能力。
+- passed source 结果在单一事务中写入 binding、Manifest、lifecycle 与审计；rejected、timed_out 和 cleanup
+  未证明只保存脱敏 terminal binding，不提升 Profile。写入失败整体回滚并可安全重试。
+- `provider bind-probe` 只读本地 config/ledger 并复用应用服务，不联网、不取得 Key；现有真实 probe 仍要求
+  独立 Egress Grant、显式网络开关和用户授权。probe ledger 使用 SQLite read-only 模式，错误路径不会创建
+  空账本。本轮测试没有真实 Provider 调用。
+
+下一步是模型目录的类型化本地登记/同步与 revision 绑定，然后实现凭据替换 adapter 和薄 HTTP API。
 
 ## 延后事项
 

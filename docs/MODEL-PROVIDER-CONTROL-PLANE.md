@@ -451,6 +451,12 @@ CLI 首版的 capability probe 只装配无网络 fixture adapter；已有真实
 联网开关和用户授权。现有 CUC/DeepSeek 入口与默认行为没有被 Provider Center 静默替换。实现与操作边界见
 `docs/PROVIDER-CENTER.md`。模型目录同步、真实 probe adapter、凭据替换后端和 HTTP 表面仍属于后续 P2 纵切。
 
+P2 第二个纵切已把既有 `provider-probe-run` 的 completed 权威结果接入 Provider Center，但没有新增网络调用。
+严格 binding command 只保存 config/plan/result 等摘要；本地 probe config 和 EndpointRef 仅在可信 adapter 内
+临时比对，完整 hostname 不进入 registry 或查询。CUC PONG 与固定结构化 JSON 使用代码所有的能力闭集，禁止
+把 connectivity 任意 overclaim 为 tool、reasoning 或其他角色能力。成功且 cleanup/attempt/receipt 完整时才
+生成 Manifest 并推进 lifecycle；拒绝、超时和 cleanup 未证明保留为脱敏 terminal 记录。
+
 ### P3：角色路由与 Flow 固定
 
 Source Hunt 和 Authorized Red Team 可以选择不同模型；Planner、Validator、Critic 可单独路由；Checkpoint 能恢复

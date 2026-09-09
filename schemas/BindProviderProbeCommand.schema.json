@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "expected_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Profile Digest",
+      "type": "string"
+    },
+    "probe_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Probe Plan Id",
+      "type": "string"
+    },
+    "probe_config_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Probe Config Digest",
+      "type": "string"
+    },
+    "expected_capabilities": {
+      "items": {
+        "$ref": "#/$defs/ModelCapability"
+      },
+      "minItems": 1,
+      "title": "Expected Capabilities",
+      "type": "array"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "idempotency_key",
+    "provider_id",
+    "expected_profile_digest",
+    "probe_plan_id",
+    "probe_config_digest",
+    "expected_capabilities",
+    "actor_ref",
+    "issued_at"
+  ],
+  "title": "BindProviderProbeCommand",
+  "type": "object"
+}

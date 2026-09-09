@@ -17,6 +17,7 @@ from .models import (
     ProviderHealthStatus,
     ProviderHealthView,
     ProviderMutationResult,
+    ProviderProbeBindingRecord,
     ProviderReferenceBundle,
 )
 
@@ -66,11 +67,16 @@ class ProviderCenterStore:
               request_id TEXT PRIMARY KEY, idempotency_key TEXT NOT NULL UNIQUE,
               request_json TEXT NOT NULL, state TEXT NOT NULL, result_json TEXT
             );
+            CREATE TABLE IF NOT EXISTS provider_center_probe_bindings (
+              binding_id TEXT PRIMARY KEY, command_id TEXT NOT NULL UNIQUE,
+              provider_profile_digest TEXT NOT NULL,
+              source_plan_id TEXT NOT NULL UNIQUE, binding_json TEXT NOT NULL
+            );
             """
         )
         self.connection.commit()
 
-    def _replay(self, command_id: str, idempotency_key: str, command_json: str):
+    def _operation_row(self, command_id: str, idempotency_key: str, command_json: str):
         row = self.connection.execute(
             "SELECT * FROM provider_center_operations WHERE command_id=? OR idempotency_key=?",
             (command_id, idempotency_key),
@@ -81,20 +87,36 @@ class ProviderCenterStore:
             raise ProviderCenterConflict("Provider Center idempotency identity conflict")
         if row["state"] != "completed" or row["result_json"] is None:
             raise ProviderCenterRecoveryRequired("Provider Center operation requires recovery")
-        try:
-            if row["result_type"] == "mutation":
-                return ProviderMutationResult.model_validate_json(row["result_json"])
-        except ValidationError as exc:
-            raise ProviderCenterRecoveryRequired("Provider Center result is invalid") from exc
-        raise ProviderCenterRecoveryRequired("Provider Center result type is invalid")
+        return row
 
     def mutation_replay(self, command) -> ProviderMutationResult | None:
-        replay = self._replay(
+        row = self._operation_row(
             command.command_id, command.idempotency_key, command.model_dump_json()
         )
-        if replay is None:
+        if row is None:
             return None
-        return replay.model_copy(update={"applied": False})
+        try:
+            if row["result_type"] == "mutation":
+                result = ProviderMutationResult.model_validate_json(row["result_json"])
+                return result.model_copy(update={"applied": False})
+        except ValidationError as exc:
+            raise ProviderCenterRecoveryRequired("Provider Center result is invalid") from exc
+        raise ProviderCenterConflict("Provider Center operation type conflict")
+
+    def binding_replay(self, command) -> ProviderProbeBindingRecord | None:
+        row = self._operation_row(
+            command.command_id, command.idempotency_key, command.model_dump_json()
+        )
+        if row is None:
+            return None
+        try:
+            if row["result_type"] == "probe_binding":
+                return ProviderProbeBindingRecord.model_validate_json(row["result_json"])
+        except ValidationError as exc:
+            raise ProviderCenterRecoveryRequired(
+                "Provider probe binding result is invalid"
+            ) from exc
+        raise ProviderCenterConflict("Provider Center operation type conflict")
 
     def apply_mutation(
         self,
@@ -131,6 +153,76 @@ class ProviderCenterStore:
         except sqlite3.IntegrityError as exc:
             raise ProviderCenterConflict("Provider Center concurrent mutation rejected") from exc
         return result
+
+    def apply_probe_binding(
+        self,
+        command,
+        record: ProviderProbeBindingRecord,
+        event: ProviderAuditEvent,
+        *,
+        expected_profile: ProviderProfile,
+        updated_profile: ProviderProfile,
+    ) -> ProviderProbeBindingRecord:
+        replay = self.binding_replay(command)
+        if replay is not None:
+            return replay
+        try:
+            with self.connection:
+                self.connection.execute(
+                    "INSERT INTO provider_center_operations VALUES (?,?,?,'started',NULL,NULL)",
+                    (command.command_id, command.idempotency_key, command.model_dump_json()),
+                )
+                row = self.connection.execute(
+                    "SELECT profile_json FROM provider_center_profiles "
+                    "WHERE profile_digest=? AND is_current=1",
+                    (expected_profile.profile_digest,),
+                ).fetchone()
+                if row is None or row[0] != expected_profile.model_dump_json():
+                    raise ProviderCenterConflict("Provider lifecycle changed during probe binding")
+                if record.manifest is not None:
+                    self.connection.execute(
+                        "INSERT INTO provider_center_manifests VALUES (?,?,?,?)",
+                        (
+                            record.manifest.manifest_digest,
+                            record.manifest.provider_profile_digest,
+                            record.manifest.provider_model_id,
+                            record.manifest.model_dump_json(),
+                        ),
+                    )
+                changed = self.connection.execute(
+                    "UPDATE provider_center_profiles SET profile_json=? "
+                    "WHERE profile_digest=? AND is_current=1",
+                    (updated_profile.model_dump_json(), updated_profile.profile_digest),
+                ).rowcount
+                if changed != 1:
+                    raise ProviderCenterRecoveryRequired("Provider Profile update failed")
+                self.connection.execute(
+                    "INSERT INTO provider_center_probe_bindings VALUES (?,?,?,?,?)",
+                    (
+                        record.binding_id,
+                        record.command_id,
+                        record.provider_profile_digest,
+                        record.source_plan_id,
+                        record.model_dump_json(),
+                    ),
+                )
+                self.connection.execute(
+                    "INSERT INTO provider_center_audit(event_id,event_json) VALUES (?,?)",
+                    (event.event_id, event.model_dump_json()),
+                )
+                completed = self.connection.execute(
+                    "UPDATE provider_center_operations SET state='completed',"
+                    "result_type='probe_binding',result_json=? "
+                    "WHERE command_id=? AND state='started'",
+                    (record.model_dump_json(), command.command_id),
+                ).rowcount
+                if completed != 1:
+                    raise ProviderCenterRecoveryRequired(
+                        "Provider probe binding STARTED checkpoint unavailable"
+                    )
+        except sqlite3.IntegrityError as exc:
+            raise ProviderCenterConflict("Provider probe binding conflict") from exc
+        return record
 
     def current_profile(self, provider_id: str) -> ProviderProfile:
         row = self.connection.execute(
@@ -273,12 +365,22 @@ class ProviderCenterStore:
         probe_rows = self.connection.execute(
             "SELECT result_json FROM provider_center_probes WHERE state='completed' ORDER BY rowid"
         ).fetchall()
+        binding_rows = self.connection.execute(
+            "SELECT binding_json FROM provider_center_probe_bindings ORDER BY rowid"
+        ).fetchall()
         try:
             profiles = tuple(ProviderProfile.model_validate_json(row[0]) for row in profile_rows)
             probe_results = tuple(
                 CapabilityProbeResult.model_validate_json(row[0]) for row in probe_rows
             )
+            bindings = tuple(
+                ProviderProbeBindingRecord.model_validate_json(row[0]) for row in binding_rows
+            )
             latest_probe = {item.provider_profile_digest: item for item in probe_results}
+            for item in bindings:
+                prior = latest_probe.get(item.provider_profile_digest)
+                if prior is None or item.completed_at >= prior.completed_at:
+                    latest_probe[item.provider_profile_digest] = item
             health = []
             for profile in profiles:
                 probe = latest_probe.get(profile.profile_digest)
@@ -308,6 +410,7 @@ class ProviderCenterStore:
                 capability_manifests=tuple(
                     CapabilityManifest.model_validate_json(row[0]) for row in manifest_rows
                 ),
+                probe_bindings=bindings,
                 default_routes=tuple(ModelRoute.model_validate_json(row[0]) for row in route_rows),
                 recent_audit=tuple(
                     ProviderAuditEvent.model_validate_json(row[0]) for row in audit_rows

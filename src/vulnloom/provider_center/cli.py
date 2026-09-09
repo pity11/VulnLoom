@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
+from vulnloom.adapters import EnvironmentModelEndpointProvider
+from vulnloom.agent_runtime.provider_probe_models import ProviderProbeConfig
+from vulnloom.agent_runtime.provider_probe_store import ProviderProbeStore
+
 from .models import (
+    BindProviderProbeCommand,
     CapabilityProbeFixture,
     CapabilityProbeRequest,
     DisableProviderCommand,
@@ -15,7 +21,11 @@ from .models import (
     SetDefaultRouteCommand,
     UpdateProviderCommand,
 )
-from .service import FixtureCapabilityProbeAdapter, ProviderCenterService
+from .service import (
+    FixtureCapabilityProbeAdapter,
+    ProviderCenterService,
+    StoredProviderProbeEvidenceReader,
+)
 from .store import ProviderCenterStore
 
 
@@ -57,6 +67,29 @@ def _probe(args: argparse.Namespace) -> int:
         with ProviderCenterStore(Path(args.provider_db)) as store:
             result = ProviderCenterService(store).probe(
                 request, FixtureCapabilityProbeAdapter(fixture.observation)
+            )
+        return _emit(result)
+    except (OSError, ValueError, RuntimeError):
+        return _rejected()
+
+
+def _bind_probe(args: argparse.Namespace) -> int:
+    try:
+        command = _load(args.command_file, BindProviderProbeCommand)
+        config = _load(args.probe_config_file, ProviderProbeConfig)
+        with (
+            ProviderCenterStore(Path(args.provider_db)) as store,
+            ProviderProbeStore(Path(args.probe_db), read_only=True) as probe_store,
+        ):
+            profile = store.current_profile(command.provider_id)
+            references = store.references(profile.profile_digest)
+            endpoint_provider = EnvironmentModelEndpointProvider(
+                os.environ, allowed_references=(references.endpoint,)
+            )
+            result = ProviderCenterService(store).bind_provider_probe(
+                command,
+                evidence_reader=StoredProviderProbeEvidenceReader(config=config, store=probe_store),
+                endpoint_provider=endpoint_provider,
             )
         return _emit(result)
     except (OSError, ValueError, RuntimeError):
@@ -114,6 +147,11 @@ def register_provider_center_commands(subparsers) -> None:
     probe.add_argument("--request-file", required=True)
     probe.add_argument("--fixture-file", required=True)
     probe.set_defaults(handler=_probe)
+    bind_probe = actions.add_parser("bind-probe")
+    bind_probe.add_argument("--command-file", required=True)
+    bind_probe.add_argument("--probe-config-file", required=True)
+    bind_probe.add_argument("--probe-db", required=True)
+    bind_probe.set_defaults(handler=_bind_probe)
     for name in ("list", "audit"):
         query = actions.add_parser(name)
         query.add_argument("--audit-limit", type=int, choices=range(0, 1001), default=50)

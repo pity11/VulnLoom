@@ -81,6 +81,15 @@
       "title": "CapabilityManifest",
       "type": "object"
     },
+    "CapabilityProbeStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "timed_out"
+      ],
+      "title": "CapabilityProbeStatus",
+      "type": "string"
+    },
     "CapabilityStatus": {
       "enum": [
         "unknown",
@@ -356,6 +365,7 @@
         "register",
         "update",
         "probe",
+        "probe_bind",
         "enable",
         "disable",
         "route_set"
@@ -460,6 +470,117 @@
       ],
       "title": "ProviderLifecycleState",
       "type": "string"
+    },
+    "ProviderProbeBindingRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "command_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Command Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "source_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Plan Id",
+          "type": "string"
+        },
+        "source_result_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Result Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/CapabilityProbeStatus"
+        },
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/ModelCapability"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CapabilityManifest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cleanup_verified": {
+          "title": "Cleanup Verified",
+          "type": "boolean"
+        },
+        "source_attempt_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Attempt Digest"
+        },
+        "source_receipt_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Receipt Digest"
+        },
+        "diagnostic_code": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Diagnostic Code",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "command_id",
+        "provider_id",
+        "provider_profile_digest",
+        "source_plan_id",
+        "source_result_id",
+        "status",
+        "capabilities",
+        "cleanup_verified",
+        "diagnostic_code",
+        "completed_at"
+      ],
+      "title": "ProviderProbeBindingRecord",
+      "type": "object"
     },
     "ProviderProfile": {
       "additionalProperties": false,
@@ -596,6 +717,13 @@
       "title": "Capability Manifests",
       "type": "array"
     },
+    "probe_bindings": {
+      "items": {
+        "$ref": "#/$defs/ProviderProbeBindingRecord"
+      },
+      "title": "Probe Bindings",
+      "type": "array"
+    },
     "default_routes": {
       "items": {
         "$ref": "#/$defs/ModelRoute"
@@ -615,6 +743,7 @@
     "profiles",
     "health",
     "capability_manifests",
+    "probe_bindings",
     "default_routes",
     "recent_audit"
   ],

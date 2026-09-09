@@ -238,6 +238,7 @@ from vulnloom.findings import (
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.provider_center import (
+    BindProviderProbeCommand,
     CapabilityProbeFixture,
     CapabilityProbeObservation,
     CapabilityProbeRequest,
@@ -248,6 +249,7 @@ from vulnloom.provider_center import (
     ProviderCenterView,
     ProviderHealthView,
     ProviderMutationResult,
+    ProviderProbeBindingRecord,
     ProviderReferenceBundle,
     RegisterProviderCommand,
     SetDefaultRouteCommand,
@@ -369,6 +371,8 @@ MODELS = (
     ProviderCenterView,
     ProviderHealthView,
     CapabilityProbeFixture,
+    BindProviderProbeCommand,
+    ProviderProbeBindingRecord,
     AgentContextLimits,
     AgentContextFragment,
     AgentContextSnapshot,

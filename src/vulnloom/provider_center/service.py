@@ -7,12 +7,35 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from vulnloom.adapters import ModelEndpointProvider
+from vulnloom.agent_runtime.openai_chat import (
+    OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST,
+)
+from vulnloom.agent_runtime.profile_adapter import OPENAI_CHAT_PROFILE_ADAPTER_ID
+from vulnloom.agent_runtime.provider_probe_cuc import (
+    CucChatProbeCodecRegistration,
+    CucChatStructuredProbeCodecRegistration,
+)
+from vulnloom.agent_runtime.provider_probe_fixture import (
+    CUC_PROBE_DIGEST,
+    CUC_STRUCTURED_PROBE_DIGEST,
+)
+from vulnloom.agent_runtime.provider_probe_models import (
+    ProviderProbeConfig,
+    ProviderProbePlan,
+)
+from vulnloom.agent_runtime.provider_probe_models import (
+    ProviderProbeResult as SourceProviderProbeResult,
+)
+from vulnloom.agent_runtime.provider_probe_store import ProviderProbeStore
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.model_routing import (
     CapabilityManifest,
     CapabilityStatus,
+    ModelCapability,
     ModelCapabilityAssessment,
     ProviderLifecycleState,
+    ProviderProtocol,
     build_flow_model_snapshot,
     revise_provider_profile,
     transition_provider_profile,
@@ -20,6 +43,7 @@ from vulnloom.domain.model_routing import (
 from vulnloom.domain.models import utc_now
 
 from .models import (
+    BindProviderProbeCommand,
     CapabilityProbeObservation,
     CapabilityProbeRequest,
     CapabilityProbeResult,
@@ -30,6 +54,7 @@ from .models import (
     ProviderCenterAction,
     ProviderCenterOutcome,
     ProviderMutationResult,
+    ProviderProbeBindingRecord,
     RegisterProviderCommand,
     SetDefaultRouteCommand,
     UpdateProviderCommand,
@@ -51,6 +76,26 @@ class FixtureCapabilityProbeAdapter:
 
     def probe(self, request: CapabilityProbeRequest) -> CapabilityProbeObservation:
         return self.observation
+
+
+class ProviderProbeEvidenceReader(Protocol):
+    def load_completed(
+        self, plan_id: str
+    ) -> tuple[ProviderProbeConfig, ProviderProbePlan, SourceProviderProbeResult]: ...
+
+
+class StoredProviderProbeEvidenceReader:
+    """Read an existing authoritative probe without acquiring credentials or networking."""
+
+    def __init__(self, *, config: ProviderProbeConfig, store: ProviderProbeStore):
+        self.config = ProviderProbeConfig.model_validate(config.model_dump(mode="python"))
+        self.store = store
+
+    def load_completed(self, plan_id: str):
+        plan, result = self.store.load_completed(plan_id)
+        if plan.config_digest != canonical_digest(self.config.model_dump(mode="python")):
+            raise ProviderCenterConflict("Provider probe config digest mismatch")
+        return self.config, plan, result
 
 
 def _audit(
@@ -289,6 +334,154 @@ class ProviderCenterService:
         )
         self.store.complete_probe(result, profile, updated, event)
         return result
+
+    def bind_provider_probe(
+        self,
+        command: BindProviderProbeCommand,
+        *,
+        evidence_reader: ProviderProbeEvidenceReader,
+        endpoint_provider: ModelEndpointProvider,
+    ) -> ProviderProbeBindingRecord:
+        replay = self.store.binding_replay(command)
+        if replay is not None:
+            return replay
+        profile = self._current_profile_for_digest(command.expected_profile_digest)
+        if (
+            profile.provider_id != command.provider_id
+            or profile.state is not ProviderLifecycleState.SECRET_BOUND
+            or profile.protocol
+            not in {
+                ProviderProtocol.OPENAI_CHAT_COMPLETIONS,
+                ProviderProtocol.LOCAL_OPENAI_COMPATIBLE,
+            }
+            or profile.protocol_adapter_id != OPENAI_CHAT_PROFILE_ADAPTER_ID
+        ):
+            raise ProviderCenterConflict("Provider Profile cannot bind this probe")
+        references = self.store.references(profile.profile_digest)
+        config, plan, source = evidence_reader.load_completed(command.probe_plan_id)
+        config_digest = canonical_digest(config.model_dump(mode="python"))
+        if (
+            command.probe_config_digest != config_digest
+            or plan.config_digest != config_digest
+            or plan.plan_id != command.probe_plan_id
+            or source.plan_id != plan.plan_id
+            or command.issued_at < source.completed_at
+            or plan.grant_id != config.registration.egress_grant_id
+            or config.registration.provider_id != profile.provider_id
+            or config.registration.model != "cuc/deepseek"
+            or config.credential_reference != references.credential
+            or config.admission.credential_reference_id != profile.credential_reference_id
+        ):
+            raise ProviderCenterConflict("Provider probe identity binding rejected")
+        endpoint = endpoint_provider.resolve(references.endpoint)
+        if (
+            endpoint.hostname != config.admission.hostname
+            or endpoint.port != 443
+            or not endpoint.admits(config.admission.request_path)
+        ):
+            raise ProviderCenterConflict("Provider endpoint reference does not match probe")
+        capabilities = self._capabilities_proven_by_probe(config, plan)
+        if capabilities != command.expected_capabilities:
+            raise ProviderCenterConflict("Provider probe capability claim is not exact")
+
+        status = {
+            "passed": CapabilityProbeStatus.PASSED,
+            "rejected": CapabilityProbeStatus.FAILED,
+            "timed_out": CapabilityProbeStatus.TIMED_OUT,
+        }[source.status]
+        manifest = None
+        updated = profile
+        bound_capabilities = ()
+        if status is CapabilityProbeStatus.PASSED:
+            if not (
+                source.process_started
+                and source.cleanup_verified
+                and source.attempt_digest
+                and source.receipt_digest
+            ):
+                raise ProviderCenterConflict("successful Provider probe proof is incomplete")
+            manifest = CapabilityManifest.create(
+                provider_profile_digest=profile.profile_digest,
+                provider_model_id=config.registration.model,
+                protocol_adapter_digest=OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST,
+                assessments=tuple(
+                    ModelCapabilityAssessment(
+                        capability=capability,
+                        status=CapabilityStatus.PROBED,
+                        probe_result_digest=source.result_id,
+                    )
+                    for capability in capabilities
+                ),
+                max_output_tokens=config.registration.max_output_tokens,
+                observed_at=source.completed_at,
+            )
+            bound_capabilities = capabilities
+            for target in (
+                ProviderLifecycleState.CONNECTIVITY_VERIFIED,
+                ProviderLifecycleState.CATALOG_DISCOVERED,
+                ProviderLifecycleState.CAPABILITIES_PROBED,
+            ):
+                updated = transition_provider_profile(
+                    updated, target, evidence_digest=source.result_id
+                )
+        diagnostic_code = f"source_probe_{source.status}"
+        values = {
+            "command_id": command.command_id,
+            "provider_id": profile.provider_id,
+            "provider_profile_digest": profile.profile_digest,
+            "source_plan_id": plan.plan_id,
+            "source_result_id": source.result_id,
+            "status": status,
+            "capabilities": bound_capabilities,
+            "manifest": manifest,
+            "cleanup_verified": source.cleanup_verified,
+            "source_attempt_digest": source.attempt_digest,
+            "source_receipt_digest": source.receipt_digest,
+            "diagnostic_code": diagnostic_code,
+            "completed_at": command.issued_at,
+        }
+        digest_values = {
+            **values,
+            "manifest": None if manifest is None else manifest.model_dump(mode="python"),
+        }
+        record = ProviderProbeBindingRecord(binding_id=canonical_digest(digest_values), **values)
+        outcome = {
+            CapabilityProbeStatus.PASSED: ProviderCenterOutcome.APPLIED,
+            CapabilityProbeStatus.FAILED: ProviderCenterOutcome.REJECTED,
+            CapabilityProbeStatus.TIMED_OUT: ProviderCenterOutcome.TIMED_OUT,
+        }[status]
+        event = _audit(
+            action=ProviderCenterAction.PROBE_BIND,
+            outcome=outcome,
+            provider_id=profile.provider_id,
+            profile_digest=profile.profile_digest,
+            actor_ref=command.actor_ref,
+            diagnostic_code=diagnostic_code,
+            occurred_at=command.issued_at,
+        )
+        return self.store.apply_probe_binding(
+            command,
+            record,
+            event,
+            expected_profile=profile,
+            updated_profile=updated,
+        )
+
+    @staticmethod
+    def _capabilities_proven_by_probe(config, plan):
+        if plan.fixture_digest == CUC_STRUCTURED_PROBE_DIGEST and isinstance(
+            config.codec, CucChatStructuredProbeCodecRegistration
+        ):
+            return (
+                ModelCapability.CHAT,
+                ModelCapability.STRICT_STRUCTURED_OUTPUT,
+                ModelCapability.USAGE_ACCOUNTING,
+            )
+        if plan.fixture_digest == CUC_PROBE_DIGEST and isinstance(
+            config.codec, CucChatProbeCodecRegistration
+        ):
+            return (ModelCapability.CHAT, ModelCapability.USAGE_ACCOUNTING)
+        raise ProviderCenterConflict("Provider probe fixture cannot establish capabilities")
 
     def enable(self, command: EnableProviderCommand) -> ProviderMutationResult:
         replay = self.store.mutation_replay(command)

@@ -1,12 +1,32 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
 
-from vulnloom.adapters import ModelCredentialReference, ModelEndpointReference
+from vulnloom.adapters import (
+    ModelCredentialReference,
+    ModelEndpointReference,
+    ResolvedModelEndpoint,
+)
+from vulnloom.agent_runtime.provider_probe import create_cuc_probe_config
+from vulnloom.agent_runtime.provider_probe_fixture import (
+    CUC_PROBE_DIGEST,
+    CUC_STRUCTURED_PROBE_DIGEST,
+)
+from vulnloom.agent_runtime.provider_probe_models import (
+    ProviderProbePlan,
+)
+from vulnloom.agent_runtime.provider_probe_models import (
+    ProviderProbeResult as SourceProviderProbeResult,
+)
+from vulnloom.agent_runtime.provider_probe_store import (
+    ProviderProbeRecoveryRequired,
+    ProviderProbeStore,
+)
 from vulnloom.cli import main
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.model_routing import (
@@ -24,6 +44,7 @@ from vulnloom.domain.model_routing import (
     revise_provider_profile,
 )
 from vulnloom.provider_center import (
+    BindProviderProbeCommand,
     CapabilityProbeObservation,
     CapabilityProbeRequest,
     CapabilityProbeStatus,
@@ -37,6 +58,7 @@ from vulnloom.provider_center import (
     ProviderReferenceBundle,
     RegisterProviderCommand,
     SetDefaultRouteCommand,
+    StoredProviderProbeEvidenceReader,
     UpdateProviderCommand,
 )
 
@@ -166,6 +188,58 @@ def _enable(service, profile, manifest, key="enable-1"):
     }
     command = _sealed(EnableProviderCommand, "command_id", **values)
     return service.enable(command), command
+
+
+class _CucEndpointProvider:
+    def resolve(self, reference):
+        return ResolvedModelEndpoint(hostname="openai.cuc.edu.cn", port=443, base_path="")
+
+
+def _source_probe(tmp_path, *, status="passed", cleanup=True, key="source-probe", structured=True):
+    config = create_cuc_probe_config(grant_id=_digest(f"{key}:grant"), structured=structured)
+    plan = ProviderProbePlan.create(
+        config_digest=canonical_digest(config.model_dump(mode="python")),
+        grant_id=config.registration.egress_grant_id,
+        fixture_digest=CUC_STRUCTURED_PROBE_DIGEST if structured else CUC_PROBE_DIGEST,
+        created_at=NOW,
+        deadline=NOW + timedelta(seconds=10),
+        idempotency_key=key,
+    )
+    result = SourceProviderProbeResult.create(
+        plan_id=plan.plan_id,
+        status=status,
+        input_tokens=34 if status == "passed" else 0,
+        output_tokens=10 if status == "passed" else 0,
+        process_started=status != "timed_out",
+        cleanup_verified=cleanup,
+        attempt_digest=_digest(f"{key}:attempt") if status != "timed_out" else None,
+        receipt_digest=_digest(f"{key}:receipt") if status == "passed" else None,
+        completed_at=NOW + timedelta(seconds=1),
+        response_model="deepseek-v4-flash-0731" if status == "passed" else None,
+    )
+    store = ProviderProbeStore(tmp_path / f"{key}.db")
+    assert store.claim(plan) is None
+    store.complete(result)
+    return config, plan, result, store
+
+
+def _bind_command(profile, config, plan, *, key="bind-source-probe", expected_capabilities=None):
+    values = {
+        "idempotency_key": key,
+        "provider_id": profile.provider_id,
+        "expected_profile_digest": profile.profile_digest,
+        "probe_plan_id": plan.plan_id,
+        "probe_config_digest": canonical_digest(config.model_dump(mode="python")),
+        "expected_capabilities": expected_capabilities
+        or (
+            ModelCapability.CHAT,
+            ModelCapability.STRICT_STRUCTURED_OUTPUT,
+            ModelCapability.USAGE_ACCOUNTING,
+        ),
+        "actor_ref": _digest("operator"),
+        "issued_at": NOW + timedelta(seconds=2),
+    }
+    return _sealed(BindProviderProbeCommand, "command_id", **values)
 
 
 def test_provider_center_success_idempotency_route_and_redacted_audit(tmp_path):
@@ -426,3 +500,295 @@ def test_provider_center_rejects_conflicting_idempotency_key(tmp_path):
         _register(service, "cuc", "same-key")
         with pytest.raises(ProviderCenterConflict, match="identity conflict"):
             _register(service, "second", "same-key")
+
+
+def test_bind_authoritative_structured_probe_promotes_exact_capabilities(tmp_path):
+    config, plan, source, probe_store = _source_probe(tmp_path)
+    center_db = tmp_path / "center.db"
+    try:
+        with ProviderCenterStore(center_db) as store:
+            service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=2))
+            registered, _ = _register(service)
+            command = _bind_command(registered.profile, config, plan)
+
+            record = service.bind_provider_probe(
+                command,
+                evidence_reader=StoredProviderProbeEvidenceReader(config=config, store=probe_store),
+                endpoint_provider=_CucEndpointProvider(),
+            )
+
+            assert record.status is CapabilityProbeStatus.PASSED
+            assert record.source_result_id == source.result_id
+            assert record.capabilities == command.expected_capabilities
+            assert record.manifest is not None
+            assert record.manifest.protocol_adapter_digest != config.codec.codec_id
+            assert store.current_profile("cuc").state is ProviderLifecycleState.CAPABILITIES_PROBED
+            assert store.view().probe_bindings == (record,)
+            assert store.view().health[0].status.value == "healthy"
+            assert (
+                service.bind_provider_probe(
+                    command,
+                    evidence_reader=StoredProviderProbeEvidenceReader(
+                        config=config, store=probe_store
+                    ),
+                    endpoint_provider=_CucEndpointProvider(),
+                )
+                == record
+            )
+    finally:
+        probe_store.close()
+
+    center_bytes = center_db.read_bytes()
+    assert b"openai.cuc.edu.cn" not in center_bytes
+    assert b"Authorization" not in center_bytes
+
+
+def test_pong_probe_cannot_claim_structured_output_capability(tmp_path):
+    config, plan, _, probe_store = _source_probe(tmp_path, key="pong-source", structured=False)
+    try:
+        with ProviderCenterStore(tmp_path / "center.db") as store:
+            service = ProviderCenterService(store)
+            registered, _ = _register(service)
+            capabilities = (
+                ModelCapability.CHAT,
+                ModelCapability.USAGE_ACCOUNTING,
+            )
+            record = service.bind_provider_probe(
+                _bind_command(
+                    registered.profile,
+                    config,
+                    plan,
+                    key="bind-pong",
+                    expected_capabilities=capabilities,
+                ),
+                evidence_reader=StoredProviderProbeEvidenceReader(config=config, store=probe_store),
+                endpoint_provider=_CucEndpointProvider(),
+            )
+            assert record.capabilities == capabilities
+            assert ModelCapability.STRICT_STRUCTURED_OUTPUT not in record.capabilities
+    finally:
+        probe_store.close()
+
+
+@pytest.mark.parametrize(
+    ("status", "cleanup", "expected"),
+    [("rejected", False, "failed"), ("timed_out", True, "timed_out")],
+)
+def test_unsuccessful_authoritative_probe_is_audited_without_capability_uplift(
+    tmp_path, status, cleanup, expected
+):
+    config, plan, _, probe_store = _source_probe(
+        tmp_path, status=status, cleanup=cleanup, key=f"source-{status}"
+    )
+    try:
+        with ProviderCenterStore(tmp_path / "center.db") as store:
+            service = ProviderCenterService(store)
+            registered, _ = _register(service)
+            record = service.bind_provider_probe(
+                _bind_command(registered.profile, config, plan, key=f"bind-{status}"),
+                evidence_reader=StoredProviderProbeEvidenceReader(config=config, store=probe_store),
+                endpoint_provider=_CucEndpointProvider(),
+            )
+
+            assert record.status.value == expected
+            assert record.manifest is None and record.capabilities == ()
+            assert record.cleanup_verified is cleanup
+            assert store.current_profile("cuc").state is ProviderLifecycleState.SECRET_BOUND
+            assert store.view().health[0].status.value == expected
+            assert store.view().recent_audit[0].outcome.value in {"rejected", "timed_out"}
+    finally:
+        probe_store.close()
+
+
+def test_probe_binding_rejects_capability_or_endpoint_overclaim(tmp_path):
+    config, plan, _, probe_store = _source_probe(tmp_path)
+    try:
+        with ProviderCenterStore(tmp_path / "center.db") as store:
+            service = ProviderCenterService(store)
+            registered, _ = _register(service)
+            command = _bind_command(registered.profile, config, plan)
+            values = command.model_dump(mode="python", exclude={"command_id"})
+            values["expected_capabilities"] = tuple(
+                sorted(
+                    (*command.expected_capabilities, ModelCapability.TOOL_PROPOSAL),
+                    key=lambda item: item.value,
+                )
+            )
+            overclaim = _sealed(BindProviderProbeCommand, "command_id", **values)
+            with pytest.raises(ProviderCenterConflict, match="claim is not exact"):
+                service.bind_provider_probe(
+                    overclaim,
+                    evidence_reader=StoredProviderProbeEvidenceReader(
+                        config=config, store=probe_store
+                    ),
+                    endpoint_provider=_CucEndpointProvider(),
+                )
+
+            class WrongEndpoint:
+                def resolve(self, reference):
+                    return ResolvedModelEndpoint(
+                        hostname="different.example", port=443, base_path=""
+                    )
+
+            with pytest.raises(ProviderCenterConflict, match="endpoint reference"):
+                service.bind_provider_probe(
+                    command,
+                    evidence_reader=StoredProviderProbeEvidenceReader(
+                        config=config, store=probe_store
+                    ),
+                    endpoint_provider=WrongEndpoint(),
+                )
+            assert store.current_profile("cuc").state is ProviderLifecycleState.SECRET_BOUND
+            assert store.view().probe_bindings == ()
+    finally:
+        probe_store.close()
+
+
+def test_probe_binding_write_failure_rolls_back_and_can_retry(tmp_path):
+    config, plan, _, probe_store = _source_probe(tmp_path)
+    try:
+        with ProviderCenterStore(tmp_path / "center.db") as store:
+            service = ProviderCenterService(store)
+            registered, _ = _register(service)
+            command = _bind_command(registered.profile, config, plan)
+            reader = StoredProviderProbeEvidenceReader(config=config, store=probe_store)
+            store.connection.execute(
+                "CREATE TRIGGER fail_probe_binding BEFORE INSERT ON provider_center_audit "
+                "WHEN NEW.event_json LIKE '%probe_bind%' BEGIN SELECT RAISE(ABORT, 'fail'); END"
+            )
+            with pytest.raises(ProviderCenterConflict):
+                service.bind_provider_probe(
+                    command,
+                    evidence_reader=reader,
+                    endpoint_provider=_CucEndpointProvider(),
+                )
+            assert store.current_profile("cuc").state is ProviderLifecycleState.SECRET_BOUND
+            assert store.view().probe_bindings == ()
+            store.connection.execute("DROP TRIGGER fail_probe_binding")
+            record = service.bind_provider_probe(
+                command,
+                evidence_reader=reader,
+                endpoint_provider=_CucEndpointProvider(),
+            )
+            assert record.status is CapabilityProbeStatus.PASSED
+    finally:
+        probe_store.close()
+
+
+def test_probe_evidence_reader_rejects_started_ledger(tmp_path):
+    config = create_cuc_probe_config(grant_id=_digest("grant"), structured=True)
+    plan = ProviderProbePlan.create(
+        config_digest=canonical_digest(config.model_dump(mode="python")),
+        grant_id=config.registration.egress_grant_id,
+        fixture_digest=CUC_STRUCTURED_PROBE_DIGEST,
+        created_at=NOW,
+        deadline=NOW + timedelta(seconds=10),
+        idempotency_key="unfinished-source",
+    )
+    with ProviderProbeStore(tmp_path / "probe.db") as probe_store:
+        assert probe_store.claim(plan) is None
+        reader = StoredProviderProbeEvidenceReader(config=config, store=probe_store)
+        with pytest.raises(ProviderProbeRecoveryRequired, match="unavailable"):
+            reader.load_completed(plan.plan_id)
+
+
+def test_probe_evidence_reader_rejects_tampered_completed_ledger(tmp_path):
+    config, plan, _, probe_store = _source_probe(tmp_path, key="tampered-source")
+    try:
+        probe_store.connection.execute(
+            "UPDATE provider_probes SET result_json='{}' WHERE plan_id=?",
+            (plan.plan_id,),
+        )
+        probe_store.connection.commit()
+        reader = StoredProviderProbeEvidenceReader(config=config, store=probe_store)
+
+        with pytest.raises(ProviderProbeRecoveryRequired, match="invalid"):
+            reader.load_completed(plan.plan_id)
+    finally:
+        probe_store.close()
+
+
+def test_probe_binding_rejects_plan_grant_drift(tmp_path):
+    config, _, _, probe_store = _source_probe(tmp_path, key="unused-source")
+    probe_store.close()
+    plan = ProviderProbePlan.create(
+        config_digest=canonical_digest(config.model_dump(mode="python")),
+        grant_id=_digest("different-grant"),
+        fixture_digest=CUC_STRUCTURED_PROBE_DIGEST,
+        created_at=NOW,
+        deadline=NOW + timedelta(seconds=10),
+        idempotency_key="grant-drift-source",
+    )
+    result = SourceProviderProbeResult.create(
+        plan_id=plan.plan_id,
+        status="passed",
+        input_tokens=34,
+        output_tokens=10,
+        process_started=True,
+        cleanup_verified=True,
+        attempt_digest=_digest("grant-drift:attempt"),
+        receipt_digest=_digest("grant-drift:receipt"),
+        completed_at=NOW + timedelta(seconds=1),
+        response_model="deepseek-v4-flash-0731",
+    )
+    with ProviderProbeStore(tmp_path / "grant-drift.db") as drifted_store:
+        assert drifted_store.claim(plan) is None
+        drifted_store.complete(result)
+        with ProviderCenterStore(tmp_path / "center.db") as store:
+            service = ProviderCenterService(store)
+            registered, _ = _register(service)
+            with pytest.raises(ProviderCenterConflict, match="identity binding"):
+                service.bind_provider_probe(
+                    _bind_command(registered.profile, config, plan),
+                    evidence_reader=StoredProviderProbeEvidenceReader(
+                        config=config, store=drifted_store
+                    ),
+                    endpoint_provider=_CucEndpointProvider(),
+                )
+
+
+def test_read_only_probe_ledger_does_not_create_a_missing_database(tmp_path):
+    missing = tmp_path / "missing-probe.db"
+    with pytest.raises(sqlite3.OperationalError):
+        ProviderProbeStore(missing, read_only=True)
+    assert not missing.exists()
+
+
+def test_cli_binds_existing_probe_without_network_or_endpoint_output(tmp_path, monkeypatch, capsys):
+    config, plan, _, probe_store = _source_probe(tmp_path, key="cli-source")
+    probe_db = tmp_path / "cli-source.db"
+    probe_store.close()
+    center_db = tmp_path / "center.db"
+    with ProviderCenterStore(center_db) as store:
+        service = ProviderCenterService(store)
+        registered, _ = _register(service)
+    command = _bind_command(registered.profile, config, plan, key="cli-bind")
+    command_file = tmp_path / "bind.json"
+    config_file = tmp_path / "probe-config.json"
+    command_file.write_text(command.model_dump_json(), encoding="utf-8")
+    config_file.write_text(config.model_dump_json(), encoding="utf-8")
+    monkeypatch.setenv("CUC_ENDPOINT", "https://openai.cuc.edu.cn")
+
+    assert (
+        main(
+            [
+                "provider",
+                "--provider-db",
+                str(center_db),
+                "bind-probe",
+                "--command-file",
+                str(command_file),
+                "--probe-config-file",
+                str(config_file),
+                "--probe-db",
+                str(probe_db),
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    parsed = json.loads(output)
+    assert parsed["status"] == "passed"
+    assert "openai.cuc.edu.cn" not in output
+    assert "CUC_ENDPOINT" not in output
+    assert "CUC_DEEPSEEK_API_KEY" not in output
