@@ -457,6 +457,11 @@ P2 第二个纵切已把既有 `provider-probe-run` 的 completed 权威结果�
 把 connectivity 任意 overclaim 为 tool、reasoning 或其他角色能力。成功且 cleanup/attempt/receipt 完整时才
 生成 Manifest 并推进 lifecycle；拒绝、超时和 cleanup 未证明保留为脱敏 terminal 记录。
 
+P2 第三个纵切新增 revision-bound Model Catalog。领域层定义模型条目、声明限制、价格元数据和不可变 snapshot；
+Provider Center 使用类型化 sync request/observation/result、独立 checkpoint、事务替换和脱敏审计。首个 CLI 只接受
+manual/offline fixture 来源且不联网；来源与 adapter 不匹配、跨 Profile 条目、目录歧义、超时或 cleanup 未证明均
+拒绝。目录信息不会自动成为能力或角色准入，Profile revision 更新后旧目录不会作为当前目录返回。
+
 ### P3：角色路由与 Flow 固定
 
 Source Hunt 和 Authorized Red Team 可以选择不同模型；Planner、Validator、Critic 可单独路由；Checkpoint 能恢复

@@ -35,13 +35,18 @@ from vulnloom.domain.model_routing import (
     ModelAgentRole,
     ModelBudgetProfile,
     ModelCapability,
+    ModelCatalogEntry,
+    ModelCatalogSource,
+    ModelDeclaredLimits,
     ModelEngine,
+    ModelPricingMetadata,
     ModelReference,
     ModelRoute,
     ProviderLifecycleState,
     ProviderProfile,
     ProviderProtocol,
     revise_provider_profile,
+    transition_provider_profile,
 )
 from vulnloom.provider_center import (
     BindProviderProbeCommand,
@@ -51,6 +56,11 @@ from vulnloom.provider_center import (
     DisableProviderCommand,
     EnableProviderCommand,
     FixtureCapabilityProbeAdapter,
+    FixtureModelCatalogAdapter,
+    ModelCatalogFixture,
+    ModelCatalogObservation,
+    ModelCatalogSyncRequest,
+    ModelCatalogSyncStatus,
     ProviderCenterConflict,
     ProviderCenterRecoveryRequired,
     ProviderCenterService,
@@ -240,6 +250,65 @@ def _bind_command(profile, config, plan, *, key="bind-source-probe", expected_ca
         "issued_at": NOW + timedelta(seconds=2),
     }
     return _sealed(BindProviderProbeCommand, "command_id", **values)
+
+
+def _catalog_entry(profile, *, model="cuc/deepseek", aliases=(), observed_at=None):
+    return ModelCatalogEntry.create(
+        provider_profile_digest=profile.profile_digest,
+        provider_id=profile.provider_id,
+        provider_model_id=model,
+        display_name=model.replace("/", " ").upper(),
+        aliases=aliases,
+        declared_limits=ModelDeclaredLimits(
+            max_context_tokens=64_000,
+            max_output_tokens=8_000,
+        ),
+        pricing=ModelPricingMetadata(
+            input_microunits_per_million_tokens=1_000,
+            output_microunits_per_million_tokens=2_000,
+        ),
+        catalog_observed_at=observed_at or NOW + timedelta(seconds=4),
+    )
+
+
+def _catalog_request(
+    profile,
+    *,
+    key="catalog-sync",
+    max_entries=128,
+    source=ModelCatalogSource.OFFLINE_FIXTURE,
+):
+    values = {
+        "idempotency_key": key,
+        "provider_id": profile.provider_id,
+        "expected_profile_digest": profile.profile_digest,
+        "source": source,
+        "max_entries": max_entries,
+        "actor_ref": _digest("operator"),
+        "created_at": NOW + timedelta(seconds=3),
+        "deadline": NOW + timedelta(seconds=13),
+    }
+    return _sealed(ModelCatalogSyncRequest, "request_id", **values)
+
+
+def _catalog_observation(profile, *, cleanup=True, entries=None, diagnostic="catalog_loaded"):
+    return ModelCatalogObservation(
+        status=ModelCatalogSyncStatus.PASSED,
+        entries=entries or (_catalog_entry(profile),),
+        cleanup_verified=cleanup,
+        source_receipt_digest=_digest("catalog-receipt"),
+        diagnostic_code=diagnostic,
+        observed_at=NOW + timedelta(seconds=4),
+    )
+
+
+def _catalog_ready(service):
+    registered, _ = _register(service)
+    probe = service.probe(
+        _probe_request(registered.profile), FixtureCapabilityProbeAdapter(_passed_observation())
+    )
+    assert probe.manifest is not None
+    return service.store.current_profile("cuc")
 
 
 def test_provider_center_success_idempotency_route_and_redacted_audit(tmp_path):
@@ -792,3 +861,286 @@ def test_cli_binds_existing_probe_without_network_or_endpoint_output(tmp_path, m
     assert "openai.cuc.edu.cn" not in output
     assert "CUC_ENDPOINT" not in output
     assert "CUC_DEEPSEEK_API_KEY" not in output
+
+
+def test_model_catalog_sync_is_idempotent_revision_bound_and_redacted(tmp_path):
+    center_db = tmp_path / "center.db"
+    with ProviderCenterStore(center_db) as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=5))
+        profile = _catalog_ready(service)
+        request = _catalog_request(profile, source=ModelCatalogSource.MANUAL)
+        observation = _catalog_observation(profile)
+
+        adapter = FixtureModelCatalogAdapter(observation, source=ModelCatalogSource.MANUAL)
+        result = service.sync_model_catalog(request, adapter)
+
+        assert result.status is ModelCatalogSyncStatus.PASSED
+        assert result.snapshot is not None
+        assert result.snapshot.entries[0].provider_model_id == "cuc/deepseek"
+        assert store.view().model_catalogs == (result.snapshot,)
+        assert service.sync_model_catalog(request, adapter) == result
+
+        references = store.references(profile.profile_digest)
+        replacement = revise_provider_profile(
+            profile,
+            display_name=profile.display_name,
+            protocol=profile.protocol,
+            protocol_adapter_id=profile.protocol_adapter_id,
+            endpoint_reference_id=profile.endpoint_reference_id,
+            credential_reference_id=profile.credential_reference_id,
+            data_policy_id=profile.data_policy_id,
+            allowed_context_data_classes=profile.allowed_context_data_classes,
+        )
+        update_values = {
+            "idempotency_key": "catalog-revision-update",
+            "expected_profile_digest": profile.profile_digest,
+            "replacement": replacement,
+            "references": references,
+            "actor_ref": _digest("operator"),
+            "issued_at": NOW + timedelta(seconds=6),
+        }
+        service.update(_sealed(UpdateProviderCommand, "command_id", **update_values))
+        assert store.view().model_catalogs == ()
+
+    contents = center_db.read_bytes()
+    assert b"openai.cuc.edu.cn" not in contents
+    assert b"Authorization" not in contents
+    assert b"raw-provider-response" not in contents
+
+
+def test_model_catalog_sync_advances_only_connectivity_verified_profile(tmp_path):
+    with ProviderCenterStore(tmp_path / "center.db") as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=5))
+        registered, _ = _register(service)
+        connectivity = transition_provider_profile(
+            registered.profile,
+            ProviderLifecycleState.CONNECTIVITY_VERIFIED,
+            evidence_digest=_digest("connectivity"),
+        )
+        store.connection.execute(
+            "UPDATE provider_center_profiles SET profile_json=? WHERE profile_digest=?",
+            (connectivity.model_dump_json(), connectivity.profile_digest),
+        )
+        store.connection.commit()
+
+        result = service.sync_model_catalog(
+            _catalog_request(connectivity),
+            FixtureModelCatalogAdapter(_catalog_observation(connectivity)),
+        )
+
+        assert result.status is ModelCatalogSyncStatus.PASSED
+        assert store.current_profile("cuc").state is ProviderLifecycleState.CATALOG_DISCOVERED
+        assert store.manifests_for(connectivity.profile_digest) == ()
+
+
+def test_model_catalog_sync_rejects_lifecycle_or_adapter_provenance_before_claim(tmp_path):
+    with ProviderCenterStore(tmp_path / "center.db") as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=5))
+        registered, _ = _register(service)
+        request = _catalog_request(registered.profile)
+        adapter = FixtureModelCatalogAdapter(_catalog_observation(registered.profile))
+        with pytest.raises(ProviderCenterConflict, match="not ready"):
+            service.sync_model_catalog(request, adapter)
+        assert (
+            store.connection.execute(
+                "SELECT COUNT(*) FROM provider_center_catalog_syncs"
+            ).fetchone()[0]
+            == 0
+        )
+
+        profile = store.current_profile("cuc")
+        connectivity = transition_provider_profile(
+            profile,
+            ProviderLifecycleState.CONNECTIVITY_VERIFIED,
+            evidence_digest=_digest("connectivity"),
+        )
+        store.connection.execute(
+            "UPDATE provider_center_profiles SET profile_json=? WHERE profile_digest=?",
+            (connectivity.model_dump_json(), connectivity.profile_digest),
+        )
+        store.connection.commit()
+        manual = _catalog_request(
+            connectivity,
+            key="manual-provenance",
+            source=ModelCatalogSource.MANUAL,
+        )
+        with pytest.raises(ProviderCenterConflict, match="provenance mismatch"):
+            service.sync_model_catalog(
+                manual,
+                FixtureModelCatalogAdapter(_catalog_observation(connectivity)),
+            )
+        assert (
+            store.connection.execute(
+                "SELECT COUNT(*) FROM provider_center_catalog_syncs"
+            ).fetchone()[0]
+            == 0
+        )
+
+
+@pytest.mark.parametrize("failure", ["identity", "ambiguous", "limit", "cleanup"])
+def test_model_catalog_sync_failures_are_terminal_without_snapshot(tmp_path, failure):
+    with ProviderCenterStore(tmp_path / "center.db") as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=5))
+        profile = _catalog_ready(service)
+        request = _catalog_request(profile, max_entries=1)
+        if failure == "identity":
+            other, _ = _profile("other")
+            entries = (_catalog_entry(other),)
+        elif failure == "ambiguous":
+            entries = (
+                _catalog_entry(profile, model="model-a", aliases=("model-b",)),
+                _catalog_entry(profile, model="model-b"),
+            )
+        elif failure == "limit":
+            entries = (
+                _catalog_entry(profile, model="model-a"),
+                _catalog_entry(profile, model="model-b"),
+            )
+        else:
+            entries = (_catalog_entry(profile),)
+        observation = _catalog_observation(
+            profile,
+            cleanup=failure != "cleanup",
+            entries=entries,
+        )
+
+        result = service.sync_model_catalog(request, FixtureModelCatalogAdapter(observation))
+
+        assert result.status is ModelCatalogSyncStatus.FAILED
+        assert result.snapshot is None
+        assert store.view().model_catalogs == ()
+        assert store.current_profile("cuc").state is ProviderLifecycleState.CAPABILITIES_PROBED
+        assert store.view().recent_audit[0].outcome.value == "rejected"
+
+
+def test_model_catalog_timeout_does_not_invoke_adapter(tmp_path):
+    with ProviderCenterStore(tmp_path / "center.db") as store:
+        profile = _catalog_ready(
+            ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=2))
+        )
+        request = _catalog_request(profile)
+
+        class MustNotRun:
+            source = ModelCatalogSource.OFFLINE_FIXTURE
+
+            def sync(self, request):
+                raise AssertionError("expired catalog sync invoked adapter")
+
+        result = ProviderCenterService(store, now=lambda: request.deadline).sync_model_catalog(
+            request, MustNotRun()
+        )
+
+        assert result.status is ModelCatalogSyncStatus.TIMED_OUT
+        assert result.cleanup_verified is True
+        assert result.snapshot is None
+        assert store.view().model_catalogs == ()
+
+
+def test_interrupted_model_catalog_sync_rolls_back_and_requires_recovery(tmp_path):
+    with ProviderCenterStore(tmp_path / "center.db") as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=5))
+        profile = _catalog_ready(service)
+        request = _catalog_request(profile)
+        adapter = FixtureModelCatalogAdapter(_catalog_observation(profile))
+        store.connection.execute(
+            "CREATE TRIGGER fail_catalog_audit BEFORE INSERT ON provider_center_audit "
+            "WHEN NEW.event_json LIKE '%catalog_sync%' "
+            "BEGIN SELECT RAISE(ABORT, 'synthetic catalog write failure'); END"
+        )
+
+        with pytest.raises(sqlite3.IntegrityError, match="synthetic catalog write failure"):
+            service.sync_model_catalog(request, adapter)
+        with pytest.raises(ProviderCenterRecoveryRequired, match="catalog sync"):
+            service.sync_model_catalog(request, adapter)
+        assert store.view().model_catalogs == ()
+        assert store.current_profile("cuc") == profile
+
+
+def test_cli_syncs_offline_model_catalog_without_sensitive_output(tmp_path, capsys):
+    center_db = tmp_path / "center.db"
+    with ProviderCenterStore(center_db) as store:
+        service = ProviderCenterService(store, now=lambda: NOW + timedelta(seconds=2))
+        profile = _catalog_ready(service)
+    observed_at = datetime.now(UTC)
+    request_values = {
+        "idempotency_key": "catalog-cli-sync",
+        "provider_id": profile.provider_id,
+        "expected_profile_digest": profile.profile_digest,
+        "source": ModelCatalogSource.OFFLINE_FIXTURE,
+        "max_entries": 128,
+        "actor_ref": _digest("operator"),
+        "created_at": observed_at - timedelta(seconds=1),
+        "deadline": observed_at + timedelta(seconds=30),
+    }
+    request = _sealed(ModelCatalogSyncRequest, "request_id", **request_values)
+    fixture = ModelCatalogFixture(
+        observation=ModelCatalogObservation(
+            status=ModelCatalogSyncStatus.PASSED,
+            entries=(_catalog_entry(profile, observed_at=observed_at),),
+            cleanup_verified=True,
+            source_receipt_digest=_digest("catalog-cli-receipt"),
+            diagnostic_code="catalog_loaded",
+            observed_at=observed_at,
+        )
+    )
+    request_file = tmp_path / "catalog-request.json"
+    fixture_file = tmp_path / "catalog-fixture.json"
+    request_file.write_text(request.model_dump_json(), encoding="utf-8")
+    fixture_file.write_text(fixture.model_dump_json(), encoding="utf-8")
+
+    assert (
+        main(
+            [
+                "provider",
+                "--provider-db",
+                str(center_db),
+                "catalog-sync-offline",
+                "--request-file",
+                str(request_file),
+                "--fixture-file",
+                str(fixture_file),
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    assert json.loads(output)["status"] == "passed"
+    assert "CUC_ENDPOINT" not in output
+    assert "CUC_DEEPSEEK_API_KEY" not in output
+    assert "Authorization" not in output
+    assert (
+        main(
+            [
+                "provider",
+                "--provider-db",
+                str(center_db),
+                "catalog-list",
+            ]
+        )
+        == 0
+    )
+    catalog_output = capsys.readouterr().out
+    assert json.loads(catalog_output)[0]["provider_profile_digest"] == profile.profile_digest
+    assert "CUC_ENDPOINT" not in catalog_output
+
+    unsafe_fixture = fixture.model_dump(mode="json")
+    unsafe_fixture["raw_response"] = "must-not-reach-catalog-output"
+    fixture_file.write_text(json.dumps(unsafe_fixture), encoding="utf-8")
+    assert (
+        main(
+            [
+                "provider",
+                "--provider-db",
+                str(center_db),
+                "catalog-sync-offline",
+                "--request-file",
+                str(request_file),
+                "--fixture-file",
+                str(fixture_file),
+            ]
+        )
+        == 1
+    )
+    rejected = capsys.readouterr().out
+    assert json.loads(rejected) == {"status": "provider_center_rejected"}
+    assert "must-not-reach-catalog-output" not in rejected

@@ -14,6 +14,9 @@ from vulnloom.domain.model_routing import (
     CapabilityManifest,
     FallbackPolicy,
     ModelCapability,
+    ModelCatalogEntry,
+    ModelCatalogSnapshot,
+    ModelCatalogSource,
     ModelRoute,
     ProviderProfile,
 )
@@ -28,6 +31,7 @@ class ProviderCenterAction(StrEnum):
     UPDATE = "update"
     PROBE = "probe"
     PROBE_BIND = "probe_bind"
+    CATALOG_SYNC = "catalog_sync"
     ENABLE = "enable"
     DISABLE = "disable"
     ROUTE_SET = "route_set"
@@ -40,6 +44,12 @@ class ProviderCenterOutcome(StrEnum):
 
 
 class CapabilityProbeStatus(StrEnum):
+    PASSED = "passed"
+    FAILED = "failed"
+    TIMED_OUT = "timed_out"
+
+
+class ModelCatalogSyncStatus(StrEnum):
     PASSED = "passed"
     FAILED = "failed"
     TIMED_OUT = "timed_out"
@@ -289,6 +299,82 @@ class ProviderHealthView(DomainModel):
     diagnostic_code: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{0,63}$")
 
 
+class ModelCatalogSyncRequest(DomainModel):
+    request_id: Digest
+    idempotency_key: IdempotencyKey
+    provider_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")
+    expected_profile_digest: Digest
+    source: ModelCatalogSource
+    max_entries: int = Field(default=128, ge=1, le=256)
+    actor_ref: Digest
+    created_at: AwareDatetime
+    deadline: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if not 0 < (self.deadline - self.created_at).total_seconds() <= 300:
+            raise ValueError("model catalog sync window is invalid")
+        if self.request_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"request_id"})
+        ):
+            raise ValueError("model catalog sync request digest mismatch")
+        return self
+
+
+class ModelCatalogObservation(DomainModel):
+    status: ModelCatalogSyncStatus
+    entries: Annotated[tuple[ModelCatalogEntry, ...], Field(max_length=256)] = ()
+    cleanup_verified: bool
+    source_receipt_digest: Digest | None = None
+    diagnostic_code: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    observed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def consistent(self) -> Self:
+        expected = tuple(sorted(self.entries, key=lambda item: item.provider_model_id))
+        if self.entries != expected or len({item.provider_model_id for item in expected}) != len(
+            expected
+        ):
+            raise ValueError("observed model catalog entries must be unique and sorted")
+        if self.status is ModelCatalogSyncStatus.PASSED and (
+            not self.entries or self.source_receipt_digest is None
+        ):
+            raise ValueError("passed model catalog observation requires entries and receipt")
+        if self.status is not ModelCatalogSyncStatus.PASSED and self.entries:
+            raise ValueError("unsuccessful model catalog observation cannot publish entries")
+        return self
+
+
+class ModelCatalogSyncResult(DomainModel):
+    result_id: Digest
+    request_id: Digest
+    provider_profile_digest: Digest
+    status: ModelCatalogSyncStatus
+    snapshot: ModelCatalogSnapshot | None = None
+    cleanup_verified: bool
+    diagnostic_code: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    completed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if (self.status is ModelCatalogSyncStatus.PASSED) != (self.snapshot is not None):
+            raise ValueError("only a passed catalog sync may publish a snapshot")
+        if (
+            self.snapshot is not None
+            and self.snapshot.provider_profile_digest != self.provider_profile_digest
+        ):
+            raise ValueError("catalog sync result is not bound to its Provider Profile")
+        if self.result_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"result_id"})
+        ):
+            raise ValueError("model catalog sync result digest mismatch")
+        return self
+
+
+class ModelCatalogFixture(DomainModel):
+    observation: ModelCatalogObservation
+
+
 class CapabilityProbeFixture(DomainModel):
     observation: CapabilityProbeObservation
 
@@ -359,6 +445,7 @@ class ProviderCenterView(DomainModel):
     profiles: tuple[ProviderProfile, ...]
     health: tuple[ProviderHealthView, ...]
     capability_manifests: tuple[CapabilityManifest, ...]
+    model_catalogs: tuple[ModelCatalogSnapshot, ...]
     probe_bindings: tuple[ProviderProbeBindingRecord, ...]
     default_routes: tuple[ModelRoute, ...]
     recent_audit: tuple[ProviderAuditEvent, ...]

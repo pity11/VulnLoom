@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "ModelCatalogSource": {
+      "enum": [
+        "manual",
+        "offline_fixture",
+        "provider_api"
+      ],
+      "title": "ModelCatalogSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "expected_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Profile Digest",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ModelCatalogSource"
+    },
+    "max_entries": {
+      "default": 128,
+      "maximum": 256,
+      "minimum": 1,
+      "title": "Max Entries",
+      "type": "integer"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "idempotency_key",
+    "provider_id",
+    "expected_profile_digest",
+    "source",
+    "actor_ref",
+    "created_at",
+    "deadline"
+  ],
+  "title": "ModelCatalogSyncRequest",
+  "type": "object"
+}

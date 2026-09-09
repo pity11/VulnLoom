@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "currency": {
+      "const": "USD",
+      "default": "USD",
+      "title": "Currency",
+      "type": "string"
+    },
+    "input_microunits_per_million_tokens": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Microunits Per Million Tokens"
+    },
+    "output_microunits_per_million_tokens": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Microunits Per Million Tokens"
+    }
+  },
+  "title": "ModelPricingMetadata",
+  "type": "object"
+}

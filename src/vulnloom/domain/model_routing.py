@@ -63,6 +63,12 @@ class CapabilityStatus(StrEnum):
     FAILED = "failed"
 
 
+class ModelCatalogSource(StrEnum):
+    MANUAL = "manual"
+    OFFLINE_FIXTURE = "offline_fixture"
+    PROVIDER_API = "provider_api"
+
+
 class ContextDataClass(StrEnum):
     SYNTHETIC = "synthetic"
     PUBLIC_TARGET_METADATA = "public_target_metadata"
@@ -228,6 +234,113 @@ def provider_lifecycle_digest(profile: ProviderProfile) -> str:
             "lifecycle_evidence_digest": profile.lifecycle_evidence_digest,
         }
     )
+
+
+class ModelDeclaredLimits(DomainModel):
+    max_context_tokens: int | None = Field(default=None, gt=0)
+    max_output_tokens: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def output_fits_context(self) -> Self:
+        if (
+            self.max_context_tokens is not None
+            and self.max_output_tokens is not None
+            and self.max_output_tokens > self.max_context_tokens
+        ):
+            raise ValueError("declared model output limit exceeds context limit")
+        return self
+
+
+class ModelPricingMetadata(DomainModel):
+    currency: Literal["USD"] = "USD"
+    input_microunits_per_million_tokens: int | None = Field(default=None, ge=0)
+    output_microunits_per_million_tokens: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def contains_a_rate(self) -> Self:
+        if (
+            self.input_microunits_per_million_tokens is None
+            and self.output_microunits_per_million_tokens is None
+        ):
+            raise ValueError("model pricing metadata requires at least one rate")
+        return self
+
+
+class ModelCatalogEntry(DomainModel):
+    entry_digest: ContentDigest
+    provider_profile_digest: ContentDigest
+    provider_id: ProviderId
+    provider_model_id: ProviderModelId
+    display_name: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 ._:/+()_-]{0,127}$",
+    )
+    aliases: Annotated[tuple[ProviderModelId, ...], Field(max_length=16)] = ()
+    declared_limits: ModelDeclaredLimits = ModelDeclaredLimits()
+    pricing: ModelPricingMetadata | None = None
+    catalog_observed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed_and_normalized(self) -> Self:
+        expected_aliases = tuple(sorted(set(self.aliases)))
+        if self.aliases != expected_aliases or self.provider_model_id in self.aliases:
+            raise ValueError("model catalog aliases must be unique, sorted, and non-canonical")
+        if self.entry_digest != model_catalog_entry_digest(self):
+            raise ValueError("Model Catalog Entry content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values) -> ModelCatalogEntry:
+        values["aliases"] = tuple(sorted(set(values.get("aliases", ()))))
+        values.setdefault("declared_limits", ModelDeclaredLimits())
+        values.setdefault("pricing", None)
+        return cls(entry_digest=_domain_digest(values), **values)
+
+
+def model_catalog_entry_digest(entry: ModelCatalogEntry) -> str:
+    return canonical_digest(entry.model_dump(mode="python", exclude={"entry_digest"}))
+
+
+class ModelCatalogSnapshot(DomainModel):
+    snapshot_digest: ContentDigest
+    provider_profile_digest: ContentDigest
+    provider_id: ProviderId
+    source: ModelCatalogSource
+    entries: Annotated[tuple[ModelCatalogEntry, ...], Field(min_length=1, max_length=256)]
+    source_receipt_digest: ContentDigest
+    observed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed_and_unambiguous(self) -> Self:
+        expected = tuple(sorted(self.entries, key=lambda item: item.provider_model_id))
+        model_ids = tuple(item.provider_model_id for item in expected)
+        aliases = tuple(alias for item in expected for alias in item.aliases)
+        if self.entries != expected or len(set(model_ids)) != len(model_ids):
+            raise ValueError("model catalog entries must be unique and sorted")
+        if len(set(aliases)) != len(aliases) or set(aliases) & set(model_ids):
+            raise ValueError("model catalog aliases are ambiguous")
+        if any(
+            item.provider_profile_digest != self.provider_profile_digest
+            or item.provider_id != self.provider_id
+            or item.catalog_observed_at != self.observed_at
+            for item in self.entries
+        ):
+            raise ValueError("model catalog entry is not bound to its snapshot")
+        if self.snapshot_digest != model_catalog_snapshot_digest(self):
+            raise ValueError("Model Catalog Snapshot content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values) -> ModelCatalogSnapshot:
+        values["entries"] = tuple(
+            sorted(values["entries"], key=lambda item: item.provider_model_id)
+        )
+        return cls(snapshot_digest=_domain_digest(values), **values)
+
+
+def model_catalog_snapshot_digest(snapshot: ModelCatalogSnapshot) -> str:
+    return canonical_digest(snapshot.model_dump(mode="python", exclude={"snapshot_digest"}))
 
 
 def revise_provider_profile(

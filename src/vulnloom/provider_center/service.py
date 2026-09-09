@@ -34,6 +34,8 @@ from vulnloom.domain.model_routing import (
     CapabilityStatus,
     ModelCapability,
     ModelCapabilityAssessment,
+    ModelCatalogSnapshot,
+    ModelCatalogSource,
     ProviderLifecycleState,
     ProviderProtocol,
     build_flow_model_snapshot,
@@ -50,6 +52,10 @@ from .models import (
     CapabilityProbeStatus,
     DisableProviderCommand,
     EnableProviderCommand,
+    ModelCatalogObservation,
+    ModelCatalogSyncRequest,
+    ModelCatalogSyncResult,
+    ModelCatalogSyncStatus,
     ProviderAuditEvent,
     ProviderCenterAction,
     ProviderCenterOutcome,
@@ -68,6 +74,12 @@ class CapabilityProbeAdapter(Protocol):
     def probe(self, request: CapabilityProbeRequest) -> CapabilityProbeObservation: ...
 
 
+class ModelCatalogAdapter(Protocol):
+    source: ModelCatalogSource
+
+    def sync(self, request: ModelCatalogSyncRequest) -> ModelCatalogObservation: ...
+
+
 class FixtureCapabilityProbeAdapter:
     """Offline adapter used by the local CLI and contract tests; never opens a socket."""
 
@@ -75,6 +87,22 @@ class FixtureCapabilityProbeAdapter:
         self.observation = observation
 
     def probe(self, request: CapabilityProbeRequest) -> CapabilityProbeObservation:
+        return self.observation
+
+
+class FixtureModelCatalogAdapter:
+    def __init__(
+        self,
+        observation: ModelCatalogObservation,
+        *,
+        source: ModelCatalogSource = ModelCatalogSource.OFFLINE_FIXTURE,
+    ):
+        if source is ModelCatalogSource.PROVIDER_API:
+            raise ValueError("fixture adapter cannot claim Provider API provenance")
+        self.observation = observation
+        self.source = source
+
+    def sync(self, request: ModelCatalogSyncRequest) -> ModelCatalogObservation:
         return self.observation
 
 
@@ -465,6 +493,128 @@ class ProviderCenterService:
             event,
             expected_profile=profile,
             updated_profile=updated,
+        )
+
+    def sync_model_catalog(
+        self,
+        request: ModelCatalogSyncRequest,
+        adapter: ModelCatalogAdapter,
+    ) -> ModelCatalogSyncResult:
+        replay = self.store.catalog_sync_replay(request)
+        if replay is not None:
+            return replay
+        profile = self._current_profile_for_digest(request.expected_profile_digest)
+        if profile.provider_id != request.provider_id or profile.state not in {
+            ProviderLifecycleState.CONNECTIVITY_VERIFIED,
+            ProviderLifecycleState.CATALOG_DISCOVERED,
+            ProviderLifecycleState.CAPABILITIES_PROBED,
+            ProviderLifecycleState.ROLE_ADMITTED,
+        }:
+            raise ProviderCenterConflict("Provider Profile is not ready for catalog sync")
+        if adapter.source is not request.source:
+            raise ProviderCenterConflict("model catalog adapter provenance mismatch")
+        self.store.claim_catalog_sync(request)
+        started_at = self.now()
+        if started_at >= request.deadline:
+            observed = ModelCatalogObservation(
+                status=ModelCatalogSyncStatus.TIMED_OUT,
+                cleanup_verified=True,
+                diagnostic_code="catalog_deadline_expired",
+                observed_at=started_at,
+            )
+        else:
+            observed = adapter.sync(request)
+        now = self.now()
+        status = observed.status
+        diagnostic_code = observed.diagnostic_code
+        entries = observed.entries
+        if observed.observed_at < request.created_at or observed.observed_at > now:
+            status = ModelCatalogSyncStatus.FAILED
+            diagnostic_code = "catalog_observation_time_invalid"
+            entries = ()
+        elif now >= request.deadline or observed.observed_at >= request.deadline:
+            status = ModelCatalogSyncStatus.TIMED_OUT
+            diagnostic_code = "catalog_deadline_expired"
+            entries = ()
+        elif status is ModelCatalogSyncStatus.PASSED and not observed.cleanup_verified:
+            status = ModelCatalogSyncStatus.FAILED
+            diagnostic_code = "catalog_cleanup_unverified"
+            entries = ()
+        elif status is ModelCatalogSyncStatus.PASSED and len(entries) > request.max_entries:
+            status = ModelCatalogSyncStatus.FAILED
+            diagnostic_code = "catalog_entry_limit_exceeded"
+            entries = ()
+        elif status is ModelCatalogSyncStatus.PASSED and not self._catalog_entries_match(
+            entries,
+            provider_id=profile.provider_id,
+            profile_digest=profile.profile_digest,
+            observed_at=observed.observed_at,
+        ):
+            status = ModelCatalogSyncStatus.FAILED
+            diagnostic_code = "catalog_identity_mismatch"
+            entries = ()
+
+        snapshot = None
+        updated = profile
+        if status is ModelCatalogSyncStatus.PASSED:
+            snapshot = ModelCatalogSnapshot.create(
+                provider_profile_digest=profile.profile_digest,
+                provider_id=profile.provider_id,
+                source=request.source,
+                entries=entries,
+                source_receipt_digest=observed.source_receipt_digest,
+                observed_at=observed.observed_at,
+            )
+            if profile.state is ProviderLifecycleState.CONNECTIVITY_VERIFIED:
+                updated = transition_provider_profile(
+                    profile,
+                    ProviderLifecycleState.CATALOG_DISCOVERED,
+                    evidence_digest=snapshot.snapshot_digest,
+                )
+        values = {
+            "request_id": request.request_id,
+            "provider_profile_digest": profile.profile_digest,
+            "status": status,
+            "snapshot": snapshot,
+            "cleanup_verified": observed.cleanup_verified,
+            "diagnostic_code": diagnostic_code,
+            "completed_at": now,
+        }
+        digest_values = {
+            **values,
+            "snapshot": None if snapshot is None else snapshot.model_dump(mode="python"),
+        }
+        result = ModelCatalogSyncResult(result_id=canonical_digest(digest_values), **values)
+        outcome = {
+            ModelCatalogSyncStatus.PASSED: ProviderCenterOutcome.APPLIED,
+            ModelCatalogSyncStatus.FAILED: ProviderCenterOutcome.REJECTED,
+            ModelCatalogSyncStatus.TIMED_OUT: ProviderCenterOutcome.TIMED_OUT,
+        }[status]
+        event = _audit(
+            action=ProviderCenterAction.CATALOG_SYNC,
+            outcome=outcome,
+            provider_id=profile.provider_id,
+            profile_digest=profile.profile_digest,
+            actor_ref=request.actor_ref,
+            diagnostic_code=diagnostic_code,
+            occurred_at=now,
+        )
+        self.store.complete_catalog_sync(result, profile, updated, event)
+        return result
+
+    @staticmethod
+    def _catalog_entries_match(entries, *, provider_id, profile_digest, observed_at):
+        model_ids = {item.provider_model_id for item in entries}
+        aliases = tuple(alias for item in entries for alias in item.aliases)
+        return (
+            len(set(aliases)) == len(aliases)
+            and not (set(aliases) & model_ids)
+            and all(
+                item.provider_id == provider_id
+                and item.provider_profile_digest == profile_digest
+                and item.catalog_observed_at == observed_at
+                for item in entries
+            )
         )
 
     @staticmethod

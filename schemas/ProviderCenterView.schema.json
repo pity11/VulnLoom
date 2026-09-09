@@ -216,6 +216,176 @@
       "title": "ModelCapabilityAssessment",
       "type": "object"
     },
+    "ModelCatalogEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Entry Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        },
+        "display_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/+()_-]{0,127}$",
+          "title": "Display Name",
+          "type": "string"
+        },
+        "aliases": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Aliases",
+          "type": "array"
+        },
+        "declared_limits": {
+          "$ref": "#/$defs/ModelDeclaredLimits",
+          "default": {
+            "max_context_tokens": null,
+            "max_output_tokens": null
+          }
+        },
+        "pricing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelPricingMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "catalog_observed_at": {
+          "format": "date-time",
+          "title": "Catalog Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry_digest",
+        "provider_profile_digest",
+        "provider_id",
+        "provider_model_id",
+        "display_name",
+        "catalog_observed_at"
+      ],
+      "title": "ModelCatalogEntry",
+      "type": "object"
+    },
+    "ModelCatalogSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/ModelCatalogSource"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/ModelCatalogEntry"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array"
+        },
+        "source_receipt_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Receipt Digest",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_digest",
+        "provider_profile_digest",
+        "provider_id",
+        "source",
+        "entries",
+        "source_receipt_digest",
+        "observed_at"
+      ],
+      "title": "ModelCatalogSnapshot",
+      "type": "object"
+    },
+    "ModelCatalogSource": {
+      "enum": [
+        "manual",
+        "offline_fixture",
+        "provider_api"
+      ],
+      "title": "ModelCatalogSource",
+      "type": "string"
+    },
+    "ModelDeclaredLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_context_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Context Tokens"
+        },
+        "max_output_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Output Tokens"
+        }
+      },
+      "title": "ModelDeclaredLimits",
+      "type": "object"
+    },
     "ModelEngine": {
       "enum": [
         "source_hunt",
@@ -224,6 +394,45 @@
       ],
       "title": "ModelEngine",
       "type": "string"
+    },
+    "ModelPricingMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "const": "USD",
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "input_microunits_per_million_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Microunits Per Million Tokens"
+        },
+        "output_microunits_per_million_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Microunits Per Million Tokens"
+        }
+      },
+      "title": "ModelPricingMetadata",
+      "type": "object"
     },
     "ModelReference": {
       "additionalProperties": false,
@@ -366,6 +575,7 @@
         "update",
         "probe",
         "probe_bind",
+        "catalog_sync",
         "enable",
         "disable",
         "route_set"
@@ -717,6 +927,13 @@
       "title": "Capability Manifests",
       "type": "array"
     },
+    "model_catalogs": {
+      "items": {
+        "$ref": "#/$defs/ModelCatalogSnapshot"
+      },
+      "title": "Model Catalogs",
+      "type": "array"
+    },
     "probe_bindings": {
       "items": {
         "$ref": "#/$defs/ProviderProbeBindingRecord"
@@ -743,6 +960,7 @@
     "profiles",
     "health",
     "capability_manifests",
+    "model_catalogs",
     "probe_bindings",
     "default_routes",
     "recent_audit"

@@ -1127,7 +1127,20 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   独立 Egress Grant、显式网络开关和用户授权。probe ledger 使用 SQLite read-only 模式，错误路径不会创建
   空账本。本轮测试没有真实 Provider 调用。
 
-下一步是模型目录的类型化本地登记/同步与 revision 绑定，然后实现凭据替换 adapter 和薄 HTTP API。
+### Provider Center P2.2（Revision-bound Model Catalog）
+
+- 新增纯领域 `ModelCatalogEntry`、声明限制、价格元数据和不可变 `ModelCatalogSnapshot`；所有条目绑定确切
+  Provider ID、Profile digest 和 observed time，模型 ID/显示名/别名使用受限字符集。
+- 新增类型化 catalog sync request/observation/result、独立幂等 checkpoint、超时/cleanup 判定与事务性 snapshot
+  替换。跨 Profile/Provider、条目超限、重复模型、冲突别名、错误时间和 lifecycle 漂移均 fail-closed。
+- 首个 `catalog-sync-offline` CLI 只允许 `manual` / `offline_fixture` adapter，不访问网络或凭据，也不能冒充
+  `provider_api` 来源；`catalog-list` 和 Provider Center view 为未来 API 提供同一查询合同。
+- 成功目录同步只把 `CONNECTIVITY_VERIFIED` 推进到 `CATALOG_DISCOVERED`；目录声明不会自动生成 Manifest、能力、
+  角色准入或默认 Route。Profile 更新 revision 后，旧 snapshot 不再作为当前目录返回。
+- 已覆盖成功、幂等、生命周期/来源拒绝、身份/别名/数量拒绝、超时、cleanup、事务回滚恢复和输出脱敏。本轮没有
+  真实 Provider 调用。
+
+下一步是权限受限的凭据替换 adapter，然后实现薄 HTTP API；Provider API 联网目录拉取仍需独立显式授权和网络门禁。
 
 ## 延后事项
 

@@ -18,7 +18,12 @@ from vulnloom.domain.model_routing import (
     ModelBudgetProfile,
     ModelCapability,
     ModelCapabilityAssessment,
+    ModelCatalogEntry,
+    ModelCatalogSnapshot,
+    ModelCatalogSource,
+    ModelDeclaredLimits,
     ModelEngine,
+    ModelPricingMetadata,
     ModelReference,
     ModelRoute,
     ModelRouteRejected,
@@ -454,3 +459,66 @@ def test_revoked_provider_lifecycle_is_terminal():
             ProviderLifecycleState.DRAFT,
             evidence_digest=_digest("cannot-reopen"),
         )
+
+
+def test_model_catalog_contract_is_revision_bound_sealed_and_unambiguous():
+    profile = _profile()
+    observed_at = datetime(2026, 9, 9, tzinfo=UTC)
+    first = ModelCatalogEntry.create(
+        provider_profile_digest=profile.profile_digest,
+        provider_id=profile.provider_id,
+        provider_model_id="model-a",
+        display_name="Model A",
+        aliases=("z-alias", "a-alias"),
+        declared_limits=ModelDeclaredLimits(
+            max_context_tokens=32_000,
+            max_output_tokens=4_000,
+        ),
+        pricing=ModelPricingMetadata(
+            input_microunits_per_million_tokens=100,
+        ),
+        catalog_observed_at=observed_at,
+    )
+    second = ModelCatalogEntry.create(
+        provider_profile_digest=profile.profile_digest,
+        provider_id=profile.provider_id,
+        provider_model_id="model-b",
+        display_name="Model B",
+        catalog_observed_at=observed_at,
+    )
+    snapshot = ModelCatalogSnapshot.create(
+        provider_profile_digest=profile.profile_digest,
+        provider_id=profile.provider_id,
+        source=ModelCatalogSource.MANUAL,
+        entries=(second, first),
+        source_receipt_digest=_digest("catalog-receipt"),
+        observed_at=observed_at,
+    )
+
+    assert snapshot.entries == (first, second)
+    assert first.aliases == ("a-alias", "z-alias")
+    with pytest.raises(ValidationError, match="content digest"):
+        ModelCatalogEntry.model_validate(
+            {**first.model_dump(mode="python"), "display_name": "Tampered"}
+        )
+    conflicting = ModelCatalogEntry.create(
+        provider_profile_digest=profile.profile_digest,
+        provider_id=profile.provider_id,
+        provider_model_id="model-c",
+        display_name="Model C",
+        aliases=("model-a",),
+        catalog_observed_at=observed_at,
+    )
+    with pytest.raises(ValidationError, match="aliases are ambiguous"):
+        ModelCatalogSnapshot.create(
+            provider_profile_digest=profile.profile_digest,
+            provider_id=profile.provider_id,
+            source=ModelCatalogSource.MANUAL,
+            entries=(first, conflicting),
+            source_receipt_digest=_digest("ambiguous-catalog"),
+            observed_at=observed_at,
+        )
+    with pytest.raises(ValidationError, match="exceeds context"):
+        ModelDeclaredLimits(max_context_tokens=100, max_output_tokens=101)
+    with pytest.raises(ValidationError, match="at least one rate"):
+        ModelPricingMetadata()

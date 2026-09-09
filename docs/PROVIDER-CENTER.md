@@ -39,6 +39,9 @@ vulnloom provider --provider-db PATH update --command-file FILE
 vulnloom provider --provider-db PATH probe-offline --request-file FILE --fixture-file FILE
 vulnloom provider --provider-db PATH bind-probe \
   --command-file FILE --probe-config-file LOCAL_FILE --probe-db AUTHORITATIVE_DB
+vulnloom provider --provider-db PATH catalog-sync-offline \
+  --request-file FILE --fixture-file FILE
+vulnloom provider --provider-db PATH catalog-list
 vulnloom provider --provider-db PATH enable --command-file FILE
 vulnloom provider --provider-db PATH disable --command-file FILE
 vulnloom provider --provider-db PATH list
@@ -62,12 +65,22 @@ ledger；错误路径或缺失文件会拒绝且不会创建一个看似权威�
 少报或 overclaim 都拒绝。只有 source result 为 passed 且 process/attempt/receipt/cleanup 证明完整时才生成
 Capability Manifest 并推进 lifecycle；rejected、timed_out 和 cleanup 未证明只形成脱敏 terminal binding。
 
+`catalog-sync-offline` 支持 `manual` 与 `offline_fixture` 两种本地来源，并且 adapter 必须与 request 声明的
+provenance 完全一致；它不会把本地 fixture 冒充为 Provider API 结果。目录条目仅包含安全字符集内的模型 ID、
+显示名、别名、声明限制和可选价格元数据，不包含 endpoint、credential 或原始响应。每个不可变 snapshot 都绑定
+确切 `provider_profile_digest` 和 receipt digest；Profile 更新 revision 后，旧 snapshot 不再出现在当前目录查询。
+
+目录同步有独立 STARTED/completed checkpoint、超时和 cleanup 判定。跨 Provider/Profile 条目、重复或冲突别名、
+条目超限、无 cleanup 证明、错误时间和不允许的 lifecycle 都会 fail-closed。成功同步可以把
+`CONNECTIVITY_VERIFIED` 推进到 `CATALOG_DISCOVERED`，但目录声明本身不会生成 Capability Manifest、授予角色
+或改变现有默认 Route。`provider list` 与 `provider catalog-list` 通过同一应用查询返回当前 revision 的目录。
+
 现有 CUC/DeepSeek probe、代码审阅和 Candidate Recommendation CLI 默认路径未改变；因此迁移期间的默认
 CUC 路由保持兼容。Provider Center 中的默认 Route 只影响显式使用该 registry 创建的新 Flow，不会静默接管
 旧入口，也不会在失败时跨 Provider 降级。
 
 ## 当前边界
 
-本纵切不包含 Web UI、HTTP server、模型目录同步、Keychain 写入、直接从 Provider Center 发起的真实 probe、
+本纵切不包含 Web UI、HTTP server、Provider API 联网目录拉取、Keychain 写入、直接从 Provider Center 发起的真实 probe、
 自动健康轮询、fallback 执行或成本统计。未来 API 应直接调用同一 application service，并继续只接收已导出的
 严格 command/query schema，不得新增接收明文 Key 或 endpoint URL 的旁路。

@@ -6,6 +6,7 @@
         "update",
         "probe",
         "probe_bind",
+        "catalog_sync",
         "enable",
         "disable",
         "route_set"

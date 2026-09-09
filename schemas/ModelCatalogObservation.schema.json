@@ -1,0 +1,210 @@
+{
+  "$defs": {
+    "ModelCatalogEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Entry Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        },
+        "display_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/+()_-]{0,127}$",
+          "title": "Display Name",
+          "type": "string"
+        },
+        "aliases": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Aliases",
+          "type": "array"
+        },
+        "declared_limits": {
+          "$ref": "#/$defs/ModelDeclaredLimits",
+          "default": {
+            "max_context_tokens": null,
+            "max_output_tokens": null
+          }
+        },
+        "pricing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelPricingMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "catalog_observed_at": {
+          "format": "date-time",
+          "title": "Catalog Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry_digest",
+        "provider_profile_digest",
+        "provider_id",
+        "provider_model_id",
+        "display_name",
+        "catalog_observed_at"
+      ],
+      "title": "ModelCatalogEntry",
+      "type": "object"
+    },
+    "ModelCatalogSyncStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "timed_out"
+      ],
+      "title": "ModelCatalogSyncStatus",
+      "type": "string"
+    },
+    "ModelDeclaredLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_context_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Context Tokens"
+        },
+        "max_output_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Output Tokens"
+        }
+      },
+      "title": "ModelDeclaredLimits",
+      "type": "object"
+    },
+    "ModelPricingMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "const": "USD",
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "input_microunits_per_million_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Microunits Per Million Tokens"
+        },
+        "output_microunits_per_million_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Microunits Per Million Tokens"
+        }
+      },
+      "title": "ModelPricingMetadata",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "$ref": "#/$defs/ModelCatalogSyncStatus"
+    },
+    "entries": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ModelCatalogEntry"
+      },
+      "maxItems": 256,
+      "title": "Entries",
+      "type": "array"
+    },
+    "cleanup_verified": {
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "source_receipt_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Receipt Digest"
+    },
+    "diagnostic_code": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Diagnostic Code",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "cleanup_verified",
+    "diagnostic_code",
+    "observed_at"
+  ],
+  "title": "ModelCatalogObservation",
+  "type": "object"
+}

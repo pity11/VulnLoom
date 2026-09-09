@@ -7,11 +7,18 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from vulnloom.domain.model_routing import CapabilityManifest, ModelRoute, ProviderProfile
+from vulnloom.domain.model_routing import (
+    CapabilityManifest,
+    ModelCatalogSnapshot,
+    ModelRoute,
+    ProviderProfile,
+)
 
 from .models import (
     CapabilityProbeRequest,
     CapabilityProbeResult,
+    ModelCatalogSyncRequest,
+    ModelCatalogSyncResult,
     ProviderAuditEvent,
     ProviderCenterView,
     ProviderHealthStatus,
@@ -72,6 +79,16 @@ class ProviderCenterStore:
               provider_profile_digest TEXT NOT NULL,
               source_plan_id TEXT NOT NULL UNIQUE, binding_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS provider_center_catalog_syncs (
+              request_id TEXT PRIMARY KEY, idempotency_key TEXT NOT NULL UNIQUE,
+              request_json TEXT NOT NULL, state TEXT NOT NULL, result_json TEXT
+            );
+            CREATE TABLE IF NOT EXISTS provider_center_catalog_snapshots (
+              snapshot_digest TEXT PRIMARY KEY, provider_profile_digest TEXT NOT NULL,
+              is_current INTEGER NOT NULL, snapshot_json TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS provider_center_current_catalog
+              ON provider_center_catalog_snapshots(provider_profile_digest) WHERE is_current=1;
             """
         )
         self.connection.commit()
@@ -347,6 +364,118 @@ class ProviderCenterStore:
                 (event.event_id, event.model_dump_json()),
             )
 
+    def catalog_sync_replay(
+        self, request: ModelCatalogSyncRequest
+    ) -> ModelCatalogSyncResult | None:
+        row = self.connection.execute(
+            "SELECT * FROM provider_center_catalog_syncs WHERE request_id=? OR idempotency_key=?",
+            (request.request_id, request.idempotency_key),
+        ).fetchone()
+        if row is None:
+            return None
+        if (
+            row["request_id"] != request.request_id
+            or row["request_json"] != request.model_dump_json()
+        ):
+            raise ProviderCenterConflict("model catalog sync identity conflict")
+        if row["state"] != "completed" or row["result_json"] is None:
+            raise ProviderCenterRecoveryRequired("model catalog sync requires recovery")
+        try:
+            result = ModelCatalogSyncResult.model_validate_json(row["result_json"])
+        except ValidationError as exc:
+            raise ProviderCenterRecoveryRequired("model catalog sync result is invalid") from exc
+        if (
+            result.request_id != request.request_id
+            or result.provider_profile_digest != request.expected_profile_digest
+        ):
+            raise ProviderCenterRecoveryRequired("model catalog sync result drifted")
+        return result
+
+    def claim_catalog_sync(self, request: ModelCatalogSyncRequest) -> None:
+        if self.catalog_sync_replay(request) is not None:
+            raise ProviderCenterConflict("completed model catalog sync cannot be claimed again")
+        try:
+            with self.connection:
+                self.connection.execute(
+                    "INSERT INTO provider_center_catalog_syncs VALUES (?,?,?,'started',NULL)",
+                    (request.request_id, request.idempotency_key, request.model_dump_json()),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ProviderCenterConflict("concurrent model catalog sync rejected") from exc
+
+    def complete_catalog_sync(
+        self,
+        result: ModelCatalogSyncResult,
+        expected_profile: ProviderProfile,
+        profile: ProviderProfile,
+        event: ProviderAuditEvent,
+    ) -> None:
+        if (
+            result.provider_profile_digest != expected_profile.profile_digest
+            or profile.profile_digest != expected_profile.profile_digest
+        ):
+            raise ProviderCenterRecoveryRequired("model catalog sync binding is invalid")
+        with self.connection:
+            row = self.connection.execute(
+                "SELECT profile_json FROM provider_center_profiles "
+                "WHERE profile_digest=? AND is_current=1",
+                (expected_profile.profile_digest,),
+            ).fetchone()
+            if row is None or row[0] != expected_profile.model_dump_json():
+                raise ProviderCenterRecoveryRequired(
+                    "Provider lifecycle changed during model catalog sync"
+                )
+            if result.snapshot is not None:
+                snapshot = result.snapshot
+                prior = self.connection.execute(
+                    "SELECT provider_profile_digest,snapshot_json "
+                    "FROM provider_center_catalog_snapshots WHERE snapshot_digest=?",
+                    (snapshot.snapshot_digest,),
+                ).fetchone()
+                if prior is not None and (
+                    prior["provider_profile_digest"] != snapshot.provider_profile_digest
+                    or prior["snapshot_json"] != snapshot.model_dump_json()
+                ):
+                    raise ProviderCenterRecoveryRequired("stored Model Catalog Snapshot drifted")
+                self.connection.execute(
+                    "UPDATE provider_center_catalog_snapshots SET is_current=0 "
+                    "WHERE provider_profile_digest=?",
+                    (snapshot.provider_profile_digest,),
+                )
+                if prior is None:
+                    self.connection.execute(
+                        "INSERT INTO provider_center_catalog_snapshots VALUES (?,?,1,?)",
+                        (
+                            snapshot.snapshot_digest,
+                            snapshot.provider_profile_digest,
+                            snapshot.model_dump_json(),
+                        ),
+                    )
+                else:
+                    self.connection.execute(
+                        "UPDATE provider_center_catalog_snapshots SET is_current=1 "
+                        "WHERE snapshot_digest=?",
+                        (snapshot.snapshot_digest,),
+                    )
+            changed = self.connection.execute(
+                "UPDATE provider_center_profiles SET profile_json=? "
+                "WHERE profile_digest=? AND is_current=1",
+                (profile.model_dump_json(), profile.profile_digest),
+            ).rowcount
+            if changed != 1:
+                raise ProviderCenterRecoveryRequired("Provider Profile update failed")
+            completed = self.connection.execute(
+                "UPDATE provider_center_catalog_syncs SET state='completed',result_json=? "
+                "WHERE request_id=? AND state='started'",
+                (result.model_dump_json(), result.request_id),
+            ).rowcount
+            if completed != 1:
+                raise ProviderCenterRecoveryRequired("model catalog sync STARTED unavailable")
+            self.connection.execute(
+                "INSERT INTO provider_center_audit(event_id,event_json) VALUES (?,?)",
+                (event.event_id, event.model_dump_json()),
+            )
+
     def view(self, *, audit_limit: int = 50) -> ProviderCenterView:
         profile_rows = self.connection.execute(
             "SELECT profile_json FROM provider_center_profiles WHERE is_current=1 "
@@ -368,13 +497,26 @@ class ProviderCenterStore:
         binding_rows = self.connection.execute(
             "SELECT binding_json FROM provider_center_probe_bindings ORDER BY rowid"
         ).fetchall()
+        catalog_rows = self.connection.execute(
+            "SELECT snapshot_json FROM provider_center_catalog_snapshots "
+            "WHERE is_current=1 ORDER BY provider_profile_digest"
+        ).fetchall()
         try:
             profiles = tuple(ProviderProfile.model_validate_json(row[0]) for row in profile_rows)
+            profile_digests = {profile.profile_digest for profile in profiles}
             probe_results = tuple(
                 CapabilityProbeResult.model_validate_json(row[0]) for row in probe_rows
             )
             bindings = tuple(
                 ProviderProbeBindingRecord.model_validate_json(row[0]) for row in binding_rows
+            )
+            catalogs = tuple(
+                snapshot
+                for row in catalog_rows
+                if (
+                    snapshot := ModelCatalogSnapshot.model_validate_json(row[0])
+                ).provider_profile_digest
+                in profile_digests
             )
             latest_probe = {item.provider_profile_digest: item for item in probe_results}
             for item in bindings:
@@ -410,6 +552,7 @@ class ProviderCenterStore:
                 capability_manifests=tuple(
                     CapabilityManifest.model_validate_json(row[0]) for row in manifest_rows
                 ),
+                model_catalogs=catalogs,
                 probe_bindings=bindings,
                 default_routes=tuple(ModelRoute.model_validate_json(row[0]) for row in route_rows),
                 recent_audit=tuple(

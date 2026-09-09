@@ -10,6 +10,7 @@ from pathlib import Path
 from vulnloom.adapters import EnvironmentModelEndpointProvider
 from vulnloom.agent_runtime.provider_probe_models import ProviderProbeConfig
 from vulnloom.agent_runtime.provider_probe_store import ProviderProbeStore
+from vulnloom.domain.model_routing import ModelCatalogSource
 
 from .models import (
     BindProviderProbeCommand,
@@ -17,12 +18,15 @@ from .models import (
     CapabilityProbeRequest,
     DisableProviderCommand,
     EnableProviderCommand,
+    ModelCatalogFixture,
+    ModelCatalogSyncRequest,
     RegisterProviderCommand,
     SetDefaultRouteCommand,
     UpdateProviderCommand,
 )
 from .service import (
     FixtureCapabilityProbeAdapter,
+    FixtureModelCatalogAdapter,
     ProviderCenterService,
     StoredProviderProbeEvidenceReader,
 )
@@ -96,6 +100,25 @@ def _bind_probe(args: argparse.Namespace) -> int:
         return _rejected()
 
 
+def _catalog_sync(args: argparse.Namespace) -> int:
+    try:
+        request = _load(args.request_file, ModelCatalogSyncRequest)
+        fixture = _load(args.fixture_file, ModelCatalogFixture)
+        if request.source not in {
+            ModelCatalogSource.MANUAL,
+            ModelCatalogSource.OFFLINE_FIXTURE,
+        }:
+            raise ValueError("offline catalog sync requires local provenance")
+        with ProviderCenterStore(Path(args.provider_db)) as store:
+            result = ProviderCenterService(store).sync_model_catalog(
+                request,
+                FixtureModelCatalogAdapter(fixture.observation, source=request.source),
+            )
+        return _emit(result)
+    except (OSError, ValueError, RuntimeError):
+        return _rejected()
+
+
 def _view(args: argparse.Namespace) -> int:
     try:
         with ProviderCenterStore(Path(args.provider_db)) as store:
@@ -106,6 +129,15 @@ def _view(args: argparse.Namespace) -> int:
         print(
             json.dumps(
                 [item.model_dump(mode="json") for item in view.recent_audit],
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.provider_action == "catalog-list":
+        print(
+            json.dumps(
+                [item.model_dump(mode="json") for item in view.model_catalogs],
                 indent=2,
                 sort_keys=True,
             )
@@ -152,7 +184,11 @@ def register_provider_center_commands(subparsers) -> None:
     bind_probe.add_argument("--probe-config-file", required=True)
     bind_probe.add_argument("--probe-db", required=True)
     bind_probe.set_defaults(handler=_bind_probe)
-    for name in ("list", "audit"):
+    catalog = actions.add_parser("catalog-sync-offline")
+    catalog.add_argument("--request-file", required=True)
+    catalog.add_argument("--fixture-file", required=True)
+    catalog.set_defaults(handler=_catalog_sync)
+    for name in ("list", "audit", "catalog-list"):
         query = actions.add_parser(name)
         query.add_argument("--audit-limit", type=int, choices=range(0, 1001), default=50)
         query.set_defaults(handler=_view)
