@@ -1,0 +1,427 @@
+{
+  "$defs": {
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    },
+    "AgentProviderIpPolicy": {
+      "enum": [
+        "none",
+        "loopback_only",
+        "global_only"
+      ],
+      "title": "AgentProviderIpPolicy",
+      "type": "string"
+    },
+    "AgentProviderTransportAdmission": {
+      "additionalProperties": false,
+      "properties": {
+        "admission_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Admission Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "hostname": {
+          "maxLength": 253,
+          "minLength": 3,
+          "title": "Hostname",
+          "type": "string"
+        },
+        "port": {
+          "default": 443,
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "request_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Request Path",
+          "type": "string"
+        },
+        "credential_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Credential Reference Id",
+          "type": "string"
+        },
+        "adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Adapter Digest",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/AgentProviderTransportMode",
+          "default": "admission_fake"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentProviderTransportLimits"
+        },
+        "tls_required": {
+          "default": true,
+          "title": "Tls Required",
+          "type": "boolean"
+        },
+        "redirects_allowed": {
+          "default": false,
+          "title": "Redirects Allowed",
+          "type": "boolean"
+        },
+        "proxy_allowed": {
+          "default": false,
+          "title": "Proxy Allowed",
+          "type": "boolean"
+        },
+        "dns_revalidation_required": {
+          "default": true,
+          "title": "Dns Revalidation Required",
+          "type": "boolean"
+        },
+        "raw_response_persisted": {
+          "default": false,
+          "title": "Raw Response Persisted",
+          "type": "boolean"
+        },
+        "network_enabled": {
+          "default": false,
+          "title": "Network Enabled",
+          "type": "boolean"
+        },
+        "process_isolation_required": {
+          "default": false,
+          "title": "Process Isolation Required",
+          "type": "boolean"
+        },
+        "ip_policy": {
+          "$ref": "#/$defs/AgentProviderIpPolicy",
+          "default": "none"
+        },
+        "ca_bundle_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ca Bundle Digest"
+        },
+        "minimum_tls_version": {
+          "default": "TLSv1.2",
+          "title": "Minimum Tls Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "admission_id",
+        "provider_id",
+        "hostname",
+        "request_path",
+        "credential_reference_id",
+        "adapter_digest",
+        "limits"
+      ],
+      "title": "AgentProviderTransportAdmission",
+      "type": "object"
+    },
+    "AgentProviderTransportLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_request_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2162688,
+          "title": "Max Request Bytes",
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "default": 1048576,
+          "exclusiveMinimum": 0,
+          "maximum": 2097152,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_requests_per_minute": {
+          "default": 30,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Max Requests Per Minute",
+          "type": "integer"
+        }
+      },
+      "title": "AgentProviderTransportLimits",
+      "type": "object"
+    },
+    "AgentProviderTransportMode": {
+      "enum": [
+        "admission_fake",
+        "loopback_https_probe",
+        "live_https"
+      ],
+      "title": "AgentProviderTransportMode",
+      "type": "string"
+    },
+    "ModelAgentRole": {
+      "enum": [
+        "planner",
+        "recon",
+        "extractor",
+        "source",
+        "web",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "ModelAgentRole",
+      "type": "string"
+    },
+    "ModelEngine": {
+      "enum": [
+        "source_hunt",
+        "authorized_red_team",
+        "hybrid"
+      ],
+      "title": "ModelEngine",
+      "type": "string"
+    },
+    "OpenAIChatCompletionsCodecRegistration": {
+      "additionalProperties": false,
+      "properties": {
+        "codec_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Codec Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "protocol": {
+          "const": "openai-chat-completions-v1",
+          "default": "openai-chat-completions-v1",
+          "title": "Protocol",
+          "type": "string"
+        },
+        "request_path": {
+          "const": "/v1/chat/completions",
+          "default": "/v1/chat/completions",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "request_model": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Request Model",
+          "type": "string"
+        },
+        "accepted_response_models": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Accepted Response Models",
+          "type": "array"
+        },
+        "implementation_digest": {
+          "default": "582e04172dd77e2c1e9e18b8ad602d84b84f1c6220f2a17cdabe994d4416af7a",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Implementation Digest",
+          "type": "string"
+        },
+        "decision_schema_digest": {
+          "default": "db51ba096197cc62b97b626bb6ae910b5dd223986514f5d2b29d5c3bc7ba008b",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Decision Schema Digest",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentProviderCodecLimits"
+        },
+        "allowed_empty_root_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Allowed Empty Root Fields",
+          "type": "array"
+        },
+        "allowed_empty_choice_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Allowed Empty Choice Fields",
+          "type": "array"
+        },
+        "allowed_empty_message_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Allowed Empty Message Fields",
+          "type": "array"
+        },
+        "streaming_allowed": {
+          "default": false,
+          "title": "Streaming Allowed",
+          "type": "boolean"
+        },
+        "native_tools_allowed": {
+          "default": false,
+          "title": "Native Tools Allowed",
+          "type": "boolean"
+        },
+        "arbitrary_parameters_allowed": {
+          "default": false,
+          "title": "Arbitrary Parameters Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "codec_id",
+        "provider_id",
+        "request_model",
+        "accepted_response_models",
+        "limits"
+      ],
+      "title": "OpenAIChatCompletionsCodecRegistration",
+      "type": "object"
+    },
+    "WorkerRole": {
+      "enum": [
+        "scope_interpreter",
+        "source_mapper",
+        "hypothesis",
+        "analyzer",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "WorkerRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "preparation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Preparation Id",
+      "type": "string"
+    },
+    "flow_snapshot_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Snapshot Digest",
+      "type": "string"
+    },
+    "provider_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Profile Digest",
+      "type": "string"
+    },
+    "provider_lifecycle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Lifecycle Digest",
+      "type": "string"
+    },
+    "capability_manifest_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Capability Manifest Digest",
+      "type": "string"
+    },
+    "endpoint_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Reference Id",
+      "type": "string"
+    },
+    "credential_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Reference Id",
+      "type": "string"
+    },
+    "engine": {
+      "$ref": "#/$defs/ModelEngine"
+    },
+    "agent_role": {
+      "$ref": "#/$defs/ModelAgentRole"
+    },
+    "worker_role": {
+      "$ref": "#/$defs/WorkerRole"
+    },
+    "transport_admission": {
+      "$ref": "#/$defs/AgentProviderTransportAdmission"
+    },
+    "codec_registration": {
+      "$ref": "#/$defs/OpenAIChatCompletionsCodecRegistration"
+    },
+    "max_output_tokens": {
+      "title": "Max Output Tokens",
+      "type": "integer"
+    },
+    "prepared_at": {
+      "format": "date-time",
+      "title": "Prepared At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "preparation_id",
+    "flow_snapshot_digest",
+    "provider_profile_digest",
+    "provider_lifecycle_digest",
+    "capability_manifest_digest",
+    "endpoint_reference_id",
+    "credential_reference_id",
+    "engine",
+    "agent_role",
+    "worker_role",
+    "transport_admission",
+    "codec_registration",
+    "max_output_tokens",
+    "prepared_at"
+  ],
+  "title": "OpenAIChatProfilePreparation",
+  "type": "object"
+}

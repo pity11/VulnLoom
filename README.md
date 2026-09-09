@@ -81,7 +81,13 @@ live compatibility acceptance. A feature-gated OpenAI-compatible Chat Completion
 slice with strict typed decisions, model and usage checks, rejection, timeout, and cleanup tests. The admitted CUC probe
 identities are frozen in a content-addressed migration baseline. This new codec is not yet the default CUC path and has not
 received live CUC acceptance.
-Provider Center, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
+The first trusted Profile assembly path now resolves only an explicitly allowlisted Control Plane endpoint reference,
+rechecks the admitted Flow and current Provider lifecycle, prepares content-addressed transport/codec contracts without
+network access, and creates a model registration only after the authoritative Egress Store proves a grant is active.
+That assembly now drives complete local fake-process Agent turns for two distinct Provider/model configurations. Negative
+turns cover authentication rejection, rate limiting, timeout, malformed output, zeroed credential leases, cleared wire
+buffers, and absence of receipts on failure.
+Provider Center UI/CLI, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,

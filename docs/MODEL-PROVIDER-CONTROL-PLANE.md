@@ -397,9 +397,19 @@ OpenAI-compatible Chat Completions codec 位于显式功能开关后，只发送
 `stream=false`，并把严格 JSON 决策归一化为既有 `AgentModelReply`。本地 fake transport 已覆盖成功、401、
 429、超时、畸形响应与缓冲清理。它尚未替换任何 CUC 入口。
 
-P1 剩余项是把 `ProviderProfile` 到 transport/codec/model registration 的组装收口到可信 adapter service，
-用第二个假 Provider 验证切换，并在用户另行明确授权后执行新路径的固定 CUC 实时验收。只有这些结果与冻结
-基线相容，默认开发路由才允许迁移；在此之前仍使用现有 CUC 路径。
+可信 adapter service 的首版也已离线完成。它通过显式 allowlist 的 Control Plane 配置槽解析 Endpoint，
+先无网络准备内容寻址的 transport Admission 与 codec registration；运行绑定时重新核对当前 Provider
+lifecycle 与 Flow Snapshot，并仅在权威 Egress Store 证明 Grant active 后生成 `AgentModelRegistration`。
+固定 Agent Role→Worker Role、能力、路径和 route 预算都在代码中检查。测试使用两个不同的假 Provider 配置
+证明切换不会复用模型、codec 或 registration 身份，并用真实本地 Egress ledger 证明撤销后拒绝绑定。
+
+组装结果驱动的完整 fake transport Agent turn 现已通过两套不同 Provider/model 配置。相同纵切还覆盖 401、
+429、transport timeout 和畸形 JSON；所有失败都没有 receipt，credential lease、请求缓冲和已取得的响应缓冲
+均完成清理。该测试没有发起 DNS 或网络连接，也没有创建工具调用、Candidate 或 Finding。
+
+P1 离线范围已经完成。剩余发布门禁是在用户另行明确授权后执行新路径的固定 CUC 实时验收。只有实时响应的
+模型身份、结构化 decision、usage、失败与清理结果同冻结兼容基线相容，默认开发路由才允许迁移；在此之前
+仍使用现有 CUC 路径。
 
 ### P2：Provider Center CLI/API
 

@@ -61,6 +61,7 @@ from vulnloom.agent_runtime import (
     CucChatCompatibilityBaseline,
     OpenAIChatCompletionsCodecRegistration,
     OpenAIChatCompletionsFeatureGate,
+    OpenAIChatProfilePreparation,
 )
 from vulnloom.agent_runtime.provider_probe_cuc import (
     CucChatProbeCodecRegistration,
@@ -344,6 +345,7 @@ MODELS = (
     AgentProviderCodecRegistration,
     OpenAIChatCompletionsCodecRegistration,
     OpenAIChatCompletionsFeatureGate,
+    OpenAIChatProfilePreparation,
     CucChatCompatibilityBaseline,
     AgentProviderEgressIssuerPolicy,
     AgentProviderEgressGrant,

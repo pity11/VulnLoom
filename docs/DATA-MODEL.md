@@ -439,6 +439,19 @@ P1 迁移基线内容寻址固定已验收 CUC PONG 与固定 JSON 探针的 cod
 未伴随显式新基线的变化都会拒绝迁移。该对象不保存网关、凭据、响应正文或性能值，也不把旧探针与通用
 Agent response 误当成相同业务输出。
 
+### OpenAIChatProfilePreparation
+
+P1 的可信 Profile adapter 采用两段式组装。prepare 阶段重新校验 role-admitted `ProviderProfile`、已探测
+Capability Manifest、Flow 中 exact Engine/Agent Role binding、Endpoint/Credential reference、固定协议实现、
+Worker Role 映射和 route 资源预算。Endpoint 只从 Control Plane 显式 allowlist 的环境配置槽解析；原始 URL
+不会进入该对象。prepare 不签发 Grant、不取 API Key、不解析模型上下文，也不发网络请求。
+
+`OpenAIChatProfilePreparation` 内容寻址绑定 Flow/Profile/lifecycle/manifest/reference、Worker Role、transport
+Admission、codec registration、输出上限和准备时间。bind 阶段再次核对当前 Profile 与 Flow 身份，并委托
+权威 Egress Store 验证 Grant 为 active 且用途为 model inference；之后才生成 `AgentModelRegistration` 和
+启用后的 codec。过期、撤销、未签发、生命周期漂移、Flow 漂移、能力不足、角色错配、路径错配或预算超限
+均 fail-closed。
+
 ### AgentToolHandoffPlan、Outcome 与 Observation
 
 M7.8 的 handoff plan 内容寻址封存完整 `AgentRunPlan`、权威 Agent outcome 摘要、exact `BrokerCall` 与摘要、

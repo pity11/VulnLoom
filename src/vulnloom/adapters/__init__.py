@@ -7,13 +7,23 @@ from .model_credentials import (
     ModelCredentialReference,
     ModelCredentialUnavailable,
 )
-from .model_endpoints import ModelEndpointReference
+from .model_endpoints import (
+    EnvironmentModelEndpointProvider,
+    ModelEndpointProvider,
+    ModelEndpointReference,
+    ModelEndpointUnavailable,
+    ResolvedModelEndpoint,
+)
 
 __all__ = [
     "EnvironmentModelCredentialProvider",
+    "EnvironmentModelEndpointProvider",
     "ModelCredentialLease",
     "ModelCredentialProvider",
     "ModelCredentialReference",
     "ModelCredentialUnavailable",
     "ModelEndpointReference",
+    "ModelEndpointProvider",
+    "ModelEndpointUnavailable",
+    "ResolvedModelEndpoint",
 ]
