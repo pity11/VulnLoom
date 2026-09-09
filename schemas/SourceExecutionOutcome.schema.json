@@ -307,6 +307,81 @@
       "title": "SourceExecutionStatus",
       "type": "string"
     },
+    "SourceSanitizer": {
+      "enum": [
+        "address",
+        "undefined",
+        "memory"
+      ],
+      "title": "SourceSanitizer",
+      "type": "string"
+    },
+    "SourceStageReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "receipt_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/SourceExecutionStage"
+        },
+        "input_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Digest",
+          "type": "string"
+        },
+        "output_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Output Digest",
+          "type": "string"
+        },
+        "coverage_edges": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Coverage Edges",
+          "type": "integer"
+        },
+        "crash_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crash Fingerprint"
+        },
+        "sanitizer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSanitizer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pov_reproduced": {
+          "default": false,
+          "title": "Pov Reproduced",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "stage",
+        "input_digest",
+        "output_digest"
+      ],
+      "title": "SourceStageReceipt",
+      "type": "object"
+    },
     "TaskBudget": {
       "additionalProperties": false,
       "properties": {
@@ -358,6 +433,14 @@
         "$ref": "#/$defs/SandboxRunResult"
       },
       "title": "Runner Results",
+      "type": "array"
+    },
+    "stage_receipts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SourceStageReceipt"
+      },
+      "title": "Stage Receipts",
       "type": "array"
     },
     "evidence_refs": {

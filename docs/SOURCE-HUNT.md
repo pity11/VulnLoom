@@ -35,6 +35,11 @@ Candidate materialization is deliberately one-way into the shared domain: Source
 approval. Promotion re-reads the authoritative Validation and Critic stores and requires a separate exact
 `MUTATE_TARGET_STATE` approval; a proposal or model response cannot directly create a Finding.
 
+Every successful execution stage must also publish exactly one typed, content-addressed receipt. Receipts
+form a digest chain beginning at the Candidate digest. Fuzz receipts require non-zero coverage and a Crash
+fingerprint; Sanitizer and PoV receipts must preserve that fingerprint, and the final receipt must explicitly
+prove independent replay. Free-form logs can accompany a receipt but cannot substitute for one.
+
 ## Local CLI contract
 
 The `vulnloom source-hunt` command contains the stable local control surface:
@@ -54,10 +59,10 @@ five-container isolation and cleanup boundary without accessing a network.
 
 V1 completes the safe Source Hunt orchestration and shared Candidate-to-report evidence chain. The Python
 adapter provides AST navigation; JavaScript/TypeScript currently provides conservative navigation only.
-Dedicated C/C++ build recipes, coverage-guided fuzzer implementations, ASAN/UBSAN parsing, crash
-normalization, automatic harness synthesis, patch generation, and blind-holdout quality gates remain R9
-depth work. Until a registered adapter supplies genuine stage evidence, the typed five-stage contract must
-not be described as an actual fuzzing or sanitizer result.
+Dedicated C/C++ build recipes, coverage-guided fuzzer implementations, ASAN/UBSAN parsing, automatic
+harness synthesis, patch generation, and blind-holdout quality gates remain R9 depth work. Until a
+registered adapter supplies genuine stage evidence, the typed five-stage receipt contract must not be
+described as an actual fuzzing or sanitizer result.
 
 No Source Hunt command accepts a Provider secret, full private endpoint, disclosure token, or raw
 Authorization response. Network integration and real model calls remain explicit, disabled-by-default

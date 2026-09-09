@@ -92,6 +92,8 @@ from vulnloom.source_hunt import (
     SourceHuntStore,
     SourceHuntTimedOut,
     SourceLanguage,
+    SourceSanitizer,
+    SourceStageReceipt,
     source_execution_approval_digest,
     source_execution_profile,
     source_finding_approval_digest,
@@ -665,17 +667,46 @@ def _execution_fixture(tmp_path, approved_scope, now, *, image=None):
         decided_at=now,
     )
     evidence_store = EvidenceStore(tmp_path / "execution-evidence")
-    evidence = tuple(
-        evidence_store.capture_text(
-            f"{stage.value} completed for authorized local fixture",
+    evidence_items = []
+    input_digest = candidate_content_digest(candidate)
+    for stage in SourceExecutionStage:
+        output_digest = canonical_digest(
+            {"stage": stage.value, "input_digest": input_digest}
+        )
+        receipt = SourceStageReceipt.create(
+            stage=stage,
+            input_digest=input_digest,
+            output_digest=output_digest,
+            coverage_edges=17 if stage is SourceExecutionStage.FUZZ else 0,
+            crash_fingerprint=(
+                "9" * 64
+                if stage
+                in {
+                    SourceExecutionStage.FUZZ,
+                    SourceExecutionStage.SANITIZER,
+                    SourceExecutionStage.POV_REPLAY,
+                }
+                else None
+            ),
+            sanitizer=(
+                SourceSanitizer.ADDRESS
+                if stage is SourceExecutionStage.SANITIZER
+                else None
+            ),
+            pov_reproduced=stage is SourceExecutionStage.POV_REPLAY,
+        )
+        evidence_items.append(
+            evidence_store.capture_text(
+                receipt.model_dump_json(),
             kind=EvidenceKind.TEST,
             source_ref=f"source-execution:{stage.value}",
             producer="test.source-execution",
             target_version=index.target_version,
-            summary=f"{stage.value} evidence",
+                summary=f"{stage.value} typed receipt",
+            )
         )
-        for stage in SourceExecutionStage
-    )
+        input_digest = output_digest
+    evidence = tuple(evidence_items)
     return (
         hunt_store,
         index,
@@ -867,6 +898,81 @@ def test_source_execution_requires_approval_and_resumes_after_interruption(
     ) == binding
     hunt_store.close()
     store.close()
+
+
+def test_source_execution_rejects_untyped_or_broken_stage_receipts(
+    tmp_path, approved_scope, now
+):
+    (
+        hunt_store,
+        index,
+        scope,
+        checkpoint,
+        candidate,
+        plan,
+        approval,
+        evidence_store,
+        _,
+    ) = _execution_fixture(tmp_path, approved_scope, now)
+    plain = evidence_store.capture_text(
+        "build completed",
+        kind=EvidenceKind.TEST,
+        source_ref="source-execution:untyped",
+        producer="test.source-execution",
+        target_version=index.target_version,
+        summary="untyped stage output",
+    )
+    with (
+        SourceExecutionStore(tmp_path / "untyped.sqlite3") as store,
+        pytest.raises(SourceExecutionRejected, match="typed receipt"),
+    ):
+        SourceExecutionService(
+            scope=scope,
+            runner=_ScriptedRunner((OfflineScenario(evidence_refs=(plain.evidence_id,)),)),
+            evidence_store=evidence_store,
+            store=store,
+        ).execute(
+            plan=plan,
+            index=index,
+            investigation=checkpoint,
+            candidate=candidate,
+            approval=approval,
+            now=now,
+        )
+    with SourceExecutionStore(tmp_path / "untyped.sqlite3") as persisted:
+        assert not persisted.load(plan.plan_id).runner_results
+
+    broken_receipt = SourceStageReceipt.create(
+        stage=SourceExecutionStage.BUILD,
+        input_digest="8" * 64,
+        output_digest="7" * 64,
+    )
+    broken = evidence_store.capture_text(
+        broken_receipt.model_dump_json(),
+        kind=EvidenceKind.TEST,
+        source_ref="source-execution:broken-chain",
+        producer="test.source-execution",
+        target_version=index.target_version,
+        summary="broken stage receipt",
+    )
+    with (
+        SourceExecutionStore(tmp_path / "broken.sqlite3") as store,
+        pytest.raises(SourceExecutionRejected, match="chain"),
+    ):
+        SourceExecutionService(
+            scope=scope,
+            runner=_ScriptedRunner((OfflineScenario(evidence_refs=(broken.evidence_id,)),)),
+            evidence_store=evidence_store,
+            store=store,
+        ).execute(
+            plan=plan,
+            index=index,
+            investigation=checkpoint,
+            candidate=candidate,
+            approval=approval,
+            now=now,
+        )
+    hunt_store.close()
 
 
 @pytest.mark.parametrize(

@@ -351,6 +351,7 @@ from vulnloom.source_hunt import (
     SourceHuntLimits,
     SourcePartition,
     SourceReference,
+    SourceStageReceipt,
     SourceSymbol,
     SourceValidationBinding,
 )
@@ -419,6 +420,7 @@ MODELS = (
     SourceExecutionStep,
     SourceExecutionPlan,
     SourceExecutionOutcome,
+    SourceStageReceipt,
     SourceValidationBinding,
     SourceFindingPromotionPlan,
     SourceFindingPromotionOutcome,

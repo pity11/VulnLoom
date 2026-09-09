@@ -29,6 +29,66 @@ class SourceExecutionStage(StrEnum):
     POV_REPLAY = "pov_replay"
 
 
+class SourceSanitizer(StrEnum):
+    ADDRESS = "address"
+    UNDEFINED = "undefined"
+    MEMORY = "memory"
+
+
+class SourceStageReceipt(DomainModel):
+    receipt_id: Digest
+    stage: SourceExecutionStage
+    input_digest: Digest
+    output_digest: Digest
+    coverage_edges: int = Field(default=0, ge=0)
+    crash_fingerprint: Digest | None = None
+    sanitizer: SourceSanitizer | None = None
+    pov_reproduced: bool = False
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.receipt_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"receipt_id"})
+        ):
+            raise ValueError("Source stage receipt content digest mismatch")
+        if self.stage in {SourceExecutionStage.BUILD, SourceExecutionStage.HARNESS}:
+            valid = (
+                self.coverage_edges == 0
+                and self.crash_fingerprint is None
+                and self.sanitizer is None
+                and not self.pov_reproduced
+            )
+        elif self.stage is SourceExecutionStage.FUZZ:
+            valid = (
+                self.coverage_edges > 0
+                and self.crash_fingerprint is not None
+                and self.sanitizer is None
+                and not self.pov_reproduced
+            )
+        elif self.stage is SourceExecutionStage.SANITIZER:
+            valid = (
+                self.crash_fingerprint is not None
+                and self.sanitizer is not None
+                and not self.pov_reproduced
+            )
+        else:
+            valid = (
+                self.crash_fingerprint is not None
+                and self.sanitizer is None
+                and self.pov_reproduced
+            )
+        if not valid:
+            raise ValueError("Source stage receipt does not prove its stage")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> SourceStageReceipt:
+        expanded = cls.model_construct(receipt_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"receipt_id"}
+        )
+        return cls(receipt_id=canonical_digest(expanded), **expanded)
+
+
 SOURCE_EXECUTION_STAGES = tuple(SourceExecutionStage)
 SOURCE_EXECUTION_TOOLS = {
     SourceExecutionStage.BUILD: "source.build",
@@ -107,6 +167,7 @@ class SourceExecutionOutcome(DomainModel):
     status: SourceExecutionStatus
     executed_stages: tuple[SourceExecutionStage, ...]
     runner_results: tuple[SandboxRunResult, ...]
+    stage_receipts: tuple[SourceStageReceipt, ...] = ()
     evidence_refs: tuple[Digest, ...]
     reproducible_pov: bool = False
     reason_code: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")
@@ -116,14 +177,22 @@ class SourceExecutionOutcome(DomainModel):
     def consistent(self) -> Self:
         if len(self.executed_stages) != len(self.runner_results):
             raise ValueError("Source execution stage/result binding is incomplete")
+        if len(self.stage_receipts) > len(self.executed_stages):
+            raise ValueError("Source execution has excess stage receipts")
         if tuple(dict.fromkeys(self.evidence_refs)) != self.evidence_refs:
             raise ValueError("Source execution Evidence references must be unique")
         expected = SOURCE_EXECUTION_STAGES[: len(self.executed_stages)]
         if self.executed_stages != expected:
             raise ValueError("Source execution results are out of order")
+        if tuple(item.stage for item in self.stage_receipts) != self.executed_stages[
+            : len(self.stage_receipts)
+        ]:
+            raise ValueError("Source execution receipts are out of order")
         if self.reproducible_pov != (
             self.status is SourceExecutionStatus.COMPLETED
             and self.executed_stages == SOURCE_EXECUTION_STAGES
+            and len(self.stage_receipts) == len(SOURCE_EXECUTION_STAGES)
+            and self.stage_receipts[-1].pov_reproduced
             and bool(self.runner_results[-1].evidence_refs)
         ):
             raise ValueError("Source execution PoV reproduction claim is invalid")

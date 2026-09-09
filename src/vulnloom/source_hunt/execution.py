@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid5
 
+from pydantic import ValidationError
+
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     ApprovalAction,
@@ -47,6 +49,7 @@ from .execution_models import (
     SourceExecutionPlan,
     SourceExecutionStatus,
     SourceExecutionStep,
+    SourceStageReceipt,
     SourceValidationBinding,
     source_execution_approval_digest,
     source_execution_profile,
@@ -228,6 +231,7 @@ class SourceExecutionService:
             status=SourceExecutionStatus.RUNNING,
             executed_stages=(),
             runner_results=(),
+            stage_receipts=(),
             evidence_refs=(),
             reason_code="execution_started",
             updated_at=now,
@@ -266,8 +270,27 @@ class SourceExecutionService:
                 if not self.evidence_store.contains(evidence_ref):
                     raise SourceExecutionRejected("source Runner returned unavailable Evidence")
             status, reason = self._status(result)
+            receipt = (
+                self._receipt(
+                    step.stage,
+                    result,
+                    expected_input=(
+                        plan.candidate_digest
+                        if not outcome.stage_receipts
+                        else outcome.stage_receipts[-1].output_digest
+                    ),
+                    prior=outcome.stage_receipts,
+                )
+                if status is SourceExecutionStatus.RUNNING
+                else None
+            )
             executed = (*outcome.executed_stages, step.stage)
             results = (*outcome.runner_results, result)
+            receipts = (
+                (*outcome.stage_receipts, receipt)
+                if receipt is not None
+                else outcome.stage_receipts
+            )
             refs = tuple(
                 dict.fromkeys((*outcome.evidence_refs, *result.evidence_refs))
             )
@@ -276,6 +299,7 @@ class SourceExecutionService:
                 status=status,
                 executed_stages=executed,
                 runner_results=results,
+                stage_receipts=receipts,
                 evidence_refs=refs,
                 reproducible_pov=(
                     status is SourceExecutionStatus.COMPLETED
@@ -381,6 +405,27 @@ class SourceExecutionService:
         if result.status is SandboxRunStatus.CANCELLED:
             return SourceExecutionStatus.CANCELLED, "stage_cancelled"
         return SourceExecutionStatus.FAILED, "stage_failed"
+
+    def _receipt(self, stage, result, *, expected_input, prior):
+        receipts = []
+        for evidence_ref in result.evidence_refs:
+            try:
+                receipts.append(
+                    SourceStageReceipt.model_validate_json(
+                        self.evidence_store.read_text_ref(evidence_ref)
+                    )
+                )
+            except (ValidationError, ValueError):
+                continue
+        if len(receipts) != 1 or receipts[0].stage is not stage:
+            raise SourceExecutionRejected("source stage requires one typed receipt")
+        receipt = receipts[0]
+        if receipt.input_digest != expected_input:
+            raise SourceExecutionRejected("source stage receipt chain is broken")
+        crash_receipts = tuple(item for item in prior if item.crash_fingerprint is not None)
+        if crash_receipts and receipt.crash_fingerprint != crash_receipts[-1].crash_fingerprint:
+            raise SourceExecutionRejected("source crash fingerprint changed before PoV replay")
+        return receipt
 
 
 class SourceExecutionValidationService:

@@ -1142,7 +1142,7 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 验收：在固定Benchmark中从源码自动得到可重复Crash/PoV，重启后可重放，构建和Fuzz容器无宿主凭据、Docker socket或残留资源。
 
 实现状态（2026-09-09）：固定五阶段类型协议、确定性计划、精确 Approval、无网络 Sandbox、Evidence 绑定、
-中断恢复和真实 Docker 隔离/清理测试已经完成。当前 Docker 测试使用注册的阶段探针，不等同于真实
+阶段 receipt 摘要链、Crash 指纹连续性、中断恢复和真实 Docker 隔离/清理测试已经完成。当前 Docker 测试使用注册的阶段探针，不等同于真实
 coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重和 Benchmark PoV 仍待实现，R9 未完成。
 
 ### R10：Hybrid 上线验收

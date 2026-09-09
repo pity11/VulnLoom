@@ -1154,6 +1154,8 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 执行支持中断恢复、超时/失败/取消 fail-closed、Runner 输出脱敏 Evidence 化和清理证明；完成结果复用共享
   Validation、Critic、Finding 与 Report。Finding promotion 重新读取权威 Validation/Critic ledger，并要求独立
   `MUTATE_TARGET_STATE` Approval。
+- 每个成功阶段必须提供唯一的内容寻址 typed receipt，并从 Candidate digest 串成摘要链；Fuzz receipt 必须包含
+  正覆盖边数和 Crash 指纹，Sanitizer 与 PoV 必须维持同一指纹，普通日志或合成 `completed` 文本不能冒充结果。
 - 默认测试只使用 fake adapter；opt-in Docker 验收已实际证明五阶段容器非 root、无 capability、
   `NoNewPrivs`、源码只读、无默认路由、无 Docker socket、无模型 Key 继承和无残留容器。
 - 本里程碑完成的是安全控制面和端到端证据链。专用 C/C++ toolchain、coverage-guided fuzzer、ASAN/UBSAN

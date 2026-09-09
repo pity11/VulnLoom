@@ -5,6 +5,7 @@ import os
 import pytest
 from test_source_hunt import _execution_fixture
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.runners import (
     DockerCliBackend,
     DockerEnginePolicy,
@@ -16,8 +17,11 @@ from vulnloom.runners import (
 from vulnloom.source_hunt import (
     RunnerOutputEvidenceAdapter,
     SourceExecutionService,
+    SourceExecutionStage,
     SourceExecutionStatus,
     SourceExecutionStore,
+    SourceSanitizer,
+    SourceStageReceipt,
 )
 
 
@@ -60,23 +64,52 @@ grep -q '^NoNewPrivs:[[:space:]]*1$' /proc/self/status
 [ "$(wc -l < /proc/net/route)" = "1" ]
 [ ! -S /var/run/docker.sock ]
 [ -z "${VULNLOOM_MODEL_API_KEY+x}" ]
-printf '{"stage":"__STAGE__","result":"completed"}'
+printf '%s' '__RECEIPT__'
 """.strip()
-    runner = DockerSandboxRunner(
-        backend,
-        RegisteredObjectStore(tmp_path / "objects", {index.manifest_id: source}),
-        tuple(
+    tools = []
+    input_digest = plan.candidate_digest
+    for stage in SourceExecutionStage:
+        output_digest = canonical_digest(
+            {"stage": stage.value, "input_digest": input_digest}
+        )
+        receipt = SourceStageReceipt.create(
+            stage=stage,
+            input_digest=input_digest,
+            output_digest=output_digest,
+            coverage_edges=17 if stage is SourceExecutionStage.FUZZ else 0,
+            crash_fingerprint=(
+                "9" * 64
+                if stage
+                in {
+                    SourceExecutionStage.FUZZ,
+                    SourceExecutionStage.SANITIZER,
+                    SourceExecutionStage.POV_REPLAY,
+                }
+                else None
+            ),
+            sanitizer=(
+                SourceSanitizer.ADDRESS
+                if stage is SourceExecutionStage.SANITIZER
+                else None
+            ),
+            pov_reproduced=stage is SourceExecutionStage.POV_REPLAY,
+        )
+        tools.append(
             DockerTool(
-                tool_id=f"source.{stage}",
+                tool_id=f"source.{stage.value}",
                 argv_prefix=(
                     "/bin/sh",
                     "-c",
-                    probe.replace("__STAGE__", stage),
+                    probe.replace("__RECEIPT__", receipt.model_dump_json()),
                     "source-hunt-stage",
                 ),
             )
-            for stage in ("build", "harness", "fuzz", "sanitizer", "pov_replay")
-        ),
+        )
+        input_digest = output_digest
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {index.manifest_id: source}),
+        tuple(tools),
         engine_policy=_engine_policy(),
         output_store=outputs,
         captured_output_tools=frozenset(
