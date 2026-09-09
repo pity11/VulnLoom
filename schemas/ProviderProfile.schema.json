@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ContextDataClass": {
+      "enum": [
+        "synthetic",
+        "public_target_metadata",
+        "source_code",
+        "redacted_evidence"
+      ],
+      "title": "ContextDataClass",
+      "type": "string"
+    },
+    "ProviderLifecycleState": {
+      "enum": [
+        "draft",
+        "secret_bound",
+        "connectivity_verified",
+        "catalog_discovered",
+        "capabilities_probed",
+        "role_admitted",
+        "degraded",
+        "disabled",
+        "revoked"
+      ],
+      "title": "ProviderLifecycleState",
+      "type": "string"
+    },
+    "ProviderProtocol": {
+      "enum": [
+        "openai_responses",
+        "openai_chat_completions",
+        "anthropic_messages",
+        "gemini_generate_content",
+        "local_openai_compatible"
+      ],
+      "title": "ProviderProtocol",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Digest",
+      "type": "string"
+    },
+    "lifecycle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Lifecycle Digest",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "lifecycle_sequence": {
+      "minimum": 1,
+      "title": "Lifecycle Sequence",
+      "type": "integer"
+    },
+    "lifecycle_evidence_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lifecycle Evidence Digest"
+    },
+    "display_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Display Name",
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/$defs/ProviderProtocol"
+    },
+    "protocol_adapter_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Protocol Adapter Id",
+      "type": "string"
+    },
+    "endpoint_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Reference Id",
+      "type": "string"
+    },
+    "credential_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Reference Id",
+      "type": "string"
+    },
+    "data_policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Data Policy Id",
+      "type": "string"
+    },
+    "allowed_context_data_classes": {
+      "items": {
+        "$ref": "#/$defs/ContextDataClass"
+      },
+      "minItems": 1,
+      "title": "Allowed Context Data Classes",
+      "type": "array"
+    },
+    "state": {
+      "$ref": "#/$defs/ProviderLifecycleState",
+      "default": "draft"
+    }
+  },
+  "required": [
+    "profile_digest",
+    "lifecycle_digest",
+    "provider_id",
+    "revision",
+    "lifecycle_sequence",
+    "display_name",
+    "protocol",
+    "protocol_adapter_id",
+    "endpoint_reference_id",
+    "credential_reference_id",
+    "data_policy_id",
+    "allowed_context_data_classes"
+  ],
+  "title": "ProviderProfile",
+  "type": "object"
+}

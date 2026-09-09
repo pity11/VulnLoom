@@ -1,0 +1,127 @@
+{
+  "additionalProperties": false,
+  "description": "Frozen evidence contract for preserving the admitted CUC probe path.",
+  "properties": {
+    "baseline_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Id",
+      "type": "string"
+    },
+    "baseline_version": {
+      "const": "cuc-chat-compatibility-v1",
+      "title": "Baseline Version",
+      "type": "string"
+    },
+    "pong_codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pong Codec Id",
+      "type": "string"
+    },
+    "structured_codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Structured Codec Id",
+      "type": "string"
+    },
+    "pong_implementation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pong Implementation Digest",
+      "type": "string"
+    },
+    "structured_implementation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Structured Implementation Digest",
+      "type": "string"
+    },
+    "pong_request_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pong Request Digest",
+      "type": "string"
+    },
+    "structured_request_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Structured Request Digest",
+      "type": "string"
+    },
+    "pong_completion_summary_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pong Completion Summary Digest",
+      "type": "string"
+    },
+    "request_model": {
+      "const": "cuc/deepseek",
+      "title": "Request Model",
+      "type": "string"
+    },
+    "accepted_response_models": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Accepted Response Models",
+      "type": "array"
+    },
+    "accepted_pong_classifications": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Accepted Pong Classifications",
+      "type": "array"
+    },
+    "failure_semantics": {
+      "maxItems": 5,
+      "minItems": 5,
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Failure Semantics",
+      "type": "array"
+    }
+  },
+  "required": [
+    "baseline_id",
+    "baseline_version",
+    "pong_codec_id",
+    "structured_codec_id",
+    "pong_implementation_digest",
+    "structured_implementation_digest",
+    "pong_request_digest",
+    "structured_request_digest",
+    "pong_completion_summary_digest",
+    "request_model",
+    "accepted_response_models",
+    "accepted_pong_classifications",
+    "failure_semantics"
+  ],
+  "title": "CucChatCompatibilityBaseline",
+  "type": "object"
+}

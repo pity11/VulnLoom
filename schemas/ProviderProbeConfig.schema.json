@@ -383,7 +383,8 @@
     },
     "AgentProviderWireProtocol": {
       "enum": [
-        "openai-responses-v1"
+        "openai-responses-v1",
+        "openai-chat-completions-v1"
       ],
       "title": "AgentProviderWireProtocol",
       "type": "string"

@@ -20,14 +20,6 @@
       },
       "title": "AgentProviderCodecLimits",
       "type": "object"
-    },
-    "AgentProviderWireProtocol": {
-      "enum": [
-        "openai-responses-v1",
-        "openai-chat-completions-v1"
-      ],
-      "title": "AgentProviderWireProtocol",
-      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -43,12 +35,35 @@
       "type": "string"
     },
     "protocol": {
-      "$ref": "#/$defs/AgentProviderWireProtocol",
-      "default": "openai-responses-v1"
+      "const": "openai-chat-completions-v1",
+      "default": "openai-chat-completions-v1",
+      "title": "Protocol",
+      "type": "string"
     },
     "request_path": {
-      "default": "/v1/responses",
+      "const": "/v1/chat/completions",
+      "default": "/v1/chat/completions",
       "title": "Request Path",
+      "type": "string"
+    },
+    "request_model": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+      "title": "Request Model",
+      "type": "string"
+    },
+    "accepted_response_models": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Accepted Response Models",
+      "type": "array"
+    },
+    "implementation_digest": {
+      "default": "582e04172dd77e2c1e9e18b8ad602d84b84f1c6220f2a17cdabe994d4416af7a",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
       "type": "string"
     },
     "decision_schema_digest": {
@@ -57,27 +72,44 @@
       "title": "Decision Schema Digest",
       "type": "string"
     },
-    "implementation_digest": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Implementation Digest",
-      "type": "string"
-    },
     "limits": {
       "$ref": "#/$defs/AgentProviderCodecLimits"
+    },
+    "allowed_empty_root_fields": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Allowed Empty Root Fields",
+      "type": "array"
+    },
+    "allowed_empty_choice_fields": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Allowed Empty Choice Fields",
+      "type": "array"
+    },
+    "allowed_empty_message_fields": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Allowed Empty Message Fields",
+      "type": "array"
     },
     "streaming_allowed": {
       "default": false,
       "title": "Streaming Allowed",
       "type": "boolean"
     },
-    "storage_allowed": {
+    "native_tools_allowed": {
       "default": false,
-      "title": "Storage Allowed",
-      "type": "boolean"
-    },
-    "tools_allowed": {
-      "default": false,
-      "title": "Tools Allowed",
+      "title": "Native Tools Allowed",
       "type": "boolean"
     },
     "arbitrary_parameters_allowed": {
@@ -89,9 +121,10 @@
   "required": [
     "codec_id",
     "provider_id",
-    "implementation_digest",
+    "request_model",
+    "accepted_response_models",
     "limits"
   ],
-  "title": "AgentProviderCodecRegistration",
+  "title": "OpenAIChatCompletionsCodecRegistration",
   "type": "object"
 }

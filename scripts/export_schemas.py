@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from vulnloom.adapters import ModelCredentialReference
+from vulnloom.adapters import ModelCredentialReference, ModelEndpointReference
 from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.agent_runtime import (
     AgentAuthorizedCallOption,
@@ -58,6 +58,9 @@ from vulnloom.agent_runtime import (
     AgentToolHandoffPlan,
     AgentToolIntent,
     AgentToolObservation,
+    CucChatCompatibilityBaseline,
+    OpenAIChatCompletionsCodecRegistration,
+    OpenAIChatCompletionsFeatureGate,
 )
 from vulnloom.agent_runtime.provider_probe_cuc import (
     CucChatProbeCodecRegistration,
@@ -188,6 +191,17 @@ from vulnloom.critic import (
     PilotCriticIntakeBinding,
     PilotCriticIntakePlan,
 )
+from vulnloom.domain.model_routing import (
+    CapabilityManifest,
+    FallbackPolicy,
+    FlowModelSnapshot,
+    FlowRoleModelBinding,
+    ModelBudgetProfile,
+    ModelCapabilityAssessment,
+    ModelReference,
+    ModelRoute,
+    ProviderProfile,
+)
 from vulnloom.domain.models import (
     ApprovalRequest,
     Artifact,
@@ -308,7 +322,17 @@ from vulnloom.validation import (
 
 MODELS = (
     ModelCredentialReference,
+    ModelEndpointReference,
     ModelProviderConfig,
+    ProviderProfile,
+    ModelCapabilityAssessment,
+    CapabilityManifest,
+    ModelReference,
+    ModelBudgetProfile,
+    FallbackPolicy,
+    ModelRoute,
+    FlowRoleModelBinding,
+    FlowModelSnapshot,
     AgentContextLimits,
     AgentContextFragment,
     AgentContextSnapshot,
@@ -318,6 +342,9 @@ MODELS = (
     AgentMessageEnvelope,
     AgentProviderCodecLimits,
     AgentProviderCodecRegistration,
+    OpenAIChatCompletionsCodecRegistration,
+    OpenAIChatCompletionsFeatureGate,
+    CucChatCompatibilityBaseline,
     AgentProviderEgressIssuerPolicy,
     AgentProviderEgressGrant,
     AgentProviderEgressRevocation,

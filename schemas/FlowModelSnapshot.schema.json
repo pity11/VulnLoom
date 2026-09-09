@@ -1,0 +1,209 @@
+{
+  "$defs": {
+    "FlowRoleModelBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "$ref": "#/$defs/ModelEngine"
+        },
+        "agent_role": {
+          "$ref": "#/$defs/ModelAgentRole"
+        },
+        "route_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Digest",
+          "type": "string"
+        },
+        "selected_model": {
+          "$ref": "#/$defs/ModelReference"
+        },
+        "fallback_policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fallback Policy Digest",
+          "type": "string"
+        },
+        "provider_lifecycle_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Lifecycle Digest",
+          "type": "string"
+        },
+        "provider_data_policy_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Data Policy Id",
+          "type": "string"
+        },
+        "protocol_adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Protocol Adapter Digest",
+          "type": "string"
+        },
+        "budget": {
+          "$ref": "#/$defs/ModelBudgetProfile"
+        }
+      },
+      "required": [
+        "engine",
+        "agent_role",
+        "route_digest",
+        "selected_model",
+        "fallback_policy_digest",
+        "provider_lifecycle_digest",
+        "provider_data_policy_id",
+        "protocol_adapter_digest",
+        "budget"
+      ],
+      "title": "FlowRoleModelBinding",
+      "type": "object"
+    },
+    "ModelAgentRole": {
+      "enum": [
+        "planner",
+        "recon",
+        "extractor",
+        "source",
+        "web",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "ModelAgentRole",
+      "type": "string"
+    },
+    "ModelBudgetProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "max_total_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens_per_turn": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens Per Turn",
+          "type": "integer"
+        },
+        "max_provider_attempts": {
+          "default": 1,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Provider Attempts",
+          "type": "integer"
+        },
+        "timeout_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds Per Attempt",
+          "type": "number"
+        },
+        "max_cost_microunits": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cost Microunits"
+        }
+      },
+      "required": [
+        "max_total_tokens",
+        "max_output_tokens_per_turn",
+        "timeout_seconds_per_attempt"
+      ],
+      "title": "ModelBudgetProfile",
+      "type": "object"
+    },
+    "ModelEngine": {
+      "enum": [
+        "source_hunt",
+        "authorized_red_team",
+        "hybrid"
+      ],
+      "title": "ModelEngine",
+      "type": "string"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "capability_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capability Manifest Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_profile_digest",
+        "capability_manifest_digest",
+        "provider_model_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Digest",
+      "type": "string"
+    },
+    "flow_id": {
+      "format": "uuid",
+      "title": "Flow Id",
+      "type": "string"
+    },
+    "routing_policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Routing Policy Digest",
+      "type": "string"
+    },
+    "prompt_contract_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prompt Contract Digest",
+      "type": "string"
+    },
+    "tool_schema_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Schema Digest",
+      "type": "string"
+    },
+    "bindings": {
+      "items": {
+        "$ref": "#/$defs/FlowRoleModelBinding"
+      },
+      "minItems": 1,
+      "title": "Bindings",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_digest",
+    "flow_id",
+    "routing_policy_digest",
+    "prompt_contract_digest",
+    "tool_schema_digest",
+    "bindings",
+    "created_at"
+  ],
+  "title": "FlowModelSnapshot",
+  "type": "object"
+}

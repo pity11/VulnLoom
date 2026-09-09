@@ -96,6 +96,14 @@ from .models import (
     AgentToolCallPayload,
     AgentToolIntent,
 )
+from .openai_chat import (
+    OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST,
+    OpenAIChatCompletionsCodecRegistration,
+    OpenAIChatCompletionsFeatureDisabled,
+    OpenAIChatCompletionsFeatureGate,
+    OpenAIChatCompletionsV1Codec,
+    openai_chat_codec_registration_digest,
+)
 from .provider_admission import (
     AgentProviderEgressAuthority,
     AgentProviderEgressConflict,
@@ -118,6 +126,10 @@ from .provider_codec import (
     AgentProviderWireProtocol,
     OpenAIResponsesV1Codec,
     agent_provider_codec_registration_digest,
+)
+from .provider_compatibility import (
+    CucChatCompatibilityBaseline,
+    CucChatCompatibilityDrift,
 )
 from .provider_process import (
     SUBPROCESS_HTTPS_ADAPTER_DIGEST,
@@ -272,6 +284,8 @@ __all__ = [
     "AgentProviderTransportRequest",
     "AgentProviderTransportStatus",
     "AgentProviderTransportTimedOut",
+    "CucChatCompatibilityBaseline",
+    "CucChatCompatibilityDrift",
     "AgentRunIdempotencyConflict",
     "AgentRunLimits",
     "AgentRunOutcome",
@@ -337,6 +351,11 @@ __all__ = [
     "OfflineReplayModelAdapter",
     "OPENAI_RESPONSES_V1_IMPLEMENTATION_DIGEST",
     "OpenAIResponsesV1Codec",
+    "OPENAI_CHAT_COMPLETIONS_V1_IMPLEMENTATION_DIGEST",
+    "OpenAIChatCompletionsCodecRegistration",
+    "OpenAIChatCompletionsFeatureDisabled",
+    "OpenAIChatCompletionsFeatureGate",
+    "OpenAIChatCompletionsV1Codec",
     "ProviderProcessExecutionError",
     "ProviderProcessResult",
     "ProviderProcessRunner",
@@ -353,6 +372,7 @@ __all__ = [
     "agent_broker_call_commitment",
     "agent_message_envelope_digest",
     "agent_prompt_template_digest",
+    "openai_chat_codec_registration_digest",
     "agent_provider_codec_registration_digest",
     "agent_provider_transport_admission_digest",
     "agent_session_call_template_digest",

@@ -1,0 +1,56 @@
+{
+  "$defs": {
+    "CapabilityStatus": {
+      "enum": [
+        "unknown",
+        "declared",
+        "probed",
+        "failed"
+      ],
+      "title": "CapabilityStatus",
+      "type": "string"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capability": {
+      "$ref": "#/$defs/ModelCapability"
+    },
+    "status": {
+      "$ref": "#/$defs/CapabilityStatus"
+    },
+    "probe_result_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Probe Result Digest"
+    }
+  },
+  "required": [
+    "capability",
+    "status"
+  ],
+  "title": "ModelCapabilityAssessment",
+  "type": "object"
+}

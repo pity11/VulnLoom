@@ -1,16 +1,20 @@
 # VulnLoom
 
-VulnLoom is an in-development vulnerability research system for **explicitly authorized targets**. It currently ingests trusted local targets, maps Python Web source code, generates deterministic security Candidates, and provides controlled validation building blocks. The target product will validate Candidates in isolated environments, challenge them through an independent review step, and produce auditable report drafts for human review.
+VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation is earlier and narrower: it primarily ingests trusted local targets, maps Python Web source code, generates deterministic security Candidates, and provides controlled validation building blocks.
 
-The goal is not autonomous exploitation of public targets. VulnLoom is designed to improve the recall, evidence quality, and reporting efficiency of white-box security research while enforcing scope, network boundaries, credential isolation, and human approval in code.
+The product supports autonomous testing only inside an explicit, approved Scope. It must not scan or exploit unauthorized public targets. Its four planned entry points are source vulnerability research, pre-release security acceptance, production-safe scheduled testing, and authorized red-team simulation. Source Hunt and Authorized Red Team are the primary capability lines; the other two entries are controlled delivery workflows. Scope, network boundaries, credential isolation, evidence requirements, and human approval for consequential effects are enforced in code.
 
-## Initial scope
+## Current implementation scope
 
 - White-box analysis of Python Web and API projects.
-- Planned controlled dynamic validation in local Docker Compose test environments.
+- Planned controlled dynamic validation in local Docker Compose test environments, followed by authorized live Web targets.
 - IDOR/BOLA, SSRF, path traversal, injection, insecure deserialization, authorization flaws, and sensitive data exposure.
 - Planned human-reviewable report drafts for vendors, EduSRC, CNVD/CNNVD, and similar disclosure channels.
 - No scanning of unauthorized public targets, automatic platform submission, or automatic CVE requests.
+
+The long-term product design review draft and phased migration plan live in
+[docs/PRODUCT-ARCHITECTURE-ROADMAP.md](./docs/PRODUCT-ARCHITECTURE-ROADMAP.md). Capabilities described
+there remain planned until their explicit acceptance stage passes.
 
 ## Core principles
 
@@ -25,6 +29,9 @@ The goal is not autonomous exploitation of public targets. VulnLoom is designed 
 
 - [CONTEXT.md](./CONTEXT.md): domain terminology and shared language.
 - [AGENTS.md](./AGENTS.md): mandatory engineering constraints for coding agents.
+- [docs/PRODUCT-ARCHITECTURE-ROADMAP.md](./docs/PRODUCT-ARCHITECTURE-ROADMAP.md): review draft for the four product entry points, modular engines, long-term architecture, migration, and phased acceptance plan.
+- [docs/PRODUCT-POSITIONING-REVIEW.md](./docs/PRODUCT-POSITIONING-REVIEW.md): adversarial self-review of product scope, priorities, autonomy claims, and failure conditions.
+- [docs/MODEL-PROVIDER-CONTROL-PLANE.md](./docs/MODEL-PROVIDER-CONTROL-PLANE.md): multi-provider setup, capability probing, role routing, Flow pinning, fallback, credential isolation, and Provider Center UX.
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): layers, components, and deployment topology.
 - [docs/WORKFLOW.md](./docs/WORKFLOW.md): agent orchestration, state machines, and verdict rules.
 - [docs/SECURITY.md](./docs/SECURITY.md): sandbox, network, credential, attachment, and evidence security.
@@ -66,16 +73,23 @@ VulnLoom/
 ```
 
 An HTTP API and disclosure submission adapters remain planned components. A bounded live HTTPS
-provider adapter exists; CUC live acceptance covers the fixed PONG and fixed JSON probes.
-General research-provider integration remains incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
+provider adapter exists; CUC live acceptance covers the fixed PONG and fixed JSON probes. The target design treats it as
+the first Provider Profile within a multi-model Provider Center, rather than as a product-wide special case.
+CUC/DeepSeek remains the default provider for early development and explicitly authorized live acceptance; its existing
+probe, code-review, and Candidate-recommendation paths stay available until the generic adapter passes differential and
+live compatibility acceptance. A feature-gated OpenAI-compatible Chat Completions codec now has an offline fake-transport
+slice with strict typed decisions, model and usage checks, rejection, timeout, and cleanup tests. The admitted CUC probe
+identities are frozen in a content-addressed migration baseline. This new codec is not yet the default CUC path and has not
+received live CUC acceptance.
+Provider Center, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
 rules, databases, or images.
 
-## First end-to-end path
+## Historical white-box vertical slice
 
-The target end-to-end product path is deliberately narrow:
+The first implementation vertical slice was deliberately narrow:
 
 ```text
 Approved scope
@@ -89,15 +103,16 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, offline benchmark regression gates, and a review-only local shadow pilot for an already-ingested authorized Snapshot. External disclosure remains a separate future stage.
+The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, offline benchmark regression gates, and a review-only local shadow pilot for an already-ingested authorized Snapshot. This path is now the first Source Hunt implementation slice, not the complete product workflow. External disclosure remains a separate future stage.
 
-Public asset discovery, automatic submission, and general-purpose autonomous shell access remain out of scope until this path meets its precision, isolation, and evidence-retention goals.
+Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered host shell access remain out of scope. Authorized Web reconnaissance and isolated, policy-controlled tool execution are planned in the product architecture roadmap.
 
 ## Current implementation
 
 ### Phase 0: domain and safety foundation
 
 - Immutable Pydantic domain models and exported JSON Schema contracts.
+- Multi-provider lifecycle, capability manifests, role routes, bounded fallback policies, and immutable Flow model snapshots; Provider endpoint and credential values remain outside these contracts.
 - Separate Candidate state machine and deterministic Candidate-to-Finding gate.
 - Scope Policy Engine and approvals bound to specific action digests.
 - Evidence redaction, content addressing, and integrity verification.
@@ -796,7 +811,7 @@ The report review commands accept only sealed JSON contracts and content-address
 
 VulnLoom is under active development. The current release provides the trusted domain foundation, secure local target ingestion, offline static source mapping, deterministic Candidate generation, a hardened Docker adapter, live pinned Broker transport, transactional validation orchestration, deterministic HTTP assertions, redacted Evidence storage, offline benchmark gates, precomputed multi-analyzer normalization, sealed Checkov/Kubesec/Trivy/CodeQL execution, execution-to-evaluation qualification, and a typed Agent Runtime with scoped credential leases, sealed context/messages, subprocess-pinned HTTPS transport, operator-issued egress lifecycle enforcement, exact Agent-to-Broker handoff, sealed Observation continuation, and a fixed two-tool Session ledger, plus opt-in probes for real containers, analyzers, sockets, and full validation composition.
 
-Live Docker/Broker validation, the report workflow, and provider transport are exposed through typed library paths, not a production HTTP API or provider CLI. The rootless Linux and OS-level egress admission gate passes; provider transport is qualified only against a local TLS fixture, not a public provider. External disclosure/CVE submission workflows, provider-specific response adapters, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
+Live Docker/Broker validation, the report workflow, and provider transport are exposed through typed library paths, not a production HTTP API or general provider CLI. The rootless Linux and OS-level egress admission gate passes; transport is qualified against a local TLS fixture and bounded CUC probes, while a general research adapter remains unavailable. External disclosure/CVE submission workflows, provider-specific general adapters, and dedicated Kubernetes, Terraform, or Helm vulnerability analyzers are not implemented yet.
 
 Use VulnLoom only on systems, source code, and test environments for which you have explicit authorization.
 

@@ -1,0 +1,48 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_total_tokens": {
+      "exclusiveMinimum": 0,
+      "title": "Max Total Tokens",
+      "type": "integer"
+    },
+    "max_output_tokens_per_turn": {
+      "exclusiveMinimum": 0,
+      "title": "Max Output Tokens Per Turn",
+      "type": "integer"
+    },
+    "max_provider_attempts": {
+      "default": 1,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Max Provider Attempts",
+      "type": "integer"
+    },
+    "timeout_seconds_per_attempt": {
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Timeout Seconds Per Attempt",
+      "type": "number"
+    },
+    "max_cost_microunits": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Cost Microunits"
+    }
+  },
+  "required": [
+    "max_total_tokens",
+    "max_output_tokens_per_turn",
+    "timeout_seconds_per_attempt"
+  ],
+  "title": "ModelBudgetProfile",
+  "type": "object"
+}

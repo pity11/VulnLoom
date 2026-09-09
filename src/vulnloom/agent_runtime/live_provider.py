@@ -25,6 +25,7 @@ from .models import (
     AgentModelReply,
     AgentStepRequest,
 )
+from .openai_chat import OpenAIChatCompletionsV1Codec
 from .provider_admission import (
     AgentProviderEgressRecoveryRequired,
     AgentProviderEgressRejected,
@@ -95,7 +96,11 @@ class SubprocessHttpsProviderAdapter:
         credential_reference: ModelCredentialReference,
         credential_provider: ModelCredentialProvider,
         egress_store: AgentProviderEgressStore,
-        provider_codec: OpenAIResponsesV1Codec | CucChatProbeCodec,
+        provider_codec: (
+            OpenAIResponsesV1Codec
+            | OpenAIChatCompletionsV1Codec
+            | CucChatProbeCodec
+        ),
         ca_bundle: bytes | None = None,
         resolver: ProviderResolver | None = None,
         process_runner: ProviderProcessRunner | None = None,

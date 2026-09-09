@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "provider_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Profile Digest",
+      "type": "string"
+    },
+    "capability_manifest_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Capability Manifest Digest",
+      "type": "string"
+    },
+    "provider_model_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+      "title": "Provider Model Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_profile_digest",
+    "capability_manifest_digest",
+    "provider_model_id"
+  ],
+  "title": "ModelReference",
+  "type": "object"
+}

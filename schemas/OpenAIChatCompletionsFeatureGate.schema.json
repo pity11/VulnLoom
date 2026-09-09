@@ -1,0 +1,26 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "gate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Gate Digest",
+      "type": "string"
+    },
+    "enabled": {
+      "default": false,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "implementation_digest": {
+      "default": "582e04172dd77e2c1e9e18b8ad602d84b84f1c6220f2a17cdabe994d4416af7a",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "gate_digest"
+  ],
+  "title": "OpenAIChatCompletionsFeatureGate",
+  "type": "object"
+}

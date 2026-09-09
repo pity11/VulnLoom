@@ -7,6 +7,7 @@ from vulnloom.adapters import (
     EnvironmentModelCredentialProvider,
     ModelCredentialReference,
     ModelCredentialUnavailable,
+    ModelEndpointReference,
 )
 from vulnloom.adapters.models import ModelProviderConfig
 from vulnloom.domain.models import Candidate
@@ -60,6 +61,23 @@ def test_model_key_is_leased_only_by_control_plane():
         lease.view()
     assert "secret-value" not in config.model_dump_json()
     assert "hidden" not in config.model_dump_json()
+
+
+def test_model_endpoint_reference_contains_no_gateway_value():
+    reference = ModelEndpointReference.create(
+        configuration_key="VULNLOOM_TEST_MODEL_ENDPOINT"
+    )
+
+    assert "https://" not in reference.model_dump_json()
+    assert set(ModelEndpointReference.model_fields) == {
+        "reference_id",
+        "configuration_key",
+    }
+    with pytest.raises(ValidationError, match="endpoint reference content digest mismatch"):
+        ModelEndpointReference(
+            reference_id="0" * 64,
+            configuration_key=reference.configuration_key,
+        )
 
 
 def test_model_credential_provider_rejects_unregistered_reference():

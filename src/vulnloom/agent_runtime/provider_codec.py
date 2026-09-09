@@ -33,6 +33,7 @@ class AgentProviderCodecTimedOut(TimeoutError):
 
 class AgentProviderWireProtocol(StrEnum):
     OPENAI_RESPONSES_V1 = "openai-responses-v1"
+    OPENAI_CHAT_COMPLETIONS_V1 = "openai-chat-completions-v1"
 
 
 class AgentProviderCodecLimits(DomainModel):

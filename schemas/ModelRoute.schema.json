@@ -1,0 +1,179 @@
+{
+  "$defs": {
+    "ContextDataClass": {
+      "enum": [
+        "synthetic",
+        "public_target_metadata",
+        "source_code",
+        "redacted_evidence"
+      ],
+      "title": "ContextDataClass",
+      "type": "string"
+    },
+    "ModelAgentRole": {
+      "enum": [
+        "planner",
+        "recon",
+        "extractor",
+        "source",
+        "web",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "ModelAgentRole",
+      "type": "string"
+    },
+    "ModelBudgetProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "max_total_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens_per_turn": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens Per Turn",
+          "type": "integer"
+        },
+        "max_provider_attempts": {
+          "default": 1,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Provider Attempts",
+          "type": "integer"
+        },
+        "timeout_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds Per Attempt",
+          "type": "number"
+        },
+        "max_cost_microunits": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cost Microunits"
+        }
+      },
+      "required": [
+        "max_total_tokens",
+        "max_output_tokens_per_turn",
+        "timeout_seconds_per_attempt"
+      ],
+      "title": "ModelBudgetProfile",
+      "type": "object"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    },
+    "ModelEngine": {
+      "enum": [
+        "source_hunt",
+        "authorized_red_team",
+        "hybrid"
+      ],
+      "title": "ModelEngine",
+      "type": "string"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "capability_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capability Manifest Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_profile_digest",
+        "capability_manifest_digest",
+        "provider_model_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "route_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Route Digest",
+      "type": "string"
+    },
+    "engine": {
+      "$ref": "#/$defs/ModelEngine"
+    },
+    "agent_role": {
+      "$ref": "#/$defs/ModelAgentRole"
+    },
+    "primary_model": {
+      "$ref": "#/$defs/ModelReference"
+    },
+    "fallback_policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fallback Policy Digest",
+      "type": "string"
+    },
+    "required_capabilities": {
+      "items": {
+        "$ref": "#/$defs/ModelCapability"
+      },
+      "minItems": 1,
+      "title": "Required Capabilities",
+      "type": "array"
+    },
+    "required_context_data_classes": {
+      "items": {
+        "$ref": "#/$defs/ContextDataClass"
+      },
+      "minItems": 1,
+      "title": "Required Context Data Classes",
+      "type": "array"
+    },
+    "budget": {
+      "$ref": "#/$defs/ModelBudgetProfile"
+    }
+  },
+  "required": [
+    "route_digest",
+    "engine",
+    "agent_role",
+    "primary_model",
+    "fallback_policy_digest",
+    "required_capabilities",
+    "required_context_data_classes",
+    "budget"
+  ],
+  "title": "ModelRoute",
+  "type": "object"
+}

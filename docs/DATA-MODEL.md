@@ -420,6 +420,25 @@ wire request/response 都是瞬时可归零缓冲，不进入 Pydantic checkpoin
 `AgentModelReply`：typed structured output、provider/model identity、token counts 与 latency；response ID、
 provider message ID、raw text、annotation、refusal 和 provider-native tool call 都不持久化。
 
+### OpenAIChatCompletionsFeatureGate 与 OpenAIChatCompletionsCodecRegistration
+
+P1 的通用 Chat Completions codec 使用独立、内容寻址的功能开关；未显式启用时构造 codec 即拒绝。
+registration 绑定 Provider ID、固定 `/v1/chat/completions`、请求模型、允许的响应模型别名、实现摘要、
+Agent decision schema、字节/时间限制，以及逐层审核过的空扩展字段。stream、原生 tool call 和任意请求参数
+固定关闭。Provider 返回的 content 必须是严格 JSON `AgentDecisionPayload`；其中 tool proposal 仍只是无权限的
+类型化建议，不能越过 Broker、Scope 或 Approval Gate 执行。
+
+响应必须是单个 `stop` assistant choice，模型身份在 allowlist 中，usage 为相加一致的有界非负整数。
+未知字段、非空兼容扩展、refusal、Provider 原生 tools、重复 JSON key、身份漂移、usage 漂移、超时或超限均
+fail-closed。wire request/response 仍是瞬时可归零缓冲，codec 不持有 endpoint 或 secret。
+
+### CucChatCompatibilityBaseline
+
+P1 迁移基线内容寻址固定已验收 CUC PONG 与固定 JSON 探针的 codec ID、实现摘要、固定请求摘要、允许的响应
+模型、PONG 完成摘要、已接受的内容分类和失败语义。`assert_current()` 对当前旧路径重新计算这些身份；任何
+未伴随显式新基线的变化都会拒绝迁移。该对象不保存网关、凭据、响应正文或性能值，也不把旧探针与通用
+Agent response 误当成相同业务输出。
+
 ### AgentToolHandoffPlan、Outcome 与 Observation
 
 M7.8 的 handoff plan 内容寻址封存完整 `AgentRunPlan`、权威 Agent outcome 摘要、exact `BrokerCall` 与摘要、
@@ -895,6 +914,22 @@ codec v6 更正上述三个性能指标为有限 int/float（明确排除 bool�
 仅允许 type/non_finite/negative/above_limit，不携带数值。空列表在序列化中省略以保持旧摘要。
 超大整数先作整数范围判断，避免浮点转换溢出。
 
+### ProviderProfile、CapabilityManifest 与 ModelRoute
+
+多模型控制面使用独立于执行期 `AgentModelRegistration` 的产品级领域协议：
+
+- `ProviderProfile` 只保存 Provider、协议、数据类别和 Endpoint/Credential 引用摘要，不包含 URL 或秘密；
+- `profile_digest` 固定配置身份，生命周期变化只递增 `lifecycle_sequence` 并更新带证据的
+  `lifecycle_digest`，因此 Capability Manifest 不会因状态变化失去绑定；
+- `CapabilityManifest` 把模型能力区分为 unknown、declared、probed 和 failed，角色准入只接受 probed；
+- `FallbackPolicy` 只允许限流、超时、不可用和空响应等封闭触发原因，并固定在提交副作用之前；
+- `ModelRoute` 绑定 Engine、Agent Role、主模型、能力、数据类别、预算和 Fallback Policy；
+- `FlowModelSnapshot` 在创建 Flow 时固定路由、Provider 生命周期、模型能力、Prompt 合同、工具 schema 和预算。
+
+`build_flow_model_snapshot` 是 fail-closed 的纯领域函数。Provider 未达到 `role_admitted`、Capability 没有
+探测证据、数据类别不允许、Fallback 跨 Provider 未授权、尝试预算不足或摘要绑定不一致时均拒绝生成快照。
+现有 CUC 执行合同暂不依赖这些新对象，后续通过旁路 adapter 完成差分验收后接入。
+
 ## 3. 领域事件
 
 - `ScopeApproved`
@@ -912,6 +947,13 @@ codec v6 更正上述三个性能指标为有限 int/float（明确排除 bool�
 - `ReportDrafted`
 - `ReportApproved`
 - `ReportExported`
+- `ProviderSecretBound`
+- `ProviderConnectivityVerified`
+- `ProviderCapabilitiesProbed`
+- `ProviderRoleAdmitted`
+- `ProviderDisabled`
+- `ProviderRevoked`
+- `FlowModelSnapshotCreated`
 
 事件只记录已经发生的领域事实。模型的自然语言输出先经过 schema 校验和命令处理，不能直接写事件流。
 
@@ -923,3 +965,7 @@ codec v6 更正上述三个性能指标为有限 int/float（明确排除 bool�
 - Report 只能引用 Finding 已批准的 Evidence Bundle。
 - Submission 必须引用未过期 ApprovalRequest。
 - 相同 `duplicate_fingerprint` 的 Finding 必须先进行人工根因确认。
+- Provider 状态转换必须绑定 Evidence 摘要，`revoked` 为终态。
+- 未经实际探测的模型能力不能满足角色路由要求。
+- Flow 创建后固定模型路由快照；工作区默认模型变化不修改该快照。
+- Endpoint、API Key 和 Provider 认证响应不得出现在 ProviderProfile 或 FlowModelSnapshot。
