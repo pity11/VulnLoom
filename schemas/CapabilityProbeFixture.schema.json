@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "CapabilityProbeObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/CapabilityProbeStatus"
+        },
+        "passed_capabilities": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModelCapability"
+          },
+          "title": "Passed Capabilities",
+          "type": "array"
+        },
+        "failed_capabilities": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModelCapability"
+          },
+          "title": "Failed Capabilities",
+          "type": "array"
+        },
+        "cleanup_verified": {
+          "title": "Cleanup Verified",
+          "type": "boolean"
+        },
+        "diagnostic_code": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Diagnostic Code",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "cleanup_verified",
+        "diagnostic_code",
+        "observed_at"
+      ],
+      "title": "CapabilityProbeObservation",
+      "type": "object"
+    },
+    "CapabilityProbeStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "timed_out"
+      ],
+      "title": "CapabilityProbeStatus",
+      "type": "string"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation": {
+      "$ref": "#/$defs/CapabilityProbeObservation"
+    }
+  },
+  "required": [
+    "observation"
+  ],
+  "title": "CapabilityProbeFixture",
+  "type": "object"
+}

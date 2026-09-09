@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "CapabilityManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        },
+        "protocol_adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Protocol Adapter Digest",
+          "type": "string"
+        },
+        "assessments": {
+          "items": {
+            "$ref": "#/$defs/ModelCapabilityAssessment"
+          },
+          "minItems": 1,
+          "title": "Assessments",
+          "type": "array"
+        },
+        "max_context_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Context Tokens"
+        },
+        "max_output_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Output Tokens"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": [
+        "manifest_digest",
+        "provider_profile_digest",
+        "provider_model_id",
+        "protocol_adapter_digest",
+        "assessments"
+      ],
+      "title": "CapabilityManifest",
+      "type": "object"
+    },
+    "CapabilityProbeStatus": {
+      "enum": [
+        "passed",
+        "failed",
+        "timed_out"
+      ],
+      "title": "CapabilityProbeStatus",
+      "type": "string"
+    },
+    "CapabilityStatus": {
+      "enum": [
+        "unknown",
+        "declared",
+        "probed",
+        "failed"
+      ],
+      "title": "CapabilityStatus",
+      "type": "string"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    },
+    "ModelCapabilityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/ModelCapability"
+        },
+        "status": {
+          "$ref": "#/$defs/CapabilityStatus"
+        },
+        "probe_result_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probe Result Digest"
+        }
+      },
+      "required": [
+        "capability",
+        "status"
+      ],
+      "title": "ModelCapabilityAssessment",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "provider_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Profile Digest",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/CapabilityProbeStatus"
+    },
+    "manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CapabilityManifest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cleanup_verified": {
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "diagnostic_code": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Diagnostic Code",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_id",
+    "request_id",
+    "provider_profile_digest",
+    "status",
+    "cleanup_verified",
+    "diagnostic_code",
+    "completed_at"
+  ],
+  "title": "CapabilityProbeResult",
+  "type": "object"
+}

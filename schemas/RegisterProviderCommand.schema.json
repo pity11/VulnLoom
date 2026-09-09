@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "ContextDataClass": {
+      "enum": [
+        "synthetic",
+        "public_target_metadata",
+        "source_code",
+        "redacted_evidence"
+      ],
+      "title": "ContextDataClass",
+      "type": "string"
+    },
+    "ModelCredentialReference": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "environment_variable": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Environment Variable",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "environment_variable"
+      ],
+      "title": "ModelCredentialReference",
+      "type": "object"
+    },
+    "ModelEndpointReference": {
+      "additionalProperties": false,
+      "description": "Identify a Control Plane configuration slot without exposing its URL.",
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "configuration_key": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Configuration Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "configuration_key"
+      ],
+      "title": "ModelEndpointReference",
+      "type": "object"
+    },
+    "ProviderLifecycleState": {
+      "enum": [
+        "draft",
+        "secret_bound",
+        "connectivity_verified",
+        "catalog_discovered",
+        "capabilities_probed",
+        "role_admitted",
+        "degraded",
+        "disabled",
+        "revoked"
+      ],
+      "title": "ProviderLifecycleState",
+      "type": "string"
+    },
+    "ProviderProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Profile Digest",
+          "type": "string"
+        },
+        "lifecycle_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Lifecycle Digest",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "lifecycle_sequence": {
+          "minimum": 1,
+          "title": "Lifecycle Sequence",
+          "type": "integer"
+        },
+        "lifecycle_evidence_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lifecycle Evidence Digest"
+        },
+        "display_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/ProviderProtocol"
+        },
+        "protocol_adapter_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Protocol Adapter Id",
+          "type": "string"
+        },
+        "endpoint_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Reference Id",
+          "type": "string"
+        },
+        "credential_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Credential Reference Id",
+          "type": "string"
+        },
+        "data_policy_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Data Policy Id",
+          "type": "string"
+        },
+        "allowed_context_data_classes": {
+          "items": {
+            "$ref": "#/$defs/ContextDataClass"
+          },
+          "minItems": 1,
+          "title": "Allowed Context Data Classes",
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/$defs/ProviderLifecycleState",
+          "default": "draft"
+        }
+      },
+      "required": [
+        "profile_digest",
+        "lifecycle_digest",
+        "provider_id",
+        "revision",
+        "lifecycle_sequence",
+        "display_name",
+        "protocol",
+        "protocol_adapter_id",
+        "endpoint_reference_id",
+        "credential_reference_id",
+        "data_policy_id",
+        "allowed_context_data_classes"
+      ],
+      "title": "ProviderProfile",
+      "type": "object"
+    },
+    "ProviderProtocol": {
+      "enum": [
+        "openai_responses",
+        "openai_chat_completions",
+        "anthropic_messages",
+        "gemini_generate_content",
+        "local_openai_compatible"
+      ],
+      "title": "ProviderProtocol",
+      "type": "string"
+    },
+    "ProviderReferenceBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "$ref": "#/$defs/ModelEndpointReference"
+        },
+        "credential": {
+          "$ref": "#/$defs/ModelCredentialReference"
+        }
+      },
+      "required": [
+        "endpoint",
+        "credential"
+      ],
+      "title": "ProviderReferenceBundle",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "profile": {
+      "$ref": "#/$defs/ProviderProfile"
+    },
+    "references": {
+      "$ref": "#/$defs/ProviderReferenceBundle"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "idempotency_key",
+    "profile",
+    "references",
+    "actor_ref",
+    "issued_at"
+  ],
+  "title": "RegisterProviderCommand",
+  "type": "object"
+}

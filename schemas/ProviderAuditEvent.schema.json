@@ -1,0 +1,76 @@
+{
+  "$defs": {
+    "ProviderCenterAction": {
+      "enum": [
+        "register",
+        "update",
+        "probe",
+        "enable",
+        "disable",
+        "route_set"
+      ],
+      "title": "ProviderCenterAction",
+      "type": "string"
+    },
+    "ProviderCenterOutcome": {
+      "enum": [
+        "applied",
+        "rejected",
+        "timed_out"
+      ],
+      "title": "ProviderCenterOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "action": {
+      "$ref": "#/$defs/ProviderCenterAction"
+    },
+    "outcome": {
+      "$ref": "#/$defs/ProviderCenterOutcome"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Digest",
+      "type": "string"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "diagnostic_code": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Diagnostic Code",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "action",
+    "outcome",
+    "provider_id",
+    "profile_digest",
+    "actor_ref",
+    "diagnostic_code",
+    "occurred_at"
+  ],
+  "title": "ProviderAuditEvent",
+  "type": "object"
+}

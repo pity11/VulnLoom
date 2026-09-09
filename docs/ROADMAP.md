@@ -1095,6 +1095,24 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   拒绝、超时、清理失败、只读重放和 Candidate 不变性。CUC 配置仍是 CLI 默认。下一阶段进入 Provider
   Center CLI/API。
 
+### Provider Center P2（可信本地首个纵切）
+
+- 新增供 CLI 与未来 API 共用的 `ProviderCenterService`，严格 command/query 只接收
+  `EndpointRef`/`SecretRef` 等引用，不接收 Key、完整 endpoint、Authorization header 或原始响应。
+- SQLite registry 事务保存 Provider revision、Capability Manifest、默认 Route、probe checkpoint 和脱敏审计；
+  配置命令幂等，冲突拒绝，未知 probe 中断保留 `STARTED` 并要求显式恢复。
+- Provider 更新重置 lifecycle trust。启用必须原子绑定至少一条默认 Route，并复用既有 Flow snapshot 准入检查
+  lifecycle、引用完整性、probed capability、数据类别、fallback 和预算；禁用后新 Flow fail-closed。
+- CLI 支持 Provider 查看、添加、更新、离线 probe、启用、禁用、审计，以及默认 Route 查看与切换。查询包含
+  `unknown/healthy/failed/timed_out/disabled` 健康摘要，且不显示秘密或完整 endpoint。
+- capability probe 使用可注入 adapter；本阶段 CLI 仅开放无 socket fixture adapter。真实 Provider 调用仍保留
+  在既有显式 Egress Grant 与联网开关之后，本次实现和测试均未联网。
+- CUC/DeepSeek 固定 probe、代码审阅和 Candidate Recommendation 默认入口保持不变；Provider Center Route
+  只供显式采用 registry 的新 Flow 使用，不会静默接管旧入口或失败后跨 Provider 降级。
+
+操作合同与剩余 P2 边界见 `docs/PROVIDER-CENTER.md`。后续继续实现真实 capability probe 结果导入/绑定、
+模型目录同步、权限受限的凭据替换 adapter 和薄 HTTP API；Web UI 不在当前阶段。
+
 ## 延后事项
 
 - 公网资产自主发现。

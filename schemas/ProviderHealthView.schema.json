@@ -1,0 +1,76 @@
+{
+  "$defs": {
+    "ProviderHealthStatus": {
+      "enum": [
+        "unknown",
+        "healthy",
+        "failed",
+        "timed_out",
+        "disabled"
+      ],
+      "title": "ProviderHealthStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "provider_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Profile Digest",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ProviderHealthStatus"
+    },
+    "last_probe_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Probe At"
+    },
+    "cleanup_verified": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cleanup Verified"
+    },
+    "diagnostic_code": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Diagnostic Code"
+    }
+  },
+  "required": [
+    "provider_id",
+    "provider_profile_digest",
+    "status"
+  ],
+  "title": "ProviderHealthView",
+  "type": "object"
+}

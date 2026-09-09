@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "ContextDataClass": {
+      "enum": [
+        "synthetic",
+        "public_target_metadata",
+        "source_code",
+        "redacted_evidence"
+      ],
+      "title": "ContextDataClass",
+      "type": "string"
+    },
+    "FallbackPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "ordered_models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModelReference"
+          },
+          "maxItems": 4,
+          "title": "Ordered Models",
+          "type": "array"
+        },
+        "triggers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FallbackTrigger"
+          },
+          "maxItems": 4,
+          "title": "Triggers",
+          "type": "array"
+        },
+        "max_fallback_attempts": {
+          "default": 0,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Max Fallback Attempts",
+          "type": "integer"
+        },
+        "allow_cross_provider": {
+          "default": false,
+          "title": "Allow Cross Provider",
+          "type": "boolean"
+        },
+        "require_operator_approval": {
+          "default": false,
+          "title": "Require Operator Approval",
+          "type": "boolean"
+        },
+        "only_before_effect_commit": {
+          "const": true,
+          "default": true,
+          "title": "Only Before Effect Commit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "policy_digest"
+      ],
+      "title": "FallbackPolicy",
+      "type": "object"
+    },
+    "FallbackTrigger": {
+      "enum": [
+        "rate_limited",
+        "timeout",
+        "provider_unavailable",
+        "empty_response"
+      ],
+      "title": "FallbackTrigger",
+      "type": "string"
+    },
+    "ModelAgentRole": {
+      "enum": [
+        "planner",
+        "recon",
+        "extractor",
+        "source",
+        "web",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "ModelAgentRole",
+      "type": "string"
+    },
+    "ModelBudgetProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "max_total_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens_per_turn": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens Per Turn",
+          "type": "integer"
+        },
+        "max_provider_attempts": {
+          "default": 1,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Provider Attempts",
+          "type": "integer"
+        },
+        "timeout_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds Per Attempt",
+          "type": "number"
+        },
+        "max_cost_microunits": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cost Microunits"
+        }
+      },
+      "required": [
+        "max_total_tokens",
+        "max_output_tokens_per_turn",
+        "timeout_seconds_per_attempt"
+      ],
+      "title": "ModelBudgetProfile",
+      "type": "object"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    },
+    "ModelEngine": {
+      "enum": [
+        "source_hunt",
+        "authorized_red_team",
+        "hybrid"
+      ],
+      "title": "ModelEngine",
+      "type": "string"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "capability_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capability Manifest Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_profile_digest",
+        "capability_manifest_digest",
+        "provider_model_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    },
+    "ModelRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "route_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Digest",
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/$defs/ModelEngine"
+        },
+        "agent_role": {
+          "$ref": "#/$defs/ModelAgentRole"
+        },
+        "primary_model": {
+          "$ref": "#/$defs/ModelReference"
+        },
+        "fallback_policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fallback Policy Digest",
+          "type": "string"
+        },
+        "required_capabilities": {
+          "items": {
+            "$ref": "#/$defs/ModelCapability"
+          },
+          "minItems": 1,
+          "title": "Required Capabilities",
+          "type": "array"
+        },
+        "required_context_data_classes": {
+          "items": {
+            "$ref": "#/$defs/ContextDataClass"
+          },
+          "minItems": 1,
+          "title": "Required Context Data Classes",
+          "type": "array"
+        },
+        "budget": {
+          "$ref": "#/$defs/ModelBudgetProfile"
+        }
+      },
+      "required": [
+        "route_digest",
+        "engine",
+        "agent_role",
+        "primary_model",
+        "fallback_policy_digest",
+        "required_capabilities",
+        "required_context_data_classes",
+        "budget"
+      ],
+      "title": "ModelRoute",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "expected_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Profile Digest",
+      "type": "string"
+    },
+    "route": {
+      "$ref": "#/$defs/ModelRoute"
+    },
+    "fallback_policy": {
+      "$ref": "#/$defs/FallbackPolicy"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "idempotency_key",
+    "provider_id",
+    "expected_profile_digest",
+    "route",
+    "fallback_policy",
+    "actor_ref",
+    "issued_at"
+  ],
+  "title": "EnableProviderCommand",
+  "type": "object"
+}

@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "provider_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Profile Digest",
+      "type": "string"
+    },
+    "provider_model_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+      "title": "Provider Model Id",
+      "type": "string"
+    },
+    "protocol_adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Adapter Digest",
+      "type": "string"
+    },
+    "capabilities": {
+      "items": {
+        "$ref": "#/$defs/ModelCapability"
+      },
+      "minItems": 1,
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "max_context_tokens": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Context Tokens"
+    },
+    "max_output_tokens": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Output Tokens"
+    },
+    "synthetic_only": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic Only",
+      "type": "boolean"
+    },
+    "actor_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Ref",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "idempotency_key",
+    "provider_profile_digest",
+    "provider_model_id",
+    "protocol_adapter_digest",
+    "capabilities",
+    "actor_ref",
+    "created_at",
+    "deadline"
+  ],
+  "title": "CapabilityProbeRequest",
+  "type": "object"
+}

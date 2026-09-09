@@ -441,6 +441,16 @@ P1.5 服务层迁移已经完成。Provider Center CLI/API 将负责向可信服
 
 完成添加、替换凭据、连接测试、同步目录、能力探测、禁用和审计。秘密不落入项目配置。
 
+当前已完成 P2 的首个可信本地纵切：新增严格的 Provider register/update/enable/disable、离线 capability
+probe 和默认 Route command/query；`ProviderCenterService` 由 CLI 与未来 API 共用。SQLite 事务保存 Profile
+revision、Capability Manifest、Route、probe checkpoint 和脱敏审计。启用操作会复用 Flow snapshot 领域准入，
+在同一事务中验证 lifecycle、引用、能力、数据类别、fallback 和预算后才写入 `ROLE_ADMITTED` 与默认 Route。
+更新配置不会继承旧 revision 的准入状态。
+
+CLI 首版的 capability probe 只装配无网络 fixture adapter；已有真实 probe 仍要求独立 Egress Grant、显式
+联网开关和用户授权。现有 CUC/DeepSeek 入口与默认行为没有被 Provider Center 静默替换。实现与操作边界见
+`docs/PROVIDER-CENTER.md`。模型目录同步、真实 probe adapter、凭据替换后端和 HTTP 表面仍属于后续 P2 纵切。
+
 ### P3：角色路由与 Flow 固定
 
 Source Hunt 和 Authorized Red Team 可以选择不同模型；Planner、Validator、Critic 可单独路由；Checkpoint 能恢复

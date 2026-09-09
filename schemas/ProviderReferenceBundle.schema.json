@@ -1,0 +1,62 @@
+{
+  "$defs": {
+    "ModelCredentialReference": {
+      "additionalProperties": false,
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "environment_variable": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Environment Variable",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "environment_variable"
+      ],
+      "title": "ModelCredentialReference",
+      "type": "object"
+    },
+    "ModelEndpointReference": {
+      "additionalProperties": false,
+      "description": "Identify a Control Plane configuration slot without exposing its URL.",
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "configuration_key": {
+          "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+          "title": "Configuration Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "configuration_key"
+      ],
+      "title": "ModelEndpointReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "endpoint": {
+      "$ref": "#/$defs/ModelEndpointReference"
+    },
+    "credential": {
+      "$ref": "#/$defs/ModelCredentialReference"
+    }
+  },
+  "required": [
+    "endpoint",
+    "credential"
+  ],
+  "title": "ProviderReferenceBundle",
+  "type": "object"
+}

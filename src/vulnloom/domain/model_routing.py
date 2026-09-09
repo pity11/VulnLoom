@@ -230,6 +230,57 @@ def provider_lifecycle_digest(profile: ProviderProfile) -> str:
     )
 
 
+def revise_provider_profile(
+    profile: ProviderProfile,
+    *,
+    display_name: str,
+    protocol: ProviderProtocol,
+    protocol_adapter_id: str,
+    endpoint_reference_id: str,
+    credential_reference_id: str,
+    data_policy_id: str,
+    allowed_context_data_classes: tuple[ContextDataClass, ...],
+) -> ProviderProfile:
+    """Create a new immutable draft revision without carrying lifecycle trust forward."""
+
+    values = {
+        "provider_id": profile.provider_id,
+        "revision": profile.revision + 1,
+        "lifecycle_sequence": 1,
+        "lifecycle_evidence_digest": None,
+        "display_name": display_name,
+        "protocol": protocol,
+        "protocol_adapter_id": protocol_adapter_id,
+        "endpoint_reference_id": endpoint_reference_id,
+        "credential_reference_id": credential_reference_id,
+        "data_policy_id": data_policy_id,
+        "allowed_context_data_classes": _sorted_unique(
+            allowed_context_data_classes, name="provider data classes"
+        ),
+        "state": ProviderLifecycleState.DRAFT,
+    }
+    profile_digest = canonical_digest(
+        {
+            key: value
+            for key, value in values.items()
+            if key not in {"lifecycle_sequence", "lifecycle_evidence_digest", "state"}
+        }
+    )
+    lifecycle_digest = canonical_digest(
+        {
+            "profile_digest": profile_digest,
+            "state": ProviderLifecycleState.DRAFT,
+            "lifecycle_sequence": 1,
+            "lifecycle_evidence_digest": None,
+        }
+    )
+    return ProviderProfile(
+        profile_digest=profile_digest,
+        lifecycle_digest=lifecycle_digest,
+        **values,
+    )
+
+
 class ProviderTransitionRejected(ValueError):
     """A Provider Profile lifecycle transition violated the closed state graph."""
 

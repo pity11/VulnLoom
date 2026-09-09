@@ -1973,6 +1973,9 @@ def build_parser() -> argparse.ArgumentParser:
     from vulnloom.recommendations.cli import register_candidate_recommendation_commands
 
     register_candidate_recommendation_commands(sub)
+    from vulnloom.provider_center.cli import register_provider_center_commands
+
+    register_provider_center_commands(sub)
     return parser
 
 

@@ -1,0 +1,623 @@
+{
+  "$defs": {
+    "CapabilityManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        },
+        "protocol_adapter_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Protocol Adapter Digest",
+          "type": "string"
+        },
+        "assessments": {
+          "items": {
+            "$ref": "#/$defs/ModelCapabilityAssessment"
+          },
+          "minItems": 1,
+          "title": "Assessments",
+          "type": "array"
+        },
+        "max_context_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Context Tokens"
+        },
+        "max_output_tokens": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Output Tokens"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        }
+      },
+      "required": [
+        "manifest_digest",
+        "provider_profile_digest",
+        "provider_model_id",
+        "protocol_adapter_digest",
+        "assessments"
+      ],
+      "title": "CapabilityManifest",
+      "type": "object"
+    },
+    "CapabilityStatus": {
+      "enum": [
+        "unknown",
+        "declared",
+        "probed",
+        "failed"
+      ],
+      "title": "CapabilityStatus",
+      "type": "string"
+    },
+    "ContextDataClass": {
+      "enum": [
+        "synthetic",
+        "public_target_metadata",
+        "source_code",
+        "redacted_evidence"
+      ],
+      "title": "ContextDataClass",
+      "type": "string"
+    },
+    "ModelAgentRole": {
+      "enum": [
+        "planner",
+        "recon",
+        "extractor",
+        "source",
+        "web",
+        "validator",
+        "critic",
+        "reporter"
+      ],
+      "title": "ModelAgentRole",
+      "type": "string"
+    },
+    "ModelBudgetProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "max_total_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens_per_turn": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens Per Turn",
+          "type": "integer"
+        },
+        "max_provider_attempts": {
+          "default": 1,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Max Provider Attempts",
+          "type": "integer"
+        },
+        "timeout_seconds_per_attempt": {
+          "exclusiveMinimum": 0,
+          "maximum": 600,
+          "title": "Timeout Seconds Per Attempt",
+          "type": "number"
+        },
+        "max_cost_microunits": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cost Microunits"
+        }
+      },
+      "required": [
+        "max_total_tokens",
+        "max_output_tokens_per_turn",
+        "timeout_seconds_per_attempt"
+      ],
+      "title": "ModelBudgetProfile",
+      "type": "object"
+    },
+    "ModelCapability": {
+      "enum": [
+        "chat",
+        "strict_structured_output",
+        "tool_proposal",
+        "streaming",
+        "reasoning",
+        "image_input",
+        "usage_accounting",
+        "cancellation"
+      ],
+      "title": "ModelCapability",
+      "type": "string"
+    },
+    "ModelCapabilityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/ModelCapability"
+        },
+        "status": {
+          "$ref": "#/$defs/CapabilityStatus"
+        },
+        "probe_result_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Probe Result Digest"
+        }
+      },
+      "required": [
+        "capability",
+        "status"
+      ],
+      "title": "ModelCapabilityAssessment",
+      "type": "object"
+    },
+    "ModelEngine": {
+      "enum": [
+        "source_hunt",
+        "authorized_red_team",
+        "hybrid"
+      ],
+      "title": "ModelEngine",
+      "type": "string"
+    },
+    "ModelReference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "capability_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capability Manifest Digest",
+          "type": "string"
+        },
+        "provider_model_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,127}$",
+          "title": "Provider Model Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_profile_digest",
+        "capability_manifest_digest",
+        "provider_model_id"
+      ],
+      "title": "ModelReference",
+      "type": "object"
+    },
+    "ModelRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "route_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Route Digest",
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/$defs/ModelEngine"
+        },
+        "agent_role": {
+          "$ref": "#/$defs/ModelAgentRole"
+        },
+        "primary_model": {
+          "$ref": "#/$defs/ModelReference"
+        },
+        "fallback_policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fallback Policy Digest",
+          "type": "string"
+        },
+        "required_capabilities": {
+          "items": {
+            "$ref": "#/$defs/ModelCapability"
+          },
+          "minItems": 1,
+          "title": "Required Capabilities",
+          "type": "array"
+        },
+        "required_context_data_classes": {
+          "items": {
+            "$ref": "#/$defs/ContextDataClass"
+          },
+          "minItems": 1,
+          "title": "Required Context Data Classes",
+          "type": "array"
+        },
+        "budget": {
+          "$ref": "#/$defs/ModelBudgetProfile"
+        }
+      },
+      "required": [
+        "route_digest",
+        "engine",
+        "agent_role",
+        "primary_model",
+        "fallback_policy_digest",
+        "required_capabilities",
+        "required_context_data_classes",
+        "budget"
+      ],
+      "title": "ModelRoute",
+      "type": "object"
+    },
+    "ProviderAuditEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/$defs/ProviderCenterAction"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ProviderCenterOutcome"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Profile Digest",
+          "type": "string"
+        },
+        "actor_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Actor Ref",
+          "type": "string"
+        },
+        "diagnostic_code": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Diagnostic Code",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "action",
+        "outcome",
+        "provider_id",
+        "profile_digest",
+        "actor_ref",
+        "diagnostic_code",
+        "occurred_at"
+      ],
+      "title": "ProviderAuditEvent",
+      "type": "object"
+    },
+    "ProviderCenterAction": {
+      "enum": [
+        "register",
+        "update",
+        "probe",
+        "enable",
+        "disable",
+        "route_set"
+      ],
+      "title": "ProviderCenterAction",
+      "type": "string"
+    },
+    "ProviderCenterOutcome": {
+      "enum": [
+        "applied",
+        "rejected",
+        "timed_out"
+      ],
+      "title": "ProviderCenterOutcome",
+      "type": "string"
+    },
+    "ProviderHealthStatus": {
+      "enum": [
+        "unknown",
+        "healthy",
+        "failed",
+        "timed_out",
+        "disabled"
+      ],
+      "title": "ProviderHealthStatus",
+      "type": "string"
+    },
+    "ProviderHealthView": {
+      "additionalProperties": false,
+      "properties": {
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ProviderHealthStatus"
+        },
+        "last_probe_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Probe At"
+        },
+        "cleanup_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cleanup Verified"
+        },
+        "diagnostic_code": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Diagnostic Code"
+        }
+      },
+      "required": [
+        "provider_id",
+        "provider_profile_digest",
+        "status"
+      ],
+      "title": "ProviderHealthView",
+      "type": "object"
+    },
+    "ProviderLifecycleState": {
+      "enum": [
+        "draft",
+        "secret_bound",
+        "connectivity_verified",
+        "catalog_discovered",
+        "capabilities_probed",
+        "role_admitted",
+        "degraded",
+        "disabled",
+        "revoked"
+      ],
+      "title": "ProviderLifecycleState",
+      "type": "string"
+    },
+    "ProviderProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Profile Digest",
+          "type": "string"
+        },
+        "lifecycle_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Lifecycle Digest",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "lifecycle_sequence": {
+          "minimum": 1,
+          "title": "Lifecycle Sequence",
+          "type": "integer"
+        },
+        "lifecycle_evidence_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lifecycle Evidence Digest"
+        },
+        "display_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/ProviderProtocol"
+        },
+        "protocol_adapter_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Protocol Adapter Id",
+          "type": "string"
+        },
+        "endpoint_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Reference Id",
+          "type": "string"
+        },
+        "credential_reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Credential Reference Id",
+          "type": "string"
+        },
+        "data_policy_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Data Policy Id",
+          "type": "string"
+        },
+        "allowed_context_data_classes": {
+          "items": {
+            "$ref": "#/$defs/ContextDataClass"
+          },
+          "minItems": 1,
+          "title": "Allowed Context Data Classes",
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/$defs/ProviderLifecycleState",
+          "default": "draft"
+        }
+      },
+      "required": [
+        "profile_digest",
+        "lifecycle_digest",
+        "provider_id",
+        "revision",
+        "lifecycle_sequence",
+        "display_name",
+        "protocol",
+        "protocol_adapter_id",
+        "endpoint_reference_id",
+        "credential_reference_id",
+        "data_policy_id",
+        "allowed_context_data_classes"
+      ],
+      "title": "ProviderProfile",
+      "type": "object"
+    },
+    "ProviderProtocol": {
+      "enum": [
+        "openai_responses",
+        "openai_chat_completions",
+        "anthropic_messages",
+        "gemini_generate_content",
+        "local_openai_compatible"
+      ],
+      "title": "ProviderProtocol",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "profiles": {
+      "items": {
+        "$ref": "#/$defs/ProviderProfile"
+      },
+      "title": "Profiles",
+      "type": "array"
+    },
+    "health": {
+      "items": {
+        "$ref": "#/$defs/ProviderHealthView"
+      },
+      "title": "Health",
+      "type": "array"
+    },
+    "capability_manifests": {
+      "items": {
+        "$ref": "#/$defs/CapabilityManifest"
+      },
+      "title": "Capability Manifests",
+      "type": "array"
+    },
+    "default_routes": {
+      "items": {
+        "$ref": "#/$defs/ModelRoute"
+      },
+      "title": "Default Routes",
+      "type": "array"
+    },
+    "recent_audit": {
+      "items": {
+        "$ref": "#/$defs/ProviderAuditEvent"
+      },
+      "title": "Recent Audit",
+      "type": "array"
+    }
+  },
+  "required": [
+    "profiles",
+    "health",
+    "capability_manifests",
+    "default_routes",
+    "recent_audit"
+  ],
+  "title": "ProviderCenterView",
+  "type": "object"
+}
