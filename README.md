@@ -1,6 +1,6 @@
 # VulnLoom
 
-VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation is earlier and narrower: it primarily ingests trusted local targets, maps Python Web source code, generates deterministic security Candidates, and provides controlled validation building blocks.
+VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation includes a bounded, resumable local Source Hunt V1 for Python and JavaScript/TypeScript navigation, shared Candidate-to-report gates, and controlled validation building blocks; dedicated coverage-guided fuzzing and additional language toolchains remain planned depth work.
 
 The product supports autonomous testing only inside an explicit, approved Scope. It must not scan or exploit unauthorized public targets. Its four planned entry points are source vulnerability research, pre-release security acceptance, production-safe scheduled testing, and authorized red-team simulation. Source Hunt and Authorized Red Team are the primary capability lines; the other two entries are controlled delivery workflows. Scope, network boundaries, credential isolation, evidence requirements, and human approval for consequential effects are enforced in code.
 
@@ -43,6 +43,7 @@ there remain planned until their explicit acceptance stage passes.
 - [docs/CUC-DEEPSEEK-CONFIG.md](./docs/CUC-DEEPSEEK-CONFIG.md): local, secret-free setup and connectivity checks for the CUC DeepSeek gateway.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
 - [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): approved no-tool generation and deterministic admission for advisory Candidate recommendations.
+- [docs/SOURCE-HUNT.md](./docs/SOURCE-HUNT.md): Source Hunt V1 contracts, CLI, security boundary, and remaining R9 depth.
 
 ## Project layout
 
@@ -62,6 +63,7 @@ VulnLoom/
 │   ├── policy/             # Scope and approval enforcement
 │   ├── reporting/          # Evidence-consistent offline report drafts
 │   ├── runners/            # Offline and Docker sandbox runners
+│   ├── source_hunt/        # Resumable white-box investigation and validation chain
 │   ├── storage/            # Event and validation persistence
 │   ├── validation/         # Plans, orchestration, and deterministic judging
 │   └── cli.py              # Current command-line entry point
@@ -93,7 +95,9 @@ remain unchanged while default-route migration is reviewed separately.
 The read-only code-review and Candidate Recommendation services can now bind their task-specific schemas to that trusted
 Profile path. A second synthetic Provider covers routed success, identity rejection, timeout, cleanup failure, replay,
 secret-buffer cleanup, and Candidate immutability; the CUC configuration remains the CLI default.
-Provider Center UI/CLI, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
+Provider Center's trusted local CLI/application service supports referenced configuration, lifecycle,
+offline probing, revision-bound catalogs, audit, and default Route switching; its thin HTTP API and Web UI
+remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.
 Benchmark and analyzer imports consume only sealed, pre-obtained local data and never fetch suites,
@@ -115,7 +119,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation reaches deterministic validation, Evidence bundling, independent counterevidence review, offline Evidence-backed report drafts, digest-bound human approval, approved local export, offline benchmark regression gates, and a review-only local shadow pilot for an already-ingested authorized Snapshot. This path is now the first Source Hunt implementation slice, not the complete product workflow. External disclosure remains a separate future stage.
+The current implementation now also exposes the Source Hunt V1 application service and nested CLI: bounded multi-language indexing, observation-driven cross-file investigation, integrity-checked redacted source windows, Candidate materialization, deterministic five-stage execution planning, resumable validation, authoritative Critic/Finding promotion, and report drafting. Dedicated native fuzz/sanitizer adapters and blind-holdout acceptance remain R9 work. External disclosure remains a separate future stage.
 
 Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered host shell access remain out of scope. Authorized Web reconnaissance and isolated, policy-controlled tool execution are planned in the product architecture roadmap.
 

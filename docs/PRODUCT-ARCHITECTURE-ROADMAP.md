@@ -1121,6 +1121,10 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 
 验收：相较当前固定Python AST基线，在不降低精度门槛的条件下发现需要跨文件推理的新增案例，并给出可复查路径和反证结果。
 
+实现状态（2026-09-09）：可信本地 V1 已具备多语言导航框架、大仓库预算/分区、可恢复的观察驱动调查、
+按需完整性校验和脱敏源码窗口、Source Candidate 与共享 Validation/Critic/Finding/Report 贯通。Blind Holdout
+及相对固定 AST 基线的质量准入仍待完成，因此 R8 总体验收尚未关闭。
+
 ### R9：Build、Fuzz、Sanitizer 与 PoV
 
 目标：形成比赛和内存安全研究能力。
@@ -1136,6 +1140,10 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 - 可选Patch与回归验证。
 
 验收：在固定Benchmark中从源码自动得到可重复Crash/PoV，重启后可重放，构建和Fuzz容器无宿主凭据、Docker socket或残留资源。
+
+实现状态（2026-09-09）：固定五阶段类型协议、确定性计划、精确 Approval、无网络 Sandbox、Evidence 绑定、
+中断恢复和真实 Docker 隔离/清理测试已经完成。当前 Docker 测试使用注册的阶段探针，不等同于真实
+coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重和 Benchmark PoV 仍待实现，R9 未完成。
 
 ### R10：Hybrid 上线验收
 

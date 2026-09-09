@@ -20,7 +20,7 @@ from vulnloom.domain.models import (
     ValidationResult,
     ValidationRun,
 )
-from vulnloom.domain.protocol import WorkerRole
+from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.domain.state_machine import (
     complete_validation,
     queue_validation,
@@ -32,8 +32,10 @@ from vulnloom.runners import (
     NetworkMode,
     RunnerOutputStore,
     SandboxProfileKind,
+    SandboxRunRequest,
     SandboxRunResult,
     SandboxRunStatus,
+    ToolInvocation,
 )
 from vulnloom.runners.models import invocation_digest, sandbox_profile_digest
 from vulnloom.validation import candidate_content_digest
@@ -44,8 +46,10 @@ from .execution_models import (
     SourceExecutionOutcome,
     SourceExecutionPlan,
     SourceExecutionStatus,
+    SourceExecutionStep,
     SourceValidationBinding,
     source_execution_approval_digest,
+    source_execution_profile,
 )
 from .execution_store import SourceExecutionStore
 from .models import InvestigationCheckpoint, InvestigationStatus, RepositoryIndex
@@ -53,6 +57,105 @@ from .models import InvestigationCheckpoint, InvestigationStatus, RepositoryInde
 
 class SourceExecutionRejected(ValueError):
     pass
+
+
+class SourceExecutionPlanningService:
+    """Builds the fixed, digest-bound validation chain from trusted inputs."""
+
+    def prepare(
+        self,
+        *,
+        index: RepositoryIndex,
+        investigation: InvestigationCheckpoint,
+        candidate: Candidate,
+        scope: Scope,
+        image_digest: str,
+        tool_registry_digest: str,
+        now: datetime,
+        deadline: datetime,
+        idempotency_key: str,
+        stage_wall_seconds: int = 600,
+    ) -> SourceExecutionPlan:
+        if (
+            scope.state is not ScopeState.APPROVED
+            or not scope.valid_from <= now < scope.valid_until
+            or not now < deadline <= scope.valid_until
+            or investigation.status is not InvestigationStatus.READY_FOR_CANDIDATES
+            or investigation.index_id != index.index_id
+            or index.scope_id != scope.scope_id
+            or index.scope_version != scope.version
+            or candidate.state is not CandidateState.PROPOSED
+            or candidate.source_graph_id != index.index_id
+            or candidate.target_id != index.target_id
+            or candidate.target_version != index.target_version
+            or candidate.scope_id != scope.scope_id
+            or candidate.scope_version != scope.version
+        ):
+            raise SourceExecutionRejected("source execution planning preflight failed")
+        if not 0 < stage_wall_seconds <= 600:
+            raise SourceExecutionRejected("source execution stage budget is invalid")
+        profile = source_execution_profile(
+            image_digest=image_digest, snapshot_id=index.manifest_id
+        )
+        candidate_digest = candidate_content_digest(candidate)
+        profile_digest = sandbox_profile_digest(profile)
+        policy_digest = PolicyEngine(scope).policy_digest
+        steps = []
+        for stage in SOURCE_EXECUTION_STAGES:
+            stable_name = f"vulnloom:source-execution:{idempotency_key}:{stage.value}"
+            task = TaskEnvelope(
+                task_id=uuid5(NAMESPACE_URL, f"{stable_name}:task"),
+                engagement_id=scope.engagement_id,
+                target_id=index.target_id,
+                target_version=index.target_version,
+                scope_id=scope.scope_id,
+                worker_role=WorkerRole.VALIDATOR,
+                scope_version=scope.version,
+                policy_digest=policy_digest,
+                sandbox_profile_digest=profile_digest,
+                tool_registry_digest=tool_registry_digest,
+                input_refs=(
+                    f"source-hunt:{investigation.checkpoint_id}",
+                    f"candidate:{candidate_digest}",
+                ),
+                allowed_tools=profile.allowed_tools,
+                budget=TaskBudget(
+                    wall_seconds=stage_wall_seconds, model_tokens=0, tool_calls=1
+                ),
+                deadline=deadline,
+                idempotency_key=f"{idempotency_key}:{stage.value}:task",
+            )
+            steps.append(
+                SourceExecutionStep(
+                    stage=stage,
+                    request=SandboxRunRequest(
+                        run_id=uuid5(NAMESPACE_URL, f"{stable_name}:run"),
+                        task=task,
+                        profile=profile,
+                        invocation=ToolInvocation(
+                            tool_id=SOURCE_EXECUTION_TOOLS[stage],
+                            arguments=(),
+                            working_directory="source",
+                        ),
+                        environment={"VULNLOOM_STAGE": stage.value},
+                        idempotency_key=f"{idempotency_key}:{stage.value}:run",
+                    ),
+                )
+            )
+        return SourceExecutionPlan.create(
+            investigation_plan_id=investigation.plan_id,
+            investigation_checkpoint_id=investigation.checkpoint_id,
+            index_id=index.index_id,
+            candidate_id=candidate.candidate_id,
+            candidate_digest=candidate_digest,
+            scope_id=scope.scope_id,
+            scope_version=scope.version,
+            target_version=index.target_version,
+            steps=tuple(steps),
+            created_at=now,
+            deadline=deadline,
+            idempotency_key=idempotency_key,
+        )
 
 
 class SourceRunner(Protocol):

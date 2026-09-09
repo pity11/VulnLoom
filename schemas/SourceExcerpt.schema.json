@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "symbol_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Symbol Id",
+      "type": "string"
+    },
+    "path": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Path",
+      "type": "string"
+    },
+    "start_line": {
+      "minimum": 1,
+      "title": "Start Line",
+      "type": "integer"
+    },
+    "end_line": {
+      "minimum": 1,
+      "title": "End Line",
+      "type": "integer"
+    },
+    "redacted_text": {
+      "maxLength": 32768,
+      "title": "Redacted Text",
+      "type": "string"
+    },
+    "text_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Text Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol_id",
+    "path",
+    "start_line",
+    "end_line",
+    "redacted_text",
+    "text_digest"
+  ],
+  "title": "SourceExcerpt",
+  "type": "object"
+}

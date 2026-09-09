@@ -10,6 +10,7 @@ from pydantic import model_validator
 from vulnloom.domain.models import DomainModel, Scope
 from vulnloom.hypotheses import CandidateSet
 
+from .adapters import SourceContextReader
 from .candidate import SourceCandidateProposal, SourceCandidateService
 from .models import (
     InvestigationCheckpoint,
@@ -82,10 +83,12 @@ class SourceHuntAgentService:
         investigation_service: SourceHuntService,
         candidate_service: SourceCandidateService,
         investigator: SourceInvestigator,
+        source_reader: SourceContextReader | None = None,
     ):
         self.investigation_service = investigation_service
         self.candidate_service = candidate_service
         self.investigator = investigator
+        self.source_reader = source_reader
 
     def run(
         self,
@@ -125,6 +128,7 @@ class SourceHuntAgentService:
                     query=decision.query,
                     scope=scope,
                     now=now,
+                    source_reader=self.source_reader,
                 )
                 continue
             if decision.kind is InvestigationDecisionKind.ABANDON:
@@ -158,4 +162,3 @@ class SourceHuntAgentService:
                 candidate_set=candidate_set,
             )
         raise SourceHuntAgentRejected("Source Hunt Agent cannot resume a terminal investigation")
-

@@ -10,6 +10,7 @@ from pydantic import AwareDatetime, Field, model_validator
 
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel, SourceLocation
+from vulnloom.evidence import Redactor
 
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
@@ -76,6 +77,34 @@ class SourceReference(DomainModel):
         return cls(reference_id=canonical_digest(digest_values), **values)
 
 
+class SourceFileRecord(DomainModel):
+    path: str = Field(min_length=1, max_length=512)
+    language: SourceLanguage
+    size: int = Field(ge=0)
+    sha256: Digest
+
+
+class SourceExcerpt(DomainModel):
+    symbol_id: Digest
+    path: str = Field(min_length=1, max_length=512)
+    start_line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+    redacted_text: str = Field(max_length=32_768)
+    text_digest: Digest
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.end_line < self.start_line:
+            raise ValueError("Source excerpt line window is invalid")
+        if self.text_digest != canonical_digest(self.redacted_text):
+            raise ValueError("Source excerpt digest mismatch")
+        if len(self.redacted_text.encode()) > 32_768:
+            raise ValueError("Source excerpt exceeds its byte limit")
+        if Redactor().text(self.redacted_text) != self.redacted_text:
+            raise ValueError("Source excerpt contains unredacted sensitive text")
+        return self
+
+
 class SourcePartition(DomainModel):
     partition_id: Digest
     ordinal: int = Field(ge=0)
@@ -111,6 +140,7 @@ class RepositoryIndex(DomainModel):
     scope_version: int = Field(ge=1)
     manifest_id: Digest
     adapter_versions: dict[SourceLanguage, str]
+    source_files: tuple[SourceFileRecord, ...]
     files_indexed: tuple[str, ...]
     symbols: tuple[SourceSymbol, ...]
     references: tuple[SourceReference, ...]
@@ -126,6 +156,8 @@ class RepositoryIndex(DomainModel):
             raise ValueError("RepositoryIndex files must be unique")
         if set(self.files_indexed) & set(self.skipped_files):
             raise ValueError("indexed and skipped files overlap")
+        if tuple(item.path for item in self.source_files) != self.files_indexed:
+            raise ValueError("RepositoryIndex source-file bindings are incomplete")
         if tuple(item.ordinal for item in self.partitions) != tuple(range(len(self.partitions))):
             raise ValueError("RepositoryIndex partition ordinals are not contiguous")
         if self.index_id != canonical_digest(
@@ -137,7 +169,7 @@ class RepositoryIndex(DomainModel):
     @classmethod
     def create(cls, **values: object) -> RepositoryIndex:
         digest_values = dict(values)
-        for key in ("symbols", "references", "partitions"):
+        for key in ("source_files", "symbols", "references", "partitions"):
             digest_values[key] = tuple(
                 item.model_dump(mode="python") for item in values.get(key, ())  # type: ignore[union-attr]
             )
@@ -156,6 +188,7 @@ class InvestigationQueryKind(StrEnum):
     CALLERS = "callers"
     CALLEES = "callees"
     REFERENCES = "references"
+    SOURCE_WINDOW = "source_window"
 
 
 class InvestigationQuery(DomainModel):
@@ -170,6 +203,7 @@ class InvestigationObservation(DomainModel):
     kind: InvestigationQueryKind
     matched_symbols: tuple[SourceSymbol, ...] = ()
     matched_references: tuple[SourceReference, ...] = ()
+    source_excerpts: tuple[SourceExcerpt, ...] = ()
     truncated: bool = False
 
     @model_validator(mode="after")
@@ -183,7 +217,7 @@ class InvestigationObservation(DomainModel):
     @classmethod
     def create(cls, **values: object) -> InvestigationObservation:
         digest_values = dict(values)
-        for key in ("matched_symbols", "matched_references"):
+        for key in ("matched_symbols", "matched_references", "source_excerpts"):
             digest_values[key] = tuple(
                 item.model_dump(mode="python") for item in values.get(key, ())  # type: ignore[union-attr]
             )

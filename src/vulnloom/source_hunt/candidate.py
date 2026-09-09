@@ -95,6 +95,9 @@ class SourceCandidateService:
                     for item in observation.matched_references
                     if item.resolved_symbol_id is not None
                 )
+                observed_symbols.update(
+                    item.symbol_id for item in observation.source_excerpts
+                )
         requested = {
             proposal.entry_symbol_id,
             proposal.sink_symbol_id,
@@ -154,4 +157,3 @@ class SourceCandidateService:
         return partial.model_copy(
             update={"candidate_set_id": candidate_set_digest(partial)}
         )
-

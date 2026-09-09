@@ -41,6 +41,8 @@ from vulnloom.domain.models import (
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.evidence import EvidenceStore
 from vulnloom.findings import DuplicateCheckResult, FindingDuplicateCheck
+from vulnloom.hypotheses import CandidateSet, CandidateSetStore
+from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
 from vulnloom.reporting import (
     DeterministicReportService,
@@ -64,10 +66,12 @@ from vulnloom.source_hunt import (
     InvestigationQuery,
     InvestigationQueryKind,
     InvestigationStatus,
+    SnapshotSourceContextReader,
     SourceCandidateProposal,
     SourceCandidateRejected,
     SourceCandidateService,
     SourceExecutionPlan,
+    SourceExecutionPlanningService,
     SourceExecutionRejected,
     SourceExecutionService,
     SourceExecutionStage,
@@ -75,6 +79,7 @@ from vulnloom.source_hunt import (
     SourceExecutionStep,
     SourceExecutionStore,
     SourceExecutionValidationService,
+    SourceFileRecord,
     SourceFindingPromotionPlan,
     SourceFindingPromotionRejected,
     SourceFindingPromotionService,
@@ -86,6 +91,7 @@ from vulnloom.source_hunt import (
     SourceHuntService,
     SourceHuntStore,
     SourceHuntTimedOut,
+    SourceLanguage,
     source_execution_approval_digest,
     source_execution_profile,
     source_finding_approval_digest,
@@ -216,6 +222,22 @@ def test_cross_language_index_and_observation_driven_resume(tmp_path, approved_s
     )
     assert (plan_replay, checkpoint_replay) == (plan, checkpoint)
 
+    checkpoint, source_observation = service.query(
+        plan=plan,
+        index=index,
+        checkpoint=checkpoint,
+        query=InvestigationQuery(
+            kind=InvestigationQueryKind.SOURCE_WINDOW, term="query_user"
+        ),
+        scope=scope,
+        now=now + timedelta(seconds=1),
+        source_reader=SnapshotSourceContextReader(
+            tmp_path / "objects" / "snapshots" / index.manifest_id
+        ),
+    )
+    assert "raw-secret" not in source_observation.source_excerpts[0].redacted_text
+    assert "[REDACTED]" in source_observation.source_excerpts[0].redacted_text
+
     query = InvestigationQuery(kind=InvestigationQueryKind.CALLERS, term="load_user")
     checkpoint, observation = service.query(
         plan=plan,
@@ -249,7 +271,7 @@ def test_cross_language_index_and_observation_driven_resume(tmp_path, approved_s
     assert store.latest(plan.plan_id) == final
     persisted = (tmp_path / "source-hunt.sqlite3").read_bytes()
     assert b"raw-secret" not in persisted
-    assert b"Authorization" not in persisted
+    assert b"Bearer raw-secret" not in persisted
     store.close()
 
 
@@ -388,6 +410,62 @@ def test_integrity_drift_and_revoked_scope_fail_closed(tmp_path, approved_scope,
             )
 
 
+def test_source_window_requires_trusted_reader_and_rejects_drift_or_symlink_parent(
+    tmp_path, approved_scope, now
+):
+    service, store, index, scope = _indexed(tmp_path, approved_scope, now)
+    plan, checkpoint = service.start(
+        index=index,
+        scope=scope,
+        limits=SourceHuntLimits(),
+        now=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="source-hunt:source-window:reject",
+    )
+    query = InvestigationQuery(
+        kind=InvestigationQueryKind.SOURCE_WINDOW, term="query_user"
+    )
+    with pytest.raises(SourceHuntRejected, match="trusted reader"):
+        service.query(
+            plan=plan,
+            index=index,
+            checkpoint=checkpoint,
+            query=query,
+            scope=scope,
+            now=now,
+        )
+    root = tmp_path / "objects" / "snapshots" / index.manifest_id
+    (root / "core" / "service.py").write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="integrity"):
+        service.query(
+            plan=plan,
+            index=index,
+            checkpoint=checkpoint,
+            query=query,
+            scope=scope,
+            now=now,
+            source_reader=SnapshotSourceContextReader(root),
+        )
+    assert store.latest(plan.plan_id) == checkpoint
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    content = b"def hidden():\n    return 1\n"
+    (outside / "hidden.py").write_bytes(content)
+    (root / "linked").symlink_to(outside, target_is_directory=True)
+    record = SourceFileRecord(
+        path="linked/hidden.py",
+        language=SourceLanguage.PYTHON,
+        size=len(content),
+        sha256=hashlib.sha256(content).hexdigest(),
+    )
+    with pytest.raises(ValueError, match="safely"):
+        SnapshotSourceContextReader(root).read_window(
+            source=record, symbol_id="a" * 64, line=1
+        )
+    store.close()
+
+
 def test_source_hunt_cli_is_one_resumable_product_entry(tmp_path, capsys, monkeypatch):
     fixture = build_pilot_fixture(tmp_path / "fixture")
     scope_file = tmp_path / "scope.json"
@@ -424,14 +502,17 @@ def test_source_hunt_cli_is_one_resumable_product_entry(tmp_path, capsys, monkey
             str(scope_file),
             "--hunt-db",
             str(hunt_db),
+            "--target-store",
+            str(fixture.target_store_root),
             "--kind",
-            "symbol",
+            "source_window",
             "--term",
-            "handler",
+            "find_product",
         ]
     ) == 0
     queried = __import__("json").loads(capsys.readouterr().out)
     assert queried["checkpoint"]["queries_used"] == 1
+    assert queried["observation"]["source_excerpts"]
     assert main(
         [
             "source-hunt",
@@ -606,6 +687,89 @@ def _execution_fixture(tmp_path, approved_scope, now, *, image=None):
         evidence_store,
         evidence,
     )
+
+
+def test_source_execution_planner_is_deterministic_and_fail_closed(
+    tmp_path, approved_scope, now, capsys, monkeypatch
+):
+    fixture = _execution_fixture(tmp_path, approved_scope, now)
+    hunt_store, index, scope, checkpoint, candidate, *_ = fixture
+    planner = SourceExecutionPlanningService()
+    kwargs = {
+        "index": index,
+        "investigation": checkpoint,
+        "candidate": candidate,
+        "scope": scope,
+        "image_digest": "sha256:" + "2" * 64,
+        "tool_registry_digest": "f" * 64,
+        "now": now,
+        "deadline": now + timedelta(minutes=5),
+        "idempotency_key": "source-hunt:planner:1",
+        "stage_wall_seconds": 60,
+    }
+    first = planner.prepare(**kwargs)
+    second = planner.prepare(**kwargs)
+    assert first == second
+    assert tuple(item.stage for item in first.steps) == tuple(SourceExecutionStage)
+    assert all(item.request.invocation.arguments == () for item in first.steps)
+    assert all(item.request.profile.network_mode.value == "none" for item in first.steps)
+    with pytest.raises(SourceExecutionRejected, match="planning preflight"):
+        planner.prepare(
+            **(kwargs | {"scope": scope.model_copy(update={"state": ScopeState.REVOKED})})
+        )
+    with pytest.raises(SourceExecutionRejected, match="budget"):
+        planner.prepare(**(kwargs | {"stage_wall_seconds": 601}))
+
+    partial = CandidateSet(
+        candidate_set_id="0" * 64,
+        source_graph_id=index.index_id,
+        target_id=index.target_id,
+        target_version=index.target_version,
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        generator_version="source-hunt-test-v1",
+        candidates=(candidate,),
+    )
+    candidate_set = partial.model_copy(
+        update={"candidate_set_id": candidate_set_digest(partial)}
+    )
+    candidate_store = tmp_path / "planner-candidates"
+    CandidateSetStore(candidate_store).put(candidate_set)
+    scope_file = tmp_path / "planner-scope.json"
+    scope_file.write_text(scope.model_dump_json(), encoding="utf-8")
+    monkeypatch.setattr("vulnloom.source_hunt.cli.utc_now", lambda: now)
+    assert main(
+        [
+            "source-hunt",
+            "prepare-execution",
+            "--plan-id",
+            checkpoint.plan_id,
+            "--scope-file",
+            str(scope_file),
+            "--candidate-set-id",
+            candidate_set.candidate_set_id,
+            "--candidate-id",
+            str(candidate.candidate_id),
+            "--image-digest",
+            "sha256:" + "2" * 64,
+            "--tool-registry-digest",
+            "f" * 64,
+            "--idempotency-key",
+            "source-hunt:planner:cli",
+            "--hunt-db",
+            str(tmp_path / "source-hunt.sqlite3"),
+            "--candidate-store",
+            str(candidate_store),
+            "--execution-ttl-seconds",
+            "300",
+            "--stage-wall-seconds",
+            "60",
+        ]
+    ) == 0
+    prepared = __import__("json").loads(capsys.readouterr().out)
+    assert prepared["required_approval"]["action"] == "run_untrusted_build"
+    assert len(prepared["plan"]["steps"]) == 5
+    hunt_store.close()
 
 
 def test_source_execution_requires_approval_and_resumes_after_interruption(
@@ -1081,9 +1245,17 @@ class _ObservationDrivenInvestigator:
             return InvestigationDecision(
                 kind=InvestigationDecisionKind.QUERY,
                 query=InvestigationQuery(
-                    kind=InvestigationQueryKind.SYMBOL, term="core.service"
+                    kind=InvestigationQueryKind.SOURCE_WINDOW, term="core.service"
                 ),
             )
+        excerpts = tuple(
+            excerpt
+            for observation in turn.observations
+            for excerpt in observation.source_excerpts
+        )
+        assert excerpts
+        assert all("raw-secret" not in item.redacted_text for item in excerpts)
+        assert any("[REDACTED]" in item.redacted_text for item in excerpts)
         matched = tuple(
             symbol for observation in turn.observations for symbol in observation.matched_symbols
         )
@@ -1125,6 +1297,9 @@ def test_agent_loop_changes_queries_from_observations_and_is_resumable(
         investigation_service=service,
         candidate_service=SourceCandidateService(investigation_store=store),
         investigator=investigator,
+        source_reader=SnapshotSourceContextReader(
+            tmp_path / "objects" / "snapshots" / index.manifest_id
+        ),
     ).run(plan=plan, index=index, scope=scope, now=now)
     assert outcome.checkpoint.status is InvestigationStatus.READY_FOR_CANDIDATES
     assert outcome.candidate_set is not None

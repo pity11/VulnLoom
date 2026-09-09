@@ -5,10 +5,57 @@
         "symbol",
         "callers",
         "callees",
-        "references"
+        "references",
+        "source_window"
       ],
       "title": "InvestigationQueryKind",
       "type": "string"
+    },
+    "SourceExcerpt": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Symbol Id",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "start_line": {
+          "minimum": 1,
+          "title": "Start Line",
+          "type": "integer"
+        },
+        "end_line": {
+          "minimum": 1,
+          "title": "End Line",
+          "type": "integer"
+        },
+        "redacted_text": {
+          "maxLength": 32768,
+          "title": "Redacted Text",
+          "type": "string"
+        },
+        "text_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol_id",
+        "path",
+        "start_line",
+        "end_line",
+        "redacted_text",
+        "text_digest"
+      ],
+      "title": "SourceExcerpt",
+      "type": "object"
     },
     "SourceLanguage": {
       "enum": [
@@ -184,6 +231,14 @@
         "$ref": "#/$defs/SourceReference"
       },
       "title": "Matched References",
+      "type": "array"
+    },
+    "source_excerpts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SourceExcerpt"
+      },
+      "title": "Source Excerpts",
       "type": "array"
     },
     "truncated": {

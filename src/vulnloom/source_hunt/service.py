@@ -19,6 +19,7 @@ from .adapters import (
     JavaScriptLanguageAdapter,
     LanguageAdapter,
     PythonLanguageAdapter,
+    SourceContextReader,
     SourceDocument,
     detect_build_systems,
 )
@@ -30,7 +31,9 @@ from .models import (
     InvestigationQueryKind,
     InvestigationStatus,
     RepositoryIndex,
+    SourceFileRecord,
     SourceHuntLimits,
+    SourceLanguage,
     SourcePartition,
 )
 from .store import SourceHuntStore
@@ -125,6 +128,21 @@ class SourceHuntService:
             scope_version=scope.version,
             manifest_id=snapshot.manifest.manifest_id,
             adapter_versions=versions,
+            source_files=tuple(
+                SourceFileRecord(
+                    path=item.path,
+                    language=(
+                        SourceLanguage.TYPESCRIPT
+                        if PurePosixPath(item.path).suffix.casefold() in {".ts", ".tsx"}
+                        else supported[
+                            PurePosixPath(item.path).suffix.casefold()
+                        ].language
+                    ),
+                    size=item.size,
+                    sha256=item.sha256,
+                )
+                for item in selected
+            ),
             files_indexed=files,
             symbols=tuple(sorted(symbols, key=lambda item: item.symbol_id)),
             references=tuple(sorted(references, key=lambda item: item.reference_id)),
@@ -189,6 +207,7 @@ class SourceHuntService:
         query: InvestigationQuery,
         scope: Scope,
         now: datetime,
+        source_reader: SourceContextReader | None = None,
     ) -> tuple[InvestigationCheckpoint, InvestigationObservation]:
         self._preflight(plan, index, checkpoint, scope, now)
         query_digest = canonical_digest(query.model_dump(mode="python"))
@@ -201,6 +220,21 @@ class SourceHuntService:
         if len(checkpoint.observation_ids) >= plan.limits.max_observations:
             raise SourceHuntRejected("Source Hunt observation budget exhausted")
         symbols, references = self._matches(index, query)
+        excerpts = ()
+        if query.kind is InvestigationQueryKind.SOURCE_WINDOW:
+            if source_reader is None:
+                raise SourceHuntRejected(
+                    "Source Hunt source-window query requires a trusted reader"
+                )
+            files = {item.path: item for item in index.source_files}
+            excerpts = tuple(
+                source_reader.read_window(
+                    source=files[item.location.path],
+                    symbol_id=item.symbol_id,
+                    line=item.location.line,
+                )
+                for item in symbols[: query.max_results]
+            )
         limit = query.max_results
         truncated = len(symbols) + len(references) > limit
         symbols = symbols[:limit]
@@ -210,6 +244,7 @@ class SourceHuntService:
             kind=query.kind,
             matched_symbols=symbols,
             matched_references=references,
+            source_excerpts=excerpts,
             truncated=truncated,
         )
         advanced = InvestigationCheckpoint.create(
@@ -305,7 +340,10 @@ class SourceHuntService:
     @staticmethod
     def _matches(index: RepositoryIndex, query: InvestigationQuery):
         term = query.term.casefold()
-        if query.kind is InvestigationQueryKind.SYMBOL:
+        if query.kind in {
+            InvestigationQueryKind.SYMBOL,
+            InvestigationQueryKind.SOURCE_WINDOW,
+        }:
             symbols = tuple(
                 item for item in index.symbols if term in item.qualified_name.casefold()
             )

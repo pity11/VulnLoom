@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import os
 import re
+import stat
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Protocol
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import SourceLocation
+from vulnloom.evidence import Redactor
 
 from .models import (
     BuildSystem,
+    SourceExcerpt,
+    SourceFileRecord,
     SourceLanguage,
     SourceReference,
     SourceReferenceKind,
@@ -39,6 +46,106 @@ class LanguageAdapter(Protocol):
     extensions: frozenset[str]
 
     def index(self, documents: tuple[SourceDocument, ...]) -> LanguageIndex: ...
+
+
+class SourceContextReader(Protocol):
+    def read_window(
+        self, *, source: SourceFileRecord, symbol_id: str, line: int
+    ) -> SourceExcerpt: ...
+
+
+class SnapshotSourceContextReader:
+    """No-follow, digest-verified bounded reads from one materialized Snapshot."""
+
+    def __init__(
+        self,
+        root: Path,
+        *,
+        before_lines: int = 8,
+        after_lines: int = 16,
+        max_bytes: int = 32_768,
+    ):
+        self.root = root.resolve()
+        if (
+            not self.root.is_dir()
+            or not 0 <= before_lines <= 100
+            or not 0 <= after_lines <= 100
+        ):
+            raise ValueError("Source context reader limits are invalid")
+        if not 0 < max_bytes <= 32_768:
+            raise ValueError("Source context byte limit is invalid")
+        self.before_lines = before_lines
+        self.after_lines = after_lines
+        self.max_bytes = max_bytes
+
+    def read_window(
+        self, *, source: SourceFileRecord, symbol_id: str, line: int
+    ) -> SourceExcerpt:
+        relative = PurePosixPath(source.path)
+        if (
+            not relative.parts
+            or relative.is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
+            raise ValueError("Source context path is not normalized")
+        root_descriptor = os.open(
+            self.root,
+            os.O_RDONLY
+            | os.O_DIRECTORY
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0),
+        )
+        try:
+            descriptor = self._open_beneath(root_descriptor, relative.parts)
+        except OSError as exc:
+            raise ValueError("Source context file cannot be opened safely") from exc
+        finally:
+            os.close(root_descriptor)
+        with os.fdopen(descriptor, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                raise ValueError("Source context path is not a regular file")
+            content = handle.read(source.size + 1)
+        if (
+            len(content) != source.size
+            or hashlib.sha256(content).hexdigest() != source.sha256
+        ):
+            raise ValueError("Source context file failed integrity verification")
+        try:
+            lines = content.decode("utf-8", "strict").splitlines()
+        except UnicodeDecodeError as exc:
+            raise ValueError("Source context file is not valid UTF-8") from exc
+        start = max(1, line - self.before_lines)
+        end = min(len(lines), line + self.after_lines)
+        selected = "\n".join(lines[start - 1 : end])
+        redacted = Redactor().text(selected)
+        if len(redacted.encode()) > self.max_bytes:
+            raise ValueError("Source context window exceeds its byte limit")
+        return SourceExcerpt(
+            symbol_id=symbol_id,
+            path=source.path,
+            start_line=start,
+            end_line=end,
+            redacted_text=redacted,
+            text_digest=canonical_digest(redacted),
+        )
+
+    @staticmethod
+    def _open_beneath(root_descriptor: int, parts: tuple[str, ...]) -> int:
+        parent = os.dup(root_descriptor)
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        cloexec = getattr(os, "O_CLOEXEC", 0)
+        try:
+            for part in parts[:-1]:
+                child = os.open(
+                    part,
+                    os.O_RDONLY | os.O_DIRECTORY | nofollow | cloexec,
+                    dir_fd=parent,
+                )
+                os.close(parent)
+                parent = child
+            return os.open(parts[-1], os.O_RDONLY | nofollow | cloexec, dir_fd=parent)
+        finally:
+            os.close(parent)
 
 
 def detect_build_systems(paths: tuple[str, ...]) -> tuple[BuildSystem, ...]:
@@ -188,4 +295,3 @@ def _resolve(
         symbols=tuple(sorted(symbols, key=lambda item: item.symbol_id)),
         references=tuple(sorted(references, key=lambda item: item.reference_id)),
     )
-

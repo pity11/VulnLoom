@@ -6,12 +6,16 @@ import argparse
 import json
 from datetime import timedelta
 from pathlib import Path
+from uuid import UUID
 
 from vulnloom.domain.models import Scope, utc_now
 from vulnloom.hypotheses import CandidateSetStore
 from vulnloom.ingestion import IngestionService
 
+from .adapters import SnapshotSourceContextReader
 from .candidate import SourceCandidateProposal, SourceCandidateService
+from .execution import SourceExecutionPlanningService
+from .execution_models import source_execution_approval_digest
 from .models import (
     InvestigationQuery,
     InvestigationQueryKind,
@@ -86,6 +90,12 @@ def _query(args: argparse.Namespace) -> int:
         plan = store.plan(args.plan_id)
         index = store.index(plan.index_id)
         checkpoint = store.latest(plan.plan_id)
+        ingestion = IngestionService(Path(args.target_store))
+        snapshot = ingestion.load_snapshot(index.manifest_id)
+        IngestionService.require_snapshot_scope(snapshot, scope, now)
+        if snapshot.root_ref is None:
+            raise ValueError("Source Hunt query requires a filesystem Snapshot")
+        reader = SnapshotSourceContextReader(ingestion.root / snapshot.root_ref)
         checkpoint, observation = service.query(
             plan=plan,
             index=index,
@@ -97,6 +107,7 @@ def _query(args: argparse.Namespace) -> int:
             ),
             scope=scope,
             now=now,
+            source_reader=reader,
         )
     print(
         json.dumps(
@@ -214,6 +225,49 @@ def _status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _prepare_execution(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    candidate_set = CandidateSetStore(Path(args.candidate_store)).load(
+        args.candidate_set_id
+    )
+    candidate_id = UUID(args.candidate_id)
+    matches = tuple(
+        item for item in candidate_set.candidates if item.candidate_id == candidate_id
+    )
+    if len(matches) != 1:
+        raise ValueError("Source Hunt Candidate is not in the sealed CandidateSet")
+    with SourceHuntStore(Path(args.hunt_db)) as store:
+        investigation_plan = store.plan(args.plan_id)
+        index = store.index(investigation_plan.index_id)
+        checkpoint = store.latest(investigation_plan.plan_id)
+    plan = SourceExecutionPlanningService().prepare(
+        index=index,
+        investigation=checkpoint,
+        candidate=matches[0],
+        scope=scope,
+        image_digest=args.image_digest,
+        tool_registry_digest=args.tool_registry_digest,
+        now=now,
+        deadline=now + timedelta(seconds=args.execution_ttl_seconds),
+        idempotency_key=args.idempotency_key,
+        stage_wall_seconds=args.stage_wall_seconds,
+    )
+    print(
+        json.dumps(
+            {
+                "plan": plan.model_dump(mode="json"),
+                "required_approval": {
+                    "action": "run_untrusted_build",
+                    "action_digest": source_execution_approval_digest(plan),
+                },
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def register_source_hunt_commands(subparsers) -> None:
     root = subparsers.add_parser("source-hunt")
     actions = root.add_subparsers(dest="action", required=True)
@@ -238,6 +292,7 @@ def register_source_hunt_commands(subparsers) -> None:
     query.add_argument("--plan-id", required=True)
     query.add_argument("--scope-file", required=True)
     query.add_argument("--hunt-db", default=".vulnloom/source-hunt.db")
+    query.add_argument("--target-store", default=".vulnloom/targets")
     query.add_argument(
         "--kind", choices=tuple(item.value for item in InvestigationQueryKind), required=True
     )
@@ -257,6 +312,20 @@ def register_source_hunt_commands(subparsers) -> None:
     candidate.add_argument("--hunt-db", default=".vulnloom/source-hunt.db")
     candidate.add_argument("--candidate-store", default=".vulnloom/candidates")
     candidate.set_defaults(handler=_materialize_candidate)
+
+    execution = actions.add_parser("prepare-execution")
+    execution.add_argument("--plan-id", required=True)
+    execution.add_argument("--scope-file", required=True)
+    execution.add_argument("--candidate-set-id", required=True)
+    execution.add_argument("--candidate-id", required=True)
+    execution.add_argument("--image-digest", required=True)
+    execution.add_argument("--tool-registry-digest", required=True)
+    execution.add_argument("--idempotency-key", required=True)
+    execution.add_argument("--hunt-db", default=".vulnloom/source-hunt.db")
+    execution.add_argument("--candidate-store", default=".vulnloom/candidates")
+    execution.add_argument("--execution-ttl-seconds", type=int, default=1_800)
+    execution.add_argument("--stage-wall-seconds", type=int, default=600)
+    execution.set_defaults(handler=_prepare_execution)
 
     for name in ("complete", "cancel", "expire"):
         command = actions.add_parser(name)

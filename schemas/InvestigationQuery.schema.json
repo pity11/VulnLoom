@@ -5,7 +5,8 @@
         "symbol",
         "callers",
         "callees",
-        "references"
+        "references",
+        "source_window"
       ],
       "title": "InvestigationQueryKind",
       "type": "string"

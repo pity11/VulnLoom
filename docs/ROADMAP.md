@@ -951,7 +951,7 @@ Target build 或 Submission 权限。
 
 ### M9.16：CUC 固定 Chat probe 适配与真实连通性验收（固定 PONG 真实验收已通过）
 
-- 运营方明确提供 `https://openai.cuc.edu.cn/v1/chat/completions`、请求模型 `cuc/deepseek`
+- 运营方明确提供逻辑 `EndpointRef`、请求模型 `cuc/deepseek`
   和真实凭据引用 `CUC_DEEPSEEK_API_KEY`；本地 shim 的占位 Key 不可替代 CUC Key。
 - 新增仅用于独立 probe 的 `CucChatProbeCodecRegistration`/codec；固定发送 `Reply with exactly PONG.`，
   只接受单个 assistant `PONG`、`finish_reason=stop`、有效用量和两个精确响应模型名：
@@ -1141,6 +1141,25 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   真实 Provider 调用。
 
 下一步是权限受限的凭据替换 adapter，然后实现薄 HTTP API；Provider API 联网目录拉取仍需独立显式授权和网络门禁。
+
+### Source Hunt V1（可信本地纵切已完成）
+
+- 新增统一的 `source-hunt` 应用服务与 CLI：对已授权 Snapshot 建立 Python、JavaScript/TypeScript 导航索引，
+  以文件数、总字节、单文件、分区、查询、观察和 deadline 多重预算限制调查，并持久化可恢复 checkpoint。
+- Agent 循环只接受类型化 query/propose/abandon 决策；按需源码窗口逐级禁止符号链接、复核 manifest 大小与
+  SHA-256、限制行数/字节并在进入观察账本或模型边界前脱敏。Provider 凭据不进入 Source Hunt 或 Worker。
+- Source Candidate 只能落为共享 `PROPOSED` Candidate；固定 Build→Harness→Fuzz→Sanitizer→PoV replay 计划
+  绑定 Candidate、Snapshot、Scope、Policy、tool registry 和精确工具 ID，默认无网络并要求
+  `RUN_UNTRUSTED_BUILD` Approval。
+- 执行支持中断恢复、超时/失败/取消 fail-closed、Runner 输出脱敏 Evidence 化和清理证明；完成结果复用共享
+  Validation、Critic、Finding 与 Report。Finding promotion 重新读取权威 Validation/Critic ledger，并要求独立
+  `MUTATE_TARGET_STATE` Approval。
+- 默认测试只使用 fake adapter；opt-in Docker 验收已实际证明五阶段容器非 root、无 capability、
+  `NoNewPrivs`、源码只读、无默认路由、无 Docker socket、无模型 Key 继承和无残留容器。
+- 本里程碑完成的是安全控制面和端到端证据链。专用 C/C++ toolchain、coverage-guided fuzzer、ASAN/UBSAN
+  解析、Crash 去重、自动 Harness/Patch 和 blind holdout 仍属于 R9 深化，不能用合成阶段输出冒充真实结果。
+
+详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ## 延后事项
 

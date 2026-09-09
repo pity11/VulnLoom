@@ -1,6 +1,12 @@
 """Bounded, resumable Source Hunt application services."""
 
-from .adapters import JavaScriptLanguageAdapter, LanguageAdapter, PythonLanguageAdapter
+from .adapters import (
+    JavaScriptLanguageAdapter,
+    LanguageAdapter,
+    PythonLanguageAdapter,
+    SnapshotSourceContextReader,
+    SourceContextReader,
+)
 from .agent import (
     InvestigationDecision,
     InvestigationDecisionKind,
@@ -18,6 +24,7 @@ from .candidate import (
 from .execution import (
     RunnerOutputEvidenceAdapter,
     SourceExecutionEvidenceAdapter,
+    SourceExecutionPlanningService,
     SourceExecutionRejected,
     SourceExecutionService,
     SourceExecutionValidationService,
@@ -42,6 +49,8 @@ from .models import (
     InvestigationQueryKind,
     InvestigationStatus,
     RepositoryIndex,
+    SourceExcerpt,
+    SourceFileRecord,
     SourceHuntLimits,
     SourceLanguage,
     SourcePartition,
@@ -78,6 +87,7 @@ __all__ = [
     "RunnerOutputEvidenceAdapter",
     "SOURCE_FINDING_SIDE_EFFECTS",
     "SourceHuntLimits",
+    "SnapshotSourceContextReader",
     "SourceHuntAgentOutcome",
     "SourceHuntAgentRejected",
     "SourceHuntAgentService",
@@ -89,6 +99,7 @@ __all__ = [
     "SourceExecutionOutcome",
     "SourceExecutionEvidenceAdapter",
     "SourceExecutionPlan",
+    "SourceExecutionPlanningService",
     "SourceExecutionRejected",
     "SourceExecutionService",
     "SourceExecutionValidationService",
@@ -107,6 +118,9 @@ __all__ = [
     "SourceCandidateRejected",
     "SourceCandidateService",
     "SourceLanguage",
+    "SourceContextReader",
+    "SourceExcerpt",
+    "SourceFileRecord",
     "SourceInvestigator",
     "SourcePartition",
     "SourceReference",

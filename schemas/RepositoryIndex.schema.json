@@ -9,6 +9,38 @@
       "title": "BuildSystem",
       "type": "string"
     },
+    "SourceFileRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "language": {
+          "$ref": "#/$defs/SourceLanguage"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "language",
+        "size",
+        "sha256"
+      ],
+      "title": "SourceFileRecord",
+      "type": "object"
+    },
     "SourceLanguage": {
       "enum": [
         "python",
@@ -233,6 +265,13 @@
       "title": "Adapter Versions",
       "type": "object"
     },
+    "source_files": {
+      "items": {
+        "$ref": "#/$defs/SourceFileRecord"
+      },
+      "title": "Source Files",
+      "type": "array"
+    },
     "files_indexed": {
       "items": {
         "type": "string"
@@ -286,6 +325,7 @@
     "scope_version",
     "manifest_id",
     "adapter_versions",
+    "source_files",
     "files_indexed",
     "symbols",
     "references",
