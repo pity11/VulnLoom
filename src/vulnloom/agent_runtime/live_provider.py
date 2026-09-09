@@ -25,7 +25,6 @@ from .models import (
     AgentModelReply,
     AgentStepRequest,
 )
-from .openai_chat import OpenAIChatCompletionsV1Codec
 from .provider_admission import (
     AgentProviderEgressRecoveryRequired,
     AgentProviderEgressRejected,
@@ -34,7 +33,6 @@ from .provider_admission import (
 from .provider_codec import (
     AgentProviderCodecRejected,
     AgentProviderCodecTimedOut,
-    OpenAIResponsesV1Codec,
 )
 from .provider_diagnostics import (
     ContentClassification,
@@ -46,7 +44,6 @@ from .provider_diagnostics import (
     safe_shape_observations,
     safe_usage_key_observations,
 )
-from .provider_probe_cuc import CucChatProbeCodec
 from .provider_process import (
     SUBPROCESS_HTTPS_ADAPTER_DIGEST,
     ProviderProcessExecutionError,
@@ -87,6 +84,20 @@ class ProviderProcessRunner(Protocol):
     ) -> ProviderProcessResult: ...
 
 
+class ProviderWireCodecRegistration(Protocol):
+    codec_id: str
+    provider_id: str
+    request_path: str
+
+
+class ProviderWireCodec(Protocol):
+    registration: ProviderWireCodecRegistration
+
+    def encode(self, *, model_registration, envelope) -> bytearray: ...
+
+    def decode(self, raw, *, model_registration, latency_seconds) -> AgentModelReply: ...
+
+
 class SubprocessHttpsProviderAdapter:
     def __init__(
         self,
@@ -96,11 +107,7 @@ class SubprocessHttpsProviderAdapter:
         credential_reference: ModelCredentialReference,
         credential_provider: ModelCredentialProvider,
         egress_store: AgentProviderEgressStore,
-        provider_codec: (
-            OpenAIResponsesV1Codec
-            | OpenAIChatCompletionsV1Codec
-            | CucChatProbeCodec
-        ),
+        provider_codec: ProviderWireCodec,
         ca_bundle: bytes | None = None,
         resolver: ProviderResolver | None = None,
         process_runner: ProviderProcessRunner | None = None,

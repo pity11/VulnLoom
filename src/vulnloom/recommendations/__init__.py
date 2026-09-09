@@ -23,6 +23,10 @@ from .provider import (
     CandidateRecommendationCodecRegistration,
     CandidateRecommendationGenerationPlan,
     CandidateRecommendationProviderConfig,
+    ProfileCandidateRecommendationCodec,
+    ProfileCandidateRecommendationCodecRegistration,
+    RoutedCandidateRecommendationProviderConfig,
+    routed_recommendation_config,
 )
 from .selection_models import (
     CandidateRecommendationSelectionCommand,
@@ -57,5 +61,9 @@ __all__ = [
     "CandidateRecommendationStore",
     "CandidateSignalProjection",
     "RecommendationPriority",
+    "ProfileCandidateRecommendationCodec",
+    "ProfileCandidateRecommendationCodecRegistration",
+    "RoutedCandidateRecommendationProviderConfig",
     "recommendation_generation_approval_request",
+    "routed_recommendation_config",
 ]

@@ -84,6 +84,14 @@ class ProviderEgressVerifier(Protocol):
     ) -> AgentProviderEgressGrant: ...
 
 
+class OpenAIChatTaskCodecRegistration(Protocol):
+    codec_id: str
+    provider_id: str
+    request_path: str
+    request_model: str
+    limits: AgentProviderCodecLimits
+
+
 class OpenAIChatProfilePreparation(DomainModel):
     preparation_id: Digest
     flow_snapshot_digest: Digest
@@ -234,8 +242,58 @@ def bind_openai_chat_profile(
     now: datetime,
     deadline: datetime,
 ) -> OpenAIChatRuntimeBinding:
+    registration = bind_openai_chat_task_registration(
+        preparation,
+        task_codec_registration=preparation.codec_registration,
+        current_profile=current_profile,
+        current_flow_snapshot=current_flow_snapshot,
+        grant_id=grant_id,
+        egress_verifier=egress_verifier,
+        worker_role=preparation.worker_role,
+        max_output_tokens=preparation.max_output_tokens,
+        now=now,
+        deadline=deadline,
+    )
+    return OpenAIChatRuntimeBinding(
+        preparation=preparation,
+        model_registration=registration,
+        codec=OpenAIChatCompletionsV1Codec(
+            preparation.codec_registration,
+            feature_gate=feature_gate,
+        ),
+    )
+
+
+def bind_openai_chat_task_registration(
+    preparation: OpenAIChatProfilePreparation,
+    *,
+    task_codec_registration: OpenAIChatTaskCodecRegistration,
+    current_profile: ProviderProfile,
+    current_flow_snapshot: FlowModelSnapshot,
+    grant_id: str,
+    egress_verifier: ProviderEgressVerifier,
+    worker_role: WorkerRole,
+    max_output_tokens: int,
+    now: datetime,
+    deadline: datetime,
+) -> AgentModelRegistration:
     if now >= deadline:
         raise OpenAIChatProfileAssemblyRejected("Profile binding deadline expired")
+    if (
+        task_codec_registration.provider_id
+        != preparation.codec_registration.provider_id
+        or task_codec_registration.request_model
+        != preparation.codec_registration.request_model
+        or task_codec_registration.request_path
+        != preparation.transport_admission.request_path
+        or task_codec_registration.limits.timeout_seconds
+        > preparation.transport_admission.limits.timeout_seconds
+        or task_codec_registration.limits.max_structured_output_bytes
+        > preparation.transport_admission.limits.max_response_bytes
+        or worker_role is not preparation.worker_role
+        or not 0 < max_output_tokens <= preparation.max_output_tokens
+    ):
+        raise OpenAIChatProfileAssemblyRejected("task codec Profile binding rejected")
     current_binding = _binding(
         current_flow_snapshot, preparation.engine, preparation.agent_role
     )
@@ -260,24 +318,17 @@ def bind_openai_chat_profile(
     if grant.purpose is not AgentProviderEgressPurpose.MODEL_INFERENCE:
         raise OpenAIChatProfileAssemblyRejected("egress grant purpose is not model inference")
     registration = AgentModelRegistration.create_subprocess_https(
-        provider_id=preparation.codec_registration.provider_id,
-        model=preparation.codec_registration.request_model,
+        provider_id=task_codec_registration.provider_id,
+        model=task_codec_registration.request_model,
         adapter_digest=SUBPROCESS_HTTPS_ADAPTER_DIGEST,
         credential_reference_id=preparation.credential_reference_id,
         transport_admission_id=preparation.transport_admission.admission_id,
         egress_grant_id=grant.grant_id,
-        provider_codec_id=preparation.codec_registration.codec_id,
-        supported_roles=(preparation.worker_role,),
-        max_output_tokens=preparation.max_output_tokens,
+        provider_codec_id=task_codec_registration.codec_id,
+        supported_roles=(worker_role,),
+        max_output_tokens=max_output_tokens,
     )
-    return OpenAIChatRuntimeBinding(
-        preparation=preparation,
-        model_registration=registration,
-        codec=OpenAIChatCompletionsV1Codec(
-            preparation.codec_registration,
-            feature_gate=feature_gate,
-        ),
-    )
+    return registration
 
 
 def create_openai_chat_provider_adapter(

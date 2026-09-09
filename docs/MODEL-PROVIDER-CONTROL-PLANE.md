@@ -425,6 +425,18 @@ Grant 在 finally 路径撤销。验收记录仅位于被忽略的 `.vulnloom/`�
 该结果通过 P1 的真实 CUC 新路径门禁，但不自动切换现有代码审阅、Candidate 建议或固定探针入口。默认路由
 迁移应作为独立改动进行回归；CUC/DeepSeek 继续作为前期默认 Provider。
 
+### P1.5：业务入口运行绑定
+
+已增加 Provider-neutral `ProviderWireCodec` 协议和 task codec binding：业务输出协议可复用同一个 Profile
+preparation，但必须重新绑定当前 Provider lifecycle、Flow、模型、Worker role、预算和 active inference Grant。
+只读代码审阅和 Candidate Recommendation 两个现有模型业务入口均已迁移。服务层可装配任意已准入的
+OpenAI-compatible Provider；CUC 专用 config 和 CLI 默认行为保留。第二个合成 Provider 覆盖两条链的成功、
+身份拒绝、超时、清理失败、只读重放、敏感缓冲归零及 Candidate 不变性。通用结果使用独立
+`ModelInvocationResult`，没有放宽 CUC probe 的响应模型闭集。
+
+P1.5 服务层迁移已经完成。Provider Center CLI/API 将负责向可信服务提供当前 Profile/Flow，而不是让业务
+计划接受 URL 或 Key；在此之前，通用路径只供可信应用装配。
+
 ### P2：Provider Center CLI/API
 
 完成添加、替换凭据、连接测试、同步目录、能力探测、禁用和审计。秘密不落入项目配置。

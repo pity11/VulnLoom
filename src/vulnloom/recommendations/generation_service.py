@@ -9,6 +9,7 @@ from vulnloom.agent_runtime.context import (
     AgentContextSource,
     AgentContextSourceKind,
 )
+from vulnloom.agent_runtime.invocation_models import ModelInvocationResult
 from vulnloom.agent_runtime.live_provider import SubprocessHttpsProviderAdapter
 from vulnloom.agent_runtime.messages import AgentMessageRenderer
 from vulnloom.agent_runtime.models import AgentRunLimits, AgentRunPlan, AgentStepRequest
@@ -35,6 +36,8 @@ from .models import CandidateRecommendation
 from .provider import (
     CandidateRecommendationCodec,
     CandidateRecommendationGenerationPlan,
+    ProfileCandidateRecommendationCodec,
+    RoutedCandidateRecommendationProviderConfig,
     recommendation_config,
 )
 
@@ -50,10 +53,10 @@ def recommendation_generation_approval_request(plan, scope):
         action=ApprovalAction.USE_REAL_CREDENTIALS,
         action_digest=plan.plan_id,
         expected_side_effects=(
-            "Send the exact minimal Candidate projection in this plan to CUC once.",
+            "Send the exact minimal Candidate projection to the selected model Provider once.",
             "Consume provider tokens and store an unverified recommendation locally.",
         ),
-        evidence_summary="Review the projection fields and fixed CUC endpoint before approving.",
+        evidence_summary="Review the projection fields and selected Provider before approving.",
         policy_version=scope.version,
         expires_at=plan.deadline,
     )
@@ -71,6 +74,7 @@ class CandidateRecommendationGenerationService:
         credential_provider=None,
         resolver=None,
         process_runner=None,
+        provider_config_factory=None,
         now=utc_now,
     ):
         self.scope = scope
@@ -78,6 +82,16 @@ class CandidateRecommendationGenerationService:
         self.egress, self.store = egress_store, store
         self.credentials = credential_provider
         self.resolver, self.runner, self.now = resolver, process_runner, now
+        self.provider_config_factory = provider_config_factory
+
+    def _provider_config(self, *, grant_id, now, deadline):
+        if self.provider_config_factory is None:
+            return recommendation_config(grant_id)
+        return self.provider_config_factory(
+            grant_id=grant_id,
+            now=now,
+            deadline=deadline,
+        )
 
     def projection(self, *, candidate_set_id, candidate_id):
         now = self.now()
@@ -145,7 +159,7 @@ class CandidateRecommendationGenerationService:
     def prepare(self, *, candidate_set_id, candidate_id, grant_id, deadline, idempotency_key):
         now = self.now()
         projection = self.projection(candidate_set_id=candidate_set_id, candidate_id=candidate_id)
-        config = recommendation_config(grant_id)
+        config = self._provider_config(grant_id=grant_id, now=now, deadline=deadline)
         grant = self.egress.require_active(grant_id, admission=config.admission, now=now)
         if grant.purpose is not AgentProviderEgressPurpose.MODEL_INFERENCE or deadline > min(
             grant.expires_at, self.scope.valid_until
@@ -168,7 +182,11 @@ class CandidateRecommendationGenerationService:
             raise ValueError("recommendation requires explicit model network and credentials")
         if not plan.created_at <= now < plan.deadline or plan.scope_digest != _digest(self.scope):
             raise ValueError("recommendation scope or time window changed")
-        if plan.config != recommendation_config(plan.config.registration.egress_grant_id):
+        if plan.config != self._provider_config(
+            grant_id=plan.config.registration.egress_grant_id,
+            now=now,
+            deadline=plan.deadline,
+        ):
             raise ValueError("recommendation Provider configuration changed")
         if not (
             approval.is_valid_for(
@@ -211,7 +229,12 @@ class CandidateRecommendationGenerationService:
             if (min(plan.deadline, approval.expires_at) - self.now()).total_seconds() <= 10:
                 raise TimeoutError("recommendation execution budget exhausted")
             request, envelope = self._message(plan)
-            codec = CandidateRecommendationCodec(plan.config.codec, projection=projection)
+            codec_type = (
+                ProfileCandidateRecommendationCodec
+                if isinstance(plan.config, RoutedCandidateRecommendationProviderConfig)
+                else CandidateRecommendationCodec
+            )
+            codec = codec_type(plan.config.codec, projection=projection)
             adapter = SubprocessHttpsProviderAdapter(
                 registration=plan.config.registration,
                 admission=plan.config.admission,
@@ -251,19 +274,27 @@ class CandidateRecommendationGenerationService:
             status = "timed_out"
         if status == "passed" and (not cleanup or len(attempts) != 1 or len(receipts) != 1):
             status = "rejected"
-        transport = ProviderProbeResult.create(
-            plan_id=plan.plan_id,
-            status=status,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            process_started=any(item.process_started for item in attempts),
-            cleanup_verified=cleanup,
-            attempt_digest=_digest(attempts[0]) if len(attempts) == 1 else None,
-            receipt_digest=_digest(receipts[0]) if len(receipts) == 1 else None,
-            completed_at=completed,
-            diagnostic=getattr(adapter, "diagnostic", None),
-            response_model=getattr(codec, "response_model", None),
+        result_type = (
+            ModelInvocationResult
+            if isinstance(plan.config, RoutedCandidateRecommendationProviderConfig)
+            else ProviderProbeResult
         )
+        result_values = {
+            "plan_id": plan.plan_id,
+            "status": status,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "process_started": any(item.process_started for item in attempts),
+            "cleanup_verified": cleanup,
+            "attempt_digest": _digest(attempts[0]) if len(attempts) == 1 else None,
+            "receipt_digest": _digest(receipts[0]) if len(receipts) == 1 else None,
+            "completed_at": completed,
+            "diagnostic": getattr(adapter, "diagnostic", None),
+            "response_model": getattr(codec, "response_model", None),
+        }
+        if result_type is ModelInvocationResult:
+            result_values["provider_id"] = plan.config.registration.provider_id
+        transport = result_type.create(**result_values)
         response = codec.response if status == "passed" else None
         recommendation = None
         if response is not None:

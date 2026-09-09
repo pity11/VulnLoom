@@ -59,6 +59,7 @@ from vulnloom.agent_runtime import (
     AgentToolIntent,
     AgentToolObservation,
     CucChatCompatibilityBaseline,
+    ModelInvocationResult,
     OpenAIChatCompletionsCodecRegistration,
     OpenAIChatCompletionsFeatureGate,
     OpenAIChatProfilePreparation,
@@ -250,6 +251,8 @@ from vulnloom.recommendations import (
     CandidateRecommendationSelectionCommand,
     CandidateRecommendationSelectionRecord,
     CandidateSignalProjection,
+    ProfileCandidateRecommendationCodecRegistration,
+    RoutedCandidateRecommendationProviderConfig,
 )
 from vulnloom.reporting import (
     AgentReportDraftExecutionPlan,
@@ -291,6 +294,8 @@ from vulnloom.review_assist.provider import (
     CodeReviewCodecRegistration,
     CodeReviewConfig,
     CodeReviewPlan,
+    ProfileCodeReviewCodecRegistration,
+    RoutedCodeReviewConfig,
 )
 from vulnloom.runners import (
     RunnerCheckpoint,
@@ -356,6 +361,7 @@ MODELS = (
     AgentProviderTransportAttempt,
     AgentProviderTransportReceipt,
     AgentModelRegistration,
+    ModelInvocationResult,
     AgentRunLimits,
     CucChatProbeCodecRegistration,
     CucChatStructuredProbeCodecRegistration,
@@ -367,6 +373,8 @@ MODELS = (
     CodeReviewCodecRegistration,
     CodeReviewConfig,
     CodeReviewPlan,
+    ProfileCodeReviewCodecRegistration,
+    RoutedCodeReviewConfig,
     CandidateRecommendation,
     CandidateRecommendationAdmissionPlan,
     CandidateLocationProjection,
@@ -377,6 +385,8 @@ MODELS = (
     CandidateRecommendationProviderConfig,
     CandidateRecommendationGenerationPlan,
     CandidateRecommendationGenerationOutcome,
+    ProfileCandidateRecommendationCodecRegistration,
+    RoutedCandidateRecommendationProviderConfig,
     CandidateRecommendationRecord,
     CandidateRecommendationSelectionCommand,
     CandidateRecommendationSelectionRecord,

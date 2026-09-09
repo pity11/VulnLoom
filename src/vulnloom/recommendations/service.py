@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import ValidationError
 
+from vulnloom.agent_runtime.invocation_models import ModelInvocationResult
 from vulnloom.agent_runtime.provider_probe_models import ProviderProbeResult
 from vulnloom.analyzers import SourceGraphStore
 from vulnloom.analyzers.models import source_graph_digest
@@ -56,7 +57,7 @@ class CandidateRecommendationAdmissionService:
     def prepare(
         self,
         recommendation: CandidateRecommendation,
-        provider_result: ProviderProbeResult,
+        provider_result: ProviderProbeResult | ModelInvocationResult,
         *,
         now: datetime,
         deadline: datetime,
@@ -143,7 +144,7 @@ class CandidateRecommendationAdmissionService:
         self,
         plan: CandidateRecommendationAdmissionPlan,
         recommendation: CandidateRecommendation,
-        provider_result: ProviderProbeResult,
+        provider_result: ProviderProbeResult | ModelInvocationResult,
         *,
         now: datetime,
     ) -> CandidateRecommendationRecord:
@@ -269,7 +270,12 @@ class CandidateRecommendationAdmissionService:
     def _inputs(self, recommendation, provider_result, *, now, started):
         try:
             recommendation = CandidateRecommendation.model_validate(recommendation.model_dump())
-            provider_result = ProviderProbeResult.model_validate(provider_result.model_dump())
+            result_type = (
+                ModelInvocationResult
+                if isinstance(provider_result, ModelInvocationResult)
+                else ProviderProbeResult
+            )
+            provider_result = result_type.model_validate(provider_result.model_dump())
             candidate_set = self.candidate_store.load(recommendation.candidate_set_id)
             graph = self.graph_store.load(recommendation.source_graph_id)
         except (OSError, ValueError, ValidationError) as exc:

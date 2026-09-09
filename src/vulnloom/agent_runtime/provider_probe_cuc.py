@@ -185,6 +185,38 @@ CUC_PROBE_CODEC_DIGEST = canonical_digest(
     }
 )
 
+OPENAI_COMPAT_TASK_WIRE_DIGEST = canonical_digest(
+    {
+        "contract": "vulnloom.openai-compatible-task-wire",
+        "version": 1,
+        "provider_and_model": "registration_bound",
+        "path": "/v1/chat/completions",
+        "stream": False,
+        "tools": False,
+        "choice": "single_stop_assistant",
+        "usage_metric_limits": USAGE_METRIC_LIMITS,
+        "usage_metric_numbers": "finite_int_or_float_excluding_bool",
+        "cache_usage": "integer_within_prompt_and_hit_plus_miss_equals_prompt_if_both",
+        "usage_details": {
+            "prompt": sorted(PROMPT_DETAIL_FIELDS),
+            "completion": sorted(COMPLETION_DETAIL_FIELDS),
+            "reasoning": "nonnegative_integer_within_completion",
+        },
+        "empty_extensions": {
+            level: {
+                key: ([t.__name__ for t in kind] if isinstance(kind, tuple) else kind.__name__)
+                for key, kind in fields.items()
+            }
+            for level, fields in (
+                ("root", ROOT_EMPTY_FIELDS),
+                ("choice", CHOICE_EMPTY_FIELDS),
+                ("message", MESSAGE_EMPTY_FIELDS),
+                ("usage", USAGE_OPTIONAL_FIELDS),
+            )
+        },
+    }
+)
+
 
 class CucChatProbeCodecRegistration(DomainModel):
     expected_implementation_digest: ClassVar[str] = CUC_PROBE_CODEC_DIGEST
@@ -246,8 +278,8 @@ class CucChatProbeCodec:
     def _binding(self, model_registration):
         if (
             model_registration.provider_codec_id != self.registration.codec_id
-            or model_registration.provider_id != "cuc"
-            or model_registration.model != "cuc/deepseek"
+            or model_registration.provider_id != self.registration.provider_id
+            or model_registration.model != self.registration.request_model
             or model_registration.supported_roles != (WorkerRole.REPORTER,)
             or model_registration.max_output_tokens > 512
         ):
@@ -272,7 +304,7 @@ class CucChatProbeCodec:
         ):
             raise AgentProviderCodecRejected("CUC codec only accepts the fixed tool-free probe")
         payload = {
-            "model": "cuc/deepseek",
+            "model": self.registration.request_model,
             "messages": [{"role": "user", "content": self.request_text}],
             "stream": False,
             "max_tokens": envelope.max_output_tokens,
@@ -339,7 +371,10 @@ class CucChatProbeCodec:
             and payload["created"] >= 0,
             "response_root_metadata",
         )
-        require(payload["model"] in CUC_RESPONSE_MODELS, "response_identity_mismatch")
+        require(
+            payload["model"] in self.registration.accepted_response_models,
+            "response_identity_mismatch",
+        )
         choices = payload["choices"]
         require(isinstance(choices, list), "response_choices_type")
         require(len(choices) == 1, "response_choices_count")

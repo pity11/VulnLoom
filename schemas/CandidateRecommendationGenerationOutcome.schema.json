@@ -221,6 +221,123 @@
       "title": "MetricIssue",
       "type": "object"
     },
+    "ModelInvocationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "result_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Result Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "rejected",
+            "timed_out"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "input_tokens": {
+          "maximum": 10000000,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "maximum": 65536,
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "process_started": {
+          "title": "Process Started",
+          "type": "boolean"
+        },
+        "cleanup_verified": {
+          "title": "Cleanup Verified",
+          "type": "boolean"
+        },
+        "attempt_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attempt Digest"
+        },
+        "receipt_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Receipt Digest"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "diagnostic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProviderDiagnostic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "response_model": {
+          "anyOf": [
+            {
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:/+-]{0,255}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Model"
+        }
+      },
+      "required": [
+        "result_id",
+        "plan_id",
+        "provider_id",
+        "status",
+        "input_tokens",
+        "output_tokens",
+        "process_started",
+        "cleanup_verified",
+        "attempt_digest",
+        "receipt_digest",
+        "completed_at"
+      ],
+      "title": "ModelInvocationResult",
+      "type": "object"
+    },
     "ProviderDiagnostic": {
       "additionalProperties": false,
       "properties": {
@@ -756,7 +873,15 @@
       "type": "string"
     },
     "transport": {
-      "$ref": "#/$defs/ProviderProbeResult"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProviderProbeResult"
+        },
+        {
+          "$ref": "#/$defs/ModelInvocationResult"
+        }
+      ],
+      "title": "Transport"
     },
     "response": {
       "anyOf": [

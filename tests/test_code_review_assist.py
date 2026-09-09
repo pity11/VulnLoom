@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 
 import pytest
+from test_openai_chat_profile_adapter import _prepare
 from test_source_mapping import _snapshot
 
 from vulnloom.adapters.model_credentials import EnvironmentModelCredentialProvider
@@ -21,10 +22,17 @@ from vulnloom.agent_runtime.provider_process import (
 )
 from vulnloom.agent_runtime.transport import AgentProviderTransportMode
 from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.model_routing import ModelAgentRole, ModelEngine
 from vulnloom.domain.models import ApprovalStatus
+from vulnloom.domain.protocol import WorkerRole
 from vulnloom.ingestion import IngestionService
 from vulnloom.review_assist.models import CodeReviewOutcome
-from vulnloom.review_assist.provider import CodeReviewCodec, CodeReviewPlan
+from vulnloom.review_assist.provider import (
+    CodeReviewCodec,
+    CodeReviewPlan,
+    RoutedCodeReviewConfig,
+    routed_review_config,
+)
 from vulnloom.review_assist.service import CodeReviewService, approval_request
 from vulnloom.review_assist.source import select_snippet
 from vulnloom.review_assist.store import CodeReviewStore, ReviewRecoveryRequired
@@ -41,9 +49,27 @@ class Resolver:
         return ("8.8.8.8",)
 
 
+class RoutedResolver:
+    def __init__(self, hostname):
+        self.hostname = hostname
+
+    def resolve(self, host):
+        assert host == self.hostname
+        return ("8.8.8.8",)
+
+
 class Runner:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        hostname="openai.cuc.edu.cn",
+        request_model="cuc/deepseek",
+        response_model="deepseek-v4-flash-0731",
+    ):
         self.calls = 0
+        self.hostname = hostname
+        self.request_model = request_model
+        self.response_model = response_model
         self.transform = lambda value: value
         self.wire_transform = lambda value: value
         self.error = None
@@ -52,10 +78,11 @@ class Runner:
     def exchange(self, **values):
         self.calls += 1
         self.request, self.credential = values["request_body"], values["credential"]
-        assert values["hostname"] == "openai.cuc.edu.cn" and values["port"] == 443
+        assert values["hostname"] == self.hostname and values["port"] == 443
         assert values["request_path"] == "/v1/chat/completions"
         body = json.loads(self.request)
         assert set(body) == {"model", "messages", "max_tokens", "stream"}
+        assert body["model"] == self.request_model
         assert body["stream"] is False and body["max_tokens"] == 512
         packet = json.loads(body["messages"][1]["content"])
         assert b"super-private" not in self.request and b"person@example.test" not in self.request
@@ -75,7 +102,7 @@ class Runner:
                 "id": "not-persisted",
                 "object": "chat.completion",
                 "created": 1,
-                "model": "deepseek-v4-flash-0731",
+                "model": self.response_model,
                 "choices": [
                     {
                         "index": 0,
@@ -154,6 +181,91 @@ def case(tmp_path, scope, now):
         yield service, plan, approval, runner, snapshot
 
 
+@contextmanager
+def routed_case(tmp_path, scope, now):
+    snapshot, root, scope = _snapshot(tmp_path, scope, {"app.py": SOURCE})
+    ingestion = IngestionService(root)
+    preparation, profile, _, flow, _, credential_reference = _prepare(
+        "alpha",
+        "model-a",
+        engine=ModelEngine.SOURCE_HUNT,
+        agent_role=ModelAgentRole.REPORTER,
+        worker_role=WorkerRole.REPORTER,
+    )
+    policy = AgentProviderEgressIssuerPolicy.create(
+        issuer_id="test-routed-review",
+        allowed_provider_ids=("alpha",),
+        allowed_modes=(AgentProviderTransportMode.LIVE_HTTPS,),
+        max_lifetime_seconds=120,
+    )
+    with (
+        AgentProviderEgressStore(tmp_path / "routed-egress") as egress,
+        CodeReviewStore(tmp_path / "routed-reviews.db") as store,
+    ):
+        grant = AgentProviderEgressAuthority(
+            store=egress, issuer_policies=(policy,)
+        ).issue(
+            admission=preparation.transport_admission,
+            issuer_policy_id=policy.policy_id,
+            purpose=AgentProviderEgressPurpose.MODEL_INFERENCE,
+            now=now,
+            expires_at=now + timedelta(seconds=120),
+            deadline=now + timedelta(seconds=5),
+            idempotency_key="routed-review-grant",
+        )
+
+        def config_factory(*, grant_id, now, deadline):
+            return routed_review_config(
+                preparation=preparation,
+                current_profile=profile,
+                current_flow_snapshot=flow,
+                credential_reference=credential_reference,
+                grant_id=grant_id,
+                egress_verifier=egress,
+                accepted_response_models=("model-a",),
+                now=now,
+                deadline=deadline,
+            )
+
+        runner = Runner(
+            hostname="alpha.example",
+            request_model="model-a",
+            response_model="model-a",
+        )
+        service = CodeReviewService(
+            ingestion=ingestion,
+            scope=scope,
+            egress_store=egress,
+            store=store,
+            credential_provider=EnvironmentModelCredentialProvider(
+                environment={"ALPHA_MODEL_KEY": "synthetic-routed-review-key"},
+                allowed_references=(credential_reference,),
+            ),
+            resolver=RoutedResolver("alpha.example"),
+            process_runner=runner,
+            provider_config_factory=config_factory,
+            now=lambda: now,
+        )
+        plan = service.prepare(
+            snapshot_id=snapshot.manifest.manifest_id,
+            path="app.py",
+            start_line=2,
+            end_line=4,
+            grant_id=grant.grant_id,
+            deadline=now + timedelta(seconds=60),
+            idempotency_key="routed-review-one",
+        )
+        pending = approval_request(plan, scope)
+        approval = pending.model_copy(
+            update={
+                "status": ApprovalStatus.GRANTED,
+                "decided_by": "test-human",
+                "decided_at": now,
+            }
+        )
+        yield service, plan, approval, runner
+
+
 def execute(service, plan, approval):
     return service.execute(plan=plan, approval=approval, path="app.py", allow_provider_network=True)
 
@@ -177,6 +289,52 @@ def test_review_success_and_read_only_replay(tmp_path, approved_scope, now):
             assert forbidden not in stored
         assert service.ingestion.load_snapshot(snapshot.manifest.manifest_id) == snapshot
         assert CodeReviewOutcome.model_validate_json(result.model_dump_json()) == result
+
+
+def test_profile_routed_review_uses_selected_provider_and_preserves_cleanup(
+    tmp_path, approved_scope, now
+):
+    with routed_case(tmp_path, approved_scope, now) as (service, plan, approval, runner):
+        assert isinstance(plan.config, RoutedCodeReviewConfig)
+        result = execute(service, plan, approval)
+
+        assert result.status == "review_ready"
+        assert result.transport.response_model == "model-a"
+        assert result.transport.cleanup_verified
+        assert execute(service, plan, approval) == result
+        assert runner.calls == 1
+        assert not any(runner.request)
+        assert not any(runner.response)
+        assert not any(runner.credential)
+        stored = (tmp_path / "routed-reviews.db").read_bytes()
+        for forbidden in (
+            b"super-private",
+            b"person@example.test",
+            b"synthetic-routed-review-key",
+            b"never-persist-reasoning",
+            b"not-persisted",
+        ):
+            assert forbidden not in stored
+
+
+@pytest.mark.parametrize("kind", ["identity", "timeout", "cleanup"])
+def test_profile_routed_review_failure_paths(tmp_path, approved_scope, now, kind):
+    with routed_case(tmp_path, approved_scope, now) as (service, plan, approval, runner):
+        if kind == "identity":
+            runner.response_model = "unadmitted-model"
+        elif kind == "timeout":
+            runner.error = ProviderProcessExecutionError("review_timeout", timed_out=True)
+        else:
+            runner.clean = False
+
+        result = execute(service, plan, approval)
+
+        assert result.status == ("timed_out" if kind == "timeout" else "rejected")
+        assert result.transport.cleanup_verified is (kind != "cleanup")
+        assert result.review is None
+        assert execute(service, plan, approval) == result
+        assert runner.calls == 1
+        assert not any(runner.credential)
 
 
 @pytest.mark.parametrize(

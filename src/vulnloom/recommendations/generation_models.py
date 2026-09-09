@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from vulnloom.agent_runtime.invocation_models import ModelInvocationResult
 from vulnloom.agent_runtime.provider_probe_models import ProviderProbeResult
 from vulnloom.analyzers.models import SignalKind
 from vulnloom.domain.digests import canonical_digest
@@ -104,7 +105,7 @@ class CandidateRecommendationGenerationOutcome(DomainModel):
     plan_id: Digest
     status: Literal["recommendation_ready", "rejected", "timed_out"]
     projection_id: Digest
-    transport: ProviderProbeResult
+    transport: ProviderProbeResult | ModelInvocationResult
     response: CandidateRecommendationResponse | None = None
     recommendation: CandidateRecommendation | None = None
     producer_content_binding_verified: bool

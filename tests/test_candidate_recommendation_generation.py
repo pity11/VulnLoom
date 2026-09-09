@@ -6,6 +6,7 @@ from datetime import timedelta
 
 import pytest
 from test_candidate_generation import _graph
+from test_openai_chat_profile_adapter import _prepare
 
 from vulnloom.adapters.model_credentials import EnvironmentModelCredentialProvider
 from vulnloom.agent_runtime.provider_admission import (
@@ -22,7 +23,9 @@ from vulnloom.agent_runtime.provider_process import (
 from vulnloom.agent_runtime.transport import AgentProviderTransportMode
 from vulnloom.analyzers import SourceGraphStore
 from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.model_routing import ModelAgentRole, ModelEngine
 from vulnloom.domain.models import ApprovalStatus, CandidateState
+from vulnloom.domain.protocol import WorkerRole
 from vulnloom.hypotheses import CandidateGenerator, CandidateSetStore
 from vulnloom.recommendations import (
     CandidateRecommendationAdmissionService,
@@ -35,7 +38,11 @@ from vulnloom.recommendations import (
 from vulnloom.recommendations.generation_store import (
     CandidateRecommendationGenerationRecoveryRequired,
 )
-from vulnloom.recommendations.provider import _observe_recommendation_content
+from vulnloom.recommendations.provider import (
+    RoutedCandidateRecommendationProviderConfig,
+    _observe_recommendation_content,
+    routed_recommendation_config,
+)
 from vulnloom.recommendations.service import (
     CandidateRecommendationRejected,
     CandidateRecommendationTimedOut,
@@ -43,14 +50,24 @@ from vulnloom.recommendations.service import (
 
 
 class Resolver:
+    def __init__(self, hostname="openai.cuc.edu.cn"):
+        self.hostname = hostname
+
     def resolve(self, host):
-        assert host == "openai.cuc.edu.cn"
+        assert host == self.hostname
         return ("8.8.8.8",)
 
 
 class Runner:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        request_model="cuc/deepseek",
+        response_model="deepseek-v4-flash-0731",
+    ):
         self.calls = 0
+        self.request_model = request_model
+        self.response_model = response_model
         self.transform = lambda value: value
         self.wire_transform = lambda value: value
         self.error = None
@@ -61,6 +78,7 @@ class Runner:
         self.request, self.credential = values["request_body"], values["credential"]
         body = json.loads(self.request)
         assert set(body) == {"model", "messages", "max_tokens", "stream"}
+        assert body["model"] == self.request_model
         assert body["stream"] is False and body["max_tokens"] == 512
         packet = json.loads(body["messages"][1]["content"])
         self.packet = packet
@@ -81,7 +99,7 @@ class Runner:
                 "id": "not-persisted",
                 "object": "chat.completion",
                 "created": 1,
-                "model": "deepseek-v4-flash-0731",
+                "model": self.response_model,
                 "choices": [
                     {
                         "index": 0,
@@ -107,7 +125,7 @@ class Runner:
 
 
 @contextmanager
-def case(tmp_path, approved_scope, now):
+def case(tmp_path, approved_scope, now, *, routed=False):
     graph, scope = _graph(
         tmp_path,
         approved_scope,
@@ -127,9 +145,25 @@ def download(name):
     candidate_store = CandidateSetStore(tmp_path / "candidates")
     graph_store.put(graph)
     candidate_store.put(candidate_set)
+    if routed:
+        preparation, profile, _, flow, _, credential_reference = _prepare(
+            "alpha",
+            "model-a",
+            engine=ModelEngine.SOURCE_HUNT,
+            agent_role=ModelAgentRole.REPORTER,
+            worker_role=WorkerRole.REPORTER,
+        )
+        admission = preparation.transport_admission
+        provider_id = "alpha"
+        credential_name = "ALPHA_MODEL_KEY"
+    else:
+        preparation = profile = flow = credential_reference = None
+        admission = cuc_probe_admission()
+        provider_id = "cuc"
+        credential_name = "CUC_DEEPSEEK_API_KEY"
     policy = AgentProviderEgressIssuerPolicy.create(
         issuer_id="test-recommendation",
-        allowed_provider_ids=("cuc",),
+        allowed_provider_ids=(provider_id,),
         allowed_modes=(AgentProviderTransportMode.LIVE_HTTPS,),
         max_lifetime_seconds=120,
     )
@@ -138,7 +172,7 @@ def download(name):
         CandidateRecommendationGenerationStore(tmp_path / "generations.db") as store,
     ):
         grant = AgentProviderEgressAuthority(store=egress, issuer_policies=(policy,)).issue(
-            admission=cuc_probe_admission(),
+            admission=admission,
             issuer_policy_id=policy.policy_id,
             purpose=AgentProviderEgressPurpose.MODEL_INFERENCE,
             now=now,
@@ -146,15 +180,35 @@ def download(name):
             deadline=now + timedelta(seconds=5),
             idempotency_key="recommendation-generation-grant",
         )
-        runner = Runner()
+        provider_config_factory = None
+        if routed:
+
+            def provider_config_factory(*, grant_id, now, deadline):
+                return routed_recommendation_config(
+                    preparation=preparation,
+                    current_profile=profile,
+                    current_flow_snapshot=flow,
+                    credential_reference=credential_reference,
+                    grant_id=grant_id,
+                    egress_verifier=egress,
+                    accepted_response_models=("model-a",),
+                    now=now,
+                    deadline=deadline,
+                )
+
+        runner = Runner(
+            request_model="model-a" if routed else "cuc/deepseek",
+            response_model="model-a" if routed else "deepseek-v4-flash-0731",
+        )
         service = CandidateRecommendationGenerationService(
             scope=scope,
             graph_store=graph_store,
             candidate_store=candidate_store,
             egress_store=egress,
             store=store,
-            resolver=Resolver(),
+            resolver=Resolver("alpha.example" if routed else "openai.cuc.edu.cn"),
             process_runner=runner,
+            provider_config_factory=provider_config_factory,
             now=lambda: now,
         )
         plan = service.prepare(
@@ -165,7 +219,7 @@ def download(name):
             idempotency_key="recommendation-generation-one",
         )
         service.credentials = EnvironmentModelCredentialProvider(
-            environment={"CUC_DEEPSEEK_API_KEY": "synthetic-generation-key"},
+            environment={credential_name: "synthetic-generation-key"},
             allowed_references=(plan.config.credential_reference,),
         )
         approval = recommendation_generation_approval_request(plan, scope).model_copy(
@@ -205,6 +259,73 @@ def test_generation_success_is_bound_read_only_and_replay_safe(tmp_path, approve
             CandidateRecommendationGenerationOutcome.model_validate_json(outcome.model_dump_json())
             == outcome
         )
+
+
+def test_profile_routed_generation_preserves_candidate_and_cleanup(
+    tmp_path, approved_scope, now
+):
+    with case(tmp_path, approved_scope, now, routed=True) as values:
+        service, plan, approval, runner, candidate_set, candidate, generation_store = values
+        original = candidate_set.model_dump_json()
+        assert isinstance(plan.config, RoutedCandidateRecommendationProviderConfig)
+
+        outcome = execute(service, plan, approval)
+
+        assert outcome.status == "recommendation_ready"
+        assert outcome.transport.provider_id == "alpha"
+        assert outcome.transport.response_model == "model-a"
+        assert outcome.transport.cleanup_verified
+        assert candidate.state is CandidateState.PROPOSED
+        assert service.candidates.load(candidate_set.candidate_set_id).model_dump_json() == original
+        assert execute(service, plan, approval) == outcome
+        assert runner.calls == 1
+        assert not any(runner.request)
+        assert not any(runner.response)
+        assert not any(runner.credential)
+        with CandidateRecommendationStore(tmp_path / "routed-admitted.db") as admission_store:
+            admission = CandidateRecommendationAdmissionService(
+                scope=service.scope,
+                graph_store=service.graphs,
+                candidate_store=service.candidates,
+                store=admission_store,
+                generation_store=generation_store,
+            )
+            admission_plan = admission.prepare_generated(
+                generation_plan_id=plan.plan_id,
+                now=now,
+                deadline=now + timedelta(seconds=30),
+                idempotency_key="routed-generated-admission",
+            )
+            record = admission.admit_generated(admission_plan, now=now)
+            assert record.producer_content_binding_verified
+            assert record.requires_human_selection
+            assert not record.eligible_for_validation_intake
+
+
+@pytest.mark.parametrize("kind", ["identity", "timeout", "cleanup"])
+def test_profile_routed_generation_failure_paths(tmp_path, approved_scope, now, kind):
+    with case(tmp_path, approved_scope, now, routed=True) as values:
+        service, plan, approval, runner, candidate_set, _, _ = values
+        original = candidate_set.model_dump_json()
+        if kind == "identity":
+            runner.response_model = "unadmitted-model"
+        elif kind == "timeout":
+            runner.error = ProviderProcessExecutionError(
+                "recommendation_timeout", timed_out=True
+            )
+        else:
+            runner.clean = False
+
+        outcome = execute(service, plan, approval)
+
+        assert outcome.status == ("timed_out" if kind == "timeout" else "rejected")
+        assert outcome.transport.cleanup_verified is (kind != "cleanup")
+        assert outcome.response is None and outcome.recommendation is None
+        assert not outcome.producer_content_binding_verified
+        assert service.candidates.load(candidate_set.candidate_set_id).model_dump_json() == original
+        assert execute(service, plan, approval) == outcome
+        assert runner.calls == 1
+        assert not any(runner.credential)
 
 
 def test_completed_generation_is_authoritatively_admitted_and_replays(

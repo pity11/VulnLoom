@@ -1,22 +1,35 @@
 """CUC no-tool codec for one minimal Candidate projection."""
 
 import json
-from typing import ClassVar, Literal, Self
+from datetime import datetime
+from typing import Annotated, ClassVar, Literal, Self
 
 from pydantic import AwareDatetime, Field, model_validator
 
 from vulnloom.adapters.model_credentials import ModelCredentialReference
 from vulnloom.agent_runtime.messages import AgentMessageEnvelope
 from vulnloom.agent_runtime.models import AgentModelRegistration
-from vulnloom.agent_runtime.provider_codec import AgentProviderCodecRejected, _strict_json
+from vulnloom.agent_runtime.profile_adapter import (
+    OpenAIChatProfilePreparation,
+    ProviderEgressVerifier,
+    bind_openai_chat_task_registration,
+)
+from vulnloom.agent_runtime.provider_codec import (
+    AgentProviderCodecLimits,
+    AgentProviderCodecRejected,
+    _strict_json,
+)
 from vulnloom.agent_runtime.provider_probe import cuc_probe_admission
 from vulnloom.agent_runtime.provider_probe_cuc import (
     CUC_PROBE_CODEC_DIGEST,
+    OPENAI_COMPAT_TASK_WIRE_DIGEST,
     CucChatProbeCodec,
     CucChatProbeCodecRegistration,
 )
 from vulnloom.agent_runtime.provider_probe_models import ProviderProbeConfig
+from vulnloom.agent_runtime.transport import AgentProviderTransportAdmission
 from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.model_routing import FlowModelSnapshot, ProviderProfile
 from vulnloom.domain.models import DomainModel
 from vulnloom.domain.protocol import WorkerRole
 from vulnloom.runners.models import Digest
@@ -36,6 +49,16 @@ RECOMMENDATION_CODEC_DIGEST = canonical_digest(
     {
         "contract": "cuc-candidate-recommendation-v1",
         "wire": CUC_PROBE_CODEC_DIGEST,
+        "instruction": RECOMMENDATION_INSTRUCTION,
+        "schema": CandidateRecommendationResponse.model_json_schema(),
+        "max_tokens": 512,
+        "tools": False,
+    }
+)
+PROFILE_RECOMMENDATION_CODEC_DIGEST = canonical_digest(
+    {
+        "contract": "openai-compatible-candidate-recommendation-v1",
+        "wire": OPENAI_COMPAT_TASK_WIRE_DIGEST,
         "instruction": RECOMMENDATION_INSTRUCTION,
         "schema": CandidateRecommendationResponse.model_json_schema(),
         "max_tokens": 512,
@@ -74,9 +97,147 @@ def recommendation_config(grant_id):
     )
 
 
+class ProfileCandidateRecommendationCodecRegistration(DomainModel):
+    codec_id: Digest
+    provider_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,63}$")
+    protocol: Literal["openai-compatible-candidate-recommendation-v1"] = (
+        "openai-compatible-candidate-recommendation-v1"
+    )
+    request_path: Literal["/v1/chat/completions"] = "/v1/chat/completions"
+    request_model: str = Field(min_length=1, max_length=256)
+    accepted_response_models: Annotated[
+        tuple[str, ...], Field(min_length=1, max_length=8)
+    ]
+    implementation_digest: Digest = PROFILE_RECOMMENDATION_CODEC_DIGEST
+    limits: AgentProviderCodecLimits = Field(
+        default_factory=lambda: AgentProviderCodecLimits(
+            max_structured_output_bytes=32768,
+            timeout_seconds=2,
+        )
+    )
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        accepted = tuple(sorted(set(self.accepted_response_models)))
+        if (
+            self.accepted_response_models != accepted
+            or any(not value or len(value) > 256 for value in accepted)
+            or self.implementation_digest != PROFILE_RECOMMENDATION_CODEC_DIGEST
+            or self.limits.max_structured_output_bytes > 32768
+            or self.limits.timeout_seconds > 2
+            or self.codec_id
+            != canonical_digest(self.model_dump(mode="python", exclude={"codec_id"}))
+        ):
+            raise ValueError("Profile Candidate recommendation codec safeguards drifted")
+        return self
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        provider_id: str,
+        request_model: str,
+        accepted_response_models: tuple[str, ...] | None = None,
+    ) -> "ProfileCandidateRecommendationCodecRegistration":
+        values = {
+            "provider_id": provider_id,
+            "request_model": request_model,
+            "accepted_response_models": tuple(
+                sorted(set(accepted_response_models or (request_model,)))
+            ),
+            "protocol": "openai-compatible-candidate-recommendation-v1",
+            "request_path": "/v1/chat/completions",
+            "implementation_digest": PROFILE_RECOMMENDATION_CODEC_DIGEST,
+            "limits": AgentProviderCodecLimits(
+                max_structured_output_bytes=32768,
+                timeout_seconds=2,
+            ),
+        }
+        partial = cls.model_construct(codec_id="0" * 64, **values)
+        return cls(
+            codec_id=canonical_digest(
+                partial.model_dump(mode="python", exclude={"codec_id"})
+            ),
+            **values,
+        )
+
+
+class RoutedCandidateRecommendationProviderConfig(DomainModel):
+    profile_preparation_id: Digest
+    flow_snapshot_digest: Digest
+    provider_profile_digest: Digest
+    registration: AgentModelRegistration
+    admission: AgentProviderTransportAdmission
+    credential_reference: ModelCredentialReference
+    codec: ProfileCandidateRecommendationCodecRegistration
+
+    @model_validator(mode="after")
+    def bounded_binding(self) -> Self:
+        r, a, c = self.registration, self.admission, self.codec
+        if (
+            r.provider_id != c.provider_id
+            or r.model != c.request_model
+            or r.provider_codec_id != c.codec_id
+            or r.transport_admission_id != a.admission_id
+            or r.credential_reference_id != self.credential_reference.reference_id
+            or a.credential_reference_id != self.credential_reference.reference_id
+            or a.provider_id != c.provider_id
+            or a.request_path != c.request_path
+            or r.supported_roles != (WorkerRole.REPORTER,)
+            or r.max_output_tokens != 512
+        ):
+            raise ValueError("routed Candidate recommendation configuration rejected")
+        return self
+
+
+def routed_recommendation_config(
+    *,
+    preparation: OpenAIChatProfilePreparation,
+    current_profile: ProviderProfile,
+    current_flow_snapshot: FlowModelSnapshot,
+    credential_reference: ModelCredentialReference,
+    grant_id: str,
+    egress_verifier: ProviderEgressVerifier,
+    accepted_response_models: tuple[str, ...] | None,
+    now: datetime,
+    deadline: datetime,
+) -> RoutedCandidateRecommendationProviderConfig:
+    codec = ProfileCandidateRecommendationCodecRegistration.create(
+        provider_id=preparation.codec_registration.provider_id,
+        request_model=preparation.codec_registration.request_model,
+        accepted_response_models=accepted_response_models,
+    )
+    registration = bind_openai_chat_task_registration(
+        preparation,
+        task_codec_registration=codec,
+        current_profile=current_profile,
+        current_flow_snapshot=current_flow_snapshot,
+        grant_id=grant_id,
+        egress_verifier=egress_verifier,
+        worker_role=WorkerRole.REPORTER,
+        max_output_tokens=512,
+        now=now,
+        deadline=deadline,
+    )
+    if credential_reference.reference_id != preparation.credential_reference_id:
+        raise ValueError("routed Candidate recommendation credential reference mismatch")
+    return RoutedCandidateRecommendationProviderConfig(
+        profile_preparation_id=preparation.preparation_id,
+        flow_snapshot_digest=preparation.flow_snapshot_digest,
+        provider_profile_digest=preparation.provider_profile_digest,
+        registration=registration,
+        admission=preparation.transport_admission,
+        credential_reference=credential_reference,
+        codec=codec,
+    )
+
+
 class CandidateRecommendationGenerationPlan(DomainModel):
     plan_id: Digest
-    config: CandidateRecommendationProviderConfig
+    config: (
+        CandidateRecommendationProviderConfig
+        | RoutedCandidateRecommendationProviderConfig
+    )
     projection: CandidateRecommendationProjection
     scope_digest: Digest
     created_at: AwareDatetime
@@ -127,7 +288,7 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
         ):
             raise AgentProviderCodecRejected("recommendation envelope binding rejected")
         payload = {
-            "model": "cuc/deepseek",
+            "model": self.registration.request_model,
             "stream": False,
             "max_tokens": 512,
             "messages": [
@@ -173,6 +334,10 @@ class CandidateRecommendationCodec(CucChatProbeCodec):
             return "response_content_other"
         self.response = response
         return "response_content_exact"
+
+
+class ProfileCandidateRecommendationCodec(CandidateRecommendationCodec):
+    registration_type = ProfileCandidateRecommendationCodecRegistration
 
 
 def _observe_recommendation_content(content, projection):

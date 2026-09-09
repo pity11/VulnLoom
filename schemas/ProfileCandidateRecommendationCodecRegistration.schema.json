@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "AgentProviderCodecLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_structured_output_bytes": {
+          "default": 262144,
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Max Structured Output Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "AgentProviderCodecLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "codec_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Codec Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "protocol": {
+      "const": "openai-compatible-candidate-recommendation-v1",
+      "default": "openai-compatible-candidate-recommendation-v1",
+      "title": "Protocol",
+      "type": "string"
+    },
+    "request_path": {
+      "const": "/v1/chat/completions",
+      "default": "/v1/chat/completions",
+      "title": "Request Path",
+      "type": "string"
+    },
+    "request_model": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Request Model",
+      "type": "string"
+    },
+    "accepted_response_models": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Accepted Response Models",
+      "type": "array"
+    },
+    "implementation_digest": {
+      "default": "9669fdd792b50dedeba699124f2ca9c1022e0b6608b0e89040f657e71e4ea2cc",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/AgentProviderCodecLimits"
+    }
+  },
+  "required": [
+    "codec_id",
+    "provider_id",
+    "request_model",
+    "accepted_response_models"
+  ],
+  "title": "ProfileCandidateRecommendationCodecRegistration",
+  "type": "object"
+}

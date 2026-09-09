@@ -37,6 +37,7 @@ from vulnloom.agent_runtime import (
     AgentRunLimits,
     AgentRunPlan,
     AgentStepRequest,
+    OpenAIChatCompletionsCodecRegistration,
     OpenAIChatCompletionsFeatureDisabled,
     OpenAIChatCompletionsFeatureGate,
     ProviderProcessExecutionError,
@@ -48,6 +49,7 @@ from vulnloom.agent_runtime.profile_adapter import (
     OpenAIChatProfileAssemblyRejected,
     OpenAIChatProfilePreparation,
     bind_openai_chat_profile,
+    bind_openai_chat_task_registration,
     prepare_openai_chat_profile,
 )
 from vulnloom.agent_runtime.provider_diagnostics import ProviderDiagnostic
@@ -79,7 +81,13 @@ def _digest(label: str) -> str:
     return canonical_digest({"fixture": label})
 
 
-def _case(provider_id: str, model: str):
+def _case(
+    provider_id: str,
+    model: str,
+    *,
+    engine: ModelEngine = ModelEngine.SOURCE_HUNT,
+    agent_role: ModelAgentRole = ModelAgentRole.SOURCE,
+):
     endpoint_ref = ModelEndpointReference.create(
         configuration_key=f"{provider_id.upper()}_MODEL_ENDPOINT"
     )
@@ -134,8 +142,8 @@ def _case(provider_id: str, model: str):
     )
     policy = FallbackPolicy.create()
     route = ModelRoute.create(
-        engine=ModelEngine.SOURCE_HUNT,
-        agent_role=ModelAgentRole.SOURCE,
+        engine=engine,
+        agent_role=agent_role,
         primary_model=reference,
         fallback_policy=policy,
         required_capabilities=(
@@ -165,9 +173,16 @@ def _case(provider_id: str, model: str):
     return profile, manifest, snapshot, endpoint_ref, credential_ref
 
 
-def _prepare(provider_id: str = "alpha", model: str = "model-a"):
+def _prepare(
+    provider_id: str = "alpha",
+    model: str = "model-a",
+    *,
+    engine: ModelEngine = ModelEngine.SOURCE_HUNT,
+    agent_role: ModelAgentRole = ModelAgentRole.SOURCE,
+    worker_role: WorkerRole = WorkerRole.ANALYZER,
+):
     profile, manifest, snapshot, endpoint_ref, credential_ref = _case(
-        provider_id, model
+        provider_id, model, engine=engine, agent_role=agent_role
     )
     endpoint_provider = EnvironmentModelEndpointProvider(
         {endpoint_ref.configuration_key: f"https://{provider_id}.example/v1"},
@@ -177,9 +192,9 @@ def _prepare(provider_id: str = "alpha", model: str = "model-a"):
         profile=profile,
         manifest=manifest,
         flow_snapshot=snapshot,
-        engine=ModelEngine.SOURCE_HUNT,
-        agent_role=ModelAgentRole.SOURCE,
-        worker_role=WorkerRole.ANALYZER,
+        engine=engine,
+        agent_role=agent_role,
+        worker_role=worker_role,
         endpoint_reference=endpoint_ref,
         credential_reference=credential_ref,
         endpoint_provider=endpoint_provider,
@@ -206,6 +221,56 @@ def _grant(preparation: OpenAIChatProfilePreparation, *, purpose=None):
         "idempotency_key": "profile-adapter:test",
     }
     return AgentProviderEgressGrant(grant_id=canonical_digest(values), **values)
+
+
+def test_task_codec_binding_is_profile_routed_and_fail_closed():
+    preparation, profile, _, snapshot, _, _ = _prepare()
+    grant = _grant(preparation)
+    task_codec = OpenAIChatCompletionsCodecRegistration.create(
+        provider_id="alpha",
+        request_model="model-a",
+        allowed_empty_root_fields=("vendor_extension",),
+    )
+
+    registration = bind_openai_chat_task_registration(
+        preparation,
+        task_codec_registration=task_codec,
+        current_profile=profile,
+        current_flow_snapshot=snapshot,
+        grant_id=grant.grant_id,
+        egress_verifier=_Verifier(grant),
+        worker_role=WorkerRole.ANALYZER,
+        max_output_tokens=512,
+        now=NOW,
+        deadline=NOW + timedelta(seconds=10),
+    )
+
+    assert registration.provider_codec_id == task_codec.codec_id
+    assert registration.provider_id == "alpha"
+    assert registration.model == "model-a"
+
+    mismatched_codec = OpenAIChatCompletionsCodecRegistration.create(
+        provider_id="beta",
+        request_model="model-a",
+    )
+    for codec, role, output_tokens in (
+        (mismatched_codec, WorkerRole.ANALYZER, 512),
+        (task_codec, WorkerRole.REPORTER, 512),
+        (task_codec, WorkerRole.ANALYZER, preparation.max_output_tokens + 1),
+    ):
+        with pytest.raises(OpenAIChatProfileAssemblyRejected, match="task codec"):
+            bind_openai_chat_task_registration(
+                preparation,
+                task_codec_registration=codec,
+                current_profile=profile,
+                current_flow_snapshot=snapshot,
+                grant_id=grant.grant_id,
+                egress_verifier=_Verifier(grant),
+                worker_role=role,
+                max_output_tokens=output_tokens,
+                now=NOW,
+                deadline=NOW + timedelta(seconds=10),
+            )
 
 
 class _Verifier:

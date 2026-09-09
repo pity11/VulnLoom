@@ -590,6 +590,108 @@
       "title": "ModelCredentialReference",
       "type": "object"
     },
+    "ProfileCandidateRecommendationCodecRegistration": {
+      "additionalProperties": false,
+      "properties": {
+        "codec_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Codec Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "protocol": {
+          "const": "openai-compatible-candidate-recommendation-v1",
+          "default": "openai-compatible-candidate-recommendation-v1",
+          "title": "Protocol",
+          "type": "string"
+        },
+        "request_path": {
+          "const": "/v1/chat/completions",
+          "default": "/v1/chat/completions",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "request_model": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Request Model",
+          "type": "string"
+        },
+        "accepted_response_models": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Accepted Response Models",
+          "type": "array"
+        },
+        "implementation_digest": {
+          "default": "9669fdd792b50dedeba699124f2ca9c1022e0b6608b0e89040f657e71e4ea2cc",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Implementation Digest",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/AgentProviderCodecLimits"
+        }
+      },
+      "required": [
+        "codec_id",
+        "provider_id",
+        "request_model",
+        "accepted_response_models"
+      ],
+      "title": "ProfileCandidateRecommendationCodecRegistration",
+      "type": "object"
+    },
+    "RoutedCandidateRecommendationProviderConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_preparation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Profile Preparation Id",
+          "type": "string"
+        },
+        "flow_snapshot_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Flow Snapshot Digest",
+          "type": "string"
+        },
+        "provider_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Provider Profile Digest",
+          "type": "string"
+        },
+        "registration": {
+          "$ref": "#/$defs/AgentModelRegistration"
+        },
+        "admission": {
+          "$ref": "#/$defs/AgentProviderTransportAdmission"
+        },
+        "credential_reference": {
+          "$ref": "#/$defs/ModelCredentialReference"
+        },
+        "codec": {
+          "$ref": "#/$defs/ProfileCandidateRecommendationCodecRegistration"
+        }
+      },
+      "required": [
+        "profile_preparation_id",
+        "flow_snapshot_digest",
+        "provider_profile_digest",
+        "registration",
+        "admission",
+        "credential_reference",
+        "codec"
+      ],
+      "title": "RoutedCandidateRecommendationProviderConfig",
+      "type": "object"
+    },
     "SignalKind": {
       "enum": [
         "tainted_sink",
@@ -622,7 +724,15 @@
       "type": "string"
     },
     "config": {
-      "$ref": "#/$defs/CandidateRecommendationProviderConfig"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CandidateRecommendationProviderConfig"
+        },
+        {
+          "$ref": "#/$defs/RoutedCandidateRecommendationProviderConfig"
+        }
+      ],
+      "title": "Config"
     },
     "projection": {
       "$ref": "#/$defs/CandidateRecommendationProjection"

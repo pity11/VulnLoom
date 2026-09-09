@@ -1,8 +1,12 @@
 # 只读代码审阅助手
 
-本入口将人工选定的 Python 代码片段发送给 CUC 模型，返回代码解释和待核查建议。
+本入口将人工选定的 Python 代码片段发送给密封计划选择的模型 Provider，返回代码解释和待核查建议。
 结果始终是未经人工确认的审阅材料，不是 Candidate、Finding 或漏洞验证结果。
 实现位于 `src/vulnloom/review_assist/`，不接入 Agent 的工具选择、Validation 或 Submission。
+
+当前 CLI 保留 CUC/DeepSeek 默认配置。服务层同时支持由已准入 `ProviderProfile`、`CapabilityManifest` 和
+`FlowModelSnapshot` 组装的通用 Profile 路径；Provider Center CLI/API 完成前，该路径只供可信应用装配，
+不接受用户在计划内直接填写 URL、API Key 或任意模型参数。
 
 ## 输入和隐私边界
 
@@ -26,9 +30,10 @@ vulnloom code-review-preview \
   --start-line 10 --end-line 25
 ```
 
-运营方通过既有 Control Plane 授权流程签发 `MODEL_INFERENCE` grant，绑定
-`cuc_probe_admission()` 的固定 CUC 端点及预算。设置 Key、生成预览或创建计划均不会签发授权。
-凭据仍只引用 `CUC_DEEPSEEK_API_KEY`，由 Control Plane 的现有凭据提供器读取；命令不解析 `.env`。
+运营方通过既有 Control Plane 授权流程签发 `MODEL_INFERENCE` grant，绑定计划中的 exact transport
+Admission 及预算。默认 CLI 使用 `cuc_probe_admission()` 和 `CUC_DEEPSEEK_API_KEY` 引用；通用装配只接受
+Profile 中的 Endpoint/Credential reference。设置 Key、生成预览或创建计划均不会签发授权，命令不解析
+`.env`。
 
 准备与指定片段、Scope、模型配置和 grant 绑定的密封计划：
 
@@ -49,7 +54,7 @@ vulnloom code-review-approval-request \
   --scope-file scope.json --plan-file review-plan.json > approval-request.json
 ```
 
-审批动作是 `USE_REAL_CREDENTIALS`，`expected_side_effects` 明确说明：发送精确片段到 CUC、
+审批动作是 `USE_REAL_CREDENTIALS`，`expected_side_effects` 明确说明：发送精确片段到所选 Provider、
 消费模型 tokens、在本地保存人工审阅材料。请求默认 `pending`；没有自动批准命令。
 运营方在现有人工审批流程中确认请求，提供带决定人、决定时间和有效期的 `ApprovalRequest`。
 它必须匹配 Engagement、Target、Scope 版本和计划摘要，决定时间不得早于计划创建时间。
@@ -94,6 +99,11 @@ SQLite 账本使用事务完成 `未领取 → started → completed` 转移，�
 
 2026-09-08 本地验证：新增 43 项审阅测试通过；全量 1165 passed，23 项集成测试排除，
 覆盖率 86.49%。`ruff check src tests scripts`、Schema 重复导出一致性和 diff 空白检查通过。
+
+2026-09-09 增加 Profile-routed 只读审阅纵切。通用 task codec registration 与既有 Profile preparation、
+当前 Provider lifecycle、Flow binding、Worker role、模型、预算和 active Grant 精确绑定；运行适配器只依赖
+`ProviderWireCodec` 协议。使用第二个合成 Provider 验证了成功、模型身份拒绝、传输超时、清理失败、只读
+重放以及 credential/request/response 清理。CUC 专用 codec 与默认 CLI 行为保持兼容。
 
 ## 首次真实代码审阅验收（2026-09-08）
 

@@ -90,6 +90,9 @@ buffers, and absence of receipts on failure.
 The generic path has also passed one authorized synthetic CUC Agent-decision acceptance run with a short-lived revoked
 grant, strict response identity and usage validation, zero tools, and verified buffer cleanup. Existing CUC feature paths
 remain unchanged while default-route migration is reviewed separately.
+The read-only code-review and Candidate Recommendation services can now bind their task-specific schemas to that trusted
+Profile path. A second synthetic Provider covers routed success, identity rejection, timeout, cleanup failure, replay,
+secret-buffer cleanup, and Candidate immutability; the CUC configuration remains the CLI default.
 Provider Center UI/CLI, general research-provider admission, and one-click model routing remain incomplete. M7.1a-M8.12 include deterministic replay, fixed provider
 messages, scoped credentials, isolated pinned HTTPS transport, typed Broker handoff, and a fixed
 two-tool Session ledger, human-gated Validation/Critic/Finding Intakes, and Approval-gated promotion.

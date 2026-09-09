@@ -61,7 +61,13 @@ from .continuation_store import (
     AgentContinuationRecoveryRequired,
     AgentContinuationStore,
 )
-from .live_provider import ProviderProcessRunner, ProviderResolver, SubprocessHttpsProviderAdapter
+from .invocation_models import ModelInvocationResult
+from .live_provider import (
+    ProviderProcessRunner,
+    ProviderResolver,
+    ProviderWireCodec,
+    SubprocessHttpsProviderAdapter,
+)
 from .local_fake import (
     LocalFakeModelAdapter,
     LocalFakeProviderExhausted,
@@ -111,6 +117,7 @@ from .profile_adapter import (
     OpenAIChatRuntimeBinding,
     ProviderEgressVerifier,
     bind_openai_chat_profile,
+    bind_openai_chat_task_registration,
     create_openai_chat_provider_adapter,
     prepare_openai_chat_profile,
 )
@@ -355,6 +362,7 @@ __all__ = [
     "LocalFakeProviderExhausted",
     "LocalFakeProviderMismatch",
     "LocalFakeTurn",
+    "ModelInvocationResult",
     "OfflineAgentRuntime",
     "OfflineReplayExhausted",
     "OfflineReplayMismatch",
@@ -374,6 +382,7 @@ __all__ = [
     "ProviderProcessResult",
     "ProviderProcessRunner",
     "ProviderResolver",
+    "ProviderWireCodec",
     "ProviderEgressVerifier",
     "ReplayTurn",
     "SubprocessHttpsProviderAdapter",
@@ -388,6 +397,7 @@ __all__ = [
     "agent_message_envelope_digest",
     "agent_prompt_template_digest",
     "bind_openai_chat_profile",
+    "bind_openai_chat_task_registration",
     "create_openai_chat_provider_adapter",
     "openai_chat_codec_registration_digest",
     "agent_provider_codec_registration_digest",

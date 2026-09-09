@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, model_validator
 
+from vulnloom.agent_runtime.invocation_models import ModelInvocationResult
 from vulnloom.agent_runtime.provider_probe_models import ProviderProbeResult
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel
@@ -96,7 +97,7 @@ class CodeReviewOutcome(DomainModel):
     outcome_id: Digest
     plan_id: Digest
     status: Literal["review_ready", "rejected", "timed_out"]
-    transport: ProviderProbeResult
+    transport: ProviderProbeResult | ModelInvocationResult
     review: CodeReviewResponse | None = None
     requires_human_review: Literal[True] = True
 

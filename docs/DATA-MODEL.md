@@ -457,6 +457,27 @@ Admission、codec registration、输出上限和准备时间。bind 阶段再次
 启用后的 codec。过期、撤销、未签发、生命周期漂移、Flow 漂移、能力不足、角色错配、路径错配或预算超限
 均 fail-closed。
 
+P1.5 的 `bind_openai_chat_task_registration()` 允许在同一可信 preparation 上绑定业务专用 structured-output
+codec。业务 codec 的 Provider、request model、path、Worker role、响应/时间限制和输出预算必须受 preparation
+约束，绑定时仍重新读取当前 Profile、Flow 与 active Grant。`ProviderWireCodec` 只是 encode/decode 协议，
+不持有网络、凭据或 Egress 权限；`SubprocessHttpsProviderAdapter` 继续执行全部真实权限检查和清理。
+
+`ModelInvocationResult` 是 Provider-neutral 的单次调用结果，保存 plan/Provider/model 身份、稳定状态、
+token 计数、attempt/receipt 摘要、清理证明和封闭诊断，不保存正文、reasoning、凭据或 endpoint。passed 必须
+同时具备进程、清理、attempt、receipt 和响应模型证明。CUC 固定探针继续使用更窄的 `ProviderProbeResult`，
+没有放宽其两个后端名称闭集。
+
+只读代码审阅新增 `ProfileCodeReviewCodecRegistration` 与 `RoutedCodeReviewConfig`。前者固定审阅 instruction、
+Schema、零工具、512 output tokens 和 Chat response 约束；后者绑定 preparation/Flow/Profile 摘要、exact
+registration、Admission 与 credential reference。`CodeReviewPlan` 接受旧 CUC config 或 routed config；执行
+前必须由可信 factory 按当前 Control Plane 状态重建并 exact 比较，否则拒绝。两种路径都不能产生 Candidate、
+Finding、Validation 或 Submission 状态变化。
+
+Candidate Recommendation 使用对称的 `ProfileCandidateRecommendationCodecRegistration` 与
+`RoutedCandidateRecommendationProviderConfig`，固定最小 Projection Schema、零工具和 512 output tokens。
+`CandidateRecommendationGenerationPlan` 接受旧 CUC 或 routed config；通用路径仍输出相同 Recommendation，
+Candidate 保持 `PROPOSED`，且 generation outcome 固定不可直接进入 Validation Intake。
+
 ### AgentToolHandoffPlan、Outcome 与 Observation
 
 M7.8 的 handoff plan 内容寻址封存完整 `AgentRunPlan`、权威 Agent outcome 摘要、exact `BrokerCall` 与摘要、

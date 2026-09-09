@@ -1088,8 +1088,12 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 第二次调用通过严格结构、模型身份和有界 usage 校验：626 input / 64 output tokens，receipt 非空，凭据、
   请求和响应缓冲均归零；Grant 在 finally 路径撤销。验收材料只在已忽略的 `.vulnloom/` 中保存稳定诊断和
   摘要，不保存 Provider 正文、凭据或完整认证响应。
-- 当前全量验证为 1301 passed、24 skipped，覆盖率 86.23%；lint、289 份 JSON Schema 解析及 Grant 撤销账本
+- 当前全量验证为 1315 passed、24 skipped，覆盖率 86.29%；lint、294 份 JSON Schema 解析及 Grant 撤销账本
   检查通过。P1 新路径门禁已经满足，默认路由切换与 Provider Center CLI/API 属于后续独立变更。
+- P1.5 两个业务入口迁移已完成：只读代码审阅和 Candidate Recommendation 均可把专用输出 codec 绑定到
+  可信 Profile/Flow/Grant，并使用 Provider-neutral invocation result；第二个合成 Provider 覆盖成功、
+  拒绝、超时、清理失败、只读重放和 Candidate 不变性。CUC 配置仍是 CLI 默认。下一阶段进入 Provider
+  Center CLI/API。
 
 ## 延后事项
 

@@ -52,7 +52,9 @@ CLI 对普通错误只输出固定的 `recommendation_rejected` 或 `recommendat
 
 ## 专用模型生成链
 
-`cuc-candidate-recommendation-v1` 已提供独立的无工具 codec、单次调用服务和权威账本。发送给模型的
+默认 CLI 的 `cuc-candidate-recommendation-v1` 已提供独立的无工具 codec、单次调用服务和权威账本。
+服务层同时支持把同一业务 Schema 绑定到已准入的通用 Profile/Flow；Provider Center 完成前，该路径只由
+可信应用装配，不能在业务计划中直接提供 URL、API Key 或任意模型参数。发送给模型的
 `CandidateRecommendationProjection` 只包含 Candidate/Target/Scope 摘要、CWE、置信度、静态 Signal
 类型与规则摘要，以及路径摘要和行号索引。源码、原始路径、Candidate 标题、假设、前置条件和反证文本
 均不进入模型上下文。
@@ -77,6 +79,12 @@ vulnloom candidate-recommendation-generate-run ... --allow-provider-network
 preview 和 prepare 不读取凭据、不联网；run 必须具备精确 `USE_REAL_CREDENTIALS` 人工批准、有效的
 `MODEL_INFERENCE` egress grant 和显式联网选项。账本对 plan、幂等键、grant、approval 作唯一消费，
 遗留 `started` 不自动重试。
+
+通用路径使用 `ProfileCandidateRecommendationCodecRegistration`、
+`RoutedCandidateRecommendationProviderConfig` 和 Provider-neutral `ModelInvocationResult`。准备与执行都会
+重建并比较当前 Profile/Flow/Grant 绑定；模型切换不改变 Projection、人工 Approval、generation ledger、
+generated admission 或后续人工选择规则。第二个合成 Provider 已覆盖成功、模型身份拒绝、传输超时、清理
+失败、只读重放和 Candidate 不变性。
 
 成功生成后只能通过权威 generation ledger 接纳，不能把调用方提供的 Recommendation 或 Provider result
 冒充为正文绑定证明：

@@ -1,67 +1,5 @@
 {
   "$defs": {
-    "CodeReviewComment": {
-      "additionalProperties": false,
-      "properties": {
-        "category": {
-          "enum": [
-            "explanation",
-            "review_suggestion"
-          ],
-          "title": "Category",
-          "type": "string"
-        },
-        "text": {
-          "maxLength": 400,
-          "minLength": 1,
-          "title": "Text",
-          "type": "string"
-        },
-        "lines": {
-          "items": {
-            "maximum": 65536,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "maxItems": 8,
-          "minItems": 1,
-          "title": "Lines",
-          "type": "array"
-        }
-      },
-      "required": [
-        "category",
-        "text",
-        "lines"
-      ],
-      "title": "CodeReviewComment",
-      "type": "object"
-    },
-    "CodeReviewResponse": {
-      "additionalProperties": false,
-      "properties": {
-        "source_digest": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Source Digest",
-          "type": "string"
-        },
-        "comments": {
-          "items": {
-            "$ref": "#/$defs/CodeReviewComment"
-          },
-          "maxItems": 4,
-          "minItems": 1,
-          "title": "Comments",
-          "type": "array"
-        }
-      },
-      "required": [
-        "source_digest",
-        "comments"
-      ],
-      "title": "CodeReviewResponse",
-      "type": "object"
-    },
     "MetricIssue": {
       "additionalProperties": false,
       "properties": {
@@ -90,123 +28,6 @@
         "reason"
       ],
       "title": "MetricIssue",
-      "type": "object"
-    },
-    "ModelInvocationResult": {
-      "additionalProperties": false,
-      "properties": {
-        "result_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Result Id",
-          "type": "string"
-        },
-        "plan_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Plan Id",
-          "type": "string"
-        },
-        "provider_id": {
-          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
-          "title": "Provider Id",
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "passed",
-            "rejected",
-            "timed_out"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "input_tokens": {
-          "maximum": 10000000,
-          "minimum": 0,
-          "title": "Input Tokens",
-          "type": "integer"
-        },
-        "output_tokens": {
-          "maximum": 65536,
-          "minimum": 0,
-          "title": "Output Tokens",
-          "type": "integer"
-        },
-        "process_started": {
-          "title": "Process Started",
-          "type": "boolean"
-        },
-        "cleanup_verified": {
-          "title": "Cleanup Verified",
-          "type": "boolean"
-        },
-        "attempt_digest": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Attempt Digest"
-        },
-        "receipt_digest": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Receipt Digest"
-        },
-        "completed_at": {
-          "format": "date-time",
-          "title": "Completed At",
-          "type": "string"
-        },
-        "diagnostic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ProviderDiagnostic"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "response_model": {
-          "anyOf": [
-            {
-              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:/+-]{0,255}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Response Model"
-        }
-      },
-      "required": [
-        "result_id",
-        "plan_id",
-        "provider_id",
-        "status",
-        "input_tokens",
-        "output_tokens",
-        "process_started",
-        "cleanup_verified",
-        "attempt_digest",
-        "receipt_digest",
-        "completed_at"
-      ],
-      "title": "ModelInvocationResult",
       "type": "object"
     },
     "ProviderDiagnostic": {
@@ -506,119 +327,6 @@
       "title": "ProviderDiagnostic",
       "type": "object"
     },
-    "ProviderProbeResult": {
-      "additionalProperties": false,
-      "properties": {
-        "result_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Result Id",
-          "type": "string"
-        },
-        "plan_id": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Plan Id",
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "passed",
-            "rejected",
-            "timed_out"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "input_tokens": {
-          "minimum": 0,
-          "title": "Input Tokens",
-          "type": "integer"
-        },
-        "output_tokens": {
-          "maximum": 512,
-          "minimum": 0,
-          "title": "Output Tokens",
-          "type": "integer"
-        },
-        "process_started": {
-          "title": "Process Started",
-          "type": "boolean"
-        },
-        "cleanup_verified": {
-          "title": "Cleanup Verified",
-          "type": "boolean"
-        },
-        "attempt_digest": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Attempt Digest"
-        },
-        "receipt_digest": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Receipt Digest"
-        },
-        "completed_at": {
-          "format": "date-time",
-          "title": "Completed At",
-          "type": "string"
-        },
-        "diagnostic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ProviderDiagnostic"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "response_model": {
-          "anyOf": [
-            {
-              "enum": [
-                "deepseek-v4-flash",
-                "deepseek-v4-flash-0731"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Response Model"
-        }
-      },
-      "required": [
-        "result_id",
-        "plan_id",
-        "status",
-        "input_tokens",
-        "output_tokens",
-        "process_started",
-        "cleanup_verified",
-        "attempt_digest",
-        "receipt_digest",
-        "completed_at"
-      ],
-      "title": "ProviderProbeResult",
-      "type": "object"
-    },
     "UsageKeyObservation": {
       "additionalProperties": false,
       "properties": {
@@ -677,9 +385,9 @@
   },
   "additionalProperties": false,
   "properties": {
-    "outcome_id": {
+    "result_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Outcome Id",
+      "title": "Result Id",
       "type": "string"
     },
     "plan_id": {
@@ -687,30 +395,73 @@
       "title": "Plan Id",
       "type": "string"
     },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
     "status": {
       "enum": [
-        "review_ready",
+        "passed",
         "rejected",
         "timed_out"
       ],
       "title": "Status",
       "type": "string"
     },
-    "transport": {
+    "input_tokens": {
+      "maximum": 10000000,
+      "minimum": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "maximum": 65536,
+      "minimum": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "process_started": {
+      "title": "Process Started",
+      "type": "boolean"
+    },
+    "cleanup_verified": {
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "attempt_digest": {
       "anyOf": [
         {
-          "$ref": "#/$defs/ProviderProbeResult"
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
         },
         {
-          "$ref": "#/$defs/ModelInvocationResult"
+          "type": "null"
         }
       ],
-      "title": "Transport"
+      "title": "Attempt Digest"
     },
-    "review": {
+    "receipt_digest": {
       "anyOf": [
         {
-          "$ref": "#/$defs/CodeReviewResponse"
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Receipt Digest"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "diagnostic": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProviderDiagnostic"
         },
         {
           "type": "null"
@@ -718,19 +469,33 @@
       ],
       "default": null
     },
-    "requires_human_review": {
-      "const": true,
-      "default": true,
-      "title": "Requires Human Review",
-      "type": "boolean"
+    "response_model": {
+      "anyOf": [
+        {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:/+-]{0,255}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Model"
     }
   },
   "required": [
-    "outcome_id",
+    "result_id",
     "plan_id",
+    "provider_id",
     "status",
-    "transport"
+    "input_tokens",
+    "output_tokens",
+    "process_started",
+    "cleanup_verified",
+    "attempt_digest",
+    "receipt_digest",
+    "completed_at"
   ],
-  "title": "CodeReviewOutcome",
+  "title": "ModelInvocationResult",
   "type": "object"
 }
