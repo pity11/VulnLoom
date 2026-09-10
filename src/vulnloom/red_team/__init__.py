@@ -1,6 +1,7 @@
 """Authorized Red Team domain and offline-first application service."""
 
 from .live_http import IsolatedLocalHttpReconAdapter, IsolatedLocalReconAdmission
+from .live_tls import IsolatedLocalTlsReconAdapter
 from .models import (
     AttackSurfaceSnapshot,
     AuthorizedWebTarget,
@@ -16,6 +17,8 @@ from .models import (
     RedTeamReconObservation,
     RedTeamStopConditions,
     RulesOfEngagement,
+    ServiceIdentitySnapshot,
+    ServiceTlsVersion,
 )
 from .service import (
     OfflineReconScenario,
@@ -34,6 +37,7 @@ from .surface_models import (
     AttackSurfaceReductionOutcome,
     AttackSurfaceReductionPlan,
     AttackSurfaceReductionState,
+    AttackSurfaceServiceIdentity,
 )
 from .surface_service import (
     AttackSurfaceReductionRejected,
@@ -49,6 +53,7 @@ from .surface_store import (
 __all__ = [
     "AuthorizedWebTarget",
     "AttackSurfaceSnapshot",
+    "AttackSurfaceServiceIdentity",
     "AttackSurfaceEndpoint",
     "AttackSurfaceInventory",
     "AttackSurfaceReductionIdempotencyConflict",
@@ -64,6 +69,7 @@ __all__ = [
     "ImpactClass",
     "IsolatedLocalHttpReconAdapter",
     "IsolatedLocalReconAdmission",
+    "IsolatedLocalTlsReconAdapter",
     "OfflineReconScenario",
     "OfflineRedTeamReconAdapter",
     "ReconOutcome",
@@ -85,4 +91,6 @@ __all__ = [
     "RedTeamStoreRejected",
     "RedTeamTransitionRejected",
     "RulesOfEngagement",
+    "ServiceIdentitySnapshot",
+    "ServiceTlsVersion",
 ]

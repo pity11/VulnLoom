@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "connect_seconds": {
+      "default": 3.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Connect Seconds",
+      "type": "number"
+    },
+    "handshake_seconds": {
+      "default": 5.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Handshake Seconds",
+      "type": "number"
+    },
+    "total_seconds": {
+      "default": 8.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Total Seconds",
+      "type": "number"
+    }
+  },
+  "title": "TlsInspectionLimits",
+  "type": "object"
+}

@@ -130,6 +130,7 @@ class EvidenceKind(StrEnum):
     SCREENSHOT = "screenshot"
     TEST = "test"
     POLICY = "policy"
+    TLS = "tls"
 
 
 class ReportChannel(StrEnum):

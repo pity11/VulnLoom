@@ -70,6 +70,15 @@
       "title": "Evidence Refs",
       "type": "array"
     },
+    "service_identity_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Service Identity Ids",
+      "type": "array"
+    },
     "first_observed_at": {
       "format": "date-time",
       "title": "First Observed At",

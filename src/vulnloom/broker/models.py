@@ -27,6 +27,7 @@ ToolId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
 
 class ToolCapability(StrEnum):
     HTTP_REQUEST = "http_request"
+    TLS_INSPECT = "tls_inspect"
 
 
 class SideEffectMode(StrEnum):
@@ -53,6 +54,14 @@ class ToolRegistration(DomainModel):
             or self.side_effect_mode is not SideEffectMode.CONDITIONAL
         ):
             raise ValueError("HTTP tool registration violates capability invariants")
+        if self.capability is ToolCapability.TLS_INSPECT and (
+            not self.requires_network
+            or not self.allowed_profiles
+            or not self.allowed_profiles <= {SandboxProfileKind.VALIDATION}
+            or self.accepts_credential_ref
+            or self.side_effect_mode is not SideEffectMode.READ_ONLY
+        ):
+            raise ValueError("TLS tool registration violates capability invariants")
         return self
 
 
@@ -184,13 +193,46 @@ class HttpRequestPlan(DomainModel):
         return self
 
 
+class TlsProtocolVersion(StrEnum):
+    TLS_1_2 = "TLSv1.2"
+    TLS_1_3 = "TLSv1.3"
+
+
+class TlsInspectionLimits(DomainModel):
+    connect_seconds: float = Field(default=3.0, gt=0, le=30)
+    handshake_seconds: float = Field(default=5.0, gt=0, le=30)
+    total_seconds: float = Field(default=8.0, gt=0, le=60)
+
+
+class TlsInspectionPlan(DomainModel):
+    url: str = Field(min_length=1, max_length=2048)
+    test_class: str = Field(min_length=1, max_length=128)
+    limits: TlsInspectionLimits = Field(default_factory=TlsInspectionLimits)
+
+    @field_validator("url")
+    @classmethod
+    def safe_https_url(cls, value: str) -> str:
+        normalized = HttpRequestPlan.safe_url(value)
+        parsed = urlsplit(normalized)
+        if parsed.scheme != "https" or parsed.query:
+            raise ValueError("TLS inspection requires a query-free HTTPS URL")
+        return normalized
+
+
 class BrokerCall(DomainModel):
     call_id: UUID = Field(default_factory=uuid4)
     task: TaskEnvelope
     profile: SandboxProfile
     tool_id: ToolId
-    http: HttpRequestPlan
+    http: HttpRequestPlan | None = None
+    tls: TlsInspectionPlan | None = None
     idempotency_key: str = Field(min_length=1, max_length=256)
+
+    @model_validator(mode="after")
+    def exactly_one_typed_input(self) -> Self:
+        if (self.http is None) == (self.tls is None):
+            raise ValueError("Broker call requires exactly one typed tool input")
+        return self
 
 
 def broker_call_digest(call: BrokerCall) -> str:
@@ -222,6 +264,16 @@ class HttpToolResult(DomainModel):
     evidence_refs: tuple[Digest, ...]
 
 
+class TlsToolResult(DomainModel):
+    endpoint_url_digest: Digest
+    peer_ip: str = Field(min_length=1, max_length=64)
+    tls_version: TlsProtocolVersion
+    cipher_suite: str = Field(pattern=r"^[A-Z0-9_-]{1,128}$")
+    cipher_bits: int = Field(ge=112, le=1024)
+    leaf_certificate_sha256: Digest
+    evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=1)]
+
+
 class BrokerStatus(StrEnum):
     COMPLETED = "completed"
     DENIED = "denied"
@@ -240,14 +292,16 @@ class BrokerResult(DomainModel):
     tool_calls_used: int = Field(ge=0)
     policy_records: tuple[PolicyRecord, ...] = ()
     http: HttpToolResult | None = None
+    tls: TlsToolResult | None = None
     error_codes: tuple[str, ...] = ()
     completed_at: AwareDatetime
 
     @model_validator(mode="after")
     def result_shape_matches_status(self) -> Self:
-        if self.status is BrokerStatus.COMPLETED and self.http is None:
+        outputs = int(self.http is not None) + int(self.tls is not None)
+        if self.status is BrokerStatus.COMPLETED and outputs != 1:
             raise ValueError("completed Broker result requires typed tool output")
-        if self.status is not BrokerStatus.COMPLETED and self.http is not None:
+        if self.status is not BrokerStatus.COMPLETED and outputs:
             raise ValueError("non-completed Broker result cannot include tool output")
         return self
 

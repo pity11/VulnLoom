@@ -62,6 +62,11 @@ class ReconOutcome(StrEnum):
     FAILED = "failed"
 
 
+class ServiceTlsVersion(StrEnum):
+    TLS_1_2 = "TLSv1.2"
+    TLS_1_3 = "TLSv1.3"
+
+
 class AttackSurfaceSnapshot(DomainModel):
     """Redacted, content-addressed facts produced by one trusted Recon action."""
 
@@ -92,6 +97,43 @@ class AttackSurfaceSnapshot(DomainModel):
 
     @classmethod
     def create(cls, **values: object) -> AttackSurfaceSnapshot:
+        expanded = cls.model_construct(snapshot_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"snapshot_id"}
+        )
+        return cls(snapshot_id=canonical_digest(expanded), **expanded)
+
+
+class ServiceIdentitySnapshot(DomainModel):
+    """Redacted identity facts from one CA- and hostname-verified TLS session."""
+
+    snapshot_id: Digest
+    plan_id: Digest
+    action_id: Digest
+    target_id: UUID
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
+    endpoint_url_digest: Digest
+    peer_ip: str = Field(min_length=1, max_length=64)
+    tls_version: ServiceTlsVersion
+    cipher_suite: str = Field(pattern=r"^[A-Z0-9_-]{1,128}$")
+    cipher_bits: int = Field(ge=112, le=1024)
+    leaf_certificate_sha256: Digest
+    evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=1)]
+    policy_record_digests: Annotated[
+        tuple[Digest, ...], Field(min_length=1, max_length=1)
+    ]
+    captured_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.snapshot_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"snapshot_id"})
+        ):
+            raise ValueError("Service Identity Snapshot content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> ServiceIdentitySnapshot:
         expanded = cls.model_construct(snapshot_id="0" * 64, **values).model_dump(
             mode="python", exclude={"snapshot_id"}
         )
@@ -327,6 +369,7 @@ class RedTeamReconObservation(DomainModel):
     cleanup_complete: bool
     sensitive_data_redacted: bool = True
     attack_surface: AttackSurfaceSnapshot | None = None
+    service_identity: ServiceIdentitySnapshot | None = None
     observed_at: AwareDatetime
 
     @model_validator(mode="after")
@@ -341,6 +384,14 @@ class RedTeamReconObservation(DomainModel):
             or self.action_id != self.attack_surface.action_id
         ):
             raise ValueError("Recon Attack Surface binding is invalid")
+        if self.service_identity is not None and (
+            self.outcome is not ReconOutcome.SUCCEEDED
+            or self.status_code is not None
+            or self.action_id != self.service_identity.action_id
+        ):
+            raise ValueError("Recon Service Identity binding is invalid")
+        if self.attack_surface is not None and self.service_identity is not None:
+            raise ValueError("Recon observation cannot contain multiple snapshot kinds")
         if self.observation_id != canonical_digest(
             self.model_dump(mode="python", exclude={"observation_id"})
         ):

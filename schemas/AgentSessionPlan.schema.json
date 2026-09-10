@@ -879,7 +879,26 @@
           "type": "string"
         },
         "http": {
-          "$ref": "#/$defs/HttpRequestPlan"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpRequestPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TlsInspectionPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "idempotency_key": {
           "maxLength": 256,
@@ -892,7 +911,6 @@
         "task",
         "profile",
         "tool_id",
-        "http",
         "idempotency_key"
       ],
       "title": "BrokerCall",
@@ -946,6 +964,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/HttpToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TlsToolResult"
             },
             {
               "type": "null"
@@ -1686,6 +1715,124 @@
         "idempotency_key"
       ],
       "title": "TaskEnvelope",
+      "type": "object"
+    },
+    "TlsInspectionLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "connect_seconds": {
+          "default": 3.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Connect Seconds",
+          "type": "number"
+        },
+        "handshake_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Handshake Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 8.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Total Seconds",
+          "type": "number"
+        }
+      },
+      "title": "TlsInspectionLimits",
+      "type": "object"
+    },
+    "TlsInspectionPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "test_class": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Test Class",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/TlsInspectionLimits"
+        }
+      },
+      "required": [
+        "url",
+        "test_class"
+      ],
+      "title": "TlsInspectionPlan",
+      "type": "object"
+    },
+    "TlsProtocolVersion": {
+      "enum": [
+        "TLSv1.2",
+        "TLSv1.3"
+      ],
+      "title": "TlsProtocolVersion",
+      "type": "string"
+    },
+    "TlsToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "tls_version": {
+          "$ref": "#/$defs/TlsProtocolVersion"
+        },
+        "cipher_suite": {
+          "pattern": "^[A-Z0-9_-]{1,128}$",
+          "title": "Cipher Suite",
+          "type": "string"
+        },
+        "cipher_bits": {
+          "maximum": 1024,
+          "minimum": 112,
+          "title": "Cipher Bits",
+          "type": "integer"
+        },
+        "leaf_certificate_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Leaf Certificate Sha256",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "endpoint_url_digest",
+        "peer_ip",
+        "tls_version",
+        "cipher_suite",
+        "cipher_bits",
+        "leaf_certificate_sha256",
+        "evidence_refs"
+      ],
+      "title": "TlsToolResult",
       "type": "object"
     },
     "WorkerRole": {

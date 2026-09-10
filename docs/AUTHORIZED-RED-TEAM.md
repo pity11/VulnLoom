@@ -107,3 +107,27 @@ The reduction ledger has explicit STARTED and COMPLETED states. Completed replay
 Inventory; unfinished work refuses automatic replay and permits only an explicit, maximum-three-attempt
 recovery. The CLI exposes `prepare-surface-reduction`, `run-surface-reduction-offline`, and `surface-status`;
 these commands reuse the same application service intended for a future API and never invoke Recon adapters.
+
+## R5: verified TLS Service Identity
+
+R5 adds a separate `tls.inspect` Broker capability and a typed, read-only TLS inspection plan. It accepts only
+a canonical, query-free HTTPS URL, one test class, and bounded connect/handshake/total time. It has no request
+body, headers, credential reference, redirect, protocol downgrade, or arbitrary socket option. The Registry
+binds the exact resolver and transport implementation digests, while Scope, Policy, Profile network grant,
+DNS result, exact local admission IP set, and actual socket peer are checked before an identity is accepted.
+
+The pinned transport connects to the Broker-selected numeric IP but retains the authorized hostname for SNI
+and certificate verification. Its TLS context must require CA verification, hostname verification, and TLS
+1.2 or newer. A successful result contains only the endpoint URL digest, verified peer, negotiated TLS version,
+cipher name/bits, leaf-certificate SHA-256, Policy digests, and Evidence references. Certificate bytes, subject,
+SAN text, raw endpoint, headers, credentials, and provider responses are never returned or persisted.
+
+`ServiceIdentitySnapshot` is deliberately narrower than a generic service fingerprint: it asserts only facts
+from that verified TLS session. The R4 reducer now accepts both HTTP Attack Surface and TLS Service Identity
+observations, preserves TLS-only inventories, and links identities to matching HTTP endpoints by URL digest and
+peer IP. All source action, Flow, Target, Scope, timestamp, Snapshot and Evidence bindings are rechecked before
+the transactional reduction completes.
+
+Normal CLI commands still cannot start live network Recon. The TLS acceptance test is disabled unless
+`VULNLOOM_RED_TEAM_TLS_INTEGRATION=1` is set; it creates a temporary CA-trusted certificate and a server bound
+only to a local private non-loopback address, verifies the pinned TLS session, and proves process cleanup.

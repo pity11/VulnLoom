@@ -18,6 +18,7 @@ from .models import (
     RedTeamCheckpoint,
     RedTeamFlowPlan,
     RedTeamReconObservation,
+    ServiceIdentitySnapshot,
 )
 from .store import RedTeamStore
 from .surface_models import (
@@ -26,6 +27,7 @@ from .surface_models import (
     AttackSurfaceReductionLimits,
     AttackSurfaceReductionOutcome,
     AttackSurfaceReductionPlan,
+    AttackSurfaceServiceIdentity,
 )
 from .surface_store import AttackSurfaceReductionStore
 
@@ -78,7 +80,11 @@ class AttackSurfaceReductionService:
         observations = tuple(
             self.red_team_store.observation(item) for item in checkpoint.observation_ids
         )
-        admitted = tuple(item for item in observations if item.attack_surface is not None)
+        admitted = tuple(
+            item
+            for item in observations
+            if item.attack_surface is not None or item.service_identity is not None
+        )
         if not admitted:
             raise AttackSurfaceReductionRejected(
                 "Attack Surface reduction requires trusted live Recon observations"
@@ -96,7 +102,12 @@ class AttackSurfaceReductionService:
             scope_version=scope.version,
             observation_ids=tuple(sorted(item.observation_id for item in admitted)),
             snapshot_ids=tuple(
-                sorted(item.attack_surface.snapshot_id for item in admitted if item.attack_surface)
+                sorted(
+                    item.attack_surface.snapshot_id
+                    if item.attack_surface is not None
+                    else item.service_identity.snapshot_id  # type: ignore[union-attr]
+                    for item in admitted
+                )
             ),
             limits=limits,
             created_at=now,
@@ -164,35 +175,67 @@ class AttackSurfaceReductionService:
         deadline = _ReductionDeadline(plan.limits.timeout_seconds, self.monotonic)
         observations: list[RedTeamReconObservation] = []
         surfaces: list[AttackSurfaceSnapshot] = []
+        identities: list[tuple[RedTeamReconObservation, ServiceIdentitySnapshot]] = []
         evidence_refs: set[str] = set()
         for observation_id in plan.observation_ids:
             deadline.check()
             observation = self.red_team_store.observation(observation_id)
             action = self.red_team_store.action(observation.action_id)
             surface = observation.attack_surface
-            if (
-                surface is None
-                or observation.outcome is not ReconOutcome.SUCCEEDED
+            identity = observation.service_identity
+            common_invalid = (
+                observation.outcome is not ReconOutcome.SUCCEEDED
                 or not observation.cleanup_complete
                 or not observation.sensitive_data_redacted
-                or action.kind is not RedTeamActionKind.HTTP_HEAD
                 or action.plan_id != plan.flow_plan_id
-                or surface.plan_id != plan.flow_plan_id
-                or surface.action_id != action.action_id
-                or surface.target_id != plan.target_id
-                or surface.scope_id != plan.scope_id
-                or surface.scope_version != plan.scope_version
-                or surface.requested_url_digest
-                != hashlib.sha256(action.target_url.encode()).hexdigest()
-                or surface.captured_at != observation.observed_at
-            ):
+                or (surface is None) == (identity is None)
+            )
+            if common_invalid:
                 raise AttackSurfaceReductionRejected(
                     "Attack Surface observation provenance is invalid"
                 )
-            observations.append(observation)
-            surfaces.append(surface)
-            evidence_refs.update(surface.evidence_refs)
-        if tuple(sorted(item.snapshot_id for item in surfaces)) != plan.snapshot_ids:
+            expected_url_digest = hashlib.sha256(action.target_url.encode()).hexdigest()
+            if surface is not None:
+                if (
+                    action.kind is not RedTeamActionKind.HTTP_HEAD
+                    or surface.plan_id != plan.flow_plan_id
+                    or surface.action_id != action.action_id
+                    or surface.target_id != plan.target_id
+                    or surface.scope_id != plan.scope_id
+                    or surface.scope_version != plan.scope_version
+                    or surface.requested_url_digest != expected_url_digest
+                    or surface.captured_at != observation.observed_at
+                ):
+                    raise AttackSurfaceReductionRejected(
+                        "Attack Surface observation provenance is invalid"
+                    )
+                observations.append(observation)
+                surfaces.append(surface)
+                evidence_refs.update(surface.evidence_refs)
+            else:
+                assert identity is not None
+                if (
+                    action.kind is not RedTeamActionKind.TLS_INSPECT
+                    or identity.plan_id != plan.flow_plan_id
+                    or identity.action_id != action.action_id
+                    or identity.target_id != plan.target_id
+                    or identity.scope_id != plan.scope_id
+                    or identity.scope_version != plan.scope_version
+                    or identity.endpoint_url_digest != expected_url_digest
+                    or identity.captured_at != observation.observed_at
+                ):
+                    raise AttackSurfaceReductionRejected(
+                        "Attack Surface service identity provenance is invalid"
+                    )
+                identities.append((observation, identity))
+                evidence_refs.update(identity.evidence_refs)
+        actual_snapshot_ids = tuple(
+            sorted(
+                [item.snapshot_id for item in surfaces]
+                + [item.snapshot_id for _, item in identities]
+            )
+        )
+        if actual_snapshot_ids != plan.snapshot_ids:
             raise AttackSurfaceReductionRejected("Attack Surface snapshot binding mismatch")
         if len(evidence_refs) > plan.limits.max_evidence_refs:
             raise AttackSurfaceReductionRejected("Attack Surface Evidence budget exceeded")
@@ -240,6 +283,14 @@ class AttackSurfaceReductionService:
                             }
                         )
                     ),
+                    service_identity_ids=tuple(
+                        sorted(
+                            identity.snapshot_id
+                            for _, identity in identities
+                            if identity.endpoint_url_digest == key[0]
+                            and identity.peer_ip == key[2]
+                        )
+                    ),
                     first_observed_at=min(
                         observation.observed_at for observation, _ in records
                     ),
@@ -260,6 +311,18 @@ class AttackSurfaceReductionService:
             snapshot_ids=plan.snapshot_ids,
             evidence_refs=tuple(sorted(evidence_refs)),
             endpoints=tuple(sorted(endpoints, key=lambda item: item.endpoint_id)),
+            service_identities=tuple(
+                sorted(
+                    (
+                        AttackSurfaceServiceIdentity(
+                            observation_id=observation.observation_id,
+                            identity=identity,
+                        )
+                        for observation, identity in identities
+                    ),
+                    key=lambda item: item.identity.snapshot_id,
+                )
+            ),
             reduced_at=plan.created_at,
         )
 

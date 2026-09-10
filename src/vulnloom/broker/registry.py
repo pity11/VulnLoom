@@ -10,7 +10,9 @@ from vulnloom.domain.digests import canonical_digest
 
 from .implementation import (
     OFFLINE_HTTP_IMPLEMENTATION_DIGEST,
+    OFFLINE_TLS_IMPLEMENTATION_DIGEST,
     PINNED_HTTP_IMPLEMENTATION_DIGEST,
+    PINNED_TLS_IMPLEMENTATION_DIGEST,
 )
 from .models import (
     SideEffectMode,
@@ -56,6 +58,18 @@ def pinned_http_tool_registry() -> ToolRegistry:
     )
 
 
+def offline_tls_tool_registry() -> ToolRegistry:
+    return _tls_tool_registry(
+        version="1", implementation_digest=OFFLINE_TLS_IMPLEMENTATION_DIGEST
+    )
+
+
+def pinned_tls_tool_registry() -> ToolRegistry:
+    return _tls_tool_registry(
+        version="2", implementation_digest=PINNED_TLS_IMPLEMENTATION_DIGEST
+    )
+
+
 def _http_tool_registry(*, version: str, implementation_digest: str) -> ToolRegistry:
     registration = ToolRegistration(
         tool_id="http.request",
@@ -68,3 +82,20 @@ def _http_tool_registry(*, version: str, implementation_digest: str) -> ToolRegi
         implementation_digest=implementation_digest,
     )
     return ToolRegistry((registration,))
+
+
+def _tls_tool_registry(*, version: str, implementation_digest: str) -> ToolRegistry:
+    return ToolRegistry(
+        (
+            ToolRegistration(
+                tool_id="tls.inspect",
+                version=version,
+                capability="tls_inspect",
+                allowed_profiles=frozenset({"validation"}),
+                requires_network=True,
+                accepts_credential_ref=False,
+                side_effect_mode=SideEffectMode.READ_ONLY,
+                implementation_digest=implementation_digest,
+            ),
+        )
+    )

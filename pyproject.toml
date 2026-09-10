@@ -38,6 +38,7 @@ markers = [
     "rootless_integration: production admission probe requiring a rootless Linux Docker engine",
     "provider_integration: opt-in loopback TLS subprocess provider Admission probe",
     "red_team_integration: opt-in isolated local HTTP Recon process probe",
+    "red_team_tls_integration: opt-in isolated local verified TLS Recon process probe",
 ]
 
 [tool.coverage.run]

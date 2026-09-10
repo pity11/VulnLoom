@@ -55,6 +55,17 @@
           ],
           "default": null
         },
+        "tls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TlsToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "error_codes": {
           "default": [],
           "items": {
@@ -753,6 +764,70 @@
         "tool_calls"
       ],
       "title": "TaskBudget",
+      "type": "object"
+    },
+    "TlsProtocolVersion": {
+      "enum": [
+        "TLSv1.2",
+        "TLSv1.3"
+      ],
+      "title": "TlsProtocolVersion",
+      "type": "string"
+    },
+    "TlsToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "tls_version": {
+          "$ref": "#/$defs/TlsProtocolVersion"
+        },
+        "cipher_suite": {
+          "pattern": "^[A-Z0-9_-]{1,128}$",
+          "title": "Cipher Suite",
+          "type": "string"
+        },
+        "cipher_bits": {
+          "maximum": 1024,
+          "minimum": 112,
+          "title": "Cipher Bits",
+          "type": "integer"
+        },
+        "leaf_certificate_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Leaf Certificate Sha256",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "endpoint_url_digest",
+        "peer_ip",
+        "tls_version",
+        "cipher_suite",
+        "cipher_bits",
+        "leaf_certificate_sha256",
+        "evidence_refs"
+      ],
+      "title": "TlsToolResult",
       "type": "object"
     },
     "ValidationResult": {

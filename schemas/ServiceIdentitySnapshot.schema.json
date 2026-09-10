@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "ServiceTlsVersion": {
+      "enum": [
+        "TLSv1.2",
+        "TLSv1.3"
+      ],
+      "title": "ServiceTlsVersion",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Redacted identity facts from one CA- and hostname-verified TLS session.",
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "endpoint_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Url Digest",
+      "type": "string"
+    },
+    "peer_ip": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Peer Ip",
+      "type": "string"
+    },
+    "tls_version": {
+      "$ref": "#/$defs/ServiceTlsVersion"
+    },
+    "cipher_suite": {
+      "pattern": "^[A-Z0-9_-]{1,128}$",
+      "title": "Cipher Suite",
+      "type": "string"
+    },
+    "cipher_bits": {
+      "maximum": 1024,
+      "minimum": 112,
+      "title": "Cipher Bits",
+      "type": "integer"
+    },
+    "leaf_certificate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Leaf Certificate Sha256",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "policy_record_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Policy Record Digests",
+      "type": "array"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "plan_id",
+    "action_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "endpoint_url_digest",
+    "peer_ip",
+    "tls_version",
+    "cipher_suite",
+    "cipher_bits",
+    "leaf_certificate_sha256",
+    "evidence_refs",
+    "policy_record_digests",
+    "captured_at"
+  ],
+  "title": "ServiceIdentitySnapshot",
+  "type": "object"
+}

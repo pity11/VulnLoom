@@ -30,6 +30,8 @@ from vulnloom.red_team import (
     RedTeamReconObservation,
     RedTeamService,
     RedTeamStore,
+    ServiceIdentitySnapshot,
+    ServiceTlsVersion,
 )
 from vulnloom.workflows import Visibility
 
@@ -70,6 +72,41 @@ class _SurfaceAdapter:
             cleanup_complete=True,
             sensitive_data_redacted=True,
             attack_surface=surface,
+            observed_at=now,
+        )
+
+
+class _IdentityAdapter:
+    def __init__(self, *, plan, scope, evidence_ref):
+        self.plan = plan
+        self.scope = scope
+        self.evidence_ref = evidence_ref
+
+    def execute(self, action, *, now):
+        identity = ServiceIdentitySnapshot.create(
+            plan_id=self.plan.plan_id,
+            action_id=action.action_id,
+            target_id=self.plan.target.target_id,
+            scope_id=self.scope.scope_id,
+            scope_version=self.scope.version,
+            endpoint_url_digest=hashlib.sha256(action.target_url.encode()).hexdigest(),
+            peer_ip=PEER,
+            tls_version=ServiceTlsVersion.TLS_1_3,
+            cipher_suite="TLS_AES_256_GCM_SHA384",
+            cipher_bits=256,
+            leaf_certificate_sha256="8" * 64,
+            evidence_refs=(self.evidence_ref,),
+            policy_record_digests=(POLICY,),
+            captured_at=now,
+        )
+        return RedTeamReconObservation.create(
+            action_id=action.action_id,
+            outcome=ReconOutcome.SUCCEEDED,
+            status_code=None,
+            reason_code="fixture_tls_identity_observed",
+            cleanup_complete=True,
+            sensitive_data_redacted=True,
+            service_identity=identity,
             observed_at=now,
         )
 
@@ -192,6 +229,114 @@ def test_surface_reducer_deduplicates_facts_and_replays_transactionally(
     )
     red_store.close()
     reduction_store.close()
+
+
+def test_surface_reducer_merges_verified_tls_identity_with_http_endpoint(
+    tmp_path, approved_scope, now
+):
+    red_store, service, plan, checkpoint, evidence_store = _flow(
+        tmp_path, approved_scope, now, surfaces=1
+    )
+    observed_at = now + timedelta(seconds=2)
+    evidence = evidence_store.capture_text(
+        "redacted TLS identity evidence",
+        kind=EvidenceKind.TLS,
+        source_ref="url-sha256:" + "9" * 64,
+        producer="test.red-team.tls-identity",
+        target_version=plan.plan_id,
+        summary="verified TLS identity",
+    )
+    command = service.prepare_recon(
+        plan=plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        kind=RedTeamActionKind.TLS_INSPECT,
+        test_class="read_only",
+        now=observed_at,
+        ttl_seconds=30,
+        idempotency_key="red-team:surface-tls",
+    )
+    checkpoint, _ = service.execute_recon(
+        command=command,
+        scope=approved_scope,
+        adapter=_IdentityAdapter(
+            plan=plan, scope=approved_scope, evidence_ref=evidence.evidence_id
+        ),
+        now=observed_at,
+    )
+    reducer, reduction_store = _reducer(tmp_path, red_store, evidence_store)
+    reduction = reducer.prepare(
+        flow_plan=plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        limits=AttackSurfaceReductionLimits(),
+        now=now + timedelta(seconds=3),
+        deadline=now + timedelta(minutes=2),
+        idempotency_key="surface:with-tls",
+    )
+    outcome = reducer.execute(
+        reduction, scope=approved_scope, now=now + timedelta(seconds=3)
+    )
+
+    assert len(outcome.inventory.endpoints) == 1
+    assert len(outcome.inventory.service_identities) == 1
+    identity = outcome.inventory.service_identities[0].identity
+    assert outcome.inventory.endpoints[0].service_identity_ids == (
+        identity.snapshot_id,
+    )
+    assert identity.leaf_certificate_sha256 == "8" * 64
+    assert plan.target.url not in outcome.inventory.model_dump_json()
+    reduction_store.close()
+    red_store.close()
+
+
+def test_surface_reducer_accepts_tls_only_inventory(tmp_path, approved_scope, now):
+    red_store, service, plan, checkpoint, evidence_store = _flow(
+        tmp_path, approved_scope, now, surfaces=0
+    )
+    evidence = evidence_store.capture_text(
+        "redacted TLS-only identity evidence",
+        kind=EvidenceKind.TLS,
+        source_ref="url-sha256:" + "a" * 64,
+        producer="test.red-team.tls-only",
+        target_version=plan.plan_id,
+        summary="verified TLS-only identity",
+    )
+    command = service.prepare_recon(
+        plan=plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        kind=RedTeamActionKind.TLS_INSPECT,
+        test_class="read_only",
+        now=now + timedelta(seconds=1),
+        ttl_seconds=30,
+        idempotency_key="red-team:tls-only",
+    )
+    checkpoint, _ = service.execute_recon(
+        command=command,
+        scope=approved_scope,
+        adapter=_IdentityAdapter(
+            plan=plan, scope=approved_scope, evidence_ref=evidence.evidence_id
+        ),
+        now=now + timedelta(seconds=1),
+    )
+    reducer, reduction_store = _reducer(tmp_path, red_store, evidence_store)
+    reduction = reducer.prepare(
+        flow_plan=plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        limits=AttackSurfaceReductionLimits(),
+        now=now + timedelta(seconds=2),
+        deadline=now + timedelta(minutes=2),
+        idempotency_key="surface:tls-only",
+    )
+    outcome = reducer.execute(
+        reduction, scope=approved_scope, now=now + timedelta(seconds=2)
+    )
+    assert outcome.inventory.endpoints == ()
+    assert len(outcome.inventory.service_identities) == 1
+    reduction_store.close()
+    red_store.close()
 
 
 def test_surface_reducer_rejects_evidence_loss_and_stale_checkpoint_before_claim(

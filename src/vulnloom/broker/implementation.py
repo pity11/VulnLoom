@@ -10,3 +10,9 @@ OFFLINE_HTTP_IMPLEMENTATION_DIGEST = hashlib.sha256(
 PINNED_HTTP_IMPLEMENTATION_DIGEST = hashlib.sha256(
     b"vulnloom:pinned-http:v1"
 ).hexdigest()
+OFFLINE_TLS_IMPLEMENTATION_DIGEST = hashlib.sha256(
+    b"vulnloom:offline-tls:v1"
+).hexdigest()
+PINNED_TLS_IMPLEMENTATION_DIGEST = hashlib.sha256(
+    b"vulnloom:pinned-tls:v1"
+).hexdigest()

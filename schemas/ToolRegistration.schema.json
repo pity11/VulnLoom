@@ -19,7 +19,8 @@
     },
     "ToolCapability": {
       "enum": [
-        "http_request"
+        "http_request",
+        "tls_inspect"
       ],
       "title": "ToolCapability",
       "type": "string"

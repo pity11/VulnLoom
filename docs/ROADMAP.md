@@ -1163,7 +1163,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R4（可信 Recon 与攻击面归并已完成）
+### Authorized Red Team R0.1–R5（可信 Recon、TLS 身份与攻击面归并已完成）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1190,9 +1190,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - Endpoint 以 requested/final URL digest 与已验证 peer 形成稳定身份；重复 Observation 的状态、重定向计数、
   Snapshot 和 Evidence 确定性归并。事务账本支持完成重放、拒绝自动恢复和最多三次显式恢复；CLI 仅提供离线
   prepare/run/status，不调用 Recon adapter。
+- R5 增加独立只读 `tls.inspect` Broker capability。输入只接受规范 HTTPS URL、test class 与连接/握手/总时限；
+  不接受 Header、body、credential、redirect 或任意 socket 参数。可信 transport 固定 Broker 选定 IP，同时使用
+  授权 hostname 做 SNI、CA 与 hostname 校验，并强制 TLS 1.2+。
+- 成功结果形成内容寻址 `ServiceIdentitySnapshot`，只含 endpoint digest、已验证 peer、TLS version、cipher、叶证书
+  SHA-256、Policy digest 和 Evidence refs；不保存证书原文、subject/SAN、完整 endpoint 或认证数据。R4 Inventory
+  可事务性归并 HTTP 与 TLS 身份，并按 endpoint digest + peer 建立关联。
 
-R3 没有普通 CLI 联网开关；真实 socket 验收必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1`，且仅启动本机
-隔离夹具。下一步是在 Inventory 上增加只读 TLS/服务身份观察，仍先走隔离本地准入；公网扫描和主动利用不可用。
+R3/R5 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
+`VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 
 ## 延后事项

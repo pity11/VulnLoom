@@ -284,7 +284,19 @@ class RedTeamService:
             or (
                 action.kind is RedTeamActionKind.HTTP_HEAD
                 and observation.outcome is ReconOutcome.SUCCEEDED
-                and observation.status_code is None
+                and (
+                    observation.status_code is None
+                    or observation.service_identity is not None
+                )
+            )
+            or (
+                action.kind is RedTeamActionKind.TLS_INSPECT
+                and observation.outcome is ReconOutcome.SUCCEEDED
+                and (
+                    observation.status_code is not None
+                    or observation.service_identity is None
+                    or observation.attack_surface is not None
+                )
             )
         ):
             raise RedTeamRejected("Red Team Recon observation provenance is invalid")

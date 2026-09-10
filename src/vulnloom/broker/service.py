@@ -15,6 +15,7 @@ from vulnloom.runners.models import NetworkMode, SandboxProfileKind, sandbox_pro
 
 from .http import HostResolver, HttpTransport, HttpWireRequest
 from .live_http import HttpPeerMismatch, HttpResponseLimitExceeded
+from .live_tls import TlsPeerMismatch
 from .models import (
     BrokerCall,
     BrokerResult,
@@ -23,10 +24,13 @@ from .models import (
     HttpToolResult,
     PolicyRecord,
     RedirectRecord,
+    TlsToolResult,
+    ToolCapability,
     broker_call_digest,
     url_digest,
 )
 from .registry import ToolRegistry
+from .tls import TlsTransport, TlsWireRequest
 
 
 class BrokerRejected(ValueError):
@@ -54,7 +58,8 @@ class ToolBroker:
         scope: Scope,
         registry: ToolRegistry,
         resolver: HostResolver,
-        http_transport: HttpTransport,
+        http_transport: HttpTransport | None = None,
+        tls_transport: TlsTransport | None = None,
         blocked_ips: frozenset[str] = frozenset(),
         allowed_resolved_ips: frozenset[str] | None = None,
     ):
@@ -63,6 +68,7 @@ class ToolBroker:
         self.registry = registry
         self.resolver = resolver
         self.http_transport = http_transport
+        self.tls_transport = tls_transport
         self.blocked_ips = frozenset(
             str(ipaddress.ip_address(item)) for item in blocked_ips | _KNOWN_METADATA_IPS
         )
@@ -99,9 +105,15 @@ class ToolBroker:
                 now,
                 error_codes=("task_deadline_exceeded",),
             )
-        if call.http.credential_ref and not registration.accepts_credential_ref:
+        if (
+            call.http is not None
+            and call.http.credential_ref
+            and not registration.accepts_credential_ref
+        ):
             raise BrokerRejected("registered tool does not accept credential references")
-        return self._execute_http(call, digest, now, approvals)
+        if call.http is not None:
+            return self._execute_http(call, digest, now, approvals)
+        return self._execute_tls(call, digest, now, approvals)
 
     def validate_call(self, call: BrokerCall) -> BrokerCall:
         """Validate all static Broker bindings without executing a tool."""
@@ -142,15 +154,20 @@ class ToolBroker:
             raise BrokerRejected("tool is not allowed by both TaskEnvelope and SandboxProfile")
         if call.profile.kind not in registration.allowed_profiles:
             raise BrokerRejected("tool registration does not allow this SandboxProfile kind")
-        if registration.capability.value != "http_request":
-            raise BrokerRejected("typed HTTP call requires an HTTP tool registration")
+        expected_capability = (
+            ToolCapability.HTTP_REQUEST if call.http is not None else ToolCapability.TLS_INSPECT
+        )
+        transport = self.http_transport if call.http is not None else self.tls_transport
+        if registration.capability is not expected_capability:
+            raise BrokerRejected("typed call does not match its tool registration")
         if (
-            getattr(self.http_transport, "implementation_digest", None)
+            transport is None
+            or getattr(transport, "implementation_digest", None)
             != registration.implementation_digest
             or getattr(self.resolver, "implementation_digest", None)
             != registration.implementation_digest
         ):
-            raise BrokerRejected("HTTP adapters do not match the bound Tool Registry")
+            raise BrokerRejected("network adapters do not match the bound Tool Registry")
         if call.task.worker_role is not WorkerRole.VALIDATOR:
             raise BrokerRejected("typed HTTP calls are restricted to Validator Workers")
         if registration.requires_network and (
@@ -163,6 +180,7 @@ class ToolBroker:
         return registration
 
     def _execute_http(self, call, digest, now, approvals):
+        assert call.http is not None and self.http_transport is not None
         current = call.http.url
         records = []
         redirects = []
@@ -400,6 +418,121 @@ class ToolBroker:
             )
             current = target
 
+    def _execute_tls(self, call, digest, now, approvals):
+        assert call.tls is not None and self.tls_transport is not None
+        action = ActionRequest(
+            engagement_id=call.task.engagement_id,
+            target_id=call.task.target_id,
+            action=call.tool_id,
+            requested_at=now,
+            url=call.tls.url,
+            test_class=call.tls.test_class,
+            mutates_state=False,
+            uses_real_credentials=False,
+        )
+        decision = self.policy.decide(action, approvals)
+        record = PolicyRecord(
+            action_digest=action.digest(),
+            effect=decision.effect,
+            reasons=decision.reasons,
+            obligations=decision.obligations,
+            policy_digest=decision.policy_digest,
+        )
+        if decision.effect is not DecisionEffect.ALLOW:
+            status = (
+                BrokerStatus.APPROVAL_REQUIRED
+                if decision.effect is DecisionEffect.APPROVAL_REQUIRED
+                else BrokerStatus.DENIED
+            )
+            return self._store(
+                call,
+                digest,
+                status,
+                now,
+                policy_records=(record,),
+                error_codes=("scope_policy_not_satisfied",),
+            )
+        parsed = urlsplit(call.tls.url)
+        port = parsed.port or 443
+        if not any(
+            parsed.hostname == grant.host
+            and port in grant.ports
+            and parsed.scheme in grant.schemes
+            for grant in call.profile.network_grants
+        ):
+            return self._store(
+                call,
+                digest,
+                BrokerStatus.DENIED,
+                now,
+                policy_records=(record,),
+                error_codes=("sandbox_network_grant_not_satisfied",),
+            )
+        addresses = self.resolver.resolve(parsed.hostname or "")
+        normalized = self._validated_addresses(addresses) if addresses else None
+        if normalized is None:
+            code = "dns_resolution_failed" if not addresses else "resolved_address_forbidden"
+            return self._store(
+                call,
+                digest,
+                BrokerStatus.DENIED,
+                now,
+                policy_records=(record,),
+                error_codes=(code,),
+            )
+        pinned_ip = sorted(normalized)[0]
+        try:
+            handshake = self.tls_transport.inspect(
+                TlsWireRequest(
+                    url=call.tls.url,
+                    pinned_ip=pinned_ip,
+                    connect_seconds=call.tls.limits.connect_seconds,
+                    handshake_seconds=call.tls.limits.handshake_seconds,
+                    total_seconds=call.tls.limits.total_seconds,
+                )
+            )
+        except TlsPeerMismatch:
+            return self._store(
+                call, digest, BrokerStatus.DENIED, now, policy_records=(record,),
+                tool_calls_used=1, error_codes=("tls_peer_ip_mismatch",)
+            )
+        except TimeoutError:
+            return self._store(
+                call, digest, BrokerStatus.TIMED_OUT, now, policy_records=(record,),
+                tool_calls_used=1, error_codes=("tls_transport_timeout",)
+            )
+        except (OSError, RuntimeError, ValueError):
+            return self._store(
+                call, digest, BrokerStatus.FAILED, now, policy_records=(record,),
+                tool_calls_used=1, error_codes=("tls_transport_failed",)
+            )
+        if handshake.peer_ip != pinned_ip:
+            return self._store(
+                call, digest, BrokerStatus.DENIED, now, policy_records=(record,),
+                tool_calls_used=1, error_codes=("tls_peer_ip_mismatch",)
+            )
+        if (
+            handshake.elapsed_seconds > call.tls.limits.total_seconds
+            or now.timestamp() + handshake.elapsed_seconds >= call.task.deadline.timestamp()
+        ):
+            return self._store(
+                call, digest, BrokerStatus.TIMED_OUT, now, policy_records=(record,),
+                tool_calls_used=1, error_codes=("tls_total_timeout",)
+            )
+        output = TlsToolResult(
+            endpoint_url_digest=url_digest(call.tls.url),
+            peer_ip=handshake.peer_ip,
+            tls_version=handshake.tls_version,
+            cipher_suite=handshake.cipher_suite,
+            cipher_bits=handshake.cipher_bits,
+            leaf_certificate_sha256=handshake.leaf_certificate_sha256,
+            evidence_refs=(handshake.evidence_ref,),
+        )
+        return self._store(
+            call, digest, BrokerStatus.COMPLETED, now, policy_records=(record,),
+            tool_calls_used=1, tls=output
+        )
+
     def _action(self, call: BrokerCall, url: str, now: datetime) -> ActionRequest:
         return ActionRequest(
             engagement_id=call.task.engagement_id,
@@ -447,6 +580,7 @@ class ToolBroker:
         policy_records=(),
         tool_calls_used=0,
         http=None,
+        tls=None,
         error_codes=(),
     ):
         result = BrokerResult(
@@ -459,6 +593,7 @@ class ToolBroker:
             tool_calls_used=tool_calls_used,
             policy_records=policy_records,
             http=http,
+            tls=tls,
             error_codes=error_codes,
             completed_at=now,
         )

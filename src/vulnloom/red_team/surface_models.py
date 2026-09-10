@@ -12,7 +12,7 @@ from pydantic import AwareDatetime, Field, field_validator, model_validator
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import DomainModel
 
-from .models import Digest
+from .models import Digest, ServiceIdentitySnapshot
 
 
 class AttackSurfaceReductionState(StrEnum):
@@ -77,6 +77,7 @@ class AttackSurfaceEndpoint(DomainModel):
     observation_ids: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=10_000)]
     snapshot_ids: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=10_000)]
     evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=60_000)]
+    service_identity_ids: tuple[Digest, ...] = ()
     first_observed_at: AwareDatetime
     last_observed_at: AwareDatetime
 
@@ -98,6 +99,8 @@ class AttackSurfaceEndpoint(DomainModel):
             or self.observation_ids != tuple(sorted(set(self.observation_ids)))
             or self.snapshot_ids != tuple(sorted(set(self.snapshot_ids)))
             or self.evidence_refs != tuple(sorted(set(self.evidence_refs)))
+            or self.service_identity_ids
+            != tuple(sorted(set(self.service_identity_ids)))
             or len(self.observation_ids) != len(self.snapshot_ids)
             or self.first_observed_at > self.last_observed_at
         ):
@@ -121,6 +124,18 @@ class AttackSurfaceEndpoint(DomainModel):
         return cls(endpoint_id=canonical_digest(identity), **values)
 
 
+class AttackSurfaceServiceIdentity(DomainModel):
+    observation_id: Digest
+    identity: ServiceIdentitySnapshot
+
+
+    @model_validator(mode="after")
+    def bound(self) -> Self:
+        if self.observation_id == self.identity.snapshot_id:
+            raise ValueError("Service identity observation and snapshot must be distinct")
+        return self
+
+
 class AttackSurfaceInventory(DomainModel):
     inventory_id: Digest
     reduction_id: Digest
@@ -132,24 +147,65 @@ class AttackSurfaceInventory(DomainModel):
     observation_ids: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=10_000)]
     snapshot_ids: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=10_000)]
     evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=60_000)]
-    endpoints: Annotated[tuple[AttackSurfaceEndpoint, ...], Field(min_length=1, max_length=10_000)]
+    endpoints: Annotated[tuple[AttackSurfaceEndpoint, ...], Field(max_length=10_000)] = ()
+    service_identities: Annotated[
+        tuple[AttackSurfaceServiceIdentity, ...], Field(max_length=10_000)
+    ] = ()
     reduced_at: AwareDatetime
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
         endpoint_ids = tuple(item.endpoint_id for item in self.endpoints)
+        identity_ids = tuple(item.identity.snapshot_id for item in self.service_identities)
+        identity_observation_ids = {
+            item.observation_id for item in self.service_identities
+        }
+        endpoint_observation_ids = {
+            item for endpoint in self.endpoints for item in endpoint.observation_ids
+        }
+        endpoint_snapshot_ids = {
+            item for endpoint in self.endpoints for item in endpoint.snapshot_ids
+        }
+        identity_evidence = {
+            item
+            for entry in self.service_identities
+            for item in entry.identity.evidence_refs
+        }
+        endpoint_evidence = {
+            item for endpoint in self.endpoints for item in endpoint.evidence_refs
+        }
+        attached_identity_ids = {
+            item
+            for endpoint in self.endpoints
+            for item in endpoint.service_identity_ids
+        }
+        identities_by_id = {
+            item.identity.snapshot_id: item.identity for item in self.service_identities
+        }
+        invalid_attachment = any(
+            identities_by_id[identity_id].endpoint_url_digest
+            != endpoint.requested_url_digest
+            or identities_by_id[identity_id].peer_ip != endpoint.peer_ip
+            for endpoint in self.endpoints
+            for identity_id in endpoint.service_identity_ids
+            if identity_id in identities_by_id
+        )
         if (
             self.observation_ids != tuple(sorted(set(self.observation_ids)))
             or self.snapshot_ids != tuple(sorted(set(self.snapshot_ids)))
             or self.evidence_refs != tuple(sorted(set(self.evidence_refs)))
             or endpoint_ids != tuple(sorted(set(endpoint_ids)))
+            or identity_ids != tuple(sorted(set(identity_ids)))
+            or not attached_identity_ids <= set(identity_ids)
+            or invalid_attachment
+            or not (self.endpoints or self.service_identities)
             or len(self.observation_ids) != len(self.snapshot_ids)
             or set(self.observation_ids)
-            != {item for endpoint in self.endpoints for item in endpoint.observation_ids}
+            != endpoint_observation_ids | identity_observation_ids
             or set(self.snapshot_ids)
-            != {item for endpoint in self.endpoints for item in endpoint.snapshot_ids}
+            != endpoint_snapshot_ids | set(identity_ids)
             or set(self.evidence_refs)
-            != {item for endpoint in self.endpoints for item in endpoint.evidence_refs}
+            != endpoint_evidence | identity_evidence
         ):
             raise ValueError("Attack Surface inventory facts are not canonical")
         if self.inventory_id != canonical_digest(

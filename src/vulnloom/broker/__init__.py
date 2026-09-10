@@ -15,6 +15,14 @@ from .live_http import (
     PinnedHttpTransport,
     SystemResolver,
 )
+from .live_tls import (
+    EvidenceStoreTlsSink,
+    LiveTlsRejected,
+    PinnedTlsTransport,
+    SystemTlsResolver,
+    TlsEvidenceSink,
+    TlsPeerMismatch,
+)
 from .models import (
     BrokerCall,
     BrokerResult,
@@ -24,10 +32,27 @@ from .models import (
     HttpMethod,
     HttpRequestPlan,
     HttpToolResult,
+    TlsInspectionLimits,
+    TlsInspectionPlan,
+    TlsProtocolVersion,
+    TlsToolResult,
     ToolRegistration,
 )
-from .registry import ToolRegistry, default_tool_registry, pinned_http_tool_registry
+from .registry import (
+    ToolRegistry,
+    default_tool_registry,
+    offline_tls_tool_registry,
+    pinned_http_tool_registry,
+    pinned_tls_tool_registry,
+)
 from .service import BrokerIdempotencyConflict, BrokerRejected, ToolBroker
+from .tls import (
+    OfflineTlsHandshake,
+    OfflineTlsTransport,
+    StaticTlsResolver,
+    TlsTransport,
+    TlsWireRequest,
+)
 
 __all__ = [
     "BrokerCall",
@@ -40,6 +65,7 @@ __all__ = [
     "CredentialMaterial",
     "CredentialProvider",
     "EvidenceStoreHttpSink",
+    "EvidenceStoreTlsSink",
     "HttpHeader",
     "HttpEvidenceSink",
     "HttpLimits",
@@ -51,14 +77,30 @@ __all__ = [
     "HttpPeerMismatch",
     "HttpResponseLimitExceeded",
     "LiveHttpRejected",
+    "LiveTlsRejected",
     "OfflineHttpHop",
     "OfflineHttpTransport",
     "PinnedHttpTransport",
+    "PinnedTlsTransport",
     "StaticResolver",
     "SystemResolver",
+    "SystemTlsResolver",
+    "StaticTlsResolver",
     "ToolBroker",
     "ToolRegistration",
     "ToolRegistry",
+    "TlsEvidenceSink",
+    "TlsInspectionLimits",
+    "TlsInspectionPlan",
+    "TlsPeerMismatch",
+    "TlsProtocolVersion",
+    "TlsToolResult",
+    "TlsTransport",
+    "TlsWireRequest",
+    "OfflineTlsHandshake",
+    "OfflineTlsTransport",
     "default_tool_registry",
+    "offline_tls_tool_registry",
     "pinned_http_tool_registry",
+    "pinned_tls_tool_registry",
 ]

@@ -64,6 +64,10 @@ _Avoid_: Agent narrative, Chain of thought
 围绕一个 Candidate 或 Finding 组织的、带哈希和来源信息的 Evidence 集合。
 _Avoid_: Workspace, Chat history
 
+**Service Identity**：
+在已授权端点上经 CA、hostname 与固定网络 peer 校验后得到的 TLS 会话身份摘要；它不包含证书原文、主体或 SAN 文本。
+_Avoid_: Banner, Raw certificate, Service fingerprint
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence
