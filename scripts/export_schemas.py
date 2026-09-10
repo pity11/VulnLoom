@@ -281,7 +281,9 @@ from vulnloom.recommendations import (
     RoutedCandidateRecommendationProviderConfig,
 )
 from vulnloom.red_team import (
+    AttackSurfaceSnapshot,
     AuthorizedWebTarget,
+    IsolatedLocalReconAdmission,
     RedTeamCheckpoint,
     RedTeamFlowPlan,
     RedTeamReconAction,
@@ -414,7 +416,9 @@ MODELS = (
     DisableProviderCommand,
     SetDefaultRouteCommand,
     WorkflowMode,
+    AttackSurfaceSnapshot,
     AuthorizedWebTarget,
+    IsolatedLocalReconAdmission,
     RedTeamStopConditions,
     RulesOfEngagement,
     RedTeamFlowPlan,

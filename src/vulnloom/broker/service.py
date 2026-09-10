@@ -56,6 +56,7 @@ class ToolBroker:
         resolver: HostResolver,
         http_transport: HttpTransport,
         blocked_ips: frozenset[str] = frozenset(),
+        allowed_resolved_ips: frozenset[str] | None = None,
     ):
         self.scope = scope
         self.policy = PolicyEngine(scope)
@@ -65,6 +66,13 @@ class ToolBroker:
         self.blocked_ips = frozenset(
             str(ipaddress.ip_address(item)) for item in blocked_ips | _KNOWN_METADATA_IPS
         )
+        self.allowed_resolved_ips = (
+            frozenset(str(ipaddress.ip_address(item)) for item in allowed_resolved_ips)
+            if allowed_resolved_ips is not None
+            else None
+        )
+        if self.allowed_resolved_ips is not None and not self.allowed_resolved_ips:
+            raise ValueError("allowed resolved IP set must not be empty")
         self._results: dict[str, tuple[str, BrokerResult]] = {}
 
     def execute(
@@ -275,7 +283,17 @@ class ToolBroker:
                     tool_calls_used=requests,
                     error_codes=("http_response_size_exceeded",),
                 )
-            except (OSError, TimeoutError, RuntimeError):
+            except TimeoutError:
+                return self._store(
+                    call,
+                    digest,
+                    BrokerStatus.TIMED_OUT,
+                    now,
+                    policy_records=tuple(records),
+                    tool_calls_used=requests,
+                    error_codes=("http_transport_timeout",),
+                )
+            except (OSError, RuntimeError):
                 return self._store(
                     call,
                     digest,
@@ -404,6 +422,10 @@ class ToolBroker:
                 text = str(address)
                 if (
                     text in self.blocked_ips
+                    or (
+                        self.allowed_resolved_ips is not None
+                        and text not in self.allowed_resolved_ips
+                    )
                     or address.is_loopback
                     or address.is_link_local
                     or address.is_multicast

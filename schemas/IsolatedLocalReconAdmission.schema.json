@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "description": "Exact, expiring admission for a non-loopback private test fixture.",
+  "properties": {
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "fixture_ref": {
+      "pattern": "^fixture:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Fixture Ref",
+      "type": "string"
+    },
+    "host": {
+      "maxLength": 253,
+      "minLength": 1,
+      "title": "Host",
+      "type": "string"
+    },
+    "port": {
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "Port",
+      "type": "integer"
+    },
+    "scheme": {
+      "pattern": "^https?$",
+      "title": "Scheme",
+      "type": "string"
+    },
+    "allowed_peer_ips": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Allowed Peer Ips",
+      "type": "array"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "admission_id",
+    "fixture_ref",
+    "host",
+    "port",
+    "scheme",
+    "allowed_peer_ips",
+    "expires_at"
+  ],
+  "title": "IsolatedLocalReconAdmission",
+  "type": "object"
+}

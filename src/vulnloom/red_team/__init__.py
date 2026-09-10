@@ -1,6 +1,8 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .live_http import IsolatedLocalHttpReconAdapter, IsolatedLocalReconAdmission
 from .models import (
+    AttackSurfaceSnapshot,
     AuthorizedWebTarget,
     ImpactClass,
     ReconOutcome,
@@ -28,7 +30,10 @@ from .store import RedTeamRecoveryRequired, RedTeamStore, RedTeamStoreRejected
 
 __all__ = [
     "AuthorizedWebTarget",
+    "AttackSurfaceSnapshot",
     "ImpactClass",
+    "IsolatedLocalHttpReconAdapter",
+    "IsolatedLocalReconAdmission",
     "OfflineReconScenario",
     "OfflineRedTeamReconAdapter",
     "ReconOutcome",

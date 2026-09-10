@@ -37,6 +37,7 @@ markers = [
     "composition_integration: optional full local Docker, live Broker, and verdict probe",
     "rootless_integration: production admission probe requiring a rootless Linux Docker engine",
     "provider_integration: opt-in loopback TLS subprocess provider Admission probe",
+    "red_team_integration: opt-in isolated local HTTP Recon process probe",
 ]
 
 [tool.coverage.run]

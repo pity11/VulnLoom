@@ -62,6 +62,42 @@ class ReconOutcome(StrEnum):
     FAILED = "failed"
 
 
+class AttackSurfaceSnapshot(DomainModel):
+    """Redacted, content-addressed facts produced by one trusted Recon action."""
+
+    snapshot_id: Digest
+    plan_id: Digest
+    action_id: Digest
+    target_id: UUID
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
+    requested_url_digest: Digest
+    final_url_digest: Digest
+    status_code: int = Field(ge=100, le=599)
+    peer_ip: str = Field(min_length=1, max_length=64)
+    redirect_count: int = Field(ge=0, le=5)
+    evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=6)]
+    policy_record_digests: Annotated[
+        tuple[Digest, ...], Field(min_length=1, max_length=6)
+    ]
+    captured_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.snapshot_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"snapshot_id"})
+        ):
+            raise ValueError("Attack Surface Snapshot content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> AttackSurfaceSnapshot:
+        expanded = cls.model_construct(snapshot_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"snapshot_id"}
+        )
+        return cls(snapshot_id=canonical_digest(expanded), **expanded)
+
+
 class AuthorizedWebTarget(DomainModel):
     target_id: UUID = Field(default_factory=uuid4)
     url: str = Field(min_length=1, max_length=2_048)
@@ -290,6 +326,7 @@ class RedTeamReconObservation(DomainModel):
     reason_code: ReasonCode
     cleanup_complete: bool
     sensitive_data_redacted: bool = True
+    attack_surface: AttackSurfaceSnapshot | None = None
     observed_at: AwareDatetime
 
     @model_validator(mode="after")
@@ -298,6 +335,12 @@ class RedTeamReconObservation(DomainModel):
             raise ValueError("Successful Recon requires cleanup proof")
         if not self.sensitive_data_redacted:
             raise ValueError("Recon observation must be redacted")
+        if self.attack_surface is not None and (
+            self.outcome is not ReconOutcome.SUCCEEDED
+            or self.status_code != self.attack_surface.status_code
+            or self.action_id != self.attack_surface.action_id
+        ):
+            raise ValueError("Recon Attack Surface binding is invalid")
         if self.observation_id != canonical_digest(
             self.model_dump(mode="python", exclude={"observation_id"})
         ):

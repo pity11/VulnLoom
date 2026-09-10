@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "description": "Redacted, content-addressed facts produced by one trusted Recon action.",
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "requested_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Requested Url Digest",
+      "type": "string"
+    },
+    "final_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Url Digest",
+      "type": "string"
+    },
+    "status_code": {
+      "maximum": 599,
+      "minimum": 100,
+      "title": "Status Code",
+      "type": "integer"
+    },
+    "peer_ip": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Peer Ip",
+      "type": "string"
+    },
+    "redirect_count": {
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Redirect Count",
+      "type": "integer"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "policy_record_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Policy Record Digests",
+      "type": "array"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "plan_id",
+    "action_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "requested_url_digest",
+    "final_url_digest",
+    "status_code",
+    "peer_ip",
+    "redirect_count",
+    "evidence_refs",
+    "policy_record_digests",
+    "captured_at"
+  ],
+  "title": "AttackSurfaceSnapshot",
+  "type": "object"
+}

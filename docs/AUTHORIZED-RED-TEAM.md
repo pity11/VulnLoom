@@ -62,9 +62,25 @@ There is intentionally no live Recon flag in this slice. The CLI accepts no Cook
 API key, Provider credential, raw response, shell command, or arbitrary tool identifier. Its Observation
 schema contains only outcome, optional status code, reason code, cleanup proof, redaction proof, and time.
 
-## Next slice
+## R3: admitted local HTTP Recon
 
-R3 will add trusted DNS/TLS/HTTP adapters against an isolated local fixture, including resolution and peer
-pinning, redirect re-authorization, bounded Evidence capture, timeout/cancel behavior, and actual process or
-container cleanup tests. Public scanning, CIDR enumeration, active exploitation, credential use, callbacks,
-lateral movement, and persistence remain unavailable.
+R3 adds one deliberately narrow live path: an `HTTP_HEAD` action may be routed through the existing trusted
+Tool Broker only when an immutable, content-addressed `IsolatedLocalReconAdmission` binds one exact private,
+non-loopback IPv4 fixture, host, port, scheme, and expiry. The Sandbox Profile must contain exactly the same
+single network grant, and the Broker must enforce the admission's exact resolved-IP set. This extra constraint
+rejects DNS drift even when the replacement address is another otherwise permitted private address.
+
+The Broker rechecks Scope, Policy, network grant, DNS result, and actual socket peer at every redirect hop.
+It performs a credential-free, body-free HEAD with bounded redirects, response bytes, request count, and
+connect/read/total time. Socket timeouts become typed Recon timeouts. A cancelled or killed Flow cannot reach
+the adapter. No live flag has been added to the normal CLI: the real-socket acceptance test is disabled unless
+`VULNLOOM_RED_TEAM_INTEGRATION=1` is set and it starts only a temporary local fixture process.
+
+Successful calls produce a content-addressed `AttackSurfaceSnapshot` embedded in the transactional
+Observation. It contains only URL digests, the verified peer, status, redirect count, policy-record digests,
+and Evidence references. The Broker Evidence sink allowlists response headers and redacts textual data; raw
+URLs, cookies, Authorization material, and raw responses do not enter the Snapshot or Red Team database.
+
+This milestone does not add public scanning, CIDR or path enumeration, active exploitation, credential use,
+callbacks, lateral movement, persistence, or model-driven action selection. The next slice can build a bounded
+attack-surface reducer over these trusted observations before any stronger action class is considered.
