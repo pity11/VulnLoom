@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import stat
 from datetime import timedelta
 from pathlib import Path
 
@@ -19,6 +21,13 @@ from .models import (
     RedTeamActionKind,
     RedTeamReconCommand,
 )
+from .seed_models import EndpointReconLimits, EndpointReconOutcomeKind
+from .seed_service import (
+    EndpointReconService,
+    OfflineEndpointReconAdapter,
+    OfflineEndpointReconScenario,
+)
+from .seed_store import EndpointReconStore
 from .service import OfflineReconScenario, OfflineRedTeamReconAdapter, RedTeamService
 from .store import RedTeamStore
 from .surface_models import AttackSurfaceReductionLimits, AttackSurfaceReductionPlan
@@ -133,6 +142,163 @@ def _status(args: argparse.Namespace) -> int:
             indent=2,
         )
     )
+    return 0
+
+
+def _seed_paths(path: str) -> tuple[str, ...]:
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise ValueError("platform cannot enforce no-follow seed reads")
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 64 * 1024:
+            raise ValueError("Endpoint Seed Set input is unavailable or unsafe")
+        with os.fdopen(descriptor, encoding="utf-8", closefd=False) as handle:
+            value = json.load(handle)
+    finally:
+        os.close(descriptor)
+    if (
+        not isinstance(value, list)
+        or not value
+        or len(value) > 1_000
+        or any(not isinstance(item, str) for item in value)
+    ):
+        raise ValueError("Endpoint Seed Set input must be a bounded JSON string array")
+    return tuple(value)
+
+
+def _endpoint_service(args):
+    red_store = RedTeamStore(Path(args.red_team_db))
+    recon_store = EndpointReconStore(Path(args.endpoint_recon_db))
+    service = EndpointReconService(
+        red_team_store=red_store,
+        recon_store=recon_store,
+        evidence_store=EvidenceStore(Path(args.evidence_root)),
+    )
+    return service, red_store, recon_store
+
+
+def _seal_endpoint_seeds(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    service, red_store, recon_store = _endpoint_service(args)
+    try:
+        flow = red_store.plan(args.plan_id)
+        checkpoint = red_store.latest(flow.plan_id)
+        seed_set = service.seal_seed_set(
+            flow_plan=flow,
+            checkpoint=checkpoint,
+            scope=scope,
+            operator_ref=args.operator_ref,
+            paths=_seed_paths(args.paths_file),
+            now=now,
+            expires_at=now + timedelta(seconds=args.ttl_seconds),
+            idempotency_key=args.idempotency_key,
+        )
+    finally:
+        red_store.close()
+        recon_store.close()
+    print(
+        json.dumps(
+            {
+                "seed_set_id": seed_set.seed_set_id,
+                "seed_count": len(seed_set.seeds),
+                "path_digests": [seed.path_digest for seed in seed_set.seeds],
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _prepare_endpoint_recon(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    service, red_store, recon_store = _endpoint_service(args)
+    try:
+        plan = service.prepare(
+            seed_set_id=args.seed_set_id,
+            scope=scope,
+            test_class=args.test_class,
+            limits=EndpointReconLimits(
+                max_steps=args.max_steps,
+                max_requests=args.max_requests,
+                per_request_seconds=args.per_request_seconds,
+                total_seconds=args.total_seconds,
+                max_attempts=args.max_attempts,
+            ),
+            now=now,
+            deadline=now + timedelta(seconds=args.total_seconds),
+            idempotency_key=args.idempotency_key,
+        )
+    finally:
+        red_store.close()
+        recon_store.close()
+    print(
+        json.dumps(
+            {
+                "endpoint_recon_plan_id": plan.endpoint_recon_plan_id,
+                "seed_set_id": plan.seed_set_id,
+                "step_count": len(plan.steps),
+                "max_requests": plan.limits.max_requests,
+                "deadline": plan.deadline.isoformat(),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _run_endpoint_recon_offline(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    service, red_store, recon_store = _endpoint_service(args)
+    try:
+        plan = recon_store.plan(args.endpoint_recon_plan_id)
+        kind = EndpointReconOutcomeKind(args.outcome)
+        adapter = OfflineEndpointReconAdapter(
+            OfflineEndpointReconScenario(
+                outcome=kind,
+                status_code=args.status_code
+                if kind is EndpointReconOutcomeKind.SUCCEEDED
+                else None,
+                reason_code=f"offline_{kind.value}",
+                cleanup_complete=not args.cleanup_failed,
+                interrupt=args.interrupt,
+            )
+        )
+        outcome = (
+            service.recover(plan, scope=scope, adapter=adapter, now=now)
+            if args.recover
+            else service.execute(plan, scope=scope, adapter=adapter, now=now)
+        )
+    finally:
+        red_store.close()
+        recon_store.close()
+    print(json.dumps({"outcome": outcome.model_dump(mode="json")}, indent=2))
+    return 0
+
+
+def _endpoint_recon_status(args: argparse.Namespace) -> int:
+    with EndpointReconStore(Path(args.endpoint_recon_db)) as store:
+        state = store.state(args.endpoint_recon_plan_id)
+        if state is None:
+            raise ValueError("Endpoint Recon is unavailable")
+        payload = {
+            "endpoint_recon_plan_id": args.endpoint_recon_plan_id,
+            "state": state[0].value,
+            "attempt": state[1],
+        }
+        if state[0].value == "completed":
+            outcome = store.outcome(args.endpoint_recon_plan_id)
+            payload.update(
+                {
+                    "outcome": outcome.outcome.value,
+                    "requests_used": outcome.requests_used,
+                    "cleanup_complete": outcome.cleanup_complete,
+                }
+            )
+    print(json.dumps(payload, indent=2))
     return 0
 
 
@@ -349,9 +515,7 @@ def register_red_team_commands(subparsers) -> None:
     run.add_argument("--command-file", required=True)
     run.add_argument("--scope-file", required=True)
     run.add_argument("--attempt", type=int, default=1)
-    run.add_argument(
-        "--outcome", choices=tuple(item.value for item in ReconOutcome), required=True
-    )
+    run.add_argument("--outcome", choices=tuple(item.value for item in ReconOutcome), required=True)
     run.add_argument("--status-code", type=int, default=204)
     run.add_argument("--cleanup-failed", action="store_true")
     run.add_argument("--interrupt", action="store_true")
@@ -363,6 +527,55 @@ def register_red_team_commands(subparsers) -> None:
     status.add_argument("--red-team-db", default=".vulnloom/red-team.db")
     status.set_defaults(handler=_status)
 
+    seal_seeds = actions.add_parser("seal-endpoint-seeds")
+    seal_seeds.add_argument("--plan-id", required=True)
+    seal_seeds.add_argument("--scope-file", required=True)
+    seal_seeds.add_argument("--paths-file", required=True)
+    seal_seeds.add_argument("--operator-ref", required=True)
+    seal_seeds.add_argument("--ttl-seconds", type=int, default=300)
+    seal_seeds.add_argument("--idempotency-key", required=True)
+    seal_seeds.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    seal_seeds.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    seal_seeds.add_argument("--evidence-root", default=".vulnloom/evidence")
+    seal_seeds.set_defaults(handler=_seal_endpoint_seeds)
+
+    prepare_endpoint = actions.add_parser("prepare-endpoint-recon")
+    prepare_endpoint.add_argument("--seed-set-id", required=True)
+    prepare_endpoint.add_argument("--scope-file", required=True)
+    prepare_endpoint.add_argument("--test-class", required=True)
+    prepare_endpoint.add_argument("--max-steps", type=int, default=100)
+    prepare_endpoint.add_argument("--max-requests", type=int, default=100)
+    prepare_endpoint.add_argument("--per-request-seconds", type=float, default=5.0)
+    prepare_endpoint.add_argument("--total-seconds", type=float, default=60.0)
+    prepare_endpoint.add_argument("--max-attempts", type=int, default=3)
+    prepare_endpoint.add_argument("--idempotency-key", required=True)
+    prepare_endpoint.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    prepare_endpoint.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    prepare_endpoint.add_argument("--evidence-root", default=".vulnloom/evidence")
+    prepare_endpoint.set_defaults(handler=_prepare_endpoint_recon)
+
+    run_endpoint = actions.add_parser("run-endpoint-recon-offline")
+    run_endpoint.add_argument("--endpoint-recon-plan-id", required=True)
+    run_endpoint.add_argument("--scope-file", required=True)
+    run_endpoint.add_argument(
+        "--outcome",
+        choices=tuple(item.value for item in EndpointReconOutcomeKind),
+        default=EndpointReconOutcomeKind.SUCCEEDED.value,
+    )
+    run_endpoint.add_argument("--status-code", type=int, default=204)
+    run_endpoint.add_argument("--cleanup-failed", action="store_true")
+    run_endpoint.add_argument("--interrupt", action="store_true")
+    run_endpoint.add_argument("--recover", action="store_true")
+    run_endpoint.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    run_endpoint.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    run_endpoint.add_argument("--evidence-root", default=".vulnloom/evidence")
+    run_endpoint.set_defaults(handler=_run_endpoint_recon_offline)
+
+    endpoint_status = actions.add_parser("endpoint-recon-status")
+    endpoint_status.add_argument("--endpoint-recon-plan-id", required=True)
+    endpoint_status.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    endpoint_status.set_defaults(handler=_endpoint_recon_status)
+
     prepare_surface = actions.add_parser("prepare-surface-reduction")
     prepare_surface.add_argument("--plan-id", required=True)
     prepare_surface.add_argument("--scope-file", required=True)
@@ -373,9 +586,7 @@ def register_red_team_commands(subparsers) -> None:
     prepare_surface.add_argument("--timeout-seconds", type=float, default=30.0)
     prepare_surface.add_argument("--idempotency-key", required=True)
     prepare_surface.add_argument("--red-team-db", default=".vulnloom/red-team.db")
-    prepare_surface.add_argument(
-        "--surface-db", default=".vulnloom/red-team-surface.db"
-    )
+    prepare_surface.add_argument("--surface-db", default=".vulnloom/red-team-surface.db")
     prepare_surface.add_argument("--evidence-root", default=".vulnloom/evidence")
     prepare_surface.set_defaults(handler=_prepare_surface)
 

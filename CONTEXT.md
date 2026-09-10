@@ -72,6 +72,14 @@ _Avoid_: Banner, Raw certificate, Service fingerprint
 同一授权 Target 的两份已封存 Attack Surface Inventory 之间、可回溯到 Evidence 的事实差异；它不表示漏洞已经成立。
 _Avoid_: Finding, Vulnerability, Model assessment
 
+**Endpoint Seed Set**：
+由操作员封存、绑定精确 Flow checkpoint 和 Scope 版本的有限规范路径集合；它不是 crawler、字典或资产发现输入。
+_Avoid_: Crawl frontier, Wordlist, Discovered URLs
+
+**Endpoint Recon Plan**：
+从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
+_Avoid_: Crawler plan, Scan campaign, Dynamic queue
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

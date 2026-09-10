@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_steps": {
+      "default": 100,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Max Steps",
+      "type": "integer"
+    },
+    "max_requests": {
+      "default": 100,
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Max Requests",
+      "type": "integer"
+    },
+    "per_request_seconds": {
+      "default": 5.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Per Request Seconds",
+      "type": "number"
+    },
+    "total_seconds": {
+      "default": 60.0,
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Total Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "EndpointReconLimits",
+  "type": "object"
+}

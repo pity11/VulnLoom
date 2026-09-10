@@ -1163,7 +1163,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R6（可信 Recon、TLS 身份、攻击面归并与变化检测已完成）
+### Authorized Red Team R0.1–R7（可信 Recon、精确 Seed Set 与有预算计划已完成）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1201,6 +1201,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   HTTP status/redirect、TLS identity/version/cipher/证书摘要变化均为类型化事实，不会直接生成 Candidate/Finding。
 - Drift ledger 使用 STARTED/COMPLETED、完成重放、最多三次显式恢复和 fail-closed 预算/超时；CLI 的
   prepare/run/status 均为离线路径，不调用 Recon adapter，也不返回 URL、证书、响应或凭据。
+- R7 新增操作员封存的 `EndpointSeedSet` 和内容寻址 `EndpointReconPlan`。Seed 只接受无 query、fragment、
+  percent encoding、反斜杠、空段或 dot segment 的规范绝对路径，并绑定 current Flow checkpoint、Target、
+  Scope/version、操作员引用和有效期。
+- Plan 对每个 seed 只生成一次 `HEAD`，固定禁用 redirect；步骤、请求、单请求时限、总时限和恢复次数均有
+  显式上限，且事务性 reservation 不得超过同一 checkpoint 的剩余 RoE action budget。执行前后重新验证
+  Scope、Flow、Seed Set、精确 URL 和结果来源。
+- CLI 只支持封存、准备、离线 fake 执行和脱敏状态查询。stdout 不返回 seed path 或完整 endpoint；当前没有
+  live Endpoint Recon adapter，也没有 crawler、字典枚举、动态队列、DNS/端口发现或公网扫描入口。
 
 R3/R5 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。

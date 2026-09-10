@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "seed_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Seed Id",
+      "type": "string"
+    },
+    "path": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Path",
+      "type": "string"
+    },
+    "path_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Path Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "seed_id",
+    "path",
+    "path_digest"
+  ],
+  "title": "EndpointSeed",
+  "type": "object"
+}

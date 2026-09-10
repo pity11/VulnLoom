@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "EndpointReconLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "max_requests": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Requests",
+          "type": "integer"
+        },
+        "per_request_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Per Request Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Total Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "EndpointReconLimits",
+      "type": "object"
+    },
+    "EndpointReconStep": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "seed_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Seed Id",
+          "type": "string"
+        },
+        "ordinal": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "target_url": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Target Url",
+          "type": "string"
+        },
+        "target_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Target Url Digest",
+          "type": "string"
+        },
+        "method": {
+          "const": "HEAD",
+          "default": "HEAD",
+          "title": "Method",
+          "type": "string"
+        },
+        "follow_redirects": {
+          "const": false,
+          "default": false,
+          "title": "Follow Redirects",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "step_id",
+        "seed_id",
+        "ordinal",
+        "target_url",
+        "target_url_digest"
+      ],
+      "title": "EndpointReconStep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "endpoint_recon_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Recon Plan Id",
+      "type": "string"
+    },
+    "seed_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Seed Set Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "test_class": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Test Class",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/EndpointReconStep"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/EndpointReconLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "endpoint_recon_plan_id",
+    "seed_set_id",
+    "flow_plan_id",
+    "source_checkpoint_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "test_class",
+    "steps",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "EndpointReconPlan",
+  "type": "object"
+}

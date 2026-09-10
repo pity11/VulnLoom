@@ -1,0 +1,53 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "step_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "seed_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Seed Id",
+      "type": "string"
+    },
+    "ordinal": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "target_url": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Target Url",
+      "type": "string"
+    },
+    "target_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Url Digest",
+      "type": "string"
+    },
+    "method": {
+      "const": "HEAD",
+      "default": "HEAD",
+      "title": "Method",
+      "type": "string"
+    },
+    "follow_redirects": {
+      "const": false,
+      "default": false,
+      "title": "Follow Redirects",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "step_id",
+    "seed_id",
+    "ordinal",
+    "target_url",
+    "target_url_digest"
+  ],
+  "title": "EndpointReconStep",
+  "type": "object"
+}

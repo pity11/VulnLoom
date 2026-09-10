@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "EndpointReconOutcomeKind": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "timed_out",
+        "failed"
+      ],
+      "title": "EndpointReconOutcomeKind",
+      "type": "string"
+    },
+    "EndpointReconStepResult": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "target_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Target Url Digest",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/EndpointReconOutcomeKind"
+        },
+        "status_code": {
+          "anyOf": [
+            {
+              "maximum": 599,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Code"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "cleanup_complete": {
+          "title": "Cleanup Complete",
+          "type": "boolean"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "target_url_digest",
+        "outcome",
+        "reason_code",
+        "cleanup_complete",
+        "completed_at"
+      ],
+      "title": "EndpointReconStepResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "endpoint_recon_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Recon Plan Id",
+      "type": "string"
+    },
+    "seed_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Seed Set Id",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/EndpointReconOutcomeKind"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/EndpointReconStepResult"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Results",
+      "type": "array"
+    },
+    "requests_used": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Requests Used",
+      "type": "integer"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "endpoint_recon_plan_id",
+    "seed_set_id",
+    "outcome",
+    "results",
+    "requests_used",
+    "attempt",
+    "cleanup_complete",
+    "completed_at"
+  ],
+  "title": "EndpointReconOutcome",
+  "type": "object"
+}

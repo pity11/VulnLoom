@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "EndpointReconOutcomeKind": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "timed_out",
+        "failed"
+      ],
+      "title": "EndpointReconOutcomeKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "step_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "target_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Url Digest",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/EndpointReconOutcomeKind"
+    },
+    "status_code": {
+      "anyOf": [
+        {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status Code"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "step_id",
+    "target_url_digest",
+    "outcome",
+    "reason_code",
+    "cleanup_complete",
+    "completed_at"
+  ],
+  "title": "EndpointReconStepResult",
+  "type": "object"
+}

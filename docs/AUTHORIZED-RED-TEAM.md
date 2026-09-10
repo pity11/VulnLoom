@@ -151,3 +151,31 @@ before claim and completion. The drift ledger uses STARTED/COMPLETED checkpoints
 explicit recovery, and at most three attempts. The CLI commands `prepare-surface-drift`,
 `run-surface-drift-offline`, and `surface-drift-status` call the same application service intended for a future
 API. They expose no live network switch, raw URL, certificate, response, credential, or Provider material.
+
+## R7: operator-sealed Endpoint Seed Sets
+
+R7 accepts only a finite JSON array of exact paths supplied by an identified operator. Each `EndpointSeedSet`
+is content-addressed and binds the current running Flow checkpoint, Target, Scope/version, operator reference,
+seal time, expiry, and idempotency key. Paths must be canonical ASCII absolute paths beneath the Flow target's
+base path. Schemes, authorities, query strings, fragments, percent encoding, backslashes, repeated slashes,
+and dot segments are rejected rather than normalized.
+
+An `EndpointReconPlan` deterministically maps every sealed seed to exactly one `HEAD` step with redirects
+disabled. It has explicit step, request, per-request time, total time, and recovery-attempt limits. Preparing a
+plan transactionally reserves its request count against the remaining RoE action budget for the exact source
+checkpoint, so multiple plans cannot independently spend the same budget.
+
+The application service reloads Scope, Flow, checkpoint, Seed Set, and Plan bindings before dispatch and again
+before completion. Adapter results must match the exact step and URL digests; Evidence references must already
+exist. Completed runs replay without adapter calls, interruptions remain STARTED for explicit bounded recovery,
+and timeout or cleanup failure is represented explicitly. Outcomes and status output contain URL digests, not
+raw paths or endpoints.
+
+The CLI provides `seal-endpoint-seeds`, `prepare-endpoint-recon`, `run-endpoint-recon-offline`, and
+`endpoint-recon-status`. The seed input is a bounded, no-follow regular file. The only executable adapter in R7
+is deterministic and offline. There is deliberately no crawler, wordlist enumeration, discovered-URL queue,
+DNS or port discovery, live Endpoint Recon adapter, or public scanning switch.
+
+Local R7 verification completed with 1427 tests passed, 27 integration tests skipped, and 85.85% total
+coverage. Ruff, 373 JSON Schema parses, `git diff --check`, and the 451-test CUC/DeepSeek compatibility slice
+also passed without making an external model call or network request.
