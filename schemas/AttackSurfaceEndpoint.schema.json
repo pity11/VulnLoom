@@ -1,0 +1,99 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "endpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Id",
+      "type": "string"
+    },
+    "requested_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Requested Url Digest",
+      "type": "string"
+    },
+    "final_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Url Digest",
+      "type": "string"
+    },
+    "peer_ip": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Peer Ip",
+      "type": "string"
+    },
+    "status_codes": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Status Codes",
+      "type": "array"
+    },
+    "redirect_counts": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Redirect Counts",
+      "type": "array"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "snapshot_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Snapshot Ids",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 60000,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "first_observed_at": {
+      "format": "date-time",
+      "title": "First Observed At",
+      "type": "string"
+    },
+    "last_observed_at": {
+      "format": "date-time",
+      "title": "Last Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "endpoint_id",
+    "requested_url_digest",
+    "final_url_digest",
+    "peer_ip",
+    "status_codes",
+    "redirect_counts",
+    "observation_ids",
+    "snapshot_ids",
+    "evidence_refs",
+    "first_observed_at",
+    "last_observed_at"
+  ],
+  "title": "AttackSurfaceEndpoint",
+  "type": "object"
+}

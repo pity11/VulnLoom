@@ -27,10 +27,40 @@ from .service import (
 )
 from .state_machine import RedTeamTransitionRejected
 from .store import RedTeamRecoveryRequired, RedTeamStore, RedTeamStoreRejected
+from .surface_models import (
+    AttackSurfaceEndpoint,
+    AttackSurfaceInventory,
+    AttackSurfaceReductionLimits,
+    AttackSurfaceReductionOutcome,
+    AttackSurfaceReductionPlan,
+    AttackSurfaceReductionState,
+)
+from .surface_service import (
+    AttackSurfaceReductionRejected,
+    AttackSurfaceReductionService,
+    AttackSurfaceReductionTimedOut,
+)
+from .surface_store import (
+    AttackSurfaceReductionIdempotencyConflict,
+    AttackSurfaceReductionRecoveryRequired,
+    AttackSurfaceReductionStore,
+)
 
 __all__ = [
     "AuthorizedWebTarget",
     "AttackSurfaceSnapshot",
+    "AttackSurfaceEndpoint",
+    "AttackSurfaceInventory",
+    "AttackSurfaceReductionIdempotencyConflict",
+    "AttackSurfaceReductionLimits",
+    "AttackSurfaceReductionOutcome",
+    "AttackSurfaceReductionPlan",
+    "AttackSurfaceReductionRecoveryRequired",
+    "AttackSurfaceReductionRejected",
+    "AttackSurfaceReductionService",
+    "AttackSurfaceReductionState",
+    "AttackSurfaceReductionStore",
+    "AttackSurfaceReductionTimedOut",
     "ImpactClass",
     "IsolatedLocalHttpReconAdapter",
     "IsolatedLocalReconAdmission",

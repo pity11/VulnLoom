@@ -59,8 +59,9 @@ The local `vulnloom red-team` command exposes the same application service inten
 - `status`, `cancel`, `kill`, and `expire` inspect or narrow Flow state.
 
 There is intentionally no live Recon flag in this slice. The CLI accepts no Cookie, Authorization header,
-API key, Provider credential, raw response, shell command, or arbitrary tool identifier. Its Observation
-schema contains only outcome, optional status code, reason code, cleanup proof, redaction proof, and time.
+API key, Provider credential, raw response, shell command, or arbitrary tool identifier. Offline observations
+contain only outcome, optional status code, reason code, cleanup proof, redaction proof, and time; admitted live
+observations may additionally bind the digest-only Attack Surface Snapshot described below.
 
 ## R3: admitted local HTTP Recon
 
@@ -84,3 +85,25 @@ URLs, cookies, Authorization material, and raw responses do not enter the Snapsh
 This milestone does not add public scanning, CIDR or path enumeration, active exploitation, credential use,
 callbacks, lateral movement, persistence, or model-driven action selection. The next slice can build a bounded
 attack-surface reducer over these trusted observations before any stronger action class is considered.
+
+## R4: deterministic Attack Surface inventory
+
+R4 reduces multiple successful R3 observations into an immutable `AttackSurfaceInventory` without making a
+network call. A content-addressed `AttackSurfaceReductionPlan` binds the exact Flow plan, authoritative
+checkpoint, Target, Scope version, Observation IDs, Snapshot IDs, deadline, budgets, and idempotency key.
+Only completed HTTP HEAD actions with successful, redacted, cleanup-complete observations are admitted.
+
+Before a STARTED checkpoint is written, the service reloads every source from the Red Team ledger and checks
+the action, Flow, Target, Scope, requested URL digest, observation time, Snapshot identity, and every Evidence
+object. Missing Evidence, stale Flow checkpoints, revoked Scope, empty live inputs, or exceeded budgets fail
+closed without creating a partial reduction.
+
+Endpoint identity is the stable digest of requested URL digest, final URL digest, and verified peer IP.
+Repeated observations merge deterministically into sorted status codes, redirect counts, Observation IDs,
+Snapshot IDs, and Evidence references. The Inventory contains no raw URL, request/response body, headers,
+Cookie, Authorization material, or provider data.
+
+The reduction ledger has explicit STARTED and COMPLETED states. Completed replay returns the same sealed
+Inventory; unfinished work refuses automatic replay and permits only an explicit, maximum-three-attempt
+recovery. The CLI exposes `prepare-surface-reduction`, `run-surface-reduction-offline`, and `surface-status`;
+these commands reuse the same application service intended for a future API and never invoke Recon adapters.

@@ -1163,7 +1163,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R3（可信控制与隔离本地 HTTP Recon 已完成）
+### Authorized Red Team R0.1–R4（可信 Recon 与攻击面归并已完成）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1184,9 +1184,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 成功调用产生内容寻址 `AttackSurfaceSnapshot`，只保存 URL/Policy 摘要、已验证 peer、状态、重定向计数和
   Evidence refs；不保存原始 URL、Cookie、Authorization、响应 header/body。socket timeout、Flow cancel、幂等
   replay、脱敏和真实本机临时 HTTP 进程清理已有测试。
+- R4 新增完全离线的 `AttackSurfaceReductionPlan`、Endpoint 与 Inventory。Reduction 绑定 exact Flow checkpoint、
+  Scope/version、Target、Observation/Snapshot IDs、deadline 和数量/时间预算；逐条重读权威 action/observation 并
+  复核 Evidence 内容寻址对象后，才写 STARTED checkpoint。
+- Endpoint 以 requested/final URL digest 与已验证 peer 形成稳定身份；重复 Observation 的状态、重定向计数、
+  Snapshot 和 Evidence 确定性归并。事务账本支持完成重放、拒绝自动恢复和最多三次显式恢复；CLI 仅提供离线
+  prepare/run/status，不调用 Recon adapter。
 
 R3 没有普通 CLI 联网开关；真实 socket 验收必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1`，且仅启动本机
-隔离夹具。下一步先在这些可信 Observation 上构建有界 Attack Surface reducer；公网扫描和主动利用仍不可用。
+隔离夹具。下一步是在 Inventory 上增加只读 TLS/服务身份观察，仍先走隔离本地准入；公网扫描和主动利用不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 
 ## 延后事项

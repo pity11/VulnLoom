@@ -1,0 +1,232 @@
+{
+  "$defs": {
+    "AttackSurfaceEndpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Id",
+          "type": "string"
+        },
+        "requested_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requested Url Digest",
+          "type": "string"
+        },
+        "final_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Url Digest",
+          "type": "string"
+        },
+        "peer_ip": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Peer Ip",
+          "type": "string"
+        },
+        "status_codes": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Status Codes",
+          "type": "array"
+        },
+        "redirect_counts": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Redirect Counts",
+          "type": "array"
+        },
+        "observation_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "snapshot_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Snapshot Ids",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 60000,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "first_observed_at": {
+          "format": "date-time",
+          "title": "First Observed At",
+          "type": "string"
+        },
+        "last_observed_at": {
+          "format": "date-time",
+          "title": "Last Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint_id",
+        "requested_url_digest",
+        "final_url_digest",
+        "peer_ip",
+        "status_codes",
+        "redirect_counts",
+        "observation_ids",
+        "snapshot_ids",
+        "evidence_refs",
+        "first_observed_at",
+        "last_observed_at"
+      ],
+      "title": "AttackSurfaceEndpoint",
+      "type": "object"
+    },
+    "AttackSurfaceInventory": {
+      "additionalProperties": false,
+      "properties": {
+        "inventory_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Inventory Id",
+          "type": "string"
+        },
+        "reduction_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reduction Id",
+          "type": "string"
+        },
+        "flow_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Flow Plan Id",
+          "type": "string"
+        },
+        "source_checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Checkpoint Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "observation_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "snapshot_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Snapshot Ids",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 60000,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/AttackSurfaceEndpoint"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Endpoints",
+          "type": "array"
+        },
+        "reduced_at": {
+          "format": "date-time",
+          "title": "Reduced At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "inventory_id",
+        "reduction_id",
+        "flow_plan_id",
+        "source_checkpoint_id",
+        "target_id",
+        "scope_id",
+        "scope_version",
+        "observation_ids",
+        "snapshot_ids",
+        "evidence_refs",
+        "endpoints",
+        "reduced_at"
+      ],
+      "title": "AttackSurfaceInventory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reduction_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reduction Id",
+      "type": "string"
+    },
+    "inventory": {
+      "$ref": "#/$defs/AttackSurfaceInventory"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "reduction_id",
+    "inventory",
+    "attempt"
+  ],
+  "title": "AttackSurfaceReductionOutcome",
+  "type": "object"
+}

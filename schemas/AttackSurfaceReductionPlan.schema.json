@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "AttackSurfaceReductionLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_observations": {
+          "default": 1000,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Observations",
+          "type": "integer"
+        },
+        "max_endpoints": {
+          "default": 1000,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Endpoints",
+          "type": "integer"
+        },
+        "max_evidence_refs": {
+          "default": 6000,
+          "maximum": 60000,
+          "minimum": 1,
+          "title": "Max Evidence Refs",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 30.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "AttackSurfaceReductionLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reduction_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reduction Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "snapshot_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Snapshot Ids",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/AttackSurfaceReductionLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reduction_id",
+    "flow_plan_id",
+    "source_checkpoint_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "observation_ids",
+    "snapshot_ids",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AttackSurfaceReductionPlan",
+  "type": "object"
+}

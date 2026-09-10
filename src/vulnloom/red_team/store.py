@@ -8,6 +8,7 @@ from pathlib import Path
 from .models import (
     RedTeamCheckpoint,
     RedTeamFlowPlan,
+    RedTeamReconAction,
     RedTeamReconCommand,
     RedTeamReconObservation,
 )
@@ -236,6 +237,15 @@ class RedTeamStore:
         if row is None:
             raise RedTeamStoreRejected("Red Team observation is unavailable")
         return RedTeamReconObservation.model_validate_json(row[0])
+
+    def action(self, action_id: str) -> RedTeamReconAction:
+        row = self.connection.execute(
+            "SELECT action_json,state,observation_id FROM red_team_actions WHERE action_id=?",
+            (action_id,),
+        ).fetchone()
+        if row is None or row[1] != "completed" or row[2] is None:
+            raise RedTeamStoreRejected("Red Team completed action is unavailable")
+        return RedTeamReconAction.model_validate_json(row[0])
 
     def _assert_latest(self, checkpoint: RedTeamCheckpoint) -> None:
         if self.latest(checkpoint.plan_id).checkpoint_id != checkpoint.checkpoint_id:
