@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "stop_at": {
+      "format": "date-time",
+      "title": "Stop At",
+      "type": "string"
+    },
+    "max_actions": {
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Max Actions",
+      "type": "integer"
+    },
+    "max_consecutive_failures": {
+      "default": 3,
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Max Consecutive Failures",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "stop_at",
+    "max_actions"
+  ],
+  "title": "RedTeamStopConditions",
+  "type": "object"
+}

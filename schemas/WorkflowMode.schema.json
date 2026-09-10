@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "AutonomyLevel": {
+      "enum": [
+        "a0_manual",
+        "a1_assisted",
+        "a2_bounded_execution",
+        "a3_adaptive_flow",
+        "a4_goal_driven_campaign"
+      ],
+      "title": "AutonomyLevel",
+      "type": "string"
+    },
+    "ExecutionProfile": {
+      "enum": [
+        "benchmark",
+        "production_safe",
+        "pre_release",
+        "red_team"
+      ],
+      "title": "ExecutionProfile",
+      "type": "string"
+    },
+    "Visibility": {
+      "enum": [
+        "black_box",
+        "grey_box",
+        "white_box",
+        "hybrid"
+      ],
+      "title": "Visibility",
+      "type": "string"
+    },
+    "WorkflowKind": {
+      "enum": [
+        "source_hunt",
+        "pre_release_acceptance",
+        "production_testing",
+        "authorized_red_team"
+      ],
+      "title": "WorkflowKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "workflow": {
+      "$ref": "#/$defs/WorkflowKind"
+    },
+    "visibility": {
+      "$ref": "#/$defs/Visibility"
+    },
+    "execution_profile": {
+      "$ref": "#/$defs/ExecutionProfile"
+    },
+    "autonomy": {
+      "$ref": "#/$defs/AutonomyLevel"
+    }
+  },
+  "required": [
+    "workflow",
+    "visibility",
+    "execution_profile",
+    "autonomy"
+  ],
+  "title": "WorkflowMode",
+  "type": "object"
+}

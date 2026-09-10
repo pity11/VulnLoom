@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "ImpactClass": {
+      "enum": [
+        "read_only",
+        "state_change",
+        "real_credential",
+        "external_callback",
+        "lateral_movement",
+        "persistence"
+      ],
+      "title": "ImpactClass",
+      "type": "string"
+    },
+    "RedTeamPhase": {
+      "enum": [
+        "recon",
+        "initial_access",
+        "validation",
+        "post_exploitation"
+      ],
+      "title": "RedTeamPhase",
+      "type": "string"
+    },
+    "RedTeamStopConditions": {
+      "additionalProperties": false,
+      "properties": {
+        "stop_at": {
+          "format": "date-time",
+          "title": "Stop At",
+          "type": "string"
+        },
+        "max_actions": {
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Actions",
+          "type": "integer"
+        },
+        "max_consecutive_failures": {
+          "default": 3,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Consecutive Failures",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stop_at",
+        "max_actions"
+      ],
+      "title": "RedTeamStopConditions",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "roe_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Roe Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "phases": {
+      "items": {
+        "$ref": "#/$defs/RedTeamPhase"
+      },
+      "minItems": 1,
+      "title": "Phases",
+      "type": "array"
+    },
+    "allowed_test_classes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Allowed Test Classes",
+      "type": "array"
+    },
+    "allowed_impacts": {
+      "items": {
+        "$ref": "#/$defs/ImpactClass"
+      },
+      "minItems": 1,
+      "title": "Allowed Impacts",
+      "type": "array"
+    },
+    "approval_required_impacts": {
+      "items": {
+        "$ref": "#/$defs/ImpactClass"
+      },
+      "title": "Approval Required Impacts",
+      "type": "array"
+    },
+    "prohibited_impacts": {
+      "items": {
+        "$ref": "#/$defs/ImpactClass"
+      },
+      "title": "Prohibited Impacts",
+      "type": "array"
+    },
+    "stop_conditions": {
+      "$ref": "#/$defs/RedTeamStopConditions"
+    },
+    "emergency_contact_ref": {
+      "pattern": "^contact:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Emergency Contact Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "roe_id",
+    "scope_id",
+    "scope_version",
+    "target_id",
+    "phases",
+    "allowed_test_classes",
+    "allowed_impacts",
+    "approval_required_impacts",
+    "prohibited_impacts",
+    "stop_conditions",
+    "emergency_contact_ref"
+  ],
+  "title": "RulesOfEngagement",
+  "type": "object"
+}

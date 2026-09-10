@@ -1979,6 +1979,9 @@ def build_parser() -> argparse.ArgumentParser:
     from vulnloom.source_hunt.cli import register_source_hunt_commands
 
     register_source_hunt_commands(sub)
+    from vulnloom.red_team.cli import register_red_team_commands
+
+    register_red_team_commands(sub)
     return parser
 
 

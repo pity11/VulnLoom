@@ -1163,6 +1163,25 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
+### Authorized Red Team R0.1（可信离线控制纵切已完成）
+
+- 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
+  `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
+- 新增内容寻址的 URL Target、Rules of Engagement、Stop Conditions、Flow Plan、Recon Command、Observation
+  和显式状态机。RoE 精确绑定 Scope/version、目标、阶段、测试类别、影响分区、deadline、动作/连续失败预算和
+  opaque emergency-contact ref。
+- 当前只准入 `recon + read_only`；状态变更、真实凭据、外部回连、横向移动和持久化全部显式禁止。URL 必须
+  已规范化且无凭据/query/fragment，并由既有 Policy Engine 精确匹配 Scope host/scheme/port。
+- SQLite 事务保存 Plan、checkpoint、action claim 和脱敏 Observation；幂等键冲突拒绝。Adapter 中断要求下一
+  attempt，最多三次；第三次仍中断则以 cleanup unproven 关闭。完成态重放不再次调用 adapter。
+- 本地 CLI 支持 start、prepare-recon、run-recon-offline、status、cancel、kill 和 expire；执行命令只接离线 fake
+  adapter，不开放联网开关、任意工具、Header、Cookie、Key、Provider token 或响应正文。
+- Kill Switch 在 Scope 被撤销或过期后仍可收窄并终止同一绑定 Flow。成功、越界拒绝、中断恢复、attempt
+  耗尽、超时、清理失败、预算完成、连续失败、取消、过期、Kill Switch、CLI 和敏感字段回归均有离线测试。
+
+下一步 R3 只在隔离本地靶场接入 DNS/TLS/HTTP typed adapters，实际证明 IP/peer pin、逐跳 redirect 复核、
+Evidence 限额和进程/容器清理；公网扫描和主动利用仍不可用。详见 `docs/AUTHORIZED-RED-TEAM.md`。
+
 ## 延后事项
 
 - 公网资产自主发现。

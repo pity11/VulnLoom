@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "ReconOutcome": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "timed_out",
+        "failed"
+      ],
+      "title": "ReconOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/ReconOutcome"
+    },
+    "status_code": {
+      "anyOf": [
+        {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status Code"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "sensitive_data_redacted": {
+      "default": true,
+      "title": "Sensitive Data Redacted",
+      "type": "boolean"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "action_id",
+    "outcome",
+    "reason_code",
+    "cleanup_complete",
+    "observed_at"
+  ],
+  "title": "RedTeamReconObservation",
+  "type": "object"
+}

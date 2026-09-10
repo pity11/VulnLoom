@@ -1,6 +1,6 @@
 # VulnLoom
 
-VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation includes a bounded, resumable local Source Hunt V1 for Python and JavaScript/TypeScript navigation, shared Candidate-to-report gates, and controlled validation building blocks; dedicated coverage-guided fuzzing and additional language toolchains remain planned depth work.
+VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation includes a bounded, resumable local Source Hunt V1, shared Candidate-to-report gates, controlled validation building blocks, and the first offline-only Authorized Red Team Flow/RoE control slice. Live Red Team Recon is not enabled yet.
 
 The product supports autonomous testing only inside an explicit, approved Scope. It must not scan or exploit unauthorized public targets. Its four planned entry points are source vulnerability research, pre-release security acceptance, production-safe scheduled testing, and authorized red-team simulation. Source Hunt and Authorized Red Team are the primary capability lines; the other two entries are controlled delivery workflows. Scope, network boundaries, credential isolation, evidence requirements, and human approval for consequential effects are enforced in code.
 
@@ -44,6 +44,7 @@ there remain planned until their explicit acceptance stage passes.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
 - [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): approved no-tool generation and deterministic admission for advisory Candidate recommendations.
 - [docs/SOURCE-HUNT.md](./docs/SOURCE-HUNT.md): Source Hunt V1 contracts, CLI, security boundary, and remaining R9 depth.
+- [docs/AUTHORIZED-RED-TEAM.md](./docs/AUTHORIZED-RED-TEAM.md): fourth-entry Flow/RoE contract, offline Recon control slice, and safety boundary.
 
 ## Project layout
 
@@ -62,10 +63,12 @@ VulnLoom/
 │   ├── ingestion/          # Archive, Git, and OCI target ingestion
 │   ├── policy/             # Scope and approval enforcement
 │   ├── reporting/          # Evidence-consistent offline report drafts
+│   ├── red_team/           # Authorized Red Team Flow, RoE, and Recon control plane
 │   ├── runners/            # Offline and Docker sandbox runners
 │   ├── source_hunt/        # Resumable white-box investigation and validation chain
 │   ├── storage/            # Event and validation persistence
 │   ├── validation/         # Plans, orchestration, and deterministic judging
+│   ├── workflows/          # Shared visibility and execution-mode contracts
 │   └── cli.py              # Current command-line entry point
 ├── benchmarks/             # Sealed local ground-truth fixtures and baselines
 ├── docs/                   # Architecture, workflow, security, and roadmap

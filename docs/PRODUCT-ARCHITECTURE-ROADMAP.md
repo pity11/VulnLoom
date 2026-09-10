@@ -1033,6 +1033,11 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 
 同时证明越界重定向、DNS漂移、过期Scope、超时、取消和容器清理均 fail-closed。
 
+实现状态（2026-09-10）：R0.1 已完成共享 Mode、URL Target、Rules of Engagement、Stop Conditions、
+事务 checkpoint、三次有界恢复、动作/失败预算、取消/过期/Kill Switch、脱敏 Observation 和 offline fake CLI。
+当前没有网络 adapter，不产生 DNS/HTTP 流量；IP/peer pin、redirect 复核、AttackSurfaceSnapshot、Evidence 和
+真实本地靶场清理验收仍属于本 R3 后续纵切。
+
 ### R4：浏览器、API 与 Agent 自主重规划
 
 目标：让 Agent 能围绕动态页面和API持续调查。
@@ -1174,6 +1179,9 @@ coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重�
 - 攻击路径、检测机会和防御改进报告。
 
 验收：只在隔离红队靶场中完成多步攻击链；任何未批准状态变更、外部回连、横向目标或持久化动作均被代码边界拒绝并留下审计证据。
+
+实现状态（2026-09-10）：已建立只读 Recon 所需的 RoE、影响分区、停止条件和 Kill Switch 基础，但尚无
+AttackGraph、Initial Access、Post-exploitation Profile 或逐动作高影响 Approval，因此 R11 尚未开始验收。
 
 ### R12：团队化和分布式部署
 

@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "RedTeamFlowStatus": {
+      "enum": [
+        "planned",
+        "running",
+        "completed",
+        "cancelled",
+        "timed_out",
+        "failed",
+        "killed"
+      ],
+      "title": "RedTeamFlowStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/RedTeamFlowStatus"
+    },
+    "actions_used": {
+      "minimum": 0,
+      "title": "Actions Used",
+      "type": "integer"
+    },
+    "consecutive_failures": {
+      "minimum": 0,
+      "title": "Consecutive Failures",
+      "type": "integer"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stop Reason"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "plan_id",
+    "revision",
+    "status",
+    "actions_used",
+    "consecutive_failures",
+    "observation_ids",
+    "updated_at"
+  ],
+  "title": "RedTeamCheckpoint",
+  "type": "object"
+}

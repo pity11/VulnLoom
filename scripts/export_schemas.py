@@ -280,6 +280,16 @@ from vulnloom.recommendations import (
     ProfileCandidateRecommendationCodecRegistration,
     RoutedCandidateRecommendationProviderConfig,
 )
+from vulnloom.red_team import (
+    AuthorizedWebTarget,
+    RedTeamCheckpoint,
+    RedTeamFlowPlan,
+    RedTeamReconAction,
+    RedTeamReconCommand,
+    RedTeamReconObservation,
+    RedTeamStopConditions,
+    RulesOfEngagement,
+)
 from vulnloom.reporting import (
     AgentReportDraftExecutionPlan,
     AgentReportDraftOutcomeBinding,
@@ -375,6 +385,7 @@ from vulnloom.validation import (
     ValidationPlan,
     ValidationVerdict,
 )
+from vulnloom.workflows import WorkflowMode
 
 MODELS = (
     ModelCredentialReference,
@@ -402,6 +413,15 @@ MODELS = (
     EnableProviderCommand,
     DisableProviderCommand,
     SetDefaultRouteCommand,
+    WorkflowMode,
+    AuthorizedWebTarget,
+    RedTeamStopConditions,
+    RulesOfEngagement,
+    RedTeamFlowPlan,
+    RedTeamCheckpoint,
+    RedTeamReconAction,
+    RedTeamReconCommand,
+    RedTeamReconObservation,
     SourceSymbol,
     SourceReference,
     SourceFileRecord,

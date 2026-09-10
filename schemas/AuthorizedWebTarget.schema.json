@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "url": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "url"
+  ],
+  "title": "AuthorizedWebTarget",
+  "type": "object"
+}
