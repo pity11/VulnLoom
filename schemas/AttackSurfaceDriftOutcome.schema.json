@@ -1,0 +1,215 @@
+{
+  "$defs": {
+    "AttackSurfaceChange": {
+      "additionalProperties": false,
+      "properties": {
+        "surface_key": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Surface Key",
+          "type": "string"
+        },
+        "change_kinds": {
+          "items": {
+            "$ref": "#/$defs/AttackSurfaceChangeKind"
+          },
+          "maxItems": 11,
+          "minItems": 1,
+          "title": "Change Kinds",
+          "type": "array"
+        },
+        "baseline_endpoint_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Baseline Endpoint Ids",
+          "type": "array"
+        },
+        "current_endpoint_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Current Endpoint Ids",
+          "type": "array"
+        },
+        "baseline_identity_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Baseline Identity Ids",
+          "type": "array"
+        },
+        "current_identity_ids": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Current Identity Ids",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 120000,
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "surface_key",
+        "change_kinds"
+      ],
+      "title": "AttackSurfaceChange",
+      "type": "object"
+    },
+    "AttackSurfaceChangeKind": {
+      "enum": [
+        "endpoint_added",
+        "endpoint_removed",
+        "peer_set_changed",
+        "final_destination_changed",
+        "http_status_changed",
+        "redirect_behavior_changed",
+        "tls_identity_added",
+        "tls_identity_removed",
+        "tls_version_changed",
+        "cipher_changed",
+        "certificate_changed"
+      ],
+      "title": "AttackSurfaceChangeKind",
+      "type": "string"
+    },
+    "AttackSurfaceDriftReport": {
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Id",
+          "type": "string"
+        },
+        "comparison_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Comparison Id",
+          "type": "string"
+        },
+        "baseline_inventory_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Baseline Inventory Id",
+          "type": "string"
+        },
+        "current_inventory_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Current Inventory Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "compared_surface_count": {
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Compared Surface Count",
+          "type": "integer"
+        },
+        "unchanged_surface_count": {
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Unchanged Surface Count",
+          "type": "integer"
+        },
+        "changes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AttackSurfaceChange"
+          },
+          "maxItems": 20000,
+          "title": "Changes",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 120000,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "compared_at": {
+          "format": "date-time",
+          "title": "Compared At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_id",
+        "comparison_id",
+        "baseline_inventory_id",
+        "current_inventory_id",
+        "target_id",
+        "scope_id",
+        "scope_version",
+        "compared_surface_count",
+        "unchanged_surface_count",
+        "compared_at"
+      ],
+      "title": "AttackSurfaceDriftReport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "comparison_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Comparison Id",
+      "type": "string"
+    },
+    "report": {
+      "$ref": "#/$defs/AttackSurfaceDriftReport"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "comparison_id",
+    "report",
+    "attempt"
+  ],
+  "title": "AttackSurfaceDriftOutcome",
+  "type": "object"
+}

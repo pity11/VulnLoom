@@ -1163,7 +1163,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R5（可信 Recon、TLS 身份与攻击面归并已完成）
+### Authorized Red Team R0.1–R6（可信 Recon、TLS 身份、攻击面归并与变化检测已完成）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1196,6 +1196,11 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 成功结果形成内容寻址 `ServiceIdentitySnapshot`，只含 endpoint digest、已验证 peer、TLS version、cipher、叶证书
   SHA-256、Policy digest 和 Evidence refs；不保存证书原文、subject/SAN、完整 endpoint 或认证数据。R4 Inventory
   可事务性归并 HTTP 与 TLS 身份，并按 endpoint digest + peer 建立关联。
+- R6 新增完全离线的 `AttackSurfaceDriftPlan`、Change 与 Report。它只比较两份权威 completed Inventory，要求同一
+  Target/Scope、严格时间顺序和 current Scope version，并在 claim 前后复核 Evidence；新增/删除、peer、最终目标、
+  HTTP status/redirect、TLS identity/version/cipher/证书摘要变化均为类型化事实，不会直接生成 Candidate/Finding。
+- Drift ledger 使用 STARTED/COMPLETED、完成重放、最多三次显式恢复和 fail-closed 预算/超时；CLI 的
+  prepare/run/status 均为离线路径，不调用 Recon adapter，也不返回 URL、证书、响应或凭据。
 
 R3/R5 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。

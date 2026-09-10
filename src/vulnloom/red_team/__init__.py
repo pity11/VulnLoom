@@ -1,5 +1,25 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .drift_models import (
+    AttackSurfaceChange,
+    AttackSurfaceChangeKind,
+    AttackSurfaceDriftLimits,
+    AttackSurfaceDriftOutcome,
+    AttackSurfaceDriftPlan,
+    AttackSurfaceDriftReport,
+    AttackSurfaceDriftState,
+)
+from .drift_service import (
+    AttackSurfaceDriftRejected,
+    AttackSurfaceDriftService,
+    AttackSurfaceDriftTimedOut,
+    AttackSurfaceInventorySource,
+)
+from .drift_store import (
+    AttackSurfaceDriftIdempotencyConflict,
+    AttackSurfaceDriftRecoveryRequired,
+    AttackSurfaceDriftStore,
+)
 from .live_http import IsolatedLocalHttpReconAdapter, IsolatedLocalReconAdmission
 from .live_tls import IsolatedLocalTlsReconAdapter
 from .models import (
@@ -51,11 +71,25 @@ from .surface_store import (
 )
 
 __all__ = [
+    "AttackSurfaceChange",
+    "AttackSurfaceChangeKind",
+    "AttackSurfaceDriftIdempotencyConflict",
+    "AttackSurfaceDriftLimits",
+    "AttackSurfaceDriftOutcome",
+    "AttackSurfaceDriftPlan",
+    "AttackSurfaceDriftRecoveryRequired",
+    "AttackSurfaceDriftRejected",
+    "AttackSurfaceDriftReport",
+    "AttackSurfaceDriftService",
+    "AttackSurfaceDriftState",
+    "AttackSurfaceDriftStore",
+    "AttackSurfaceDriftTimedOut",
     "AuthorizedWebTarget",
     "AttackSurfaceSnapshot",
     "AttackSurfaceServiceIdentity",
     "AttackSurfaceEndpoint",
     "AttackSurfaceInventory",
+    "AttackSurfaceInventorySource",
     "AttackSurfaceReductionIdempotencyConflict",
     "AttackSurfaceReductionLimits",
     "AttackSurfaceReductionOutcome",

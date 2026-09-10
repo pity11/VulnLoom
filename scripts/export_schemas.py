@@ -284,6 +284,11 @@ from vulnloom.recommendations import (
     RoutedCandidateRecommendationProviderConfig,
 )
 from vulnloom.red_team import (
+    AttackSurfaceChange,
+    AttackSurfaceDriftLimits,
+    AttackSurfaceDriftOutcome,
+    AttackSurfaceDriftPlan,
+    AttackSurfaceDriftReport,
     AttackSurfaceEndpoint,
     AttackSurfaceInventory,
     AttackSurfaceReductionLimits,
@@ -426,6 +431,11 @@ MODELS = (
     DisableProviderCommand,
     SetDefaultRouteCommand,
     WorkflowMode,
+    AttackSurfaceChange,
+    AttackSurfaceDriftLimits,
+    AttackSurfaceDriftOutcome,
+    AttackSurfaceDriftPlan,
+    AttackSurfaceDriftReport,
     AttackSurfaceEndpoint,
     AttackSurfaceInventory,
     AttackSurfaceReductionLimits,

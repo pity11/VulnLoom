@@ -68,6 +68,10 @@ _Avoid_: Workspace, Chat history
 在已授权端点上经 CA、hostname 与固定网络 peer 校验后得到的 TLS 会话身份摘要；它不包含证书原文、主体或 SAN 文本。
 _Avoid_: Banner, Raw certificate, Service fingerprint
 
+**Attack Surface Drift**：
+同一授权 Target 的两份已封存 Attack Surface Inventory 之间、可回溯到 Evidence 的事实差异；它不表示漏洞已经成立。
+_Avoid_: Finding, Vulnerability, Model assessment
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

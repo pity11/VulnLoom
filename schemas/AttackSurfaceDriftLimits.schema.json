@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_surfaces": {
+      "default": 10000,
+      "maximum": 20000,
+      "minimum": 1,
+      "title": "Max Surfaces",
+      "type": "integer"
+    },
+    "max_evidence_refs": {
+      "default": 60000,
+      "maximum": 120000,
+      "minimum": 1,
+      "title": "Max Evidence Refs",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 30.0,
+      "exclusiveMinimum": 0,
+      "maximum": 300,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "AttackSurfaceDriftLimits",
+  "type": "object"
+}

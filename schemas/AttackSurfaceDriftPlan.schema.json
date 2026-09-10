@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "AttackSurfaceDriftLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_surfaces": {
+          "default": 10000,
+          "maximum": 20000,
+          "minimum": 1,
+          "title": "Max Surfaces",
+          "type": "integer"
+        },
+        "max_evidence_refs": {
+          "default": 60000,
+          "maximum": 120000,
+          "minimum": 1,
+          "title": "Max Evidence Refs",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 30.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "AttackSurfaceDriftLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "comparison_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Comparison Id",
+      "type": "string"
+    },
+    "baseline_reduction_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Reduction Id",
+      "type": "string"
+    },
+    "baseline_inventory_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Inventory Id",
+      "type": "string"
+    },
+    "current_reduction_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Reduction Id",
+      "type": "string"
+    },
+    "current_inventory_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Inventory Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "limits": {
+      "$ref": "#/$defs/AttackSurfaceDriftLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "comparison_id",
+    "baseline_reduction_id",
+    "baseline_inventory_id",
+    "current_reduction_id",
+    "current_inventory_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AttackSurfaceDriftPlan",
+  "type": "object"
+}

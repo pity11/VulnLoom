@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "AttackSurfaceChangeKind": {
+      "enum": [
+        "endpoint_added",
+        "endpoint_removed",
+        "peer_set_changed",
+        "final_destination_changed",
+        "http_status_changed",
+        "redirect_behavior_changed",
+        "tls_identity_added",
+        "tls_identity_removed",
+        "tls_version_changed",
+        "cipher_changed",
+        "certificate_changed"
+      ],
+      "title": "AttackSurfaceChangeKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "surface_key": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Surface Key",
+      "type": "string"
+    },
+    "change_kinds": {
+      "items": {
+        "$ref": "#/$defs/AttackSurfaceChangeKind"
+      },
+      "maxItems": 11,
+      "minItems": 1,
+      "title": "Change Kinds",
+      "type": "array"
+    },
+    "baseline_endpoint_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Baseline Endpoint Ids",
+      "type": "array"
+    },
+    "current_endpoint_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Current Endpoint Ids",
+      "type": "array"
+    },
+    "baseline_identity_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Baseline Identity Ids",
+      "type": "array"
+    },
+    "current_identity_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Current Identity Ids",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 120000,
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "surface_key",
+    "change_kinds"
+  ],
+  "title": "AttackSurfaceChange",
+  "type": "object"
+}

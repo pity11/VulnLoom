@@ -131,3 +131,23 @@ the transactional reduction completes.
 Normal CLI commands still cannot start live network Recon. The TLS acceptance test is disabled unless
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1` is set; it creates a temporary CA-trusted certificate and a server bound
 only to a local private non-loopback address, verifies the pinned TLS session, and proves process cleanup.
+
+## R6: deterministic Attack Surface Drift
+
+R6 compares two completed, content-addressed Inventories without running Recon or opening a socket. A typed
+`AttackSurfaceDriftPlan` binds the exact baseline/current reduction and Inventory IDs, stable Target, current
+Scope version, resource limits, deadline, and idempotency key. The baseline may come from an older version of
+the same Scope, but the current Inventory must match the currently approved Scope; Target and Scope identity
+must remain equal, and baseline time must strictly precede current time and comparison time.
+
+The pure comparison groups HTTP endpoints and TLS identities by their digest-only authorized endpoint key.
+It reports endpoint addition/removal, peer-set, final-destination, HTTP status, redirect behavior, TLS identity,
+TLS version, cipher, and leaf-certificate digest changes. Each changed surface carries only content-addressed
+endpoint/Snapshot/Evidence references. A Drift Report is an observation about sealed facts, not a Candidate,
+Finding, vulnerability conclusion, state-changing test, or instruction to expand Scope.
+
+Both source outcomes are reloaded from the authoritative reduction ledger and every Evidence object is checked
+before claim and completion. The drift ledger uses STARTED/COMPLETED checkpoints, idempotent completed replay,
+explicit recovery, and at most three attempts. The CLI commands `prepare-surface-drift`,
+`run-surface-drift-offline`, and `surface-drift-status` call the same application service intended for a future
+API. They expose no live network switch, raw URL, certificate, response, credential, or Provider material.

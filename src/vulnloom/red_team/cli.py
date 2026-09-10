@@ -11,6 +11,9 @@ from vulnloom.domain.models import Scope, utc_now
 from vulnloom.evidence import EvidenceStore
 from vulnloom.workflows import Visibility
 
+from .drift_models import AttackSurfaceDriftLimits, AttackSurfaceDriftPlan
+from .drift_service import AttackSurfaceDriftService
+from .drift_store import AttackSurfaceDriftStore
 from .models import (
     ReconOutcome,
     RedTeamActionKind,
@@ -213,6 +216,83 @@ def _surface_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _prepare_drift(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    with (
+        AttackSurfaceReductionStore(Path(args.surface_db)) as surface_store,
+        AttackSurfaceDriftStore(Path(args.drift_db)) as drift_store,
+    ):
+        plan = AttackSurfaceDriftService(
+            inventory_source=surface_store,
+            drift_store=drift_store,
+            evidence_store=EvidenceStore(Path(args.evidence_root)),
+        ).prepare(
+            baseline_reduction_id=args.baseline_reduction_id,
+            current_reduction_id=args.current_reduction_id,
+            scope=scope,
+            limits=AttackSurfaceDriftLimits(
+                max_surfaces=args.max_surfaces,
+                max_evidence_refs=args.max_evidence_refs,
+                timeout_seconds=args.timeout_seconds,
+            ),
+            now=now,
+            deadline=now + timedelta(seconds=args.ttl_seconds),
+            idempotency_key=args.idempotency_key,
+        )
+    print(json.dumps({"comparison": plan.model_dump(mode="json")}, indent=2))
+    return 0
+
+
+def _run_drift(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    plan = AttackSurfaceDriftPlan.model_validate_json(
+        Path(args.comparison_file).read_text(encoding="utf-8")
+    )
+    with (
+        AttackSurfaceReductionStore(Path(args.surface_db)) as surface_store,
+        AttackSurfaceDriftStore(Path(args.drift_db)) as drift_store,
+    ):
+        service = AttackSurfaceDriftService(
+            inventory_source=surface_store,
+            drift_store=drift_store,
+            evidence_store=EvidenceStore(Path(args.evidence_root)),
+        )
+        outcome = (
+            service.recover(plan, scope=scope, now=now)
+            if args.recover
+            else service.execute(plan, scope=scope, now=now)
+        )
+    print(json.dumps({"outcome": outcome.model_dump(mode="json")}, indent=2))
+    return 0
+
+
+def _drift_status(args: argparse.Namespace) -> int:
+    with AttackSurfaceDriftStore(Path(args.drift_db)) as store:
+        state = store.state(args.comparison_id)
+        if state is None:
+            raise ValueError("Attack Surface drift is unavailable")
+        payload = {
+            "comparison_id": args.comparison_id,
+            "state": state[0].value,
+            "attempt": state[1],
+        }
+        if state[0].value == "completed":
+            outcome = store.outcome(args.comparison_id)
+            payload.update(
+                {
+                    "report_id": outcome.report.report_id,
+                    "compared_surface_count": outcome.report.compared_surface_count,
+                    "changed_surface_count": len(outcome.report.changes),
+                    "evidence_count": len(outcome.report.evidence_refs),
+                    "cleanup_complete": outcome.cleanup_complete,
+                }
+            )
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
 def _transition(args: argparse.Namespace) -> int:
     now = utc_now()
     with RedTeamStore(Path(args.red_team_db)) as store:
@@ -312,6 +392,34 @@ def register_red_team_commands(subparsers) -> None:
     surface_status.add_argument("--reduction-id", required=True)
     surface_status.add_argument("--surface-db", default=".vulnloom/red-team-surface.db")
     surface_status.set_defaults(handler=_surface_status)
+
+    prepare_drift = actions.add_parser("prepare-surface-drift")
+    prepare_drift.add_argument("--baseline-reduction-id", required=True)
+    prepare_drift.add_argument("--current-reduction-id", required=True)
+    prepare_drift.add_argument("--scope-file", required=True)
+    prepare_drift.add_argument("--ttl-seconds", type=int, default=300)
+    prepare_drift.add_argument("--max-surfaces", type=int, default=10_000)
+    prepare_drift.add_argument("--max-evidence-refs", type=int, default=60_000)
+    prepare_drift.add_argument("--timeout-seconds", type=float, default=30.0)
+    prepare_drift.add_argument("--idempotency-key", required=True)
+    prepare_drift.add_argument("--surface-db", default=".vulnloom/red-team-surface.db")
+    prepare_drift.add_argument("--drift-db", default=".vulnloom/red-team-drift.db")
+    prepare_drift.add_argument("--evidence-root", default=".vulnloom/evidence")
+    prepare_drift.set_defaults(handler=_prepare_drift)
+
+    run_drift = actions.add_parser("run-surface-drift-offline")
+    run_drift.add_argument("--comparison-file", required=True)
+    run_drift.add_argument("--scope-file", required=True)
+    run_drift.add_argument("--recover", action="store_true")
+    run_drift.add_argument("--surface-db", default=".vulnloom/red-team-surface.db")
+    run_drift.add_argument("--drift-db", default=".vulnloom/red-team-drift.db")
+    run_drift.add_argument("--evidence-root", default=".vulnloom/evidence")
+    run_drift.set_defaults(handler=_run_drift)
+
+    drift_status = actions.add_parser("surface-drift-status")
+    drift_status.add_argument("--comparison-id", required=True)
+    drift_status.add_argument("--drift-db", default=".vulnloom/red-team-drift.db")
+    drift_status.set_defaults(handler=_drift_status)
 
     for name in ("cancel", "kill", "expire"):
         command = actions.add_parser(name)
