@@ -443,13 +443,20 @@ class DockerSandboxRunner:
             "--ulimit",
             f"nofile={profile.limits.open_files}:{profile.limits.open_files}",
             "--tmpfs",
-            _tmpfs("/tmp", profile.limits.tmp_bytes, profile.run_as_uid, profile.run_as_gid),
+            _tmpfs(
+                "/tmp",
+                profile.limits.tmp_bytes,
+                profile.run_as_uid,
+                profile.run_as_gid,
+                executable=False,
+            ),
             "--tmpfs",
             _tmpfs(
                 "/workspace/output",
                 profile.limits.file_bytes,
                 profile.run_as_uid,
                 profile.run_as_gid,
+                executable=profile.execute_target_code,
             ),
             "--init",
             "--log-driver",
@@ -492,10 +499,16 @@ class DockerSandboxRunner:
         actual_env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
         expected_tmpfs = {
             "/tmp": _tmpfs_options(
-                profile.limits.tmp_bytes, profile.run_as_uid, profile.run_as_gid
+                profile.limits.tmp_bytes,
+                profile.run_as_uid,
+                profile.run_as_gid,
+                executable=False,
             ),
             "/workspace/output": _tmpfs_options(
-                profile.limits.file_bytes, profile.run_as_uid, profile.run_as_gid
+                profile.limits.file_bytes,
+                profile.run_as_uid,
+                profile.run_as_gid,
+                executable=profile.execute_target_code,
             ),
         }
         nofile = next(
@@ -583,12 +596,15 @@ class DockerSandboxRunner:
         )
 
 
-def _tmpfs(destination: str, size: int, uid: int, gid: int) -> str:
-    return f"{destination}:{_tmpfs_options(size, uid, gid)}"
+def _tmpfs(
+    destination: str, size: int, uid: int, gid: int, *, executable: bool
+) -> str:
+    return f"{destination}:{_tmpfs_options(size, uid, gid, executable=executable)}"
 
 
-def _tmpfs_options(size: int, uid: int, gid: int) -> str:
-    return f"rw,noexec,nosuid,nodev,size={size},uid={uid},gid={gid},mode=0700"
+def _tmpfs_options(size: int, uid: int, gid: int, *, executable: bool) -> str:
+    execution = "exec," if executable else "noexec,"
+    return f"rw,{execution}nosuid,nodev,size={size},uid={uid},gid={gid},mode=0700"
 
 
 def _cpu_limit(cpu_millis: int, wall_seconds: int) -> str:

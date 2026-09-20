@@ -1,0 +1,13 @@
+**
+!src/
+!src/vulnloom/
+!src/vulnloom/runners/
+!src/vulnloom/runners/codeql_query_wrapper.py
+!src/vulnloom/source_hunt/
+!src/vulnloom/source_hunt/native_stage.py
+!tests/
+!tests/fixtures/
+!tests/fixtures/codeql-admission/
+!tests/fixtures/codeql-admission/fake-codeql.py
+!tests/fixtures/r9_native/
+!tests/fixtures/r9_native/Dockerfile

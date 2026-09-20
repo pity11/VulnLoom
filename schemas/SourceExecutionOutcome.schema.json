@@ -356,6 +356,19 @@
           "default": null,
           "title": "Crash Fingerprint"
         },
+        "crash_input_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crash Input Digest"
+        },
         "sanitizer": {
           "anyOf": [
             {

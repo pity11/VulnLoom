@@ -40,6 +40,18 @@ form a digest chain beginning at the Candidate digest. Fuzz receipts require non
 fingerprint; Sanitizer and PoV receipts must preserve that fingerprint, and the final receipt must explicitly
 prove independent replay. Free-form logs can accompany a receipt but cannot substitute for one.
 
+R9 adds a sealed native tool registry and a strict `vulnloom.source-tool-report.v1` adapter. The trusted
+adapter rejects duplicate JSON keys, registry/image/argv/environment drift, excess output, raw prose, and
+incomplete Crash identity before generating the stage receipt. A Crash Signature is computed from the
+sanitizer, failure class, signal, and normalized address-free top frames; the triggering input digest is kept
+separate so different inputs for the same defect deduplicate into one transactional Crash record.
+
+The fixed native Benchmark compiles an intentionally vulnerable C fixture, uses observed prefix coverage to
+grow the triggering input, requires a genuine ASAN heap-buffer-overflow, repeats the input in the sanitizer
+stage, and replays it again in a fresh PoV container. The resulting PoV artifact binds Candidate, input,
+Crash Signature, sanitizer, execution and Benchmark case. Closing and reopening the execution and Crash
+stores before qualification is covered by the offline regression suite.
+
 ## Local CLI contract
 
 The `vulnloom source-hunt` command contains the stable local control surface:
@@ -55,14 +67,27 @@ execution is intentionally deployment-owned: the trusted Control Plane must prov
 approval record. The default test suite uses the fake Runner; the opt-in Docker test proves the complete
 five-container isolation and cleanup boundary without accessing a network.
 
+The native fixed-Benchmark acceptance is opt-in and never pulls an image during execution:
+
+```bash
+docker build --platform linux/amd64 --network none --pull=false \
+  -f tests/fixtures/r9_native/Dockerfile -t vulnloom-r9-native:local .
+VULNLOOM_R9_NATIVE_INTEGRATION=1 \
+  .venv/bin/pytest -q tests/test_source_hunt_docker_integration.py -k real_native
+```
+
+The Runner keeps `/tmp` non-executable. Only an Approval-gated Validation profile with
+`execute_target_code=true` receives an executable, bounded `/workspace/output` tmpfs; Static and Report
+profiles retain `noexec`. The source mount and root filesystem remain read-only.
+
 ## Current boundary
 
-V1 completes the safe Source Hunt orchestration and shared Candidate-to-report evidence chain. The Python
-adapter provides AST navigation; JavaScript/TypeScript currently provides conservative navigation only.
-Dedicated C/C++ build recipes, coverage-guided fuzzer implementations, ASAN/UBSAN parsing, automatic
-harness synthesis, patch generation, and blind-holdout quality gates remain R9 depth work. Until a
-registered adapter supplies genuine stage evidence, the typed five-stage receipt contract must not be
-described as an actual fuzzing or sanitizer result.
+V1 completes the safe Source Hunt orchestration and shared Candidate-to-report evidence chain. R9 now also
+closes its fixed-Benchmark acceptance with a dedicated C coverage/ASAN adapter, persistent Crash
+deduplication, and independently replayed PoV qualification. The Python adapter provides AST navigation;
+JavaScript/TypeScript currently provides conservative navigation only. General-purpose project build
+recipes, UBSAN/MSAN variants, automatic harness synthesis, patch generation, and blind-holdout quality gates
+remain later depth work and must not be inferred from the fixed Benchmark adapter.
 
 No Source Hunt command accepts a Provider secret, full private endpoint, disclosure token, or raw
 Authorization response. Network integration and real model calls remain explicit, disabled-by-default

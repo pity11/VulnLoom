@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "SourceCrashFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "pattern": "^[A-Za-z0-9_.+-]{1,128}$",
+          "title": "Module",
+          "type": "string"
+        },
+        "symbol": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_:.<>~+-]{0,255}$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "source_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Path",
+          "type": "string"
+        },
+        "source_line": {
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Source Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "module",
+        "symbol",
+        "source_path",
+        "source_line"
+      ],
+      "title": "SourceCrashFrame",
+      "type": "object"
+    },
+    "SourceCrashSignal": {
+      "enum": [
+        "abort",
+        "bus",
+        "fpe",
+        "ill",
+        "segv"
+      ],
+      "title": "SourceCrashSignal",
+      "type": "string"
+    },
+    "SourceCrashSignature": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "sanitizer": {
+          "$ref": "#/$defs/SourceSanitizer"
+        },
+        "signal": {
+          "$ref": "#/$defs/SourceCrashSignal"
+        },
+        "failure_class": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Failure Class",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/SourceCrashFrame"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fingerprint",
+        "sanitizer",
+        "signal",
+        "failure_class",
+        "frames"
+      ],
+      "title": "SourceCrashSignature",
+      "type": "object"
+    },
+    "SourceDynamicToolchain": {
+      "enum": [
+        "native_coverage_asan"
+      ],
+      "title": "SourceDynamicToolchain",
+      "type": "string"
+    },
+    "SourceExecutionStage": {
+      "enum": [
+        "build",
+        "harness",
+        "fuzz",
+        "sanitizer",
+        "pov_replay"
+      ],
+      "title": "SourceExecutionStage",
+      "type": "string"
+    },
+    "SourceSanitizer": {
+      "enum": [
+        "address",
+        "undefined",
+        "memory"
+      ],
+      "title": "SourceSanitizer",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "protocol": {
+      "pattern": "^vulnloom\\.source-tool-report\\.v1$",
+      "title": "Protocol",
+      "type": "string"
+    },
+    "registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "toolchain": {
+      "$ref": "#/$defs/SourceDynamicToolchain"
+    },
+    "tool_version": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$",
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "stage": {
+      "$ref": "#/$defs/SourceExecutionStage"
+    },
+    "input_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Digest",
+      "type": "string"
+    },
+    "output_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Output Digest",
+      "type": "string"
+    },
+    "coverage_edges": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Coverage Edges",
+      "type": "integer"
+    },
+    "crash_input_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Crash Input Digest"
+    },
+    "crash_signature": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceCrashSignature"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pov_reproduced": {
+      "default": false,
+      "title": "Pov Reproduced",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "protocol",
+    "registration_id",
+    "toolchain",
+    "tool_version",
+    "adapter_digest",
+    "stage",
+    "input_digest",
+    "output_digest"
+  ],
+  "title": "SourceToolReport",
+  "type": "object"
+}

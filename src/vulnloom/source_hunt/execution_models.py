@@ -42,6 +42,7 @@ class SourceStageReceipt(DomainModel):
     output_digest: Digest
     coverage_edges: int = Field(default=0, ge=0)
     crash_fingerprint: Digest | None = None
+    crash_input_digest: Digest | None = None
     sanitizer: SourceSanitizer | None = None
     pov_reproduced: bool = False
 
@@ -55,6 +56,7 @@ class SourceStageReceipt(DomainModel):
             valid = (
                 self.coverage_edges == 0
                 and self.crash_fingerprint is None
+                and self.crash_input_digest is None
                 and self.sanitizer is None
                 and not self.pov_reproduced
             )

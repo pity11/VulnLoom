@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "SourceDynamicToolchain": {
+      "enum": [
+        "native_coverage_asan"
+      ],
+      "title": "SourceDynamicToolchain",
+      "type": "string"
+    },
+    "SourceExecutionStage": {
+      "enum": [
+        "build",
+        "harness",
+        "fuzz",
+        "sanitizer",
+        "pov_replay"
+      ],
+      "title": "SourceExecutionStage",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "registration_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "stage": {
+      "$ref": "#/$defs/SourceExecutionStage"
+    },
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "toolchain": {
+      "$ref": "#/$defs/SourceDynamicToolchain"
+    },
+    "tool_version": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$",
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "adapter_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Adapter Id",
+      "type": "string"
+    },
+    "adapter_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adapter Digest",
+      "type": "string"
+    },
+    "argv": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 2,
+      "title": "Argv",
+      "type": "array"
+    },
+    "environment": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "max_report_bytes": {
+      "default": 1048576,
+      "maximum": 1048576,
+      "minimum": 1,
+      "title": "Max Report Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "registration_id",
+    "stage",
+    "tool_id",
+    "toolchain",
+    "tool_version",
+    "image_digest",
+    "adapter_id",
+    "adapter_digest",
+    "argv"
+  ],
+  "title": "SourceDynamicToolRegistration",
+  "type": "object"
+}

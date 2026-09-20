@@ -1,0 +1,55 @@
+{
+  "$defs": {
+    "SourceSanitizer": {
+      "enum": [
+        "address",
+        "undefined",
+        "memory"
+      ],
+      "title": "SourceSanitizer",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "expected_crash_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Crash Fingerprint",
+      "type": "string"
+    },
+    "expected_sanitizer": {
+      "$ref": "#/$defs/SourceSanitizer"
+    }
+  },
+  "required": [
+    "case_id",
+    "name",
+    "target_version",
+    "candidate_digest",
+    "expected_crash_fingerprint",
+    "expected_sanitizer"
+  ],
+  "title": "SourcePovBenchmarkCase",
+  "type": "object"
+}

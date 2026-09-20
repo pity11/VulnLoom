@@ -1146,9 +1146,12 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 
 验收：在固定Benchmark中从源码自动得到可重复Crash/PoV，重启后可重放，构建和Fuzz容器无宿主凭据、Docker socket或残留资源。
 
-实现状态（2026-09-09）：固定五阶段类型协议、确定性计划、精确 Approval、无网络 Sandbox、Evidence 绑定、
-阶段 receipt 摘要链、Crash 指纹连续性、中断恢复和真实 Docker 隔离/清理测试已经完成。当前 Docker 测试使用注册的阶段探针，不等同于真实
-coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重和 Benchmark PoV 仍待实现，R9 未完成。
+实现状态（2026-09-20）：R9 固定 Benchmark 验收已关闭。除固定五阶段类型协议、精确 Approval、无网络
+Sandbox、Evidence 摘要链、中断恢复外，现已增加内容寻址的 native coverage/ASAN 工具注册、严格结构化输出
+adapter、去地址化 Crash Signature、事务性跨运行去重和重启后 PoV Benchmark Gate。opt-in Docker 验收从源码
+实际得到 coverage-guided 输入、ASAN heap-buffer-overflow 和独立 PoV 重放，并证明五个容器非 root、无 capability、
+无网络、源码/根只读且无残留。通用项目构建 recipe、UBSAN/MSAN、自动 Harness/Patch 和 Blind Holdout 属于后续增强，
+不由这个固定 Benchmark 的通过结果推断。
 
 ### R10：Hybrid 上线验收
 

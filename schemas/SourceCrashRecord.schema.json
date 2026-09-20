@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "SourceCrashFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "pattern": "^[A-Za-z0-9_.+-]{1,128}$",
+          "title": "Module",
+          "type": "string"
+        },
+        "symbol": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_:.<>~+-]{0,255}$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "source_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Path",
+          "type": "string"
+        },
+        "source_line": {
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Source Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "module",
+        "symbol",
+        "source_path",
+        "source_line"
+      ],
+      "title": "SourceCrashFrame",
+      "type": "object"
+    },
+    "SourceCrashSignal": {
+      "enum": [
+        "abort",
+        "bus",
+        "fpe",
+        "ill",
+        "segv"
+      ],
+      "title": "SourceCrashSignal",
+      "type": "string"
+    },
+    "SourceCrashSignature": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "sanitizer": {
+          "$ref": "#/$defs/SourceSanitizer"
+        },
+        "signal": {
+          "$ref": "#/$defs/SourceCrashSignal"
+        },
+        "failure_class": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Failure Class",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/SourceCrashFrame"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fingerprint",
+        "sanitizer",
+        "signal",
+        "failure_class",
+        "frames"
+      ],
+      "title": "SourceCrashSignature",
+      "type": "object"
+    },
+    "SourceSanitizer": {
+      "enum": [
+        "address",
+        "undefined",
+        "memory"
+      ],
+      "title": "SourceSanitizer",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "signature": {
+      "$ref": "#/$defs/SourceCrashSignature"
+    },
+    "canonical_input_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Input Digest",
+      "type": "string"
+    },
+    "first_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "First Plan Id",
+      "type": "string"
+    },
+    "last_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Last Plan Id",
+      "type": "string"
+    },
+    "observation_count": {
+      "minimum": 1,
+      "title": "Observation Count",
+      "type": "integer"
+    },
+    "observed_plan_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Observed Plan Ids",
+      "type": "array"
+    },
+    "first_observed_at": {
+      "format": "date-time",
+      "title": "First Observed At",
+      "type": "string"
+    },
+    "last_observed_at": {
+      "format": "date-time",
+      "title": "Last Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fingerprint",
+    "signature",
+    "canonical_input_digest",
+    "first_plan_id",
+    "last_plan_id",
+    "observation_count",
+    "observed_plan_ids",
+    "first_observed_at",
+    "last_observed_at"
+  ],
+  "title": "SourceCrashRecord",
+  "type": "object"
+}

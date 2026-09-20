@@ -47,6 +47,7 @@ from .execution_models import (
     SOURCE_EXECUTION_TOOLS,
     SourceExecutionOutcome,
     SourceExecutionPlan,
+    SourceExecutionStage,
     SourceExecutionStatus,
     SourceExecutionStep,
     SourceStageReceipt,
@@ -78,6 +79,7 @@ class SourceExecutionPlanningService:
         deadline: datetime,
         idempotency_key: str,
         stage_wall_seconds: int = 600,
+        tool_registry: SourceExecutionToolRegistry | None = None,
     ) -> SourceExecutionPlan:
         if (
             scope.state is not ScopeState.APPROVED
@@ -100,11 +102,21 @@ class SourceExecutionPlanningService:
         profile = source_execution_profile(
             image_digest=image_digest, snapshot_id=index.manifest_id
         )
+        if tool_registry is not None and (
+            tool_registry.digest != tool_registry_digest
+            or any(
+                tool_registry.get(stage).image_digest != image_digest
+                for stage in SOURCE_EXECUTION_STAGES
+            )
+        ):
+            raise SourceExecutionRejected("source dynamic tool registry planning drifted")
         candidate_digest = candidate_content_digest(candidate)
         profile_digest = sandbox_profile_digest(profile)
         policy_digest = PolicyEngine(scope).policy_digest
         steps = []
+        expected_stage_input = candidate_digest
         for stage in SOURCE_EXECUTION_STAGES:
+            registration = tool_registry.get(stage) if tool_registry is not None else None
             stable_name = f"vulnloom:source-execution:{idempotency_key}:{stage.value}"
             task = TaskEnvelope(
                 task_id=uuid5(NAMESPACE_URL, f"{stable_name}:task"),
@@ -137,14 +149,31 @@ class SourceExecutionPlanningService:
                         profile=profile,
                         invocation=ToolInvocation(
                             tool_id=SOURCE_EXECUTION_TOOLS[stage],
-                            arguments=(),
+                            arguments=(
+                                (
+                                    registration.registration_id,
+                                    expected_stage_input,
+                                    registration.adapter_digest,
+                                    registration.tool_version,
+                                )
+                                if registration is not None
+                                else ()
+                            ),
                             working_directory="source",
                         ),
-                        environment={"VULNLOOM_STAGE": stage.value},
+                        environment=(
+                            tool_registry.get(stage).environment
+                            if tool_registry is not None
+                            else {"VULNLOOM_STAGE": stage.value}
+                        ),
                         idempotency_key=f"{idempotency_key}:{stage.value}:run",
                     ),
                 )
             )
+            if registration is not None:
+                expected_stage_input = canonical_digest(
+                    {"stage": stage.value, "input_digest": expected_stage_input}
+                )
         return SourceExecutionPlan.create(
             investigation_plan_id=investigation.plan_id,
             investigation_checkpoint_id=investigation.checkpoint_id,
@@ -165,14 +194,34 @@ class SourceRunner(Protocol):
     def execute(self, request, *, now: datetime) -> SandboxRunResult: ...
 
 
+class SourceExecutionToolRegistration(Protocol):
+    registration_id: str
+    image_digest: str
+    adapter_digest: str
+    tool_version: str
+    environment: dict[str, str]
+
+
+class SourceExecutionToolRegistry(Protocol):
+    digest: str
+
+    def get(self, stage: SourceExecutionStage) -> SourceExecutionToolRegistration: ...
+
+
 class SourceExecutionEvidenceAdapter(Protocol):
+    registry_digest: str | None
+
     def capture(
         self, *, stage, result: SandboxRunResult, target_version: str
     ) -> tuple[str, ...]: ...
 
+    def validate_request(self, stage, request) -> None: ...
+
 
 class RunnerOutputEvidenceAdapter:
     """Turns bounded Runner outputs into redacted, content-addressed Evidence."""
+
+    registry_digest = None
 
     def __init__(self, *, output_store: RunnerOutputStore, evidence_store: EvidenceStore):
         self.output_store = output_store
@@ -197,6 +246,10 @@ class RunnerOutputEvidenceAdapter:
             )
             references.append(evidence.evidence_id)
         return tuple(references)
+
+    @staticmethod
+    def validate_request(stage, request) -> None:
+        return None
 
 
 class SourceExecutionService:
@@ -368,6 +421,18 @@ class SourceExecutionService:
         expected_candidate = f"candidate:{plan.candidate_digest}"
         for step in plan.steps:
             request = step.request
+            registry_digest = (
+                self.output_evidence_adapter.registry_digest
+                if self.output_evidence_adapter is not None
+                else None
+            )
+            if (
+                registry_digest is not None
+                and request.task.tool_registry_digest != registry_digest
+            ):
+                raise SourceExecutionRejected("source dynamic tool registry drifted")
+            if self.output_evidence_adapter is not None:
+                self.output_evidence_adapter.validate_request(step.stage, request)
             snapshot_mounts = tuple(
                 mount
                 for mount in request.profile.mounts

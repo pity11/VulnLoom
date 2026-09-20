@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "SourceCrashFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "pattern": "^[A-Za-z0-9_.+-]{1,128}$",
+          "title": "Module",
+          "type": "string"
+        },
+        "symbol": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_:.<>~+-]{0,255}$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "source_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Path",
+          "type": "string"
+        },
+        "source_line": {
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Source Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "module",
+        "symbol",
+        "source_path",
+        "source_line"
+      ],
+      "title": "SourceCrashFrame",
+      "type": "object"
+    },
+    "SourceCrashSignal": {
+      "enum": [
+        "abort",
+        "bus",
+        "fpe",
+        "ill",
+        "segv"
+      ],
+      "title": "SourceCrashSignal",
+      "type": "string"
+    },
+    "SourceSanitizer": {
+      "enum": [
+        "address",
+        "undefined",
+        "memory"
+      ],
+      "title": "SourceSanitizer",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "sanitizer": {
+      "$ref": "#/$defs/SourceSanitizer"
+    },
+    "signal": {
+      "$ref": "#/$defs/SourceCrashSignal"
+    },
+    "failure_class": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Failure Class",
+      "type": "string"
+    },
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/SourceCrashFrame"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Frames",
+      "type": "array"
+    }
+  },
+  "required": [
+    "fingerprint",
+    "sanitizer",
+    "signal",
+    "failure_class",
+    "frames"
+  ],
+  "title": "SourceCrashSignature",
+  "type": "object"
+}

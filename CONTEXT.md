@@ -54,6 +54,14 @@ _Avoid_: Candidate, Model conclusion
 共享同一根因、修复点或安全不变量的一组 Candidate 或 Finding。
 _Avoid_: Same payload
 
+**Crash Signature**：
+由 sanitizer、故障类别和去地址化的稳定栈帧构成的内容寻址崩溃身份；触发输入和原始日志不属于身份。
+_Avoid_: Crash log hash, Input hash, Process address
+
+**Proof of Vulnerability (PoV)**：
+绑定触发输入摘要与 Crash Signature、并在独立无网络沙盒中重复得到同一签名的最小复现证据。
+_Avoid_: Fuzzer finding, Crash input, Unverified reproducer
+
 ## 证据与披露
 
 **Evidence**：

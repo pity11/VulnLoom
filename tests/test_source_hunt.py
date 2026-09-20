@@ -160,26 +160,28 @@ def _snapshot(tmp_path, scope, files):
     )
 
 
-def _indexed(tmp_path, approved_scope, now, *, clock=None):
+def _indexed(tmp_path, approved_scope, now, *, clock=None, extra_files=None):
+    files = {
+        "api/routes.py": (
+            "from core.service import load_user\n"
+            "def route():\n    return load_user()\n"
+        ),
+        "core/service.py": (
+            "def load_user():\n    return query_user()\n"
+            "def query_user():\n    return 'Authorization: Bearer raw-secret'\n"
+        ),
+        "web/handler.ts": (
+            "export function handler() { return lookupUser(); }\n"
+            "export const lookupUser = (id) => database.find(id);\n"
+        ),
+        "package.json": "{}\n",
+        "pyproject.toml": "[project]\nname='fixture'\n",
+    }
+    files.update(extra_files or {})
     snapshot, scope, root = _snapshot(
         tmp_path,
         approved_scope,
-        {
-            "api/routes.py": (
-                "from core.service import load_user\n"
-                "def route():\n    return load_user()\n"
-            ),
-            "core/service.py": (
-                "def load_user():\n    return query_user()\n"
-                "def query_user():\n    return 'Authorization: Bearer raw-secret'\n"
-            ),
-            "web/handler.ts": (
-                "export function handler() { return lookupUser(); }\n"
-                "export const lookupUser = (id) => database.find(id);\n"
-            ),
-            "package.json": "{}\n",
-            "pyproject.toml": "[project]\nname='fixture'\n",
-        },
+        files,
     )
     store = SourceHuntStore(tmp_path / "source-hunt.sqlite3")
     service = SourceHuntService(
@@ -554,8 +556,10 @@ class _ScriptedRunner:
         return self.delegate.execute(request, now=now, scenario=next(self.scenarios))
 
 
-def _execution_fixture(tmp_path, approved_scope, now, *, image=None):
-    service, hunt_store, index, scope = _indexed(tmp_path, approved_scope, now)
+def _execution_fixture(tmp_path, approved_scope, now, *, image=None, extra_files=None):
+    service, hunt_store, index, scope = _indexed(
+        tmp_path, approved_scope, now, extra_files=extra_files
+    )
     investigation_plan, checkpoint = service.start(
         index=index,
         scope=scope,

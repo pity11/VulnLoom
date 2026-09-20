@@ -123,7 +123,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation now also exposes the Source Hunt V1 application service and nested CLI: bounded multi-language indexing, observation-driven cross-file investigation, integrity-checked redacted source windows, Candidate materialization, deterministic five-stage execution planning, resumable validation, authoritative Critic/Finding promotion, and report drafting. Dedicated native fuzz/sanitizer adapters and blind-holdout acceptance remain R9 work. External disclosure remains a separate future stage.
+The current implementation now also exposes the Source Hunt V1 application service and nested CLI: bounded multi-language indexing, observation-driven cross-file investigation, integrity-checked redacted source windows, Candidate materialization, deterministic five-stage execution planning, resumable validation, authoritative Critic/Finding promotion, and report drafting. R9 fixed-Benchmark acceptance adds a sealed native coverage/ASAN adapter, normalized persistent Crash deduplication, and independently replayed PoV qualification. General project recipes and blind-holdout acceptance remain later depth work. External disclosure remains a separate future stage.
 
 Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered host shell access remain out of scope. The first isolated local HTTP HEAD Recon admission is implemented; broader authorized Web reconnaissance remains staged in the product architecture roadmap.
 

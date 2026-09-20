@@ -151,7 +151,9 @@ def _inspection(profile, source: Path):
                     "rw,noexec,nosuid,nodev,size=268435456,uid=65532,gid=65532,mode=0700"
                 ),
                 "/workspace/output": (
-                    "rw,noexec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"
+                    "rw,exec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"
+                    if profile.execute_target_code
+                    else "rw,noexec,nosuid,nodev,size=67108864,uid=65532,gid=65532,mode=0700"
                 ),
             },
             "Ulimits": [{"Name": "nofile", "Soft": 1024, "Hard": 1024}],

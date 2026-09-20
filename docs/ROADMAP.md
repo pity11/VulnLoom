@@ -1156,10 +1156,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   `MUTATE_TARGET_STATE` Approval。
 - 每个成功阶段必须提供唯一的内容寻址 typed receipt，并从 Candidate digest 串成摘要链；Fuzz receipt 必须包含
   正覆盖边数和 Crash 指纹，Sanitizer 与 PoV 必须维持同一指纹，普通日志或合成 `completed` 文本不能冒充结果。
-- 默认测试只使用 fake adapter；opt-in Docker 验收已实际证明五阶段容器非 root、无 capability、
-  `NoNewPrivs`、源码只读、无默认路由、无 Docker socket、无模型 Key 继承和无残留容器。
-- 本里程碑完成的是安全控制面和端到端证据链。专用 C/C++ toolchain、coverage-guided fuzzer、ASAN/UBSAN
-  解析、Crash 去重、自动 Harness/Patch 和 blind holdout 仍属于 R9 深化，不能用合成阶段输出冒充真实结果。
+- 新增固定 native coverage/ASAN 工具注册和严格结构化报告 adapter；Crash Signature 只使用 sanitizer、
+  failure class、signal 与去地址化栈帧，触发输入摘要独立绑定。SQLite Crash 目录提供幂等跨运行去重。
+- PoV Benchmark Gate 重新读取权威执行与 Crash 记录，只接受 Fuzz→Sanitizer→独立 PoV 三阶段一致的签名和输入。
+- 默认测试只使用 fake adapter；opt-in Docker 验收已实际从固定 C 源码得到 coverage-guided 输入与 ASAN
+  heap-buffer-overflow，并证明五阶段容器非 root、无 capability、`NoNewPrivs`、源码/根只读、无默认路由、
+  无 Docker socket、无模型 Key 继承和无残留容器。R9 固定 Benchmark 验收已关闭。
+- 通用项目构建 recipe、UBSAN/MSAN、自动 Harness/Patch 和 blind holdout 仍属于后续增强，不能从固定 Benchmark
+  的通过结果外推。
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
