@@ -41,7 +41,13 @@ from .offline import (
 )
 from .output import RunnerOutputCaptureFailed, RunnerOutputStore
 from .preflight import RunnerIdempotencyConflict, RunnerRejected
-from .profiles import analyzer_profile, report_profile, static_profile, validation_profile
+from .profiles import (
+    analyzer_profile,
+    post_exploitation_profile,
+    report_profile,
+    static_profile,
+    validation_profile,
+)
 
 __all__ = [
     "CleanupReport",
@@ -79,6 +85,7 @@ __all__ = [
     "WorkingDirectory",
     "build_worker_environment",
     "analyzer_profile",
+    "post_exploitation_profile",
     "report_profile",
     "sandbox_profile_digest",
     "static_profile",

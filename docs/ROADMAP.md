@@ -1167,7 +1167,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R9（可信定期 Endpoint 检查触发控制面）
+### Authorized Red Team R0.1–R11.1（攻击链可信离线控制面）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1230,6 +1230,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 物化超时会取消已经创建但尚未执行的 Flow 和 reservation；清理无法证明或恢复次数耗尽时 Schedule 自动暂停。
   CLI 只提供 create/trigger/recover/status 和生命周期命令，输出不包含完整 endpoint 或路径，也没有后台 daemon、
   crawler 或 live 网络开关。
+- R11.1 新增封存的 AttackGraph、有限 Objective、连续 DAG Action 和事务 Attack Chain checkpoint。Graph 精确绑定
+  Flow/Target/Scope，首节点固定为唯一 Initial Access，末节点固定为 Objective 验证，运行时不可插入节点、跳过
+  依赖或更换目标。
+- 每个节点要求绑定自身 digest 的 `EXECUTE_RED_TEAM_ACTION` Approval；Initial Access 同时要求既有
+  `MUTATE_TARGET_STATE` Policy Approval。父 Flow Kill Switch、Scope 漂移、过期、缺少前置或任一批准都会在
+  adapter 调用前拒绝，并写入只含 digest/reason/Approval ID 的脱敏审计。
+- Post-exploitation Sandbox Profile 固定无网络、不可执行 Target、无 capability、只读根和 Evidence-only 输入，
+  只允许两个非网络结果工具。默认链执行仍为 fake adapter；隔离靶场真实多步链与攻击路径报告尚未验收，R11
+  总体未关闭。
 
 R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。

@@ -128,6 +128,32 @@ def report_profile(*, image_digest: str, evidence_object_id: str) -> SandboxProf
     )
 
 
+def post_exploitation_profile(
+    *, image_digest: str, evidence_object_id: str
+) -> SandboxProfile:
+    """Create the R11 analysis profile; network actions remain adapter-owned."""
+    return SandboxProfile(
+        kind=SandboxProfileKind.POST_EXPLOITATION,
+        image_digest=image_digest,
+        run_as_uid=65_532,
+        run_as_gid=65_532,
+        mounts=(
+            SandboxMount(
+                kind="evidence",
+                destination="/workspace/evidence",
+                object_id=evidence_object_id,
+                read_only=True,
+            ),
+            *_scratch_mounts(),
+        ),
+        allowed_tools=frozenset(
+            {"red_team.evidence_read", "red_team.result_write"}
+        ),
+        execute_target_code=False,
+        limits=_default_limits(wall_seconds=300),
+    )
+
+
 def _default_limits(*, wall_seconds: int) -> SandboxLimits:
     return SandboxLimits(
         wall_seconds=wall_seconds,

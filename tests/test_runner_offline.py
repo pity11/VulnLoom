@@ -21,6 +21,7 @@ from vulnloom.runners import (
     SandboxRunResult,
     SandboxRunStatus,
     ToolInvocation,
+    post_exploitation_profile,
     report_profile,
     sandbox_profile_digest,
     static_profile,
@@ -73,6 +74,7 @@ def test_profile_factories_are_hardened_and_deterministic():
         ),
     )
     report = report_profile(image_digest=IMAGE, evidence_object_id=EVIDENCE)
+    post_exploitation = post_exploitation_profile(image_digest=IMAGE, evidence_object_id=EVIDENCE)
 
     assert sandbox_profile_digest(static) == sandbox_profile_digest(static)
     assert static.network_mode.value == "none"
@@ -80,10 +82,17 @@ def test_profile_factories_are_hardened_and_deterministic():
     assert validation.network_grants[0].schemes == frozenset({"https"})
     assert report.network_mode.value == "none"
     assert not report.execute_target_code
-    assert all(profile.run_as_uid != 0 for profile in (static, validation, report))
+    assert post_exploitation.network_mode.value == "none"
+    assert post_exploitation.allowed_tools == {
+        "red_team.evidence_read",
+        "red_team.result_write",
+    }
+    assert all(
+        profile.run_as_uid != 0 for profile in (static, validation, report, post_exploitation)
+    )
     assert all(
         profile.read_only_root and not profile.capabilities
-        for profile in (static, validation, report)
+        for profile in (static, validation, report, post_exploitation)
     )
     reparsed = SandboxProfile.model_validate(static.model_dump(mode="python"))
     assert sandbox_profile_digest(reparsed) == sandbox_profile_digest(static)
@@ -112,6 +121,20 @@ def test_mount_contract_rejects_host_paths_and_report_source_mount():
     raw = static.model_dump(mode="python")
     raw["mounts"][0]["destination"] = "/var/run/docker.sock"
     with pytest.raises(ValidationError, match="registered slot"):
+        SandboxProfile.model_validate(raw)
+
+
+def test_post_exploitation_profile_cannot_gain_network_or_arbitrary_tools():
+    profile = post_exploitation_profile(image_digest=IMAGE, evidence_object_id=EVIDENCE)
+    raw = profile.model_dump(mode="python")
+    raw["network_mode"] = "target_only"
+    raw["network_grants"] = ({"host": "app.example.test", "ports": {443}, "schemes": {"https"}},)
+    with pytest.raises(ValidationError, match="cannot execute targets or use network"):
+        SandboxProfile.model_validate(raw)
+
+    raw = profile.model_dump(mode="python")
+    raw["allowed_tools"] = {"red_team.shell"}
+    with pytest.raises(ValidationError, match="fixed non-network tool set"):
         SandboxProfile.model_validate(raw)
 
     report = report_profile(image_digest=IMAGE, evidence_object_id=EVIDENCE)

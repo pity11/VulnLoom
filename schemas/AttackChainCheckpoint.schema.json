@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "AttackChainStatus": {
+      "enum": [
+        "planned",
+        "running",
+        "goal_reached",
+        "failed",
+        "timed_out",
+        "killed"
+      ],
+      "title": "AttackChainStatus",
+      "type": "string"
+    },
+    "AttackNodeProgress": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AttackNodeStatus",
+          "default": "pending"
+        },
+        "observation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observation Id"
+        }
+      },
+      "required": [
+        "action_id"
+      ],
+      "title": "AttackNodeProgress",
+      "type": "object"
+    },
+    "AttackNodeStatus": {
+      "enum": [
+        "pending",
+        "succeeded",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AttackNodeStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/AttackChainStatus"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/AttackNodeProgress"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "failures": {
+      "minimum": 0,
+      "title": "Failures",
+      "type": "integer"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stop Reason"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "chain_plan_id",
+    "revision",
+    "status",
+    "nodes",
+    "failures",
+    "updated_at"
+  ],
+  "title": "AttackChainCheckpoint",
+  "type": "object"
+}

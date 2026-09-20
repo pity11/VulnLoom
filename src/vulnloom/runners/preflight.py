@@ -33,6 +33,7 @@ _ROLE_PROFILES = {
     WorkerRole.VALIDATOR: SandboxProfileKind.VALIDATION,
     WorkerRole.CRITIC: SandboxProfileKind.REPORT,
     WorkerRole.REPORTER: SandboxProfileKind.REPORT,
+    WorkerRole.RED_TEAM_OPERATOR: SandboxProfileKind.POST_EXPLOITATION,
 }
 
 

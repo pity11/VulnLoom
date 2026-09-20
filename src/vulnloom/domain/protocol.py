@@ -19,6 +19,7 @@ class WorkerRole(StrEnum):
     VALIDATOR = "validator"
     CRITIC = "critic"
     REPORTER = "reporter"
+    RED_TEAM_OPERATOR = "red_team_operator"
 
 
 class WorkerStatus(StrEnum):

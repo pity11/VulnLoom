@@ -1,0 +1,44 @@
+{
+  "$defs": {
+    "AttackNodeStatus": {
+      "enum": [
+        "pending",
+        "succeeded",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AttackNodeStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/AttackNodeStatus",
+      "default": "pending"
+    },
+    "observation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observation Id"
+    }
+  },
+  "required": [
+    "action_id"
+  ],
+  "title": "AttackNodeProgress",
+  "type": "object"
+}

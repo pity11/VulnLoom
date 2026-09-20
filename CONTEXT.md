@@ -96,6 +96,18 @@ _Avoid_: Request estimate, Retry counter, Reversible action
 由操作员封存、在固定授权窗口内周期性物化新 Flow 的精确 Endpoint 检查模板；它是 Control Plane 触发器，不直接执行工具或网络请求。
 _Avoid_: Cron scanner, Background crawler, Long-running Flow
 
+**Attack Graph**：
+在一份有效 Rules of Engagement 内，由操作员封存的有限有向无环动作图；每个节点绑定精确目标、前置节点、影响类别和独立 Approval，运行时不得增加节点或目标。
+_Avoid_: Agent plan, Exploit queue, Autonomous campaign
+
+**Attack Objective**：
+一次授权红队活动允许证明的有限目标，以及达到该目标所需的脱敏 Evidence 条件；它不授权横向移动、持久化或真实数据外传。
+_Avoid_: Free-form goal, Shell access, Compromise
+
+**Attack Action**：
+Attack Graph 中一个内容寻址、可单独批准和审计的原子动作；对其他节点的批准不能授权它。
+_Avoid_: Agent step, Command, Payload
+
 **Deployment Proof**：
 将一个不可变源码版本和构建产物绑定到一个精确 Live Endpoint 摘要的限时脱敏证明。
 _Avoid_: Deployment claim, Raw release metadata, Endpoint URL

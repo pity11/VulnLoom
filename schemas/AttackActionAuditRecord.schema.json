@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "AttackAuditDecision": {
+      "enum": [
+        "allowed",
+        "rejected"
+      ],
+      "title": "AttackAuditDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "audit_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/AttackAuditDecision"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "approval_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Approval Ids",
+      "type": "array"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "audit_id",
+    "chain_plan_id",
+    "action_id",
+    "checkpoint_id",
+    "decision",
+    "reason_code",
+    "recorded_at"
+  ],
+  "title": "AttackActionAuditRecord",
+  "type": "object"
+}

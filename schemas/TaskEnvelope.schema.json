@@ -36,7 +36,8 @@
         "analyzer",
         "validator",
         "critic",
-        "reporter"
+        "reporter",
+        "red_team_operator"
       ],
       "title": "WorkerRole",
       "type": "string"

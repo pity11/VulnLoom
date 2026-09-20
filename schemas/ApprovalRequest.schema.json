@@ -10,7 +10,8 @@
         "external_callback",
         "submit_report",
         "review_report",
-        "export_report"
+        "export_report",
+        "execute_red_team_action"
       ],
       "title": "ApprovalAction",
       "type": "string"

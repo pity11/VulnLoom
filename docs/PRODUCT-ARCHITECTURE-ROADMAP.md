@@ -1196,8 +1196,11 @@ Release Gate 与清理的完整组合。R10 已关闭；该验收不访问公网
 
 验收：只在隔离红队靶场中完成多步攻击链；任何未批准状态变更、外部回连、横向目标或持久化动作均被代码边界拒绝并留下审计证据。
 
-实现状态（2026-09-10）：已建立只读 Recon 所需的 RoE、影响分区、停止条件和 Kill Switch 基础，但尚无
-AttackGraph、Initial Access、Post-exploitation Profile 或逐动作高影响 Approval，因此 R11 尚未开始验收。
+实现状态（2026-09-20）：R11.1 可信离线控制面已建立内容寻址 AttackGraph/Objective/Action、DAG 顺序和目标
+约束、事务 checkpoint/恢复、逐动作 exact Approval、Initial Access 的双重状态变更 Approval、父 Flow Kill
+Switch 联动、脱敏允许/拒绝审计，以及固定无网络、无 Target 执行权的 Post-exploitation Profile。外部回连、
+横向移动、持久化和真实凭据仍不可表达并由 RoE 禁止。当前只使用 fake adapter，尚未在隔离靶场完成真实多步链，
+也尚未生成攻击路径/检测机会/防御改进报告，因此 R11 总体验收仍未关闭。
 
 ### R12：团队化和分布式部署
 

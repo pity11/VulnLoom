@@ -23,6 +23,7 @@ class SandboxProfileKind(StrEnum):
     STATIC = "static"
     VALIDATION = "validation"
     REPORT = "report"
+    POST_EXPLOITATION = "post_exploitation"
 
 
 class NetworkMode(StrEnum):
@@ -136,8 +137,12 @@ class SandboxProfile(DomainModel):
         if self.kind in {
             SandboxProfileKind.STATIC,
             SandboxProfileKind.REPORT,
+            SandboxProfileKind.POST_EXPLOITATION,
         } and (self.network_mode is not NetworkMode.NONE or self.execute_target_code):
-            raise ValueError("static and report profiles cannot execute targets or use network")
+            raise ValueError(
+                "static, report, and post-exploitation profiles cannot execute "
+                "targets or use network"
+            )
         source_kinds = {MountKind.SNAPSHOT, MountKind.OUTPUT, MountKind.TEMP}
         analyzer_kinds = source_kinds | {MountKind.ANALYZER_DATA}
         report_kinds = {MountKind.EVIDENCE, MountKind.OUTPUT, MountKind.TEMP}
@@ -160,6 +165,20 @@ class SandboxProfile(DomainModel):
             raise ValueError("validation profile requires only source and scratch mounts")
         if self.kind is SandboxProfileKind.REPORT and kinds != report_kinds:
             raise ValueError("report profile requires only evidence and scratch mounts")
+        if (
+            self.kind is SandboxProfileKind.POST_EXPLOITATION
+            and kinds != report_kinds
+        ):
+            raise ValueError(
+                "post-exploitation profile requires only evidence and scratch mounts"
+            )
+        if self.kind is SandboxProfileKind.POST_EXPLOITATION and (
+            self.allowed_tools
+            != frozenset({"red_team.evidence_read", "red_team.result_write"})
+        ):
+            raise ValueError(
+                "post-exploitation profile has a fixed non-network tool set"
+            )
         return self
 
 

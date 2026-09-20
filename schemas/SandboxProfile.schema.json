@@ -154,7 +154,8 @@
       "enum": [
         "static",
         "validation",
-        "report"
+        "report",
+        "post_exploitation"
       ],
       "title": "SandboxProfileKind",
       "type": "string"

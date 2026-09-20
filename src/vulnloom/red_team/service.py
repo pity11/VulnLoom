@@ -175,6 +175,90 @@ class RedTeamService:
             idempotency_key=idempotency_key,
         )
 
+    def prepare_attack_flow(
+        self,
+        *,
+        scope: Scope,
+        target_url: str,
+        visibility: Visibility,
+        allowed_test_classes: tuple[str, ...],
+        max_actions: int,
+        max_consecutive_failures: int,
+        emergency_contact_ref: str,
+        now: datetime,
+        deadline: datetime,
+        idempotency_key: str,
+    ) -> RedTeamFlowPlan:
+        """Seal the narrow R11 Web chain boundary; it does not execute actions."""
+        self._scope(scope, now)
+        canonical_target = AuthorizedWebTarget(url=target_url)
+        target = canonical_target.model_copy(
+            update={
+                "target_id": uuid5(
+                    NAMESPACE_URL,
+                    f"vulnloom:red-team-target:{scope.scope_id}:{canonical_target.url}",
+                )
+            }
+        )
+        classes = tuple(sorted(set(allowed_test_classes)))
+        if (
+            not classes
+            or classes != allowed_test_classes
+            or not set(classes) <= set(scope.allowed_test_classes)
+        ):
+            raise RedTeamRejected("Red Team test classes exceed approved Scope")
+        policy = PolicyEngine(scope).decide(
+            ActionRequest(
+                engagement_id=scope.engagement_id,
+                target_id=target.target_id,
+                action="red_team.attack_flow.prepare",
+                requested_at=now,
+                url=target.url,
+                test_class=classes[0],
+            )
+        )
+        if policy.effect is not DecisionEffect.ALLOW:
+            raise RedTeamRejected("Red Team target is outside approved Scope")
+        stop_at = min(deadline, scope.valid_until)
+        rules = RulesOfEngagement.create(
+            scope_id=scope.scope_id,
+            scope_version=scope.version,
+            target_id=target.target_id,
+            phases=(
+                RedTeamPhase.RECON,
+                RedTeamPhase.INITIAL_ACCESS,
+                RedTeamPhase.POST_EXPLOITATION,
+            ),
+            allowed_test_classes=classes,
+            allowed_impacts=(ImpactClass.READ_ONLY,),
+            approval_required_impacts=(ImpactClass.STATE_CHANGE,),
+            prohibited_impacts=(
+                ImpactClass.REAL_CREDENTIAL,
+                ImpactClass.EXTERNAL_CALLBACK,
+                ImpactClass.LATERAL_MOVEMENT,
+                ImpactClass.PERSISTENCE,
+            ),
+            stop_conditions=RedTeamStopConditions(
+                stop_at=stop_at,
+                max_actions=max_actions,
+                max_consecutive_failures=max_consecutive_failures,
+            ),
+            emergency_contact_ref=emergency_contact_ref,
+        )
+        return RedTeamFlowPlan.create(
+            mode=WorkflowMode(
+                workflow=WorkflowKind.AUTHORIZED_RED_TEAM,
+                visibility=visibility,
+                execution_profile=ExecutionProfile.RED_TEAM,
+                autonomy=AutonomyLevel.BOUNDED_EXECUTION,
+            ),
+            target=target,
+            rules=rules,
+            created_at=now,
+            deadline=stop_at,
+            idempotency_key=idempotency_key,
+        )
+
     def create_and_start(
         self, plan: RedTeamFlowPlan, *, scope: Scope, now: datetime
     ) -> RedTeamCheckpoint:
@@ -440,17 +524,33 @@ class RedTeamService:
             raise RedTeamRejected("Red Team requires a currently approved Scope")
 
     def _scope_binding(self, plan, scope):
-        expected_prohibited = {
-            item for item in ImpactClass if item is not ImpactClass.READ_ONLY
-        }
+        recon_only = plan.rules.phases == (RedTeamPhase.RECON,)
+        attack_chain = plan.rules.phases == (
+            RedTeamPhase.RECON,
+            RedTeamPhase.INITIAL_ACCESS,
+            RedTeamPhase.POST_EXPLOITATION,
+        )
+        expected_prohibited = (
+            {item for item in ImpactClass if item is not ImpactClass.READ_ONLY}
+            if recon_only
+            else {
+                ImpactClass.REAL_CREDENTIAL,
+                ImpactClass.EXTERNAL_CALLBACK,
+                ImpactClass.LATERAL_MOVEMENT,
+                ImpactClass.PERSISTENCE,
+            }
+        )
+        expected_approval_impacts = (
+            () if recon_only else (ImpactClass.STATE_CHANGE,)
+        )
         if (
             plan.rules.scope_id != scope.scope_id
             or plan.rules.scope_version != scope.version
             or plan.deadline > scope.valid_until
             or plan.rules.stop_conditions.stop_at > scope.valid_until
-            or plan.rules.phases != (RedTeamPhase.RECON,)
+            or not (recon_only or attack_chain)
             or plan.rules.allowed_impacts != (ImpactClass.READ_ONLY,)
-            or plan.rules.approval_required_impacts
+            or plan.rules.approval_required_impacts != expected_approval_impacts
             or set(plan.rules.prohibited_impacts) != expected_prohibited
             or not set(plan.rules.allowed_test_classes) <= set(
                 scope.allowed_test_classes

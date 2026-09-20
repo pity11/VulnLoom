@@ -334,7 +334,8 @@
       "enum": [
         "static",
         "validation",
-        "report"
+        "report",
+        "post_exploitation"
       ],
       "title": "SandboxProfileKind",
       "type": "string"
@@ -572,7 +573,8 @@
         "analyzer",
         "validator",
         "critic",
-        "reporter"
+        "reporter",
+        "red_team_operator"
       ],
       "title": "WorkerRole",
       "type": "string"

@@ -1,5 +1,38 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .attack_models import (
+    AttackAction,
+    AttackActionAuditRecord,
+    AttackActionAuthorization,
+    AttackActionCommand,
+    AttackActionKind,
+    AttackActionObservation,
+    AttackActionOutcome,
+    AttackAuditDecision,
+    AttackChainCheckpoint,
+    AttackChainPlan,
+    AttackChainStatus,
+    AttackGraph,
+    AttackImpact,
+    AttackNodeProgress,
+    AttackNodeStatus,
+    AttackObjective,
+    AttackObjectiveKind,
+)
+from .attack_service import (
+    AttackActionAdapter,
+    AttackActionAdapterInterrupted,
+    AttackChainRejected,
+    AttackChainService,
+    OfflineAttackActionAdapter,
+    OfflineAttackScenario,
+)
+from .attack_state_machine import AttackChainTransitionRejected
+from .attack_store import (
+    AttackChainRecoveryRequired,
+    AttackChainStore,
+    AttackChainStoreRejected,
+)
 from .drift_models import (
     AttackSurfaceChange,
     AttackSurfaceChangeKind,
@@ -124,6 +157,31 @@ from .surface_store import (
 )
 
 __all__ = [
+    "AttackAction",
+    "AttackActionAdapter",
+    "AttackActionAdapterInterrupted",
+    "AttackActionAuditRecord",
+    "AttackActionAuthorization",
+    "AttackActionCommand",
+    "AttackActionKind",
+    "AttackActionObservation",
+    "AttackActionOutcome",
+    "AttackAuditDecision",
+    "AttackChainCheckpoint",
+    "AttackChainPlan",
+    "AttackChainRecoveryRequired",
+    "AttackChainRejected",
+    "AttackChainService",
+    "AttackChainStatus",
+    "AttackChainStore",
+    "AttackChainStoreRejected",
+    "AttackChainTransitionRejected",
+    "AttackGraph",
+    "AttackImpact",
+    "AttackNodeProgress",
+    "AttackNodeStatus",
+    "AttackObjective",
+    "AttackObjectiveKind",
     "AttackSurfaceChange",
     "AttackSurfaceChangeKind",
     "AttackSurfaceDriftIdempotencyConflict",
@@ -194,6 +252,8 @@ __all__ = [
     "IsolatedLocalReconAdmission",
     "IsolatedLocalTlsReconAdapter",
     "OfflineReconScenario",
+    "OfflineAttackActionAdapter",
+    "OfflineAttackScenario",
     "OfflineEndpointReconAdapter",
     "OfflineEndpointReconScenario",
     "OfflineRedTeamReconAdapter",

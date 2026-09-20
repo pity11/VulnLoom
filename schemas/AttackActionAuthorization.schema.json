@@ -1,0 +1,69 @@
+{
+  "$defs": {
+    "ApprovalAction": {
+      "enum": [
+        "run_validation",
+        "run_critic",
+        "run_untrusted_build",
+        "mutate_target_state",
+        "use_real_credentials",
+        "external_callback",
+        "submit_report",
+        "review_report",
+        "export_report",
+        "execute_red_team_action"
+      ],
+      "title": "ApprovalAction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "execution_approval_action": {
+      "$ref": "#/$defs/ApprovalAction",
+      "default": "execute_red_team_action"
+    },
+    "execution_approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Approval Digest",
+      "type": "string"
+    },
+    "policy_action_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Action Digest",
+      "type": "string"
+    },
+    "required_policy_approvals": {
+      "items": {
+        "$ref": "#/$defs/ApprovalAction"
+      },
+      "title": "Required Policy Approvals",
+      "type": "array"
+    }
+  },
+  "required": [
+    "authorization_id",
+    "chain_plan_id",
+    "action_id",
+    "execution_approval_digest",
+    "policy_action_digest",
+    "required_policy_approvals"
+  ],
+  "title": "AttackActionAuthorization",
+  "type": "object"
+}

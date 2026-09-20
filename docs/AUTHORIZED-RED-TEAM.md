@@ -234,3 +234,34 @@ notification adapter or Web UI in R9.
 Local R9 verification completed with 1450 tests passed, 27 integration tests skipped, and 85.77% total
 coverage. Ruff, 377 JSON Schema parses, `git diff --check`, and the 589-pass/9-skip model-provider and
 CUC/DeepSeek compatibility slice passed without an external model call or network request.
+
+## R11.1: sealed Attack Graph control plane
+
+R11's first slice extends the read-only RoE into a still-bounded external Web attack-chain control plane.
+`AttackGraph` binds an exact Flow, Target, Scope/version, one finite `AttackObjective`, and 2–32
+content-addressed `AttackAction` values. Actions form an ordinal DAG: the first and only Initial Access action
+declares `state_change`; later actions may only perform read-only verification of the test session and goal
+Evidence; the final action must verify the Objective. Runtime code cannot insert a node, replace a path, or
+skip a dependency.
+
+Every action requires a separate `EXECUTE_RED_TEAM_ACTION` Approval whose digest is the action digest. Initial
+Access additionally requires the existing Policy Engine's exact `MUTATE_TARGET_STATE` Approval. Approval for
+another node, the whole Graph, or an expired action cannot be reused. External callback, lateral movement,
+persistence, and real credentials remain prohibited by the RoE. Attack Action schemas contain no callback,
+payload, shell, header, Cookie, credential, or response-body field.
+
+`AttackChainCheckpoint` and action claims/Observations are stored transactionally in a separate SQLite ledger.
+A completed action replays without another adapter call; interruption permits only the next bounded attempt.
+Timeout, failure, unproven cleanup, Scope drift, missing prerequisites, missing Approval, and the parent Flow
+Kill Switch all fail closed. Every allow or rejection creates a redacted `AttackActionAuditRecord` containing
+only digests, a reason code, Approval IDs, and time.
+
+The new `post_exploitation` Sandbox Profile is non-root, read-only-root, capability-free, networkless, and
+unable to execute Target code. It mounts immutable Evidence plus bounded scratch and exposes only
+`red_team.evidence_read` and `red_team.result_write`. Real Web actions, test identities, and transport remain
+behind a future trusted adapter/Broker boundary and cannot be moved into the Worker profile.
+
+This slice qualifies the typed control plane with an offline fake adapter only; it does not close R11. The
+next acceptance slice must connect a trusted adapter to an explicitly enabled isolated local Red Team lab,
+complete a real multi-step chain, and prove denial and cleanup for unapproved actions, callbacks, lateral
+targets, persistence, and timeouts.

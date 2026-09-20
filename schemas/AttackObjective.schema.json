@@ -1,0 +1,35 @@
+{
+  "$defs": {
+    "AttackObjectiveKind": {
+      "enum": [
+        "establish_test_session",
+        "prove_protected_resource_access"
+      ],
+      "title": "AttackObjectiveKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "objective_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Objective Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/AttackObjectiveKind"
+    },
+    "evidence_requirement": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Evidence Requirement",
+      "type": "string"
+    }
+  },
+  "required": [
+    "objective_id",
+    "kind",
+    "evidence_requirement"
+  ],
+  "title": "AttackObjective",
+  "type": "object"
+}

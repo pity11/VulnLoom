@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "AttackActionOutcome": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AttackActionOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/AttackActionOutcome"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "goal_reached": {
+      "default": false,
+      "title": "Goal Reached",
+      "type": "boolean"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "sensitive_data_redacted": {
+      "default": true,
+      "title": "Sensitive Data Redacted",
+      "type": "boolean"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "command_id",
+    "action_id",
+    "outcome",
+    "reason_code",
+    "cleanup_complete",
+    "observed_at"
+  ],
+  "title": "AttackActionObservation",
+  "type": "object"
+}

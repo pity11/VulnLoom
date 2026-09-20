@@ -121,6 +121,7 @@ class ApprovalAction(StrEnum):
     SUBMIT_REPORT = "submit_report"
     REVIEW_REPORT = "review_report"
     EXPORT_REPORT = "export_report"
+    EXECUTE_RED_TEAM_ACTION = "execute_red_team_action"
 
 
 class EvidenceKind(StrEnum):
