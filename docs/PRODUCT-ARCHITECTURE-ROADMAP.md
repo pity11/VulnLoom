@@ -1167,9 +1167,10 @@ coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重�
 
 实现状态（2026-09-20）：首个可信离线纵切已建立 `DeploymentProof`、`HybridValidationPlan`、事务状态机和
 `HybridEvidenceChain`。它可将源码 Candidate、部署版本证明与权威 completed HTTP Validation 封存为同一 Evidence
-Bundle，并支持引用前一 confirmed chain 的修复复测、幂等重放、显式恢复、超时和完整性失败清理。本阶段不执行
-网络或模型调用；自动生成 Live Validation、Hybrid Finding/报告、双重自动复测、CI/CD adapter 和隔离预发布端到端
-验收仍待完成，因此 R10 尚未关闭。
+Bundle，并支持引用前一 confirmed chain 的修复复测、幂等重放、显式恢复、超时和完整性失败清理。第二个离线纵切
+新增 opaque `LiveEndpointReference` 和 `HybridRouteService`，可自动物化单次精确、无凭据、禁重定向的 GET
+ValidationPlan，并将含完整 endpoint 的计划限制在权限受限本地仓。本阶段仍不执行网络或模型调用；Hybrid
+Finding/报告、双重自动复测、CI/CD adapter 和隔离预发布端到端验收仍待完成，因此 R10 尚未关闭。
 
 ### R11：授权红队攻击链
 

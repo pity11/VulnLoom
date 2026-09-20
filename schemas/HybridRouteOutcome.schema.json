@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "HybridRouteState": {
+      "enum": [
+        "started",
+        "completed",
+        "timed_out",
+        "failed"
+      ],
+      "title": "HybridRouteState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "route_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Route Id",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/HybridRouteState"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "validation_plan_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Validation Plan Id"
+    },
+    "validation_plan_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Validation Plan Digest"
+    },
+    "endpoint_reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Reference Id",
+      "type": "string"
+    },
+    "endpoint_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Url Digest",
+      "type": "string"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "route_id",
+    "state",
+    "attempt",
+    "endpoint_reference_id",
+    "endpoint_url_digest",
+    "reason_code",
+    "cleanup_complete",
+    "completed_at"
+  ],
+  "title": "HybridRouteOutcome",
+  "type": "object"
+}

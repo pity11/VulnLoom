@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "LiveEndpointReference": {
+      "additionalProperties": false,
+      "description": "Opaque pointer to trusted local endpoint configuration.",
+      "properties": {
+        "reference_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "configuration_key": {
+          "pattern": "^HYBRID_ENDPOINT_[A-Z0-9_]{1,111}$",
+          "title": "Configuration Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_id",
+        "configuration_key"
+      ],
+      "title": "LiveEndpointReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "route_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Route Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "source_target_id": {
+      "format": "uuid",
+      "title": "Source Target Id",
+      "type": "string"
+    },
+    "source_target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Source Target Version",
+      "type": "string"
+    },
+    "source_manifest_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Manifest Digest",
+      "type": "string"
+    },
+    "live_target_id": {
+      "format": "uuid",
+      "title": "Live Target Id",
+      "type": "string"
+    },
+    "deployment_proof_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Deployment Proof Id",
+      "type": "string"
+    },
+    "deployment_proof_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Deployment Proof Digest",
+      "type": "string"
+    },
+    "endpoint_reference": {
+      "$ref": "#/$defs/LiveEndpointReference"
+    },
+    "endpoint_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Url Digest",
+      "type": "string"
+    },
+    "expected_status_code": {
+      "maximum": 599,
+      "minimum": 100,
+      "title": "Expected Status Code",
+      "type": "integer"
+    },
+    "expected_body_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Body Sha256",
+      "type": "string"
+    },
+    "test_class": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Test Class",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "route_policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Route Policy Id",
+      "type": "string"
+    },
+    "selected_by": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Selected By",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "route_id",
+    "candidate_id",
+    "candidate_digest",
+    "source_target_id",
+    "source_target_version",
+    "source_manifest_digest",
+    "live_target_id",
+    "deployment_proof_id",
+    "deployment_proof_digest",
+    "endpoint_reference",
+    "endpoint_url_digest",
+    "expected_status_code",
+    "expected_body_sha256",
+    "test_class",
+    "scope_id",
+    "scope_version",
+    "route_policy_id",
+    "selected_by",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "HybridRouteRequest",
+  "type": "object"
+}

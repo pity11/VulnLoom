@@ -92,6 +92,10 @@ _Avoid_: Cron scanner, Background crawler, Long-running Flow
 将一个不可变源码版本和构建产物绑定到一个精确 Live Endpoint 摘要的限时脱敏证明。
 _Avoid_: Deployment claim, Raw release metadata, Endpoint URL
 
+**Live Endpoint Reference**：
+Control Plane 用于定位权限受限本地 endpoint 配置的 opaque 引用；它不是 URL，也不向 Worker、普通 API 或审计投影暴露解析值。
+_Avoid_: Endpoint URL, Target string, Worker configuration
+
 **Hybrid Evidence Chain**：
 把源码路径、Deployment Proof 和精确 Live Validation 的 Evidence 封存为同一条可追溯事实链；修复复测通过引用前一条链表达版本演进。
 _Avoid_: Correlation guess, Combined report, Agent conclusion

@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "description": "Opaque pointer to trusted local endpoint configuration.",
+  "properties": {
+    "reference_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Id",
+      "type": "string"
+    },
+    "configuration_key": {
+      "pattern": "^HYBRID_ENDPOINT_[A-Z0-9_]{1,111}$",
+      "title": "Configuration Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reference_id",
+    "configuration_key"
+  ],
+  "title": "LiveEndpointReference",
+  "type": "object"
+}

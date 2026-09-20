@@ -245,9 +245,13 @@ from vulnloom.findings import (
 from vulnloom.hybrid import (
     DeploymentProof,
     HybridEvidenceChain,
+    HybridRouteOutcome,
+    HybridRoutePolicy,
+    HybridRouteRequest,
     HybridValidationLimits,
     HybridValidationOutcome,
     HybridValidationPlan,
+    LiveEndpointReference,
 )
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
@@ -450,6 +454,10 @@ MODELS = (
     SetDefaultRouteCommand,
     WorkflowMode,
     DeploymentProof,
+    LiveEndpointReference,
+    HybridRoutePolicy,
+    HybridRouteRequest,
+    HybridRouteOutcome,
     HybridValidationLimits,
     HybridValidationPlan,
     HybridEvidenceChain,

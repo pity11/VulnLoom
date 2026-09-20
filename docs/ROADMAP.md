@@ -1239,8 +1239,13 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
   `not_reproduced` Validation 且必须引用前一条 confirmed chain；Scope、版本、endpoint 或来源漂移均 fail-closed。
 - `HybridEvidenceChain` 统一封存源码、部署和 HTTP Evidence，并复用共享 `EvidenceBundle`。状态机覆盖完成、超时、
   完整性失败、幂等重放、显式恢复和三次 attempt 上限。
-- 当前服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。自动路由、Finding/报告、双重复测
+- Evidence admission 服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。Finding/报告、双重复测
   编排、CI/CD adapter 与隔离预发布端到端验收仍属于 R10 后续纵切。
+- 新增 opaque `LiveEndpointReference` 与可信解析 adapter。Route 服务可从 Source Candidate、Deployment Proof 和
+  确定性 HTTP assertion 自动生成单一精确 Live ValidationPlan；请求固定 GET、零重定向、无 Header、credential
+  或 body，Worker 环境仍为显式白名单。
+- Route outcome、API schema 和普通审计只保存引用与 digest；包含完整 endpoint 的 ValidationPlan 仅原子写入权限
+  `0600` 的本地可信仓。Route 本身不调用 Runner、Broker、模型或网络，超时/失败/恢复耗尽不留下可执行计划。
 
 详见 `docs/HYBRID-VALIDATION.md`。
 

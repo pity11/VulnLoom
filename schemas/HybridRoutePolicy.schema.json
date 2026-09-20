@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "policy_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "validation_image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Validation Image Digest",
+      "type": "string"
+    },
+    "tool_registry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Registry Digest",
+      "type": "string"
+    },
+    "runner_wall_seconds": {
+      "default": 60,
+      "maximum": 600,
+      "minimum": 1,
+      "title": "Runner Wall Seconds",
+      "type": "integer"
+    },
+    "connect_seconds": {
+      "default": 3.0,
+      "exclusiveMinimum": 0,
+      "maximum": 30,
+      "title": "Connect Seconds",
+      "type": "number"
+    },
+    "read_seconds": {
+      "default": 10.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Read Seconds",
+      "type": "number"
+    },
+    "total_seconds": {
+      "default": 15.0,
+      "exclusiveMinimum": 0,
+      "maximum": 120,
+      "title": "Total Seconds",
+      "type": "number"
+    },
+    "max_response_bytes": {
+      "default": 2097152,
+      "maximum": 20971520,
+      "minimum": 1,
+      "title": "Max Response Bytes",
+      "type": "integer"
+    },
+    "materialization_timeout_seconds": {
+      "default": 10.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Materialization Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy_id",
+    "validation_image_digest",
+    "tool_registry_digest"
+  ],
+  "title": "HybridRoutePolicy",
+  "type": "object"
+}
