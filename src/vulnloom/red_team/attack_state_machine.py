@@ -44,7 +44,7 @@ def record_attack_observation(
     *,
     now: datetime,
 ) -> AttackChainCheckpoint:
-    _running(plan, checkpoint, now)
+    _running(plan, checkpoint, action, now)
     progress_by_id = {node.action_id: node for node in checkpoint.nodes}
     progress = progress_by_id.get(action.action_id)
     if progress is None or progress.status is not AttackNodeStatus.PENDING:
@@ -142,6 +142,7 @@ def stop_attack_chain(
     *,
     reason: str,
     now: datetime,
+    cleanup_required: bool = False,
 ) -> AttackChainCheckpoint:
     _current(plan, checkpoint)
     if checkpoint.status not in {
@@ -149,6 +150,13 @@ def stop_attack_chain(
         AttackChainStatus.CLEANUP_REQUIRED,
     }:
         return checkpoint
+    if cleanup_required:
+        return _next(
+            checkpoint,
+            status=AttackChainStatus.CLEANUP_REQUIRED,
+            deferred_outcome=AttackActionOutcome.REJECTED,
+            now=now,
+        )
     return _next(
         checkpoint,
         status=AttackChainStatus.KILLED,
@@ -163,14 +171,24 @@ def _current(plan: AttackChainPlan, checkpoint: AttackChainCheckpoint) -> None:
         raise AttackChainTransitionRejected("Attack Chain checkpoint is misbound")
 
 
-def _running(plan: AttackChainPlan, checkpoint: AttackChainCheckpoint, now: datetime) -> None:
+def _running(
+    plan: AttackChainPlan,
+    checkpoint: AttackChainCheckpoint,
+    action: AttackAction,
+    now: datetime,
+) -> None:
     _current(plan, checkpoint)
     if checkpoint.status not in {
         AttackChainStatus.RUNNING,
         AttackChainStatus.CLEANUP_REQUIRED,
     }:
         raise AttackChainTransitionRejected("Attack Chain is not running")
-    if now >= plan.deadline:
+    cutoff = (
+        plan.cleanup_deadline
+        if action.kind.value == "cleanup_test_session"
+        else plan.deadline
+    )
+    if now >= cutoff:
         raise AttackChainTransitionRejected("Attack Chain deadline elapsed")
 
 

@@ -227,6 +227,11 @@
       "title": "Deadline",
       "type": "string"
     },
+    "cleanup_deadline": {
+      "format": "date-time",
+      "title": "Cleanup Deadline",
+      "type": "string"
+    },
     "max_failures": {
       "default": 1,
       "maximum": 3,
@@ -247,6 +252,7 @@
     "expected_flow_checkpoint_id",
     "created_at",
     "deadline",
+    "cleanup_deadline",
     "idempotency_key"
   ],
   "title": "AttackChainPlan",

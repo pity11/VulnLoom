@@ -1167,7 +1167,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R11.3（R11 已关闭）
+### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1256,6 +1256,18 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   target path、完整 endpoint、请求响应、header、Cookie、credential 或 secret。R11 的攻击链与防御报告验收关闭。
 - R11.3 本地门禁：1505 passed、30 skipped、覆盖率 85.39%，Ruff、424 个 JSON Schema 解析和
   `git diff --check` 通过；本机私网进程验收另行 1 passed，未访问公网或真实模型。
+- R11.4 完成整体架构与压力审查：Attack Chain 动作预算现在先在父 Flow 账本中持久化预留，Recon claim 与多个
+  Chain 在 SQLite `BEGIN IMMEDIATE` 事务内竞争同一 `max_actions`，并在 Chain ledger 做第二层校验；跨库中断采用
+  fail-closed 的可重试预留，不会因部分失败超用预算。Chain 另封存最长 300 秒且不超过 Scope/Flow 的 Cleanup
+  deadline；动作超时、父 Flow Kill/Cancel/checkpoint 漂移或不确定的 adapter 中断都不会伪装成已清理终态，已产生
+  或可能产生状态变更时只收敛到 `cleanup_required`。只有原父 checkpoint 可追溯、账本单调前进、Scope/Approval
+  仍有效且窗口未过期时，才允许已封存 Cleanup；遗留 started claim 与状态转换在同一事务中放弃，避免阻塞补偿。
+  checkpoint 反序列化还会复核失败计数、Objective Evidence 与成功节点全集；报告的 detection/control 映射为严格
+  一对一。新增预算争用、25 次超额预留、Recon/Chain 混合预算、截止边界、Kill、父 checkpoint 漂移、中断 claim
+  和篡改回归测试；默认仍完全离线，不增加 crawler、公网扫描、模型调用或 Submission。
+- R11.4 本地门禁：1514 passed、30 skipped、覆盖率 85.41%，Ruff、424 个 JSON Schema 解析和
+  `git diff --check` 通过。显式私网进程验收因当前主机没有私有非回环 IPv4 安全跳过；未访问公网或真实模型。
+  详细审查见 `docs/R11-ARCHITECTURE-HARDENING.md`。
 
 R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`；R11.2 攻击链另需显式设置

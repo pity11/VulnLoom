@@ -183,7 +183,12 @@ class IsolatedLocalAttackChainAdapter:
             return self._result(
                 action, command, now, AttackActionOutcome.REJECTED, "action_not_admitted"
             )
-        remaining = (self.plan.deadline - now).total_seconds()
+        cutoff = (
+            self.plan.cleanup_deadline
+            if action.kind is AttackActionKind.CLEANUP_TEST_SESSION
+            else self.plan.deadline
+        )
+        remaining = (cutoff - now).total_seconds()
         if remaining <= 0:
             return self._result(
                 action, command, now, AttackActionOutcome.TIMED_OUT, "chain_deadline_exceeded"
@@ -205,7 +210,7 @@ class IsolatedLocalAttackChainAdapter:
             ),
             allowed_tools=frozenset({"http.request"}),
             budget=TaskBudget(wall_seconds=max(1, int(remaining)), model_tokens=0, tool_calls=1),
-            deadline=self.plan.deadline,
+            deadline=cutoff,
             idempotency_key=f"attack-task:{command.command_id}",
         )
         call = BrokerCall(
@@ -297,7 +302,7 @@ class IsolatedLocalAttackChainAdapter:
             or grants[0].ports != {self.admission.port}
             or grants[0].schemes != {self.admission.scheme}
             or self.broker.allowed_resolved_ips != frozenset(self.admission.allowed_peer_ips)
-            or self.admission.expires_at > self.plan.deadline
+            or self.admission.expires_at > self.plan.cleanup_deadline
         ):
             raise AttackChainRejected("isolated Attack Chain admission is invalid")
         for action, binding in zip(

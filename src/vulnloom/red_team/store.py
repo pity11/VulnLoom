@@ -28,6 +28,7 @@ class RedTeamStore:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.connection = sqlite3.connect(path)
         self.connection.execute("PRAGMA foreign_keys = ON")
+        self.connection.execute("PRAGMA busy_timeout = 5000")
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS red_team_plans (
@@ -62,8 +63,79 @@ class RedTeamStore:
                 payload TEXT NOT NULL,
                 FOREIGN KEY(action_id) REFERENCES red_team_actions(action_id)
             );
+            CREATE TABLE IF NOT EXISTS red_team_external_action_reservations (
+                reservation_id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                source_checkpoint_id TEXT NOT NULL,
+                action_count INTEGER NOT NULL CHECK(action_count > 0),
+                FOREIGN KEY(plan_id) REFERENCES red_team_plans(plan_id)
+            );
+            CREATE INDEX IF NOT EXISTS red_team_external_budget_by_plan
+                ON red_team_external_action_reservations(plan_id);
             """
         )
+
+    def reserve_external_actions(
+        self,
+        *,
+        plan_id: str,
+        source_checkpoint_id: str,
+        reservation_id: str,
+        action_count: int,
+    ) -> None:
+        if action_count <= 0:
+            raise RedTeamStoreRejected("Red Team external reservation is invalid")
+        try:
+            self.connection.execute("BEGIN IMMEDIATE")
+            try:
+                existing = self.connection.execute(
+                    "SELECT plan_id,source_checkpoint_id,action_count "
+                    "FROM red_team_external_action_reservations WHERE reservation_id=?",
+                    (reservation_id,),
+                ).fetchone()
+                expected = (plan_id, source_checkpoint_id, action_count)
+                if existing is not None:
+                    if existing != expected:
+                        raise RedTeamStoreRejected(
+                            "Red Team external reservation identity conflict"
+                        )
+                    self.connection.commit()
+                    return
+                checkpoint = self.latest(plan_id)
+                if (
+                    checkpoint.checkpoint_id != source_checkpoint_id
+                    or checkpoint.status.value != "running"
+                ):
+                    raise RedTeamStoreRejected(
+                        "Red Team external reservation checkpoint is stale"
+                    )
+                plan = self.plan(plan_id)
+                reserved = self._reserved_actions(plan_id)
+                if (
+                    checkpoint.actions_used
+                    + self._started_actions(plan_id)
+                    + reserved
+                    + action_count
+                    > plan.rules.stop_conditions.max_actions
+                ):
+                    raise RedTeamStoreRejected(
+                        "Red Team external action budget is exhausted"
+                    )
+                self.connection.execute(
+                    "INSERT INTO red_team_external_action_reservations VALUES (?,?,?,?)",
+                    (reservation_id, plan_id, source_checkpoint_id, action_count),
+                )
+                self.connection.commit()
+            except Exception:
+                self.connection.rollback()
+                raise
+        except sqlite3.IntegrityError as exc:
+            raise RedTeamStoreRejected(
+                "Red Team external reservation rejected"
+            ) from exc
+
+    def reserved_external_actions(self, plan_id: str) -> int:
+        return self._reserved_actions(plan_id)
 
     def create(
         self, plan: RedTeamFlowPlan, checkpoint: RedTeamCheckpoint
@@ -103,6 +175,7 @@ class RedTeamStore:
         self, command: RedTeamReconCommand
     ) -> RedTeamReconObservation | None:
         try:
+            self.connection.execute("BEGIN IMMEDIATE")
             with self.connection:
                 row = self.connection.execute(
                     "SELECT action_id,action_json,attempt,state,observation_id "
@@ -141,6 +214,18 @@ class RedTeamStore:
                 self._assert_latest_id(
                     command.action.plan_id, command.action.expected_checkpoint_id
                 )
+                checkpoint = self.latest(command.action.plan_id)
+                plan = self.plan(command.action.plan_id)
+                if (
+                    checkpoint.actions_used
+                    + self._started_actions(command.action.plan_id)
+                    + self._reserved_actions(command.action.plan_id)
+                    + 1
+                    > plan.rules.stop_conditions.max_actions
+                ):
+                    raise RedTeamStoreRejected(
+                        "Red Team action budget is reserved by another workflow"
+                    )
                 self.connection.execute(
                     "INSERT INTO red_team_actions VALUES (?,?,?,?,?,?,'started',NULL)",
                     (
@@ -277,6 +362,21 @@ class RedTeamStore:
         ).fetchone()
         if row is None or row[0] != checkpoint_id:
             raise RedTeamStoreRejected("Red Team action checkpoint is stale")
+
+    def _reserved_actions(self, plan_id: str) -> int:
+        row = self.connection.execute(
+            "SELECT COALESCE(SUM(action_count),0) "
+            "FROM red_team_external_action_reservations WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        return int(row[0])
+
+    def _started_actions(self, plan_id: str) -> int:
+        row = self.connection.execute(
+            "SELECT count(*) FROM red_team_actions WHERE plan_id=? AND state='started'",
+            (plan_id,),
+        ).fetchone()
+        return int(row[0])
 
     def _insert_checkpoint(self, checkpoint: RedTeamCheckpoint) -> None:
         self.connection.execute(

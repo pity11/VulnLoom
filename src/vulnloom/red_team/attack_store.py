@@ -28,6 +28,7 @@ class AttackChainStore:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.connection = sqlite3.connect(path)
         self.connection.execute("PRAGMA foreign_keys = ON")
+        self.connection.execute("PRAGMA busy_timeout = 5000")
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS attack_chain_plans (
@@ -43,6 +44,15 @@ class AttackChainStore:
                 PRIMARY KEY(chain_plan_id, revision),
                 FOREIGN KEY(chain_plan_id) REFERENCES attack_chain_plans(chain_plan_id)
             );
+            CREATE TABLE IF NOT EXISTS attack_chain_budget_reservations (
+                chain_plan_id TEXT PRIMARY KEY,
+                flow_plan_id TEXT NOT NULL,
+                flow_checkpoint_id TEXT NOT NULL,
+                action_count INTEGER NOT NULL CHECK(action_count > 0),
+                FOREIGN KEY(chain_plan_id) REFERENCES attack_chain_plans(chain_plan_id)
+            );
+            CREATE INDEX IF NOT EXISTS attack_chain_budget_by_flow
+                ON attack_chain_budget_reservations(flow_plan_id);
             CREATE TABLE IF NOT EXISTS attack_chain_actions (
                 action_id TEXT NOT NULL,
                 chain_plan_id TEXT NOT NULL,
@@ -76,10 +86,18 @@ class AttackChainStore:
         )
 
     def create(
-        self, plan: AttackChainPlan, checkpoint: AttackChainCheckpoint
+        self,
+        plan: AttackChainPlan,
+        checkpoint: AttackChainCheckpoint,
+        *,
+        flow_actions_used: int,
+        flow_max_actions: int,
     ) -> AttackChainCheckpoint:
+        if not 0 <= flow_actions_used <= flow_max_actions:
+            raise AttackChainStoreRejected("Attack Chain Flow budget is invalid")
         try:
-            with self.connection:
+            self.connection.execute("BEGIN IMMEDIATE")
+            try:
                 row = self.connection.execute(
                     "SELECT chain_plan_id,payload FROM attack_chain_plans WHERE idempotency_key=?",
                     (plan.idempotency_key,),
@@ -90,23 +108,85 @@ class AttackChainStore:
                         or AttackChainPlan.model_validate_json(row[1]) != plan
                     ):
                         raise AttackChainStoreRejected("Attack Chain idempotency collision")
-                    return self.latest(plan.chain_plan_id)
+                    reservation = self.connection.execute(
+                        "SELECT flow_plan_id,flow_checkpoint_id,action_count "
+                        "FROM attack_chain_budget_reservations WHERE chain_plan_id=?",
+                        (plan.chain_plan_id,),
+                    ).fetchone()
+                    expected = (
+                        plan.graph.flow_plan_id,
+                        plan.expected_flow_checkpoint_id,
+                        len(plan.graph.actions),
+                    )
+                    if reservation != expected:
+                        raise AttackChainStoreRejected(
+                            "Attack Chain budget reservation is unavailable"
+                        )
+                    result = self.latest(plan.chain_plan_id)
+                    self.connection.commit()
+                    return result
+                reserved = self.connection.execute(
+                    "SELECT COALESCE(SUM(action_count),0) "
+                    "FROM attack_chain_budget_reservations WHERE flow_plan_id=?",
+                    (plan.graph.flow_plan_id,),
+                ).fetchone()[0]
+                if flow_actions_used + reserved + len(plan.graph.actions) > flow_max_actions:
+                    raise AttackChainStoreRejected("Attack Chain Flow budget is exhausted")
                 self.connection.execute(
                     "INSERT INTO attack_chain_plans VALUES (?,?,?)",
                     (plan.chain_plan_id, plan.idempotency_key, plan.model_dump_json()),
                 )
+                self.connection.execute(
+                    "INSERT INTO attack_chain_budget_reservations VALUES (?,?,?,?)",
+                    (
+                        plan.chain_plan_id,
+                        plan.graph.flow_plan_id,
+                        plan.expected_flow_checkpoint_id,
+                        len(plan.graph.actions),
+                    ),
+                )
                 self._insert_checkpoint(checkpoint)
+                self.connection.commit()
+            except Exception:
+                self.connection.rollback()
+                raise
         except sqlite3.IntegrityError as exc:
             raise AttackChainStoreRejected("Attack Chain creation rejected") from exc
         return checkpoint
 
+    def reserved_actions(self, flow_plan_id: str) -> int:
+        row = self.connection.execute(
+            "SELECT COALESCE(SUM(action_count),0) "
+            "FROM attack_chain_budget_reservations WHERE flow_plan_id=?",
+            (flow_plan_id,),
+        ).fetchone()
+        return int(row[0])
+
+    def has_started_action(self, chain_plan_id: str) -> bool:
+        row = self.connection.execute(
+            "SELECT 1 FROM attack_chain_actions "
+            "WHERE chain_plan_id=? AND state='started' LIMIT 1",
+            (chain_plan_id,),
+        ).fetchone()
+        return row is not None
+
     def advance(
-        self, previous: AttackChainCheckpoint, checkpoint: AttackChainCheckpoint
+        self,
+        previous: AttackChainCheckpoint,
+        checkpoint: AttackChainCheckpoint,
+        *,
+        abandon_started_actions: bool = False,
     ) -> AttackChainCheckpoint:
         if checkpoint.revision != previous.revision + 1:
             raise AttackChainStoreRejected("Attack Chain revision is invalid")
         with self.connection:
             self._assert_latest(previous)
+            if abandon_started_actions:
+                self.connection.execute(
+                    "UPDATE attack_chain_actions SET state='abandoned' "
+                    "WHERE chain_plan_id=? AND state='started'",
+                    (previous.chain_plan_id,),
+                )
             self._insert_checkpoint(checkpoint)
         return checkpoint
 

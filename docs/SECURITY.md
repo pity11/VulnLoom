@@ -297,6 +297,13 @@ R11.3 Attack Path Report 只从权威 `goal_reached` 且 Cleanup 已证明的 ch
 endpoint、请求响应或凭据。Detection Opportunity 表示应观测的位置，不等同于已部署告警；Defensive Improvement
 是有限控制类别，不会执行修复。产物发布失败必须清理临时目录并留下需显式恢复的 STARTED checkpoint。
 
+R11.4 将 Attack Chain 的动作数先以 chain digest 在父 Flow 账本持久化预留。普通 Recon 与其他 Chain 都在立即写
+事务中读取同一预留总数，不能分别通过预检后超卖 `max_actions`；Chain ledger 仍执行第二层校验。跨库创建若中断，
+父预留保留并允许同一内容寻址 plan 重试，选择可用性损失而不是预算失守。每个 Chain 还封存独立 Cleanup deadline，
+它严格晚于普通动作 deadline、最长相差 300 秒且不超过 Scope/Flow。父 Flow Kill、Cancel 或 checkpoint 漂移后，
+已经成功或执行状态不确定的 state-change 不得直接标成 cleaned/killed，而是进入 `cleanup_required`；只有仍有效的
+Scope、逐动作 Approval、可追溯且单调的父账本和未过期清理窗口能放行原图中的 Cleanup。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

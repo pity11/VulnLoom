@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol
 from urllib.parse import urlsplit, urlunsplit
 
@@ -115,9 +115,13 @@ class AttackChainService:
         scope: Scope,
         now: datetime,
         deadline: datetime,
+        cleanup_deadline: datetime | None = None,
         idempotency_key: str,
     ) -> AttackChainPlan:
         checkpoint = self._flow_preflight(flow_plan, flow_checkpoint_id, graph, scope, now)
+        cleanup_stop = cleanup_deadline or min(
+            deadline + timedelta(seconds=60), flow_plan.deadline, scope.valid_until
+        )
         if (
             graph.flow_plan_id != flow_plan.plan_id
             or graph.target_id != flow_plan.target.target_id
@@ -130,6 +134,9 @@ class AttackChainService:
                 for action in graph.actions
             )
             or deadline > flow_plan.deadline
+            or cleanup_stop <= deadline
+            or cleanup_stop > flow_plan.deadline
+            or cleanup_stop > scope.valid_until
         ):
             raise AttackChainRejected("Attack Graph exceeds its sealed Flow boundary")
         return AttackChainPlan.create(
@@ -137,6 +144,7 @@ class AttackChainService:
             expected_flow_checkpoint_id=flow_checkpoint_id,
             created_at=now,
             deadline=deadline,
+            cleanup_deadline=cleanup_stop,
             idempotency_key=idempotency_key,
         )
 
@@ -161,7 +169,19 @@ class AttackChainService:
             failures=0,
             updated_at=now,
         )
-        current = self.chain_store.create(plan, planned)
+        self.flow_store.reserve_external_actions(
+            plan_id=flow_plan.plan_id,
+            source_checkpoint_id=plan.expected_flow_checkpoint_id,
+            reservation_id=plan.chain_plan_id,
+            action_count=len(plan.graph.actions),
+        )
+        flow_checkpoint = self.flow_store.latest(flow_plan.plan_id)
+        current = self.chain_store.create(
+            plan,
+            planned,
+            flow_actions_used=flow_checkpoint.actions_used,
+            flow_max_actions=flow_plan.rules.stop_conditions.max_actions,
+        )
         if current.status is AttackChainStatus.PLANNED:
             running = start_attack_chain(plan, current, now=now)
             return self.chain_store.advance(current, running)
@@ -176,10 +196,12 @@ class AttackChainService:
         now: datetime,
     ) -> AttackActionAuthorization:
         flow_plan = self.flow_store.plan(plan.graph.flow_plan_id)
-        self._flow_preflight(
+        checkpoint = self.chain_store.latest(plan.chain_plan_id)
+        self._action_flow_preflight(
             flow_plan,
-            plan.expected_flow_checkpoint_id,
-            plan.graph,
+            plan,
+            checkpoint,
+            action,
             scope,
             now,
         )
@@ -301,7 +323,13 @@ class AttackChainService:
         if (
             observation.command_id != command.command_id
             or observation.action_id != action.action_id
-            or not plan.created_at <= observation.observed_at < plan.deadline
+            or not plan.created_at
+            <= observation.observed_at
+            < (
+                plan.cleanup_deadline
+                if action.kind.value == "cleanup_test_session"
+                else plan.deadline
+            )
             or observation.goal_reached
             != (
                 action.kind.value == "verify_objective"
@@ -340,29 +368,53 @@ class AttackChainService:
     ) -> None:
         flow_plan = self.flow_store.plan(plan.graph.flow_plan_id)
         try:
-            self._flow_preflight(
+            self._action_flow_preflight(
                 flow_plan,
-                plan.expected_flow_checkpoint_id,
-                plan.graph,
+                plan,
+                checkpoint,
+                action,
                 scope,
                 now,
             )
         except AttackChainRejected:
             latest = self.flow_store.latest(flow_plan.plan_id)
-            if latest.status is RedTeamFlowStatus.KILLED:
-                stopped = stop_attack_chain(
-                    plan,
+            progress = {node.action_id: node for node in checkpoint.nodes}
+            has_started_action = self.chain_store.has_started_action(
+                plan.chain_plan_id
+            )
+            changed_target = any(
+                item.impact is AttackImpact.STATE_CHANGE
+                and item.kind.value != "cleanup_test_session"
+                and progress[item.action_id].status.value == "succeeded"
+                for item in plan.graph.actions
+            ) or has_started_action
+            stopped = stop_attack_chain(
+                plan,
+                checkpoint,
+                reason=(
+                    "flow_kill_switch_activated"
+                    if latest.status is RedTeamFlowStatus.KILLED
+                    else "flow_boundary_changed"
+                ),
+                now=now,
+                cleanup_required=changed_target,
+            )
+            if stopped != checkpoint:
+                self.chain_store.advance(
                     checkpoint,
-                    reason="flow_kill_switch_activated",
-                    now=now,
+                    stopped,
+                    abandon_started_actions=has_started_action,
                 )
-                if stopped != checkpoint:
-                    self.chain_store.advance(checkpoint, stopped)
             raise
+        cutoff = (
+            plan.cleanup_deadline
+            if action.kind.value == "cleanup_test_session"
+            else plan.deadline
+        )
         if (
             checkpoint.status not in {AttackChainStatus.RUNNING, AttackChainStatus.CLEANUP_REQUIRED}
             or command.expected_checkpoint_id != checkpoint.checkpoint_id
-            or now >= plan.deadline
+            or now >= cutoff
         ):
             raise AttackChainRejected("Attack Chain checkpoint is stale or terminal")
         progress = {node.action_id: node for node in checkpoint.nodes}
@@ -405,6 +457,7 @@ class AttackChainService:
             or flow_plan.rules.scope_version != scope.version
             or checkpoint.checkpoint_id != flow_checkpoint_id
             or checkpoint.status is not RedTeamFlowStatus.RUNNING
+            or now >= flow_plan.deadline
             or flow_plan.rules.approval_required_impacts != (ImpactClass.STATE_CHANGE,)
             or set(flow_plan.rules.prohibited_impacts) != prohibited
             or graph.flow_plan_id != flow_plan.plan_id
@@ -414,6 +467,58 @@ class AttackChainService:
         ):
             raise AttackChainRejected("Attack Chain Flow boundary is invalid or stopped")
         return checkpoint
+
+    def _action_flow_preflight(
+        self,
+        flow_plan: RedTeamFlowPlan,
+        plan: AttackChainPlan,
+        chain_checkpoint: AttackChainCheckpoint,
+        action: AttackAction,
+        scope: Scope,
+        now: datetime,
+    ):
+        try:
+            return self._flow_preflight(
+                flow_plan,
+                plan.expected_flow_checkpoint_id,
+                plan.graph,
+                scope,
+                now,
+            )
+        except AttackChainRejected as exc:
+            if (
+                action.kind.value != "cleanup_test_session"
+                or chain_checkpoint.status is not AttackChainStatus.CLEANUP_REQUIRED
+                or now >= plan.cleanup_deadline
+                or scope.state is not ScopeState.APPROVED
+                or not scope.valid_from <= now < scope.valid_until
+            ):
+                raise
+            expected = self.flow_store.checkpoint(plan.expected_flow_checkpoint_id)
+            latest = self.flow_store.latest(flow_plan.plan_id)
+            if (
+                expected.plan_id != flow_plan.plan_id
+                or latest.status
+                not in {
+                    RedTeamFlowStatus.RUNNING,
+                    RedTeamFlowStatus.CANCELLED,
+                    RedTeamFlowStatus.KILLED,
+                }
+                or latest.revision < expected.revision
+                or latest.actions_used < expected.actions_used
+                or latest.observation_ids[: len(expected.observation_ids)]
+                != expected.observation_ids
+                or flow_plan.rules.scope_id != scope.scope_id
+                or flow_plan.rules.scope_version != scope.version
+                or plan.graph.flow_plan_id != flow_plan.plan_id
+                or plan.graph.target_id != flow_plan.target.target_id
+                or plan.graph.scope_id != scope.scope_id
+                or plan.graph.scope_version != scope.version
+            ):
+                raise AttackChainRejected(
+                    "Attack Chain Cleanup boundary is invalid after Flow stop"
+                ) from exc
+            return latest
 
     def _policy_request(
         self,

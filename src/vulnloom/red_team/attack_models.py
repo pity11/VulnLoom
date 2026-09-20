@@ -215,6 +215,7 @@ class AttackChainPlan(DomainModel):
     expected_flow_checkpoint_id: Digest
     created_at: AwareDatetime
     deadline: AwareDatetime
+    cleanup_deadline: AwareDatetime
     max_failures: int = Field(default=1, ge=1, le=3)
     idempotency_key: str = Field(min_length=1, max_length=256)
 
@@ -222,6 +223,12 @@ class AttackChainPlan(DomainModel):
     def sealed(self) -> Self:
         if self.deadline <= self.created_at:
             raise ValueError("Attack Chain deadline must follow creation")
+        if not self.deadline < self.cleanup_deadline:
+            raise ValueError("Attack Chain Cleanup deadline must follow action deadline")
+        if (self.cleanup_deadline - self.deadline).total_seconds() > 300:
+            raise ValueError("Attack Chain Cleanup grace exceeds five minutes")
+        if "\x00" in self.idempotency_key:
+            raise ValueError("Attack Chain idempotency key contains NUL")
         if self.chain_plan_id != canonical_digest(
             self.model_dump(mode="python", exclude={"chain_plan_id"})
         ):
@@ -278,6 +285,39 @@ class AttackChainCheckpoint(DomainModel):
             raise ValueError("successful Attack Chain requires objective evidence")
         if len({node.action_id for node in self.nodes}) != len(self.nodes):
             raise ValueError("Attack Chain checkpoint nodes must be unique")
+        observed = {
+            node.observation_id: node
+            for node in self.nodes
+            if node.observation_id is not None
+        }
+        if self.objective_observation_id is not None and (
+            self.objective_observation_id not in observed
+            or observed[self.objective_observation_id].status
+            is not AttackNodeStatus.SUCCEEDED
+        ):
+            raise ValueError("Attack Chain objective Evidence is not a successful node")
+        recorded_failures = sum(
+            node.status in {AttackNodeStatus.FAILED, AttackNodeStatus.TIMED_OUT}
+            for node in self.nodes
+        )
+        if self.failures != recorded_failures:
+            raise ValueError("Attack Chain failure count does not match node state")
+        if self.status is AttackChainStatus.PLANNED and (
+            self.revision != 0
+            or self.failures
+            or self.objective_observation_id is not None
+            or any(node.status is not AttackNodeStatus.PENDING for node in self.nodes)
+        ):
+            raise ValueError("planned Attack Chain checkpoint is inconsistent")
+        if self.status is AttackChainStatus.CLEANUP_REQUIRED and not any(
+            node.status is AttackNodeStatus.PENDING for node in self.nodes
+        ):
+            raise ValueError("Attack Chain Cleanup state requires a pending node")
+        if self.status is AttackChainStatus.GOAL_REACHED and (
+            self.failures
+            or any(node.status is not AttackNodeStatus.SUCCEEDED for node in self.nodes)
+        ):
+            raise ValueError("successful Attack Chain requires every node to succeed")
         if self.checkpoint_id != canonical_digest(
             self.model_dump(mode="python", exclude={"checkpoint_id"})
         ):

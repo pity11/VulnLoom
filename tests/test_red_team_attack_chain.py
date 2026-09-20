@@ -7,6 +7,8 @@ import os
 import socket
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -53,6 +55,7 @@ from vulnloom.red_team import (
     AttackChainService,
     AttackChainStatus,
     AttackChainStore,
+    AttackChainStoreRejected,
     AttackDefensiveControl,
     AttackDefensiveImprovement,
     AttackDetectionOpportunity,
@@ -67,6 +70,10 @@ from vulnloom.red_team import (
     IsolatedLocalAttackChainAdapter,
     OfflineAttackActionAdapter,
     OfflineAttackScenario,
+    OfflineReconScenario,
+    OfflineRedTeamReconAdapter,
+    RedTeamActionKind,
+    RedTeamAdapterInterrupted,
     RedTeamPhase,
     RedTeamService,
     RedTeamStore,
@@ -349,6 +356,256 @@ def test_isolated_attack_chain_routes_exact_methods_and_cleans_up(tmp_path, appr
     flow_store.close()
 
 
+def test_attack_chain_budget_reservation_prevents_flow_overcommit(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, flow_plan, flow_checkpoint, chain_store, service, first, checkpoint = setup
+    assert checkpoint.status is AttackChainStatus.RUNNING
+    assert chain_store.reserved_actions(flow_plan.plan_id) == 4
+
+    for index in range(25):
+        competing = service.prepare(
+            flow_plan=flow_plan,
+            flow_checkpoint_id=flow_checkpoint.checkpoint_id,
+            graph=first.graph,
+            scope=approved_scope,
+            now=now,
+            deadline=now + timedelta(minutes=5),
+            idempotency_key=f"r11:competing-chain:{index}",
+        )
+        with pytest.raises(ValueError, match="budget is exhausted"):
+            service.create_and_start(competing, scope=approved_scope, now=now)
+
+    assert chain_store.reserved_actions(flow_plan.plan_id) == 4
+    assert (
+        chain_store.connection.execute("SELECT count(*) FROM attack_chain_plans").fetchone()[0]
+        == 1
+    )
+    assert service.create_and_start(first, scope=approved_scope, now=now) == checkpoint
+    assert chain_store.reserved_actions(flow_plan.plan_id) == 4
+    chain_store.close()
+    flow_store.close()
+
+
+def test_parent_recon_cannot_consume_attack_chain_reserved_budget(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    flow_service, flow_store, flow_plan, checkpoint, chain_store, *_ = setup
+    assert flow_store.reserved_external_actions(flow_plan.plan_id) == 4
+    for index in range(2):
+        at = now + timedelta(seconds=index + 1)
+        command = flow_service.prepare_recon(
+            plan=flow_plan,
+            checkpoint=checkpoint,
+            scope=approved_scope,
+            kind=RedTeamActionKind.HTTP_HEAD,
+            test_class="idor",
+            now=at,
+            ttl_seconds=30,
+            idempotency_key=f"r11:budgeted-parent-recon:{index}",
+        )
+        checkpoint, _ = flow_service.execute_recon(
+            command=command,
+            scope=approved_scope,
+            adapter=OfflineRedTeamReconAdapter(),
+            now=at,
+        )
+    assert checkpoint.actions_used == 2
+    at = now + timedelta(seconds=3)
+    command = flow_service.prepare_recon(
+        plan=flow_plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        kind=RedTeamActionKind.HTTP_HEAD,
+        test_class="idor",
+        now=at,
+        ttl_seconds=30,
+        idempotency_key="r11:parent-recon-over-budget",
+    )
+    adapter = OfflineRedTeamReconAdapter()
+    with pytest.raises(ValueError, match="reserved by another workflow"):
+        flow_service.execute_recon(
+            command=command,
+            scope=approved_scope,
+            adapter=adapter,
+            now=at,
+        )
+    assert adapter.calls == 0
+    assert flow_store.latest(flow_plan.plan_id) == checkpoint
+    chain_store.close()
+    flow_store.close()
+
+
+def test_started_parent_action_is_counted_before_new_external_reservation(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    flow_service, flow_store, flow_plan, checkpoint, chain_store, *_ = setup
+    command = flow_service.prepare_recon(
+        plan=flow_plan,
+        checkpoint=checkpoint,
+        scope=approved_scope,
+        kind=RedTeamActionKind.HTTP_HEAD,
+        test_class="idor",
+        now=now + timedelta(seconds=1),
+        ttl_seconds=30,
+        idempotency_key="r11:started-parent-action",
+    )
+    with pytest.raises(RedTeamAdapterInterrupted):
+        flow_service.execute_recon(
+            command=command,
+            scope=approved_scope,
+            adapter=OfflineRedTeamReconAdapter(
+                OfflineReconScenario(interrupt=True)
+            ),
+            now=now + timedelta(seconds=1),
+        )
+    with pytest.raises(ValueError, match="budget is exhausted"):
+        flow_store.reserve_external_actions(
+            plan_id=flow_plan.plan_id,
+            source_checkpoint_id=checkpoint.checkpoint_id,
+            reservation_id="f" * 64,
+            action_count=2,
+        )
+    assert flow_store.reserved_external_actions(flow_plan.plan_id) == 4
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_chain_budget_reservation_is_atomic_across_connections(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, flow_plan, _, chain_store, _, first, running = setup
+    chain_store.close()
+    budget_path = tmp_path / "contended-chain.sqlite3"
+    AttackChainStore(budget_path).close()
+    second = first.__class__.create(
+        graph=first.graph,
+        expected_flow_checkpoint_id=first.expected_flow_checkpoint_id,
+        created_at=first.created_at,
+        deadline=first.deadline,
+        cleanup_deadline=first.cleanup_deadline,
+        max_failures=first.max_failures,
+        idempotency_key="r11:atomic-competitor",
+    )
+
+    def planned(plan):
+        return running.__class__.create(
+            chain_plan_id=plan.chain_plan_id,
+            revision=0,
+            status=AttackChainStatus.PLANNED,
+            nodes=running.nodes,
+            failures=0,
+            updated_at=now,
+        )
+
+    barrier = threading.Barrier(2)
+
+    def reserve(plan):
+        with AttackChainStore(budget_path) as store:
+            barrier.wait()
+            try:
+                store.create(
+                    plan,
+                    planned(plan),
+                    flow_actions_used=0,
+                    flow_max_actions=6,
+                )
+            except AttackChainStoreRejected as exc:
+                return str(exc)
+            return "reserved"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = tuple(pool.map(reserve, (first, second)))
+    assert sorted(results) == ["Attack Chain Flow budget is exhausted", "reserved"]
+    with AttackChainStore(budget_path) as store:
+        assert store.reserved_actions(flow_plan.plan_id) == 4
+        assert (
+            store.connection.execute("SELECT count(*) FROM attack_chain_plans").fetchone()[0]
+            == 1
+        )
+    flow_store.close()
+
+
+def test_attack_chain_cleanup_grace_is_bounded_and_allows_compensation(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, _, _, chain_store, service, plan, checkpoint = setup
+    first, *_, cleanup = plan.graph.actions
+    first_command = service.command(plan=plan, checkpoint=checkpoint, action=first)
+    checkpoint, _ = service.execute(
+        command=first_command,
+        scope=approved_scope,
+        approvals=_approvals(service, plan, first, approved_scope, now),
+        adapter=OfflineAttackActionAdapter(
+            OfflineAttackScenario(
+                outcome=AttackActionOutcome.TIMED_OUT,
+                reason_code="bounded_action_timeout",
+                cleanup_complete=False,
+            )
+        ),
+        now=now,
+    )
+    assert checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+
+    cleanup_at = plan.deadline + timedelta(seconds=1)
+    cleanup_adapter = OfflineAttackActionAdapter()
+    cleanup_command = service.command(
+        plan=plan, checkpoint=checkpoint, action=cleanup
+    )
+    checkpoint, _ = service.execute(
+        command=cleanup_command,
+        scope=approved_scope,
+        approvals=_approvals(service, plan, cleanup, approved_scope, cleanup_at),
+        adapter=cleanup_adapter,
+        now=cleanup_at,
+    )
+    assert cleanup_adapter.calls == 1
+    assert checkpoint.status is AttackChainStatus.TIMED_OUT
+    assert checkpoint.stop_reason == "action_timed_out_after_cleanup"
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_chain_rejects_cleanup_after_grace_without_adapter_call(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, _, _, chain_store, service, plan, checkpoint = setup
+    first, *_, cleanup = plan.graph.actions
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=first),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, first, approved_scope, now),
+        adapter=OfflineAttackActionAdapter(
+            OfflineAttackScenario(
+                outcome=AttackActionOutcome.FAILED,
+                reason_code="bounded_action_failure",
+                cleanup_complete=False,
+            )
+        ),
+        now=now,
+    )
+    cleanup_adapter = OfflineAttackActionAdapter()
+    cleanup_at = plan.cleanup_deadline
+    with pytest.raises(AttackChainRejected, match="stale or terminal"):
+        service.execute(
+            command=service.command(plan=plan, checkpoint=checkpoint, action=cleanup),
+            scope=approved_scope,
+            approvals=_approvals(service, plan, cleanup, approved_scope, cleanup_at),
+            adapter=cleanup_adapter,
+            now=cleanup_at,
+        )
+    assert cleanup_adapter.calls == 0
+    assert chain_store.latest(plan.chain_plan_id).status is AttackChainStatus.CLEANUP_REQUIRED
+    chain_store.close()
+    flow_store.close()
+
+
 def test_isolated_attack_chain_timeout_requires_approved_cleanup(tmp_path, approved_scope, now):
     setup = _setup(tmp_path, approved_scope, now)
     _, flow_store, _, _, chain_store, service, plan, checkpoint = setup
@@ -451,6 +708,21 @@ def test_sealed_attack_graph_reaches_objective_with_per_action_approval(
     assert checkpoint.objective_observation_id is not None
     assert all(node.status is AttackNodeStatus.SUCCEEDED for node in checkpoint.nodes)
     assert len(chain_store.audits(plan.chain_plan_id)) == 4
+
+    tampered = checkpoint.model_dump(mode="python")
+    tampered["nodes"] = (
+        *tampered["nodes"][:-1],
+        {
+            **tampered["nodes"][-1],
+            "status": AttackNodeStatus.PENDING,
+            "observation_id": None,
+        },
+    )
+    tampered["checkpoint_id"] = canonical_digest(
+        {key: value for key, value in tampered.items() if key != "checkpoint_id"}
+    )
+    with pytest.raises(ValidationError, match="every node"):
+        checkpoint.__class__.model_validate(tampered)
 
     replay_adapter = OfflineAttackActionAdapter(
         OfflineAttackScenario(outcome=AttackActionOutcome.FAILED)
@@ -651,6 +923,182 @@ def test_flow_kill_switch_blocks_next_action_and_leaves_audit(tmp_path, approved
         )
     assert chain_store.latest(plan.chain_plan_id).status is AttackChainStatus.KILLED
     assert chain_store.audits(plan.chain_plan_id)[-1].decision is AttackAuditDecision.REJECTED
+    chain_store.close()
+    flow_store.close()
+
+
+def test_flow_kill_after_state_change_requires_and_allows_only_cleanup(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    (
+        flow_service,
+        flow_store,
+        flow_plan,
+        flow_checkpoint,
+        chain_store,
+        service,
+        plan,
+        checkpoint,
+    ) = setup
+    first, second, *_, cleanup = plan.graph.actions
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=first),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, first, approved_scope, now),
+        adapter=OfflineAttackActionAdapter(),
+        now=now,
+    )
+    flow_service.kill(
+        flow_plan,
+        flow_checkpoint,
+        scope=approved_scope,
+        now=now + timedelta(seconds=1),
+    )
+    with pytest.raises(AttackChainRejected, match="invalid or stopped"):
+        service.execute(
+            command=service.command(plan=plan, checkpoint=checkpoint, action=second),
+            scope=approved_scope,
+            approvals=(),
+            adapter=OfflineAttackActionAdapter(),
+            now=now + timedelta(seconds=1),
+        )
+    checkpoint = chain_store.latest(plan.chain_plan_id)
+    assert checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+    cleanup_adapter = OfflineAttackActionAdapter()
+    cleanup_at = now + timedelta(seconds=2)
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=cleanup),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, cleanup, approved_scope, cleanup_at),
+        adapter=cleanup_adapter,
+        now=cleanup_at,
+    )
+    assert cleanup_adapter.calls == 1
+    assert checkpoint.status is AttackChainStatus.FAILED
+    assert checkpoint.stop_reason == "action_failed_after_cleanup"
+    chain_store.close()
+    flow_store.close()
+
+
+def test_flow_kill_after_interrupted_mutation_abandons_claim_for_cleanup(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    (
+        flow_service,
+        flow_store,
+        flow_plan,
+        flow_checkpoint,
+        chain_store,
+        service,
+        plan,
+        checkpoint,
+    ) = setup
+    first, *_, cleanup = plan.graph.actions
+    command = service.command(plan=plan, checkpoint=checkpoint, action=first)
+    with pytest.raises(AttackActionAdapterInterrupted):
+        service.execute(
+            command=command,
+            scope=approved_scope,
+            approvals=_approvals(service, plan, first, approved_scope, now),
+            adapter=OfflineAttackActionAdapter(OfflineAttackScenario(interrupt=True)),
+            now=now,
+        )
+    assert chain_store.has_started_action(plan.chain_plan_id)
+    flow_service.kill(
+        flow_plan,
+        flow_checkpoint,
+        scope=approved_scope,
+        now=now + timedelta(seconds=1),
+    )
+    recovery = service.command(
+        plan=plan, checkpoint=checkpoint, action=first, attempt=2
+    )
+    with pytest.raises(AttackChainRejected, match="invalid or stopped"):
+        service.execute(
+            command=recovery,
+            scope=approved_scope,
+            approvals=(),
+            adapter=OfflineAttackActionAdapter(),
+            now=now + timedelta(seconds=1),
+        )
+    checkpoint = chain_store.latest(plan.chain_plan_id)
+    assert checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+    assert not chain_store.has_started_action(plan.chain_plan_id)
+    cleanup_at = now + timedelta(seconds=2)
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=cleanup),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, cleanup, approved_scope, cleanup_at),
+        adapter=OfflineAttackActionAdapter(),
+        now=cleanup_at,
+    )
+    assert checkpoint.status is AttackChainStatus.FAILED
+    chain_store.close()
+    flow_store.close()
+
+
+def test_parent_flow_checkpoint_drift_preserves_bounded_cleanup(
+    tmp_path, approved_scope, now
+):
+    setup = _setup(tmp_path, approved_scope, now)
+    (
+        flow_service,
+        flow_store,
+        flow_plan,
+        flow_checkpoint,
+        chain_store,
+        service,
+        plan,
+        checkpoint,
+    ) = setup
+    first, second, *_, cleanup = plan.graph.actions
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=first),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, first, approved_scope, now),
+        adapter=OfflineAttackActionAdapter(),
+        now=now,
+    )
+    recon = flow_service.prepare_recon(
+        plan=flow_plan,
+        checkpoint=flow_checkpoint,
+        scope=approved_scope,
+        kind=RedTeamActionKind.HTTP_HEAD,
+        test_class="idor",
+        now=now + timedelta(seconds=1),
+        ttl_seconds=30,
+        idempotency_key="r11:interleaved-flow-recon",
+    )
+    flow_checkpoint, _ = flow_service.execute_recon(
+        command=recon,
+        scope=approved_scope,
+        adapter=OfflineRedTeamReconAdapter(),
+        now=now + timedelta(seconds=1),
+    )
+    assert flow_checkpoint.actions_used == 1
+
+    with pytest.raises(AttackChainRejected, match="invalid or stopped"):
+        service.execute(
+            command=service.command(plan=plan, checkpoint=checkpoint, action=second),
+            scope=approved_scope,
+            approvals=(),
+            adapter=OfflineAttackActionAdapter(),
+            now=now + timedelta(seconds=2),
+        )
+    checkpoint = chain_store.latest(plan.chain_plan_id)
+    assert checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+    cleanup_at = now + timedelta(seconds=3)
+    checkpoint, _ = service.execute(
+        command=service.command(plan=plan, checkpoint=checkpoint, action=cleanup),
+        scope=approved_scope,
+        approvals=_approvals(service, plan, cleanup, approved_scope, cleanup_at),
+        adapter=OfflineAttackActionAdapter(),
+        now=cleanup_at,
+    )
+    assert checkpoint.status is AttackChainStatus.FAILED
+    assert checkpoint.stop_reason == "action_failed_after_cleanup"
     chain_store.close()
     flow_store.close()
 

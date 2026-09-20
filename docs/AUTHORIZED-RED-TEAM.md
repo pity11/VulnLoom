@@ -307,3 +307,29 @@ automatic Finding promotion, external report submission or production-target exe
 Local R11.3 verification completed with 1505 tests passed, 30 integration tests skipped, 85.39% coverage,
 Ruff, 424 JSON Schema parses, and `git diff --check`. The isolated private-address process acceptance also
 passed again separately. No external model or public target was contacted.
+
+## R11.4: architecture and pressure hardening
+
+R11.4 closes two cross-aggregate failure modes found during an end-to-end architecture review. Each chain now
+reserves its complete action count in the authoritative parent Flow ledger before its own ledger is created.
+Recon claims and competing chains serialize their budget checks with immediate SQLite transactions, while the
+chain ledger retains a second reservation check. A crash between the two ledgers can leave a retryable reserved
+budget, but cannot create an executable chain without budget or allow `max_actions` to be exceeded.
+
+The chain contract now seals a separate cleanup deadline: it follows the normal action deadline by no more than
+300 seconds and remains inside both Scope and Flow validity. A timeout, kill, cancellation, parent-checkpoint
+advance, or interrupted state-changing adapter call therefore cannot be mislabeled as a clean terminal state.
+The chain moves to `cleanup_required`, atomically abandons any uncertain started claim, and admits only the
+original Cleanup action with fresh exact approvals, current Scope, monotonic parent-ledger provenance, and an
+unexpired cleanup window. Deserialized checkpoints also verify their failure count, objective observation, and
+all-success shape, while attack reports enforce exact action-to-detection-to-control mappings.
+
+The new offline stress cases cover repeated over-reservation, cross-connection contention, mixed Recon/Chain
+budget use, deadline-edge compensation, cleanup-window expiry, kill after confirmed or uncertain mutation,
+parent checkpoint drift, idempotent replay, and tampered terminal data. No live network, model, crawler, public
+scan, exploit submission, or external service is enabled by this hardening.
+
+Local R11.4 verification completed with 1514 tests passed, 30 integration tests skipped, 85.41% coverage,
+Ruff, 424 JSON Schema parses, and `git diff --check`. The opt-in private-process acceptance safely skipped on
+this host because no private non-loopback IPv4 was available; it was not counted as a new pass. See
+`docs/R11-ARCHITECTURE-HARDENING.md` for the reviewed control/data flows, failure matrix, and residual risks.
