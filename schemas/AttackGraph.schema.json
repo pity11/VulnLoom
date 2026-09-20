@@ -91,7 +91,8 @@
       "enum": [
         "initial_access_attempt",
         "verify_test_session",
-        "verify_objective"
+        "verify_objective",
+        "cleanup_test_session"
       ],
       "title": "AttackActionKind",
       "type": "string"
@@ -183,7 +184,7 @@
         "$ref": "#/$defs/AttackAction"
       },
       "maxItems": 32,
-      "minItems": 2,
+      "minItems": 3,
       "title": "Actions",
       "type": "array"
     }

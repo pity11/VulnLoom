@@ -235,17 +235,18 @@ Local R9 verification completed with 1450 tests passed, 27 integration tests ski
 coverage. Ruff, 377 JSON Schema parses, `git diff --check`, and the 589-pass/9-skip model-provider and
 CUC/DeepSeek compatibility slice passed without an external model call or network request.
 
-## R11.1: sealed Attack Graph control plane
+## R11.1–R11.2: sealed Attack Graph and isolated execution boundary
 
 R11's first slice extends the read-only RoE into a still-bounded external Web attack-chain control plane.
-`AttackGraph` binds an exact Flow, Target, Scope/version, one finite `AttackObjective`, and 2–32
+`AttackGraph` binds an exact Flow, Target, Scope/version, one finite `AttackObjective`, and 3–32
 content-addressed `AttackAction` values. Actions form an ordinal DAG: the first and only Initial Access action
-declares `state_change`; later actions may only perform read-only verification of the test session and goal
-Evidence; the final action must verify the Objective. Runtime code cannot insert a node, replace a path, or
-skip a dependency.
+declares `state_change`; later actions verify the test session and goal Evidence; the final action is the only
+Cleanup action and must directly depend on the Objective verification. Objective Evidence alone leaves the
+chain running; terminal success requires successful cleanup. Runtime code cannot insert a node, replace a path,
+or skip a dependency.
 
 Every action requires a separate `EXECUTE_RED_TEAM_ACTION` Approval whose digest is the action digest. Initial
-Access additionally requires the existing Policy Engine's exact `MUTATE_TARGET_STATE` Approval. Approval for
+Access and Cleanup additionally require the existing Policy Engine's exact `MUTATE_TARGET_STATE` Approval. Approval for
 another node, the whole Graph, or an expired action cannot be reused. External callback, lateral movement,
 persistence, and real credentials remain prohibited by the RoE. Attack Action schemas contain no callback,
 payload, shell, header, Cookie, credential, or response-body field.
@@ -256,12 +257,26 @@ Timeout, failure, unproven cleanup, Scope drift, missing prerequisites, missing 
 Kill Switch all fail closed. Every allow or rejection creates a redacted `AttackActionAuditRecord` containing
 only digests, a reason code, Approval IDs, and time.
 
+If a non-cleanup action fails or times out after dispatch, the chain enters `cleanup_required` instead of a
+terminal state. Only the graph's already sealed Cleanup action may run, with its own execution and mutation
+Approvals; success then records the deferred failed/timed-out terminal result, while cleanup failure closes as
+`cleanup_unproven`. This prevents a failure result from silently abandoning test state.
+
 The new `post_exploitation` Sandbox Profile is non-root, read-only-root, capability-free, networkless, and
 unable to execute Target code. It mounts immutable Evidence plus bounded scratch and exposes only
-`red_team.evidence_read` and `red_team.result_write`. Real Web actions, test identities, and transport remain
-behind a future trusted adapter/Broker boundary and cannot be moved into the Worker profile.
+`red_team.evidence_read` and `red_team.result_write`. Real Web actions and transport remain outside that Worker.
 
-This slice qualifies the typed control plane with an offline fake adapter only; it does not close R11. The
-next acceptance slice must connect a trusted adapter to an explicitly enabled isolated local Red Team lab,
-complete a real multi-step chain, and prove denial and cleanup for unapproved actions, callbacks, lateral
-targets, persistence, and timeouts.
+R11.2 adds `IsolatedAttackChainAdmission` and a trusted adapter that binds one expiring private non-loopback
+fixture, exact ordered action/method/URL digests, expected status/body digests, one target-only Validation
+Profile grant, and the Broker's exact resolved-IP set. Requests have no body, header, credential, redirect, or
+dynamic target field. The Broker rechecks Scope, Policy, mutation Approval, DNS pinning, peer and budgets for
+every action; results become digest-only redacted Evidence references.
+
+Default tests remain offline. The explicit `VULNLOOM_R11_ATTACK_CHAIN_INTEGRATION=1` acceptance starts only a
+local private-address process and proves the exact `POST → GET → GET → DELETE` chain, goal-before-cleanup
+remaining nonterminal, target-state cleanup, process cleanup and sensitive-header redaction. R11 is not yet
+closed: attack-path, detection-opportunity and defensive-improvement reporting remains the next slice.
+
+Local R11.2 verification completed with 1499 tests passed, 30 integration tests skipped, 85.42% coverage,
+Ruff, 417 JSON Schema parses, and `git diff --check`. The separately enabled private-address process test
+passed once. No public target or external model was contacted.

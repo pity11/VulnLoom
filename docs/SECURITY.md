@@ -278,15 +278,19 @@ M6.4c 只增加固定 Trivy 0.73.0 vulnerability filesystem scan。离线 DB 必
 argv 固定 `--scanners vuln` 以及 offline/update/version/telemetry 禁用参数，因此 secret、misconfiguration
 和 license scanner 均不可启用。DB 下载、Target build、Broker、Docker socket 和 Submission 仍不在执行 API 中。
 
-R11.1 的 Attack Graph 是操作员封存的有限 DAG，不是模型可动态扩展的队列。每个 Action 都要求绑定自身摘要的
-`EXECUTE_RED_TEAM_ACTION` Approval；Initial Access 还要求绑定同一 Policy request 的
+R11 的 Attack Graph 是操作员封存的有限 DAG，不是模型可动态扩展的队列。每个 Action 都要求绑定自身摘要的
+`EXECUTE_RED_TEAM_ACTION` Approval；Initial Access 与最终 Cleanup 还要求绑定同一 Policy request 的
 `MUTATE_TARGET_STATE` Approval。服务在 adapter 调用前重新读取 Scope、父 Flow、Kill Switch、checkpoint、
 依赖和批准。拒绝也写入 digest-only 审计，不能因失败路径绕过可追踪性。
 
 首个 R11 RoE 继续禁止真实凭据、外部回连、横向移动和持久化，Action schema 不存在 payload、shell、callback、
 header、Cookie、credential 或响应正文字段。Post-exploitation Worker Profile 无网络、不可执行 Target、无
-capability、只读根且只读 Evidence；所有真实传输和测试身份必须留在后续受信任 adapter/Broker 边界。默认测试
-仅使用 fake adapter，因此不能据此声明已完成隔离靶场攻击链验收。
+capability、只读根且只读 Evidence；所有真实传输必须留在受信任 adapter/Broker 边界。R11.2 的 live admission
+只准入显式私网非回环 fixture、封存的 method/URL/result digest、单一 target-only grant 和 exact pinned peer；
+请求不含 body、header、credential 或 redirect。Objective 证据不会提前结束链，只有最终 Cleanup 成功才进入成功态。
+非 Cleanup 动作失败或超时后只允许独立获批的封存 Cleanup，原失败/超时结果会延迟到清理完成后终结；清理无法
+证明时以 `cleanup_unproven` fail-closed。
+默认测试不创建 socket；显式 opt-in 的本机私网进程测试已证明多步链、目标清理、进程清理与敏感 header 脱敏。
 
 ## 4. 凭据策略
 

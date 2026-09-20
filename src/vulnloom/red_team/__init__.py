@@ -1,5 +1,10 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .attack_live import (
+    AttackActionHttpBinding,
+    IsolatedAttackChainAdmission,
+    IsolatedLocalAttackChainAdapter,
+)
 from .attack_models import (
     AttackAction,
     AttackActionAuditRecord,
@@ -158,6 +163,7 @@ from .surface_store import (
 
 __all__ = [
     "AttackAction",
+    "AttackActionHttpBinding",
     "AttackActionAdapter",
     "AttackActionAdapterInterrupted",
     "AttackActionAuditRecord",
@@ -182,6 +188,8 @@ __all__ = [
     "AttackNodeStatus",
     "AttackObjective",
     "AttackObjectiveKind",
+    "IsolatedAttackChainAdmission",
+    "IsolatedLocalAttackChainAdapter",
     "AttackSurfaceChange",
     "AttackSurfaceChangeKind",
     "AttackSurfaceDriftIdempotencyConflict",

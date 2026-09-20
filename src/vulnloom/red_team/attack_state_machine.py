@@ -49,7 +49,11 @@ def record_attack_observation(
     progress = progress_by_id.get(action.action_id)
     if progress is None or progress.status is not AttackNodeStatus.PENDING:
         raise AttackChainTransitionRejected("Attack Action is not pending")
-    if any(
+    compensating_cleanup = (
+        checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+        and action.kind.value == "cleanup_test_session"
+    )
+    if not compensating_cleanup and any(
         progress_by_id[item].status is not AttackNodeStatus.SUCCEEDED
         for item in action.prerequisite_action_ids
     ):
@@ -75,19 +79,22 @@ def record_attack_observation(
     )
     failures = checkpoint.failures + int(observation.outcome is not AttackActionOutcome.SUCCEEDED)
     updates = {"nodes": nodes, "failures": failures}
+    is_cleanup_action = action.kind.value == "cleanup_test_session"
+    if is_cleanup_action:
+        updates["deferred_outcome"] = None
+    if observation.outcome is not AttackActionOutcome.SUCCEEDED and not is_cleanup_action:
+        return _next(
+            checkpoint,
+            status=AttackChainStatus.CLEANUP_REQUIRED,
+            deferred_outcome=observation.outcome,
+            now=now,
+            **updates,
+        )
     if not observation.cleanup_complete:
         return _next(
             checkpoint,
             status=AttackChainStatus.FAILED,
             stop_reason="cleanup_unproven",
-            now=now,
-            **updates,
-        )
-    if observation.outcome is AttackActionOutcome.TIMED_OUT:
-        return _next(
-            checkpoint,
-            status=AttackChainStatus.TIMED_OUT,
-            stop_reason="action_timed_out",
             now=now,
             **updates,
         )
@@ -100,14 +107,29 @@ def record_attack_observation(
             now=now,
             **updates,
         )
-    is_goal_action = action == plan.graph.actions[-1]
+    is_goal_action = action.kind.value == "verify_objective"
     if observation.goal_reached != is_goal_action:
         raise AttackChainTransitionRejected("Attack Objective evidence is inconsistent")
     if is_goal_action:
+        updates["objective_observation_id"] = observation.observation_id
+    if is_cleanup_action:
+        if checkpoint.deferred_outcome is not None:
+            timed_out = checkpoint.deferred_outcome is AttackActionOutcome.TIMED_OUT
+            return _next(
+                checkpoint,
+                status=(AttackChainStatus.TIMED_OUT if timed_out else AttackChainStatus.FAILED),
+                stop_reason=(
+                    "action_timed_out_after_cleanup" if timed_out else "action_failed_after_cleanup"
+                ),
+                now=now,
+                **updates,
+            )
+        if checkpoint.objective_observation_id is None:
+            raise AttackChainTransitionRejected("Attack Chain Cleanup lacks objective evidence")
         return _next(
             checkpoint,
             status=AttackChainStatus.GOAL_REACHED,
-            stop_reason="objective_evidence_recorded",
+            stop_reason="objective_evidence_and_cleanup_recorded",
             now=now,
             **updates,
         )
@@ -122,12 +144,16 @@ def stop_attack_chain(
     now: datetime,
 ) -> AttackChainCheckpoint:
     _current(plan, checkpoint)
-    if checkpoint.status is not AttackChainStatus.RUNNING:
+    if checkpoint.status not in {
+        AttackChainStatus.RUNNING,
+        AttackChainStatus.CLEANUP_REQUIRED,
+    }:
         return checkpoint
     return _next(
         checkpoint,
         status=AttackChainStatus.KILLED,
         stop_reason=reason,
+        deferred_outcome=None,
         now=now,
     )
 
@@ -139,7 +165,10 @@ def _current(plan: AttackChainPlan, checkpoint: AttackChainCheckpoint) -> None:
 
 def _running(plan: AttackChainPlan, checkpoint: AttackChainCheckpoint, now: datetime) -> None:
     _current(plan, checkpoint)
-    if checkpoint.status is not AttackChainStatus.RUNNING:
+    if checkpoint.status not in {
+        AttackChainStatus.RUNNING,
+        AttackChainStatus.CLEANUP_REQUIRED,
+    }:
         raise AttackChainTransitionRejected("Attack Chain is not running")
     if now >= plan.deadline:
         raise AttackChainTransitionRejected("Attack Chain deadline elapsed")
@@ -156,6 +185,8 @@ def _next(
     values: dict[str, object] = {
         "chain_plan_id": checkpoint.chain_plan_id,
         "nodes": checkpoint.nodes,
+        "objective_observation_id": checkpoint.objective_observation_id,
+        "deferred_outcome": checkpoint.deferred_outcome,
         "failures": checkpoint.failures,
     }
     values.update(updates)

@@ -1,9 +1,20 @@
 {
   "$defs": {
+    "AttackActionOutcome": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AttackActionOutcome",
+      "type": "string"
+    },
     "AttackChainStatus": {
       "enum": [
         "planned",
         "running",
+        "cleanup_required",
         "goal_reached",
         "failed",
         "timed_out",
@@ -81,6 +92,30 @@
       },
       "title": "Nodes",
       "type": "array"
+    },
+    "objective_observation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Objective Observation Id"
+    },
+    "deferred_outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttackActionOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "failures": {
       "minimum": 0,

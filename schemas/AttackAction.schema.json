@@ -4,7 +4,8 @@
       "enum": [
         "initial_access_attempt",
         "verify_test_session",
-        "verify_objective"
+        "verify_objective",
+        "cleanup_test_session"
       ],
       "title": "AttackActionKind",
       "type": "string"

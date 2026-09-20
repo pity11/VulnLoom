@@ -1167,7 +1167,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R11.1（攻击链可信离线控制面）
+### Authorized Red Team R0.1–R11.2（隔离攻击链执行边界）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1231,17 +1231,27 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   CLI 只提供 create/trigger/recover/status 和生命周期命令，输出不包含完整 endpoint 或路径，也没有后台 daemon、
   crawler 或 live 网络开关。
 - R11.1 新增封存的 AttackGraph、有限 Objective、连续 DAG Action 和事务 Attack Chain checkpoint。Graph 精确绑定
-  Flow/Target/Scope，首节点固定为唯一 Initial Access，末节点固定为 Objective 验证，运行时不可插入节点、跳过
-  依赖或更换目标。
-- 每个节点要求绑定自身 digest 的 `EXECUTE_RED_TEAM_ACTION` Approval；Initial Access 同时要求既有
+  Flow/Target/Scope，首节点固定为唯一 Initial Access，唯一 Objective 验证后必须以 Cleanup 末节点收尾；运行时
+  不可插入节点、跳过依赖或更换目标。Objective 证据本身不结束链，清理成功后才进入成功终态。
+- 每个节点要求绑定自身 digest 的 `EXECUTE_RED_TEAM_ACTION` Approval；Initial Access 与 Cleanup 同时要求既有
   `MUTATE_TARGET_STATE` Policy Approval。父 Flow Kill Switch、Scope 漂移、过期、缺少前置或任一批准都会在
   adapter 调用前拒绝，并写入只含 digest/reason/Approval ID 的脱敏审计。
 - Post-exploitation Sandbox Profile 固定无网络、不可执行 Target、无 capability、只读根和 Evidence-only 输入，
-  只允许两个非网络结果工具。默认链执行仍为 fake adapter；隔离靶场真实多步链与攻击路径报告尚未验收，R11
-  总体未关闭。
+  只允许两个非网络结果工具。
+- R11.2 新增内容寻址、限时的 `IsolatedAttackChainAdmission` 与可信 HTTP adapter，只接受一个私有非回环 fixture、
+  ordered Action/HTTP method/URL digest、预期 status/body digest、单一 target-only grant 和 exact resolved-IP set。
+  请求无 body/header/credential/redirect；每步继续由 Broker 复核 Scope、Policy、Approval、DNS pinning 和 peer。
+- 非 Cleanup 动作在 dispatch 后失败或超时不会直接终止，而是进入 `cleanup_required`；此时只允许执行图中已封存且
+  独立获批的 Cleanup，成功后才记录原失败/超时终态，Cleanup 失败则以 `cleanup_unproven` 关闭。
+- 默认测试仍使用 fake/pinned adapter；显式 opt-in 的本机私网进程验收已完成真实
+  `POST → GET → GET → DELETE` 多步链，并证明目标证据不会提前成功、最终目标状态清理、进程清理和敏感 header
+  不落盘。攻击路径/检测机会/防御改进报告尚未实现，因此 R11 总体未关闭。
+- R11.2 本地门禁：1499 passed、30 skipped、覆盖率 85.42%，Ruff、417 个 JSON Schema 解析和
+  `git diff --check` 通过；显式启用的私网进程验收另行 1 passed，未访问公网或真实模型。
 
 R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
-`VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。
+`VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`；R11.2 攻击链另需显式设置
+`VULNLOOM_R11_ATTACK_CHAIN_INTEGRATION=1`。这些测试只启动本机隔离夹具，公网扫描和主动利用仍不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 
 ### Hybrid R10（源码到 Live Evidence Chain 与 Finding 晋升）

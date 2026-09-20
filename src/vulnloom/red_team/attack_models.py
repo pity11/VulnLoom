@@ -26,6 +26,7 @@ class AttackActionKind(StrEnum):
     INITIAL_ACCESS_ATTEMPT = "initial_access_attempt"
     VERIFY_TEST_SESSION = "verify_test_session"
     VERIFY_OBJECTIVE = "verify_objective"
+    CLEANUP_TEST_SESSION = "cleanup_test_session"
 
 
 class AttackImpact(StrEnum):
@@ -36,6 +37,7 @@ class AttackImpact(StrEnum):
 class AttackChainStatus(StrEnum):
     PLANNED = "planned"
     RUNNING = "running"
+    CLEANUP_REQUIRED = "cleanup_required"
     GOAL_REACHED = "goal_reached"
     FAILED = "failed"
     TIMED_OUT = "timed_out"
@@ -118,12 +120,16 @@ class AttackAction(DomainModel):
             AttackActionKind.INITIAL_ACCESS_ATTEMPT: RedTeamPhase.INITIAL_ACCESS,
             AttackActionKind.VERIFY_TEST_SESSION: RedTeamPhase.POST_EXPLOITATION,
             AttackActionKind.VERIFY_OBJECTIVE: RedTeamPhase.POST_EXPLOITATION,
+            AttackActionKind.CLEANUP_TEST_SESSION: RedTeamPhase.POST_EXPLOITATION,
         }[self.kind]
         if self.phase is not expected_phase:
             raise ValueError("Attack Action kind and phase do not match")
-        if self.kind is AttackActionKind.INITIAL_ACCESS_ATTEMPT:
+        if self.kind in {
+            AttackActionKind.INITIAL_ACCESS_ATTEMPT,
+            AttackActionKind.CLEANUP_TEST_SESSION,
+        }:
             if self.impact is not AttackImpact.STATE_CHANGE:
-                raise ValueError("Initial Access must declare state-change impact")
+                raise ValueError("Initial Access and Cleanup must declare state-change impact")
         elif self.impact is not AttackImpact.READ_ONLY:
             raise ValueError("Post-exploitation verification must remain read-only")
         if len(set(self.prerequisite_action_ids)) != len(self.prerequisite_action_ids):
@@ -149,7 +155,7 @@ class AttackGraph(DomainModel):
     scope_id: UUID
     scope_version: int = Field(ge=1)
     objective: AttackObjective
-    actions: Annotated[tuple[AttackAction, ...], Field(min_length=2, max_length=32)]
+    actions: Annotated[tuple[AttackAction, ...], Field(min_length=3, max_length=32)]
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
@@ -177,8 +183,20 @@ class AttackGraph(DomainModel):
             raise ValueError("Attack Graph contains multiple Initial Access actions")
         if any(not action.prerequisite_action_ids for action in self.actions[1:]):
             raise ValueError("Every later Attack Action requires a prerequisite")
-        if self.actions[-1].kind is not AttackActionKind.VERIFY_OBJECTIVE:
-            raise ValueError("Attack Graph must end with objective verification")
+        objective_actions = tuple(
+            action for action in self.actions if action.kind is AttackActionKind.VERIFY_OBJECTIVE
+        )
+        cleanup_actions = tuple(
+            action
+            for action in self.actions
+            if action.kind is AttackActionKind.CLEANUP_TEST_SESSION
+        )
+        if len(objective_actions) != 1:
+            raise ValueError("Attack Graph requires one objective verification")
+        if len(cleanup_actions) != 1 or cleanup_actions[0] != self.actions[-1]:
+            raise ValueError("Attack Graph must end with one Cleanup action")
+        if objective_actions[0].action_id not in cleanup_actions[0].prerequisite_action_ids:
+            raise ValueError("Attack Chain Cleanup must depend on objective verification")
         if self.graph_id != canonical_digest(self.model_dump(mode="python", exclude={"graph_id"})):
             raise ValueError("Attack Graph content digest mismatch")
         return self
@@ -236,6 +254,8 @@ class AttackChainCheckpoint(DomainModel):
     revision: int = Field(ge=0)
     status: AttackChainStatus
     nodes: tuple[AttackNodeProgress, ...]
+    objective_observation_id: Digest | None = None
+    deferred_outcome: AttackActionOutcome | None = None
     failures: int = Field(ge=0)
     stop_reason: ReasonCode | None = None
     updated_at: AwareDatetime
@@ -250,6 +270,12 @@ class AttackChainCheckpoint(DomainModel):
         }
         if terminal != (self.stop_reason is not None):
             raise ValueError("Attack Chain terminal state requires one stop reason")
+        if (self.status is AttackChainStatus.CLEANUP_REQUIRED) != (
+            self.deferred_outcome is not None
+        ):
+            raise ValueError("Attack Chain deferred outcome requires Cleanup state")
+        if self.status is AttackChainStatus.GOAL_REACHED and self.objective_observation_id is None:
+            raise ValueError("successful Attack Chain requires objective evidence")
         if len({node.action_id for node in self.nodes}) != len(self.nodes):
             raise ValueError("Attack Chain checkpoint nodes must be unique")
         if self.checkpoint_id != canonical_digest(

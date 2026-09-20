@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "AttackActionHttpBinding": {
+      "additionalProperties": false,
+      "description": "Expected wire result without retaining a full endpoint or response body.",
+      "properties": {
+        "binding_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Url Digest",
+          "type": "string"
+        },
+        "expected_status_code": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Expected Status Code",
+          "type": "integer"
+        },
+        "expected_content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Expected Content Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "action_id",
+        "method",
+        "url_digest",
+        "expected_status_code",
+        "expected_content_sha256"
+      ],
+      "title": "AttackActionHttpBinding",
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "title": "HttpMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exact, expiring admission for one private non-loopback fixture chain.",
+  "properties": {
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "fixture_ref": {
+      "pattern": "^fixture:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Fixture Ref",
+      "type": "string"
+    },
+    "host": {
+      "maxLength": 253,
+      "minLength": 1,
+      "title": "Host",
+      "type": "string"
+    },
+    "port": {
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "Port",
+      "type": "integer"
+    },
+    "scheme": {
+      "pattern": "^https?$",
+      "title": "Scheme",
+      "type": "string"
+    },
+    "allowed_peer_ips": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Allowed Peer Ips",
+      "type": "array"
+    },
+    "action_bindings": {
+      "items": {
+        "$ref": "#/$defs/AttackActionHttpBinding"
+      },
+      "maxItems": 32,
+      "minItems": 3,
+      "title": "Action Bindings",
+      "type": "array"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "admission_id",
+    "chain_plan_id",
+    "graph_id",
+    "fixture_ref",
+    "host",
+    "port",
+    "scheme",
+    "allowed_peer_ips",
+    "action_bindings",
+    "expires_at"
+  ],
+  "title": "IsolatedAttackChainAdmission",
+  "type": "object"
+}

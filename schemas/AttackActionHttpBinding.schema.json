@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "title": "HttpMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Expected wire result without retaining a full endpoint or response body.",
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "method": {
+      "$ref": "#/$defs/HttpMethod"
+    },
+    "url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Url Digest",
+      "type": "string"
+    },
+    "expected_status_code": {
+      "maximum": 599,
+      "minimum": 100,
+      "title": "Expected Status Code",
+      "type": "integer"
+    },
+    "expected_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Expected Content Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "action_id",
+    "method",
+    "url_digest",
+    "expected_status_code",
+    "expected_content_sha256"
+  ],
+  "title": "AttackActionHttpBinding",
+  "type": "object"
+}

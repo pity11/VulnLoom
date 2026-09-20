@@ -52,7 +52,12 @@ class AttackActionAdapter(Protocol):
     """Payloads, transport, and test identity material stay behind this boundary."""
 
     def execute(
-        self, command: AttackActionCommand, action: AttackAction, *, now: datetime
+        self,
+        command: AttackActionCommand,
+        action: AttackAction,
+        *,
+        approvals: tuple[ApprovalRequest, ...],
+        now: datetime,
     ) -> AttackActionObservation: ...
 
 
@@ -72,7 +77,12 @@ class OfflineAttackActionAdapter:
         self.calls = 0
 
     def execute(
-        self, command: AttackActionCommand, action: AttackAction, *, now: datetime
+        self,
+        command: AttackActionCommand,
+        action: AttackAction,
+        *,
+        approvals: tuple[ApprovalRequest, ...] = (),
+        now: datetime,
     ) -> AttackActionObservation:
         self.calls += 1
         if self.scenario.interrupt:
@@ -275,7 +285,7 @@ class AttackChainService:
         if replay is not None:
             return self.chain_store.latest(plan.chain_plan_id), replay
         try:
-            observation = adapter.execute(command, action, now=now)
+            observation = adapter.execute(command, action, approvals=approvals, now=now)
         except AttackActionAdapterInterrupted:
             if command.attempt < 2:
                 raise
@@ -294,7 +304,7 @@ class AttackChainService:
             or not plan.created_at <= observation.observed_at < plan.deadline
             or observation.goal_reached
             != (
-                action == plan.graph.actions[-1]
+                action.kind.value == "verify_objective"
                 and observation.outcome is AttackActionOutcome.SUCCEEDED
             )
         ):
@@ -350,17 +360,23 @@ class AttackChainService:
                     self.chain_store.advance(checkpoint, stopped)
             raise
         if (
-            checkpoint.status is not AttackChainStatus.RUNNING
+            checkpoint.status not in {AttackChainStatus.RUNNING, AttackChainStatus.CLEANUP_REQUIRED}
             or command.expected_checkpoint_id != checkpoint.checkpoint_id
             or now >= plan.deadline
         ):
             raise AttackChainRejected("Attack Chain checkpoint is stale or terminal")
         progress = {node.action_id: node for node in checkpoint.nodes}
-        if any(
+        compensating_cleanup = (
+            checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED
+            and action.kind.value == "cleanup_test_session"
+        )
+        if checkpoint.status is AttackChainStatus.CLEANUP_REQUIRED and not compensating_cleanup:
+            raise AttackChainRejected("Attack Chain requires its sealed Cleanup action")
+        if not compensating_cleanup and any(
             progress[item].status.value != "succeeded" for item in action.prerequisite_action_ids
         ):
             raise AttackChainRejected("Attack Action prerequisites are incomplete")
-        earlier_pending = any(
+        earlier_pending = not compensating_cleanup and any(
             item.ordinal < action.ordinal and progress[item.action_id].status.value == "pending"
             for item in plan.graph.actions
         )
@@ -412,7 +428,9 @@ class AttackChainService:
         return ActionRequest(
             engagement_id=scope.engagement_id,
             target_id=plan.graph.target_id,
-            action=f"red_team.attack.{action.kind.value}",
+            # Align the approval digest with the trusted Broker's concrete effect.
+            # The per-action EXECUTE_RED_TEAM_ACTION approval still binds intent.
+            action="http.request",
             requested_at=now,
             url=url,
             test_class=action.test_class,

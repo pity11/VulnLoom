@@ -108,6 +108,10 @@ _Avoid_: Free-form goal, Shell access, Compromise
 Attack Graph 中一个内容寻址、可单独批准和审计的原子动作；对其他节点的批准不能授权它。
 _Avoid_: Agent step, Command, Payload
 
+**Attack Chain Cleanup**：
+Attack Graph 中用于撤销链内测试状态的最终原子动作；目标 Evidence 已获得但 Cleanup 未成功时，攻击目标仍不算完成。
+_Avoid_: Best-effort teardown, Process exit, Manual follow-up
+
 **Deployment Proof**：
 将一个不可变源码版本和构建产物绑定到一个精确 Live Endpoint 摘要的限时脱敏证明。
 _Avoid_: Deployment claim, Raw release metadata, Endpoint URL
