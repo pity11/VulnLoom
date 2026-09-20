@@ -57,7 +57,7 @@ class DeterministicReportService:
         now: datetime,
         previous_report: Report | None = None,
     ) -> ReportOutcome:
-        catalog = self._preflight(
+        catalog = self.preflight(
             finding,
             candidate,
             evidence_bundle,
@@ -123,6 +123,29 @@ class DeterministicReportService:
         )
         self.store.complete(outcome)
         return outcome
+
+    def preflight(
+        self,
+        finding: Finding,
+        candidate: Candidate,
+        evidence_bundle: EvidenceBundle,
+        evidence: tuple[Evidence, ...],
+        plan: ReportDraftPlan,
+        *,
+        now: datetime,
+        previous_report: Report | None = None,
+    ) -> dict[str, Evidence]:
+        """Validate an exact report draft without claiming or writing artifacts."""
+
+        return self._preflight(
+            finding,
+            candidate,
+            evidence_bundle,
+            evidence,
+            plan,
+            now=now,
+            previous_report=previous_report,
+        )
 
     def _preflight(
         self,

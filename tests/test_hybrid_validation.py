@@ -33,6 +33,9 @@ from vulnloom.domain.models import (
     ApprovalStatus,
     Evidence,
     EvidenceKind,
+    ReportChannel,
+    ReportSection,
+    ReportSectionKind,
     ValidationResult,
 )
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
@@ -53,6 +56,14 @@ from vulnloom.hybrid import (
     HybridFindingState,
     HybridIdempotencyConflict,
     HybridRecoveryRequired,
+    HybridReportConflict,
+    HybridReportOutcome,
+    HybridReportPlan,
+    HybridReportRecoveryRequired,
+    HybridReportRejected,
+    HybridReportService,
+    HybridReportState,
+    HybridReportStore,
     HybridRunState,
     HybridValidationLimits,
     HybridValidationOutcome,
@@ -63,6 +74,13 @@ from vulnloom.hybrid import (
     hybrid_finding_approval_digest,
 )
 from vulnloom.policy import PolicyEngine
+from vulnloom.reporting import (
+    DeterministicReportService,
+    ReportArtifactStore,
+    ReportDraftPlan,
+    ReportDraftStore,
+    report_draft_plan_digest,
+)
 from vulnloom.runners import (
     NetworkGrant,
     OfflineSandboxRunner,
@@ -553,6 +571,8 @@ def test_hybrid_contracts_exclude_raw_endpoint_and_credentials():
             HybridEvidenceChain,
             HybridValidationOutcome,
             HybridFindingPromotionPlan,
+            HybridReportPlan,
+            HybridReportOutcome,
         )
     )
     for forbidden in (
@@ -916,3 +936,319 @@ def test_hybrid_finding_recovery_exhaustion_closes_with_cleanup(
     hybrid_store.close()
     validation_store.close()
     critic_store.close()
+
+
+def _hybrid_report_plans(
+    *, approved_scope, finding_outcome, chain, sections, now, key
+):
+    assert finding_outcome.finding is not None
+    assert finding_outcome.promoted_candidate is not None
+    report_plan = ReportDraftPlan.create(
+        finding_id=finding_outcome.finding.finding_id,
+        finding_digest=domain_object_digest(finding_outcome.finding),
+        candidate_id=finding_outcome.promoted_candidate.candidate_id,
+        candidate_digest=domain_object_digest(finding_outcome.promoted_candidate),
+        evidence_bundle_id=chain.evidence_bundle.bundle_id,
+        evidence_bundle_digest=domain_object_digest(chain.evidence_bundle),
+        scope_id=approved_scope.scope_id,
+        scope_version=approved_scope.version,
+        channel=ReportChannel.GENERIC,
+        title="Authorized Hybrid Finding",
+        sections=sections,
+        prepared_by="hybrid.reporter",
+        created_at=now + timedelta(seconds=6),
+        deadline=now + timedelta(minutes=5),
+        idempotency_key=f"report:{key}",
+    )
+    hybrid_plan = HybridReportPlan.create(
+        hybrid_finding_plan_id=finding_outcome.plan_id,
+        hybrid_finding_outcome_digest=domain_object_digest(finding_outcome),
+        hybrid_chain_id=chain.chain_id,
+        hybrid_chain_digest=domain_object_digest(chain),
+        report_draft_plan_id=report_plan.plan_id,
+        report_draft_plan_digest=report_draft_plan_digest(report_plan),
+        scope_id=approved_scope.scope_id,
+        scope_version=approved_scope.version,
+        created_at=now + timedelta(seconds=6),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key=f"hybrid-report:{key}",
+    )
+    return report_plan, hybrid_plan
+
+
+def _hybrid_report_runtime(tmp_path, approved_scope, candidate, now, *, key):
+    finding_runtime = _hybrid_finding_runtime(
+        tmp_path, approved_scope, candidate, now, key=key
+    )
+    (
+        finding_service,
+        finding_store,
+        hybrid_store,
+        validation_store,
+        critic_store,
+        evidence_store,
+        finding_plan,
+        duplicate,
+        approval,
+        chain,
+    ) = finding_runtime
+    finding_outcome = finding_service.execute(
+        plan=finding_plan,
+        duplicate_check=duplicate,
+        approval=approval,
+        now=now + timedelta(seconds=5),
+    )
+    sections = (
+        ReportSection(
+            kind=ReportSectionKind.SUMMARY,
+            text="Source and live validation confirm the same authorization flaw",
+        ),
+        ReportSection(
+            kind=ReportSectionKind.CODE_LOCATION,
+            text="The source handler omits the ownership predicate",
+            evidence_refs=(chain.source_evidence_refs[0],),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.REQUEST_RESPONSE,
+            text="The exact authorized endpoint reproduced the unsafe behavior",
+            evidence_refs=(chain.http_evidence_refs[0],),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.REPRODUCTION,
+            text="Confirm the deployed build and replay the bounded validation",
+            evidence_refs=(
+                chain.deployment_evidence_ref,
+                chain.http_evidence_refs[0],
+            ),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.IMPACT,
+            text="The live observation demonstrates cross-tenant data access",
+            evidence_refs=(chain.http_evidence_refs[0],),
+        ),
+        ReportSection(
+            kind=ReportSectionKind.REMEDIATION,
+            text="Enforce ownership in the handler and repeat source and live validation",
+        ),
+    )
+    report_plan, hybrid_plan = _hybrid_report_plans(
+        approved_scope=approved_scope,
+        finding_outcome=finding_outcome,
+        chain=chain,
+        sections=sections,
+        now=now,
+        key=key,
+    )
+    report_store = ReportDraftStore(tmp_path / f"report-{key.replace(':', '-')}.sqlite3")
+    artifact_store = ReportArtifactStore(
+        tmp_path / f"report-artifacts-{key.replace(':', '-')}"
+    )
+    report_service = DeterministicReportService(
+        scope=approved_scope,
+        evidence_store=evidence_store,
+        store=report_store,
+        artifact_store=artifact_store,
+    )
+    hybrid_report_store = HybridReportStore(
+        tmp_path / f"hybrid-report-{key.replace(':', '-')}.sqlite3"
+    )
+    service = HybridReportService(
+        scope=approved_scope,
+        hybrid_store=hybrid_store,
+        finding_store=finding_store,
+        report_service=report_service,
+        store=hybrid_report_store,
+    )
+    return {
+        "service": service,
+        "store": hybrid_report_store,
+        "report_store": report_store,
+        "artifact_store": artifact_store,
+        "finding_store": finding_store,
+        "hybrid_store": hybrid_store,
+        "validation_store": validation_store,
+        "critic_store": critic_store,
+        "evidence_store": evidence_store,
+        "report_plan": report_plan,
+        "hybrid_plan": hybrid_plan,
+        "evidence": _evidence_catalog(chain),
+        "finding_outcome": finding_outcome,
+        "chain": chain,
+    }
+
+
+def _close_hybrid_report_runtime(runtime):
+    runtime["store"].close()
+    runtime["report_store"].close()
+    runtime["finding_store"].close()
+    runtime["hybrid_store"].close()
+    runtime["validation_store"].close()
+    runtime["critic_store"].close()
+
+
+def test_hybrid_report_drafts_all_evidence_partitions_and_replays(
+    tmp_path, approved_scope, candidate, now
+):
+    runtime = _hybrid_report_runtime(
+        tmp_path, approved_scope, candidate, now, key="report-success:1"
+    )
+    first = runtime["service"].execute(
+        plan=runtime["hybrid_plan"],
+        report_plan=runtime["report_plan"],
+        evidence=runtime["evidence"],
+        now=now + timedelta(seconds=7),
+    )
+    replay = runtime["service"].execute(
+        plan=runtime["hybrid_plan"],
+        report_plan=runtime["report_plan"],
+        evidence=runtime["evidence"],
+        now=now + timedelta(seconds=8),
+    )
+    assert replay == first
+    assert first.state is HybridReportState.COMPLETED
+    assert first.report_outcome is not None
+    assert (
+        first.report_outcome.report.evidence_bundle_id
+        == runtime["chain"].evidence_bundle.bundle_id
+    )
+    assert first.report_outcome.report.review_status.value == "draft"
+    assert URL not in first.model_dump_json()
+    markdown = runtime["artifact_store"].read_markdown(first.report_outcome.artifact)
+    assert "Source and live validation" in markdown
+    _close_hybrid_report_runtime(runtime)
+
+
+def test_hybrid_report_rejects_missing_partition_drift_and_corrupt_evidence(
+    tmp_path, approved_scope, candidate, now
+):
+    runtime = _hybrid_report_runtime(
+        tmp_path, approved_scope, candidate, now, key="report-reject:1"
+    )
+    chain = runtime["chain"]
+    bad_sections = tuple(
+        section.model_copy(update={"evidence_refs": (chain.http_evidence_refs[0],)})
+        if section.kind is ReportSectionKind.REPRODUCTION
+        else section
+        for section in runtime["report_plan"].sections
+    )
+    bad_report_plan, bad_hybrid_plan = _hybrid_report_plans(
+        approved_scope=approved_scope,
+        finding_outcome=runtime["finding_outcome"],
+        chain=chain,
+        sections=bad_sections,
+        now=now,
+        key="report-reject:missing-deployment",
+    )
+    with pytest.raises(HybridReportRejected, match="do not cover"):
+        runtime["service"].execute(
+            plan=bad_hybrid_plan,
+            report_plan=bad_report_plan,
+            evidence=runtime["evidence"],
+            now=now + timedelta(seconds=7),
+        )
+    with pytest.raises(HybridReportRejected, match="input unavailable|provenance"):
+        runtime["service"].execute(
+            plan=runtime["hybrid_plan"].model_copy(
+                update={"hybrid_chain_digest": "f" * 64}
+            ),
+            report_plan=runtime["report_plan"],
+            evidence=runtime["evidence"],
+            now=now + timedelta(seconds=7),
+        )
+    endpoint_sections = tuple(
+        section.model_copy(update={"text": f"Unsafe endpoint: {URL}"})
+        if section.kind is ReportSectionKind.SUMMARY
+        else section
+        for section in runtime["report_plan"].sections
+    )
+    endpoint_report_plan, endpoint_hybrid_plan = _hybrid_report_plans(
+        approved_scope=approved_scope,
+        finding_outcome=runtime["finding_outcome"],
+        chain=chain,
+        sections=endpoint_sections,
+        now=now,
+        key="report-reject:endpoint",
+    )
+    with pytest.raises(HybridReportRejected, match="full endpoint"):
+        runtime["service"].execute(
+            plan=endpoint_hybrid_plan,
+            report_plan=endpoint_report_plan,
+            evidence=runtime["evidence"],
+            now=now + timedelta(seconds=7),
+        )
+    damaged = chain.http_evidence_refs[0]
+    (runtime["evidence_store"].objects / damaged).unlink()
+    with pytest.raises(HybridReportRejected, match="shared Report"):
+        runtime["service"].execute(
+            plan=runtime["hybrid_plan"],
+            report_plan=runtime["report_plan"],
+            evidence=runtime["evidence"],
+            now=now + timedelta(seconds=7),
+        )
+    assert runtime["store"].state(runtime["hybrid_plan"].plan_id) is None
+    assert not runtime["report_store"].has_checkpoint(runtime["report_plan"].plan_id)
+    _close_hybrid_report_runtime(runtime)
+
+
+def test_hybrid_report_timeout_cleanup_recovery_and_collision(
+    tmp_path, approved_scope, candidate, now
+):
+    runtime = _hybrid_report_runtime(
+        tmp_path, approved_scope, candidate, now, key="report-timeout:1"
+    )
+    timed_out = runtime["service"].execute(
+        plan=runtime["hybrid_plan"],
+        report_plan=runtime["report_plan"],
+        evidence=runtime["evidence"],
+        now=now + timedelta(minutes=2),
+    )
+    assert timed_out.state is HybridReportState.TIMED_OUT
+    assert timed_out.cleanup_complete and timed_out.report_outcome is None
+    assert not runtime["report_store"].has_checkpoint(runtime["report_plan"].plan_id)
+    assert not any(runtime["artifact_store"].objects.iterdir())
+    _close_hybrid_report_runtime(runtime)
+
+    runtime = _hybrid_report_runtime(
+        tmp_path, approved_scope, candidate, now, key="report-recover:1"
+    )
+    runtime["store"].claim(runtime["hybrid_plan"], now=now + timedelta(seconds=7))
+    with pytest.raises(HybridReportRecoveryRequired):
+        runtime["service"].execute(
+            plan=runtime["hybrid_plan"],
+            report_plan=runtime["report_plan"],
+            evidence=runtime["evidence"],
+            now=now + timedelta(seconds=7),
+        )
+    recovered = runtime["service"].execute(
+        plan=runtime["hybrid_plan"],
+        report_plan=runtime["report_plan"],
+        evidence=runtime["evidence"],
+        now=now + timedelta(seconds=7),
+        recover=True,
+    )
+    assert recovered.state is HybridReportState.COMPLETED
+    assert recovered.attempt == 2
+    collision = runtime["hybrid_plan"].model_copy(
+        update={"plan_id": "a" * 64, "report_draft_plan_id": "b" * 64}
+    )
+    with pytest.raises(HybridReportConflict):
+        runtime["store"].claim(collision, now=now + timedelta(seconds=8))
+    _close_hybrid_report_runtime(runtime)
+
+
+def test_hybrid_report_recovery_exhaustion_closes_with_cleanup(
+    tmp_path, approved_scope, candidate, now
+):
+    runtime = _hybrid_report_runtime(
+        tmp_path, approved_scope, candidate, now, key="report-exhaust:1"
+    )
+    plan = runtime["hybrid_plan"]
+    runtime["store"].claim(plan, now=now + timedelta(seconds=7))
+    runtime["store"].recover(plan, now=now + timedelta(seconds=8))
+    runtime["store"].recover(plan, now=now + timedelta(seconds=9))
+    with pytest.raises(HybridReportRecoveryRequired, match="exhausted"):
+        runtime["store"].recover(plan, now=now + timedelta(seconds=10))
+    outcome = runtime["store"].outcome(plan.plan_id)
+    assert outcome.state is HybridReportState.FAILED
+    assert outcome.cleanup_complete
+    _close_hybrid_report_runtime(runtime)

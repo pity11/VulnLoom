@@ -104,6 +104,10 @@ _Avoid_: Correlation guess, Combined report, Agent conclusion
 由已确认的 Hybrid Evidence Chain 支撑，并且 Critic 已针对该链的完整源码、部署和 HTTP Evidence Bundle 完成独立反证后，经人工 Approval 晋升的 Finding。
 _Avoid_: Tagged Source Finding, Correlated Finding, Model-confirmed vulnerability
 
+**Hybrid Report**：
+由 Hybrid Finding 生成的本地 Report Draft；其代码位置、部署复现和请求响应章节分别引用同一 Hybrid Evidence Chain 中的源码、部署与 HTTP Evidence。
+_Avoid_: Combined narrative, Correlation summary, Submitted report
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

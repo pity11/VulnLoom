@@ -191,6 +191,23 @@ class HybridFindingPromotionStore:
             )
         return HybridFindingPromotionOutcome.model_validate_json(row["outcome_json"])
 
+    def load_completed(
+        self, plan_id: str
+    ) -> tuple[HybridFindingPromotionPlan, HybridFindingPromotionOutcome]:
+        row = self.connection.execute(
+            "SELECT plan_json,state,outcome_json FROM hybrid_finding_promotions WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None or row["state"] != "completed" or row["outcome_json"] is None:
+            raise HybridFindingRecoveryRequired(
+                "completed Hybrid Finding promotion is unavailable"
+            )
+        plan = HybridFindingPromotionPlan.model_validate_json(row["plan_json"])
+        outcome = HybridFindingPromotionOutcome.model_validate_json(row["outcome_json"])
+        if plan.plan_id != plan_id or outcome.plan_id != plan_id:
+            raise HybridFindingRecoveryRequired("Hybrid Finding checkpoint drifted")
+        return plan, outcome
+
     def _by_identity(
         self, plan: HybridFindingPromotionPlan, *, approval_id: UUID
     ) -> sqlite3.Row:

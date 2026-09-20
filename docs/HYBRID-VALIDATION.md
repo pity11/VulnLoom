@@ -14,16 +14,17 @@ R10 的可信离线纵切建立源码到 Live Target 的统一证据链和 Findi
 - Route 账本只保存脱敏 outcome；完整 `ValidationPlan` 原子写入权限 `0600` 的可信本地计划仓，供后续 Validation Orchestration 读取。超时、拒绝或恢复耗尽不会留下可执行计划。
 - `HybridFindingPromotionService` 只接受权威 completed、initial、confirmed 的 `HybridEvidenceChain`。Critic 必须针对该链的完整合并 `EvidenceBundle` 独立复核，不能复用只看过源码证据的旧裁决。
 - Finding 晋升还要求当前 Scope、clear duplicate check 和内容绑定的人工 Approval。事务账本提供幂等重放、显式恢复、三次 attempt 上限、超时和清理证明；生成的 Finding 直接引用 Hybrid Chain 的 Evidence Bundle。
+- `HybridReportService` 只从权威 completed Hybrid Finding 生成本地 Draft，并复用共享的确定性 Report 服务。代码位置必须引用 Source Evidence，请求响应和影响必须引用 HTTP Evidence，复现章节必须同时引用 Deployment 与 HTTP Evidence。
+- Hybrid Report 账本只绑定 digest 和既有本地 Report outcome，支持幂等、显式恢复、超时和清理。标题与章节拒绝完整 endpoint；本纵切不批准、导出或提交 Report。
 
 ## 安全边界
 
-当前 R10 服务不调用 Runner、Broker、模型或网络。Evidence admission 和 Finding promotion 只接纳已有可信账本结果；Route materialization 只生成计划，不执行计划。普通输出和 JSON Schema 不包含完整 endpoint、Header、Cookie、API Key、认证响应或响应正文。Scope、部署证明、Candidate、Validation、Critic、Approval、endpoint digest 或 retest lineage 任一漂移均 fail-closed。
+当前 R10 服务不调用 Runner、Broker、模型或网络。Evidence admission、Finding promotion 和 Report drafting 只接纳已有可信账本结果；Route materialization 只生成计划，不执行计划。普通输出和 JSON Schema 不包含完整 endpoint、Header、Cookie、API Key、认证响应或响应正文。Scope、部署证明、Candidate、Validation、Critic、Approval、Finding、Report、endpoint digest 或 retest lineage 任一漂移均 fail-closed。
 
 ## 尚未完成的 R10 工作
 
-- 同时引用源码、部署和 HTTP Evidence 的 Hybrid 报告模板；
 - 修复后源码静态验证与 Live Validation 的双重自动复测编排；
 - CI/CD 发布门禁 adapter；
 - 对隔离预发布应用的完整 R10 端到端验收。
 
-本地离线验证：1469 项通过、27 项显式集成测试跳过，总覆盖率 85.79%；Ruff、388 个 JSON Schema 解析和 `git diff --check` 通过。验证未进行真实模型调用或网络请求。
+本地离线验证：1473 项通过、27 项显式集成测试跳过，总覆盖率 85.79%；Ruff、390 个 JSON Schema 解析和 `git diff --check` 通过。验证未进行真实模型调用或网络请求。

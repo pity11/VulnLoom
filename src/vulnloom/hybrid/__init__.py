@@ -24,6 +24,14 @@ from .models import (
     HybridValidationOutcome,
     HybridValidationPlan,
 )
+from .report_models import HybridReportOutcome, HybridReportPlan, HybridReportState
+from .report_service import HybridReportRejected, HybridReportService
+from .report_store import (
+    HybridReportClaim,
+    HybridReportConflict,
+    HybridReportRecoveryRequired,
+    HybridReportStore,
+)
 from .routing_adapters import (
     EnvironmentLiveEndpointProvider,
     LiveEndpointProvider,
@@ -81,6 +89,15 @@ __all__ = [
     "HybridRouteState",
     "HybridRouteStore",
     "HybridRecoveryRequired",
+    "HybridReportClaim",
+    "HybridReportConflict",
+    "HybridReportOutcome",
+    "HybridReportPlan",
+    "HybridReportRecoveryRequired",
+    "HybridReportRejected",
+    "HybridReportService",
+    "HybridReportState",
+    "HybridReportStore",
     "HybridRunState",
     "HybridValidationLimits",
     "HybridValidationOutcome",
