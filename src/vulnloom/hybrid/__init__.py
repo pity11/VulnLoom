@@ -1,5 +1,19 @@
 """Hybrid source-to-live evidence chain."""
 
+from .finding_models import (
+    HYBRID_FINDING_SIDE_EFFECTS,
+    HybridFindingPromotionOutcome,
+    HybridFindingPromotionPlan,
+    HybridFindingState,
+    hybrid_finding_approval_digest,
+)
+from .finding_service import HybridFindingPromotionRejected, HybridFindingPromotionService
+from .finding_store import (
+    HybridFindingClaim,
+    HybridFindingConflict,
+    HybridFindingPromotionStore,
+    HybridFindingRecoveryRequired,
+)
 from .models import (
     DeploymentProof,
     HybridCheckKind,
@@ -41,10 +55,20 @@ from .store import (
 __all__ = [
     "DeploymentProof",
     "EnvironmentLiveEndpointProvider",
+    "HYBRID_FINDING_SIDE_EFFECTS",
     "HybridCheckKind",
     "HybridClaim",
     "HybridConclusion",
     "HybridEvidenceChain",
+    "HybridFindingClaim",
+    "HybridFindingConflict",
+    "HybridFindingPromotionOutcome",
+    "HybridFindingPromotionPlan",
+    "HybridFindingPromotionRejected",
+    "HybridFindingPromotionService",
+    "HybridFindingPromotionStore",
+    "HybridFindingRecoveryRequired",
+    "HybridFindingState",
     "HybridIdempotencyConflict",
     "HybridRouteClaim",
     "HybridRouteIdempotencyConflict",
@@ -68,4 +92,5 @@ __all__ = [
     "LiveEndpointReference",
     "LiveEndpointUnavailable",
     "ResolvedLiveEndpoint",
+    "hybrid_finding_approval_digest",
 ]

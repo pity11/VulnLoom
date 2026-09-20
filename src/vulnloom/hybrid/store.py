@@ -141,6 +141,19 @@ class HybridValidationStore:
             raise HybridRecoveryRequired("terminal Hybrid outcome is unavailable")
         return HybridValidationOutcome.model_validate_json(row["outcome_json"])
 
+    def outcome_by_chain(self, chain_id: str) -> HybridValidationOutcome:
+        rows = self.connection.execute(
+            "SELECT state,outcome_json FROM hybrid_validations WHERE state='completed'"
+        ).fetchall()
+        matches = []
+        for row in rows:
+            outcome = HybridValidationOutcome.model_validate_json(row["outcome_json"])
+            if outcome.chain is not None and outcome.chain.chain_id == chain_id:
+                matches.append(outcome)
+        if len(matches) != 1:
+            raise HybridRecoveryRequired("authoritative Hybrid Evidence Chain is unavailable")
+        return matches[0]
+
     def _by_identity(self, plan: HybridValidationPlan) -> sqlite3.Row:
         row = self.connection.execute(
             "SELECT * FROM hybrid_validations WHERE plan_id=? OR idempotency_key=?",

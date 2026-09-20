@@ -1170,7 +1170,9 @@ coverage-guided fuzz 或 sanitizer 验收；专用工具 adapter、Crash 去重�
 Bundle，并支持引用前一 confirmed chain 的修复复测、幂等重放、显式恢复、超时和完整性失败清理。第二个离线纵切
 新增 opaque `LiveEndpointReference` 和 `HybridRouteService`，可自动物化单次精确、无凭据、禁重定向的 GET
 ValidationPlan，并将含完整 endpoint 的计划限制在权限受限本地仓。本阶段仍不执行网络或模型调用；Hybrid
-Finding/报告、双重自动复测、CI/CD adapter 和隔离预发布端到端验收仍待完成，因此 R10 尚未关闭。
+Finding promotion 已要求 Critic 针对完整合并 Evidence Bundle 独立复核，并通过 duplicate check 和精确人工
+Approval 后才生成引用该 Bundle 的 Finding。Hybrid 报告、双重自动复测、CI/CD adapter 和隔离预发布端到端
+验收仍待完成，因此 R10 尚未关闭。
 
 ### R11：授权红队攻击链
 

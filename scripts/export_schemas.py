@@ -245,6 +245,8 @@ from vulnloom.findings import (
 from vulnloom.hybrid import (
     DeploymentProof,
     HybridEvidenceChain,
+    HybridFindingPromotionOutcome,
+    HybridFindingPromotionPlan,
     HybridRouteOutcome,
     HybridRoutePolicy,
     HybridRouteRequest,
@@ -462,6 +464,8 @@ MODELS = (
     HybridValidationPlan,
     HybridEvidenceChain,
     HybridValidationOutcome,
+    HybridFindingPromotionPlan,
+    HybridFindingPromotionOutcome,
     AttackSurfaceChange,
     AttackSurfaceDriftLimits,
     AttackSurfaceDriftOutcome,

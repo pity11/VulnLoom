@@ -1231,7 +1231,7 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 
-### Hybrid R10（源码到 Live Evidence Chain，首个离线纵切）
+### Hybrid R10（源码到 Live Evidence Chain 与 Finding 晋升）
 
 - 新增限时、内容寻址的 `DeploymentProof`，仅通过 digest 和 opaque ID 绑定源码版本、部署产物及精确 Live Endpoint；
   不保存完整 endpoint、发布凭据或原始发布响应。
@@ -1239,7 +1239,10 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
   `not_reproduced` Validation 且必须引用前一条 confirmed chain；Scope、版本、endpoint 或来源漂移均 fail-closed。
 - `HybridEvidenceChain` 统一封存源码、部署和 HTTP Evidence，并复用共享 `EvidenceBundle`。状态机覆盖完成、超时、
   完整性失败、幂等重放、显式恢复和三次 attempt 上限。
-- Evidence admission 服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。Finding/报告、双重复测
+- Evidence admission 服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。Finding promotion
+  进一步要求 Critic 针对完整 Hybrid Evidence Bundle 独立复核、clear duplicate check 和精确人工 Approval；生成的
+  Finding 直接引用合并后的源码、部署与 HTTP Evidence Bundle。
+- Hybrid Finding 使用独立事务账本，覆盖超时、清理、幂等重放、显式恢复和三次 attempt 上限。报告模板、双重复测
   编排、CI/CD adapter 与隔离预发布端到端验收仍属于 R10 后续纵切。
 - 新增 opaque `LiveEndpointReference` 与可信解析 adapter。Route 服务可从 Source Candidate、Deployment Proof 和
   确定性 HTTP assertion 自动生成单一精确 Live ValidationPlan；请求固定 GET、零重定向、无 Header、credential
