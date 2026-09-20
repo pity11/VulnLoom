@@ -20,14 +20,23 @@ from vulnloom.broker import (
     pinned_http_tool_registry,
 )
 from vulnloom.broker.implementation import PINNED_HTTP_IMPLEMENTATION_DIGEST
+from vulnloom.broker.models import url_digest
 from vulnloom.domain.models import EvidenceKind, NetworkTargetScope, Scope, ScopeState
 from vulnloom.evidence import EvidenceStore
 from vulnloom.red_team import (
+    EndpointReconLimits,
+    EndpointReconOutcomeKind,
+    EndpointReconRejected,
+    EndpointReconReservationState,
+    EndpointReconService,
+    EndpointReconStore,
     IsolatedLocalHttpReconAdapter,
     IsolatedLocalReconAdmission,
     ReconOutcome,
     RedTeamActionKind,
+    RedTeamAdapterInterrupted,
     RedTeamFlowStatus,
+    RedTeamReconObservation,
     RedTeamRejected,
     RedTeamService,
     RedTeamStore,
@@ -198,6 +207,472 @@ def test_live_recon_adapter_routes_head_and_persists_redacted_attack_surface(tmp
     assert replayed == advanced
     assert replay == observation
     assert adapter.calls == 1
+    store.close()
+
+
+def test_exact_endpoint_plan_consumes_flow_ledger_through_zero_redirect_broker(tmp_path, now):
+    hop = OfflineHttpHop(
+        status_code=204,
+        peer_ip=IP,
+        response_bytes=0,
+        response_body_sha256=BODY,
+        evidence_ref=EVIDENCE,
+    )
+    scope, store, _, flow, checkpoint, _, base_adapter = _runtime(
+        tmp_path, now, transport=_PinnedTransport((hop, hop))
+    )
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health", "/ready"),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-live:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(
+            max_steps=2,
+            max_requests=2,
+            per_request_seconds=2,
+            total_seconds=10,
+        ),
+        now=now,
+        deadline=now + timedelta(seconds=10),
+        idempotency_key="endpoint-live:plan",
+    )
+    adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=tuple(sorted(step.target_url_digest for step in endpoint_plan.steps)),
+    )
+    outcome = endpoint_service.execute_via_flow(
+        endpoint_plan,
+        scope=scope,
+        adapter=adapter,
+        now=now,
+    )
+
+    assert outcome.outcome is EndpointReconOutcomeKind.SUCCEEDED
+    assert {item.target_url_digest for item in outcome.results} == {
+        url_digest(f"http://{HOST}:8080/health"),
+        url_digest(f"http://{HOST}:8080/ready"),
+    }
+    assert store.latest(flow.plan_id).actions_used == 2
+    observation = store.observation(store.latest(flow.plan_id).observation_ids[-1])
+    assert observation.attack_surface is not None
+    assert observation.attack_surface.redirect_count == 0
+    assert (
+        recon_store.reservation(endpoint_plan.endpoint_recon_plan_id).state
+        is EndpointReconReservationState.CONSUMED
+    )
+    replay_adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=tuple(sorted(step.target_url_digest for step in endpoint_plan.steps)),
+    )
+    assert (
+        endpoint_service.execute_via_flow(
+            endpoint_plan,
+            scope=scope,
+            adapter=replay_adapter,
+            now=now,
+        )
+        == outcome
+    )
+    assert replay_adapter.calls == 0
+    recon_store.close()
+    store.close()
+
+
+def test_exact_url_allowlist_rejects_unsealed_action_before_broker(tmp_path, now):
+    scope, store, service, flow, _, command, base_adapter = _runtime(tmp_path, now)
+    allowed = url_digest(f"http://{HOST}:8080/health")
+    adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=(allowed,),
+    )
+    _, observation = service.execute_recon(command=command, scope=scope, adapter=adapter, now=now)
+    assert observation.outcome is ReconOutcome.REJECTED
+    assert observation.reason_code == "local_action_not_admitted"
+    assert adapter.broker.http_transport.calls == []
+    store.close()
+
+
+def test_exact_url_allowlist_rejects_empty_or_redirecting_configuration(tmp_path, now):
+    _, store, _, flow, _, _, base_adapter = _runtime(tmp_path, now)
+    common = {
+        "plan": flow,
+        "broker": base_adapter.broker,
+        "profile": base_adapter.profile,
+        "admission": base_adapter.admission,
+        "evidence_store": base_adapter.evidence_store,
+    }
+    with pytest.raises(RedTeamRejected, match="allowlist is invalid"):
+        IsolatedLocalHttpReconAdapter(
+            **common,
+            max_redirects=0,
+            allowed_url_digests=(),
+        )
+    with pytest.raises(RedTeamRejected, match="allowlist is invalid"):
+        IsolatedLocalHttpReconAdapter(
+            **common,
+            max_redirects=1,
+            allowed_url_digests=(url_digest(f"http://{HOST}:8080/health"),),
+        )
+    store.close()
+
+
+def test_endpoint_flow_execution_recovers_interrupted_exact_action(tmp_path, now):
+    scope, store, _, flow, checkpoint, _, base_adapter = _runtime(tmp_path, now)
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health",),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-recovery:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        now=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="endpoint-recovery:plan",
+    )
+    step = endpoint_plan.steps[0]
+    exact_adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=(step.target_url_digest,),
+    )
+
+    class InterruptOnce:
+        def __init__(self):
+            self.calls = 0
+
+        def execute(self, action, *, now):
+            self.calls += 1
+            if self.calls == 1:
+                raise RedTeamAdapterInterrupted("synthetic interruption")
+            return exact_adapter.execute(action, now=now)
+
+    adapter = InterruptOnce()
+    with pytest.raises(RedTeamAdapterInterrupted):
+        endpoint_service.execute_via_flow(endpoint_plan, scope=scope, adapter=adapter, now=now)
+    assert store.latest(flow.plan_id).actions_used == 0
+    assert (
+        recon_store.reservation(endpoint_plan.endpoint_recon_plan_id).state
+        is EndpointReconReservationState.ACTIVE
+    )
+    outcome = endpoint_service.recover_via_flow(
+        endpoint_plan,
+        scope=scope,
+        adapter=adapter,
+        now=now + timedelta(seconds=1),
+    )
+    assert outcome.outcome is EndpointReconOutcomeKind.SUCCEEDED
+    assert outcome.attempt == 2
+    assert store.latest(flow.plan_id).actions_used == 1
+    assert exact_adapter.calls == 1
+    recon_store.close()
+    store.close()
+
+
+def test_partial_endpoint_plan_holds_flow_budget_across_checkpoints(tmp_path, now):
+    scope, store, _, flow, checkpoint, _, base_adapter = _runtime(tmp_path, now)
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health", "/ready"),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-held-budget:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=2, max_requests=2),
+        now=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="endpoint-held-budget:plan",
+    )
+    exact_adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=tuple(
+            sorted(step.target_url_digest for step in endpoint_plan.steps)
+        ),
+    )
+
+    class InterruptSecond:
+        def __init__(self):
+            self.calls = 0
+
+        def execute(self, action, *, now):
+            self.calls += 1
+            if self.calls == 2:
+                raise RedTeamAdapterInterrupted("synthetic second-step interruption")
+            return exact_adapter.execute(action, now=now)
+
+    with pytest.raises(RedTeamAdapterInterrupted):
+        endpoint_service.execute_via_flow(
+            endpoint_plan,
+            scope=scope,
+            adapter=InterruptSecond(),
+            now=now,
+        )
+    assert store.latest(flow.plan_id).actions_used == 1
+    reservation = recon_store.reservation(endpoint_plan.endpoint_recon_plan_id)
+    assert reservation.state is EndpointReconReservationState.ACTIVE
+    assert reservation.consumed_requests == 1
+
+    next_seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=store.latest(flow.plan_id),
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/third",),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-held-budget:next-set",
+    )
+    with pytest.raises(EndpointReconRejected, match="reservations exceed"):
+        endpoint_service.prepare(
+            seed_set_id=next_seed_set.seed_set_id,
+            scope=scope,
+            test_class="read_only",
+            limits=EndpointReconLimits(max_steps=1, max_requests=1),
+            now=now,
+            deadline=now + timedelta(seconds=30),
+            idempotency_key="endpoint-held-budget:next-plan",
+        )
+    with pytest.raises(EndpointReconRejected, match="requires recovery"):
+        endpoint_service.cancel_reservation(
+            endpoint_plan.endpoint_recon_plan_id,
+            operator_ref="operator:fixture-owner",
+            now=now,
+        )
+    recon_store.close()
+    store.close()
+
+
+def test_endpoint_flow_rejects_intervening_action_without_dispatch(tmp_path, now):
+    scope, store, service, flow, checkpoint, command, base_adapter = _runtime(tmp_path, now)
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health",),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-intervening:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        now=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="endpoint-intervening:plan",
+    )
+    service.execute_recon(command=command, scope=scope, adapter=base_adapter, now=now)
+    step = endpoint_plan.steps[0]
+    exact_adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=(step.target_url_digest,),
+    )
+    with pytest.raises(EndpointReconRejected, match="binding is invalid"):
+        endpoint_service.execute_via_flow(
+            endpoint_plan, scope=scope, adapter=exact_adapter, now=now
+        )
+    assert exact_adapter.calls == 0
+    assert recon_store.state(endpoint_plan.endpoint_recon_plan_id) is None
+    recon_store.close()
+    store.close()
+
+
+def test_endpoint_flow_timeout_consumes_once_and_closes_cleanly(tmp_path, now):
+    transport = _PinnedTransport((TimeoutError("synthetic timeout"),))
+    scope, store, _, flow, checkpoint, _, base_adapter = _runtime(
+        tmp_path, now, transport=transport
+    )
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health",),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-timeout:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        now=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="endpoint-timeout:plan",
+    )
+    adapter = IsolatedLocalHttpReconAdapter(
+        plan=flow,
+        broker=base_adapter.broker,
+        profile=base_adapter.profile,
+        admission=base_adapter.admission,
+        evidence_store=base_adapter.evidence_store,
+        max_redirects=0,
+        allowed_url_digests=(endpoint_plan.steps[0].target_url_digest,),
+    )
+    outcome = endpoint_service.execute_via_flow(
+        endpoint_plan, scope=scope, adapter=adapter, now=now
+    )
+    assert outcome.outcome is EndpointReconOutcomeKind.TIMED_OUT
+    assert outcome.cleanup_complete
+    assert store.latest(flow.plan_id).actions_used == 1
+    assert store.latest(flow.plan_id).status is RedTeamFlowStatus.TIMED_OUT
+    assert (
+        recon_store.reservation(endpoint_plan.endpoint_recon_plan_id).state
+        is EndpointReconReservationState.CONSUMED
+    )
+    recon_store.close()
+    store.close()
+
+
+def test_endpoint_flow_closes_invalid_success_as_failed_and_replays(tmp_path, now):
+    scope, store, _, flow, checkpoint, _, base_adapter = _runtime(tmp_path, now)
+    recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+    endpoint_service = EndpointReconService(
+        red_team_store=store,
+        recon_store=recon_store,
+        evidence_store=base_adapter.evidence_store,
+    )
+    seed_set = endpoint_service.seal_seed_set(
+        flow_plan=flow,
+        checkpoint=checkpoint,
+        scope=scope,
+        operator_ref="operator:fixture-owner",
+        paths=("/health",),
+        now=now,
+        expires_at=now + timedelta(minutes=1),
+        idempotency_key="endpoint-invalid-success:set",
+    )
+    endpoint_plan = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        now=now,
+        deadline=now + timedelta(seconds=30),
+        idempotency_key="endpoint-invalid-success:plan",
+    )
+
+    class MissingSnapshotAdapter:
+        def __init__(self):
+            self.calls = 0
+
+        def execute(self, action, *, now):
+            self.calls += 1
+            return RedTeamReconObservation.create(
+                action_id=action.action_id,
+                outcome=ReconOutcome.SUCCEEDED,
+                status_code=204,
+                reason_code="synthetic_missing_snapshot",
+                cleanup_complete=True,
+                sensitive_data_redacted=True,
+                observed_at=now,
+            )
+
+    adapter = MissingSnapshotAdapter()
+    outcome = endpoint_service.execute_via_flow(
+        endpoint_plan, scope=scope, adapter=adapter, now=now
+    )
+    assert outcome.outcome is EndpointReconOutcomeKind.FAILED
+    assert outcome.results[0].reason_code == "endpoint_observation_invalid"
+    assert outcome.results[0].status_code is None
+    assert recon_store.state(endpoint_plan.endpoint_recon_plan_id)[0].value == "completed"
+    assert (
+        recon_store.reservation(endpoint_plan.endpoint_recon_plan_id).state
+        is EndpointReconReservationState.CONSUMED
+    )
+    assert (
+        endpoint_service.execute_via_flow(
+            endpoint_plan, scope=scope, adapter=adapter, now=now
+        )
+        == outcome
+    )
+    assert adapter.calls == 1
+    recon_store.close()
     store.close()
 
 
@@ -436,7 +911,7 @@ server.serve_forever()
             admission=admission,
             evidence_store=evidence_store,
         )
-        _, observation = service.execute_recon(
+        advanced, observation = service.execute_recon(
             command=command, scope=scope, adapter=adapter, now=now
         )
         assert observation.attack_surface is not None
@@ -444,6 +919,49 @@ server.serve_forever()
         content = evidence_store.read_text(evidence).lower()
         assert "must-not-persist" not in content
         assert plan.target.url not in content
+        recon_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
+        endpoint_service = EndpointReconService(
+            red_team_store=store,
+            recon_store=recon_store,
+            evidence_store=evidence_store,
+        )
+        seed_set = endpoint_service.seal_seed_set(
+            flow_plan=plan,
+            checkpoint=advanced,
+            scope=scope,
+            operator_ref="operator:fixture-owner",
+            paths=("/health",),
+            now=now,
+            expires_at=now + timedelta(seconds=30),
+            idempotency_key="endpoint-real:set",
+        )
+        endpoint_plan = endpoint_service.prepare(
+            seed_set_id=seed_set.seed_set_id,
+            scope=scope,
+            test_class="read_only",
+            limits=EndpointReconLimits(max_steps=1, max_requests=1),
+            now=now,
+            deadline=now + timedelta(seconds=20),
+            idempotency_key="endpoint-real:plan",
+        )
+        exact_adapter = IsolatedLocalHttpReconAdapter(
+            plan=plan,
+            broker=broker,
+            profile=profile,
+            admission=admission,
+            evidence_store=evidence_store,
+            max_redirects=0,
+            allowed_url_digests=(endpoint_plan.steps[0].target_url_digest,),
+        )
+        exact_outcome = endpoint_service.execute_via_flow(
+            endpoint_plan,
+            scope=scope,
+            adapter=exact_adapter,
+            now=now,
+        )
+        assert exact_outcome.outcome is EndpointReconOutcomeKind.SUCCEEDED
+        assert store.latest(plan.plan_id).actions_used == 2
+        recon_store.close()
         store.close()
     finally:
         process.terminate()

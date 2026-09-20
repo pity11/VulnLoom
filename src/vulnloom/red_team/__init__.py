@@ -45,6 +45,8 @@ from .seed_models import (
     EndpointReconOutcome,
     EndpointReconOutcomeKind,
     EndpointReconPlan,
+    EndpointReconReservation,
+    EndpointReconReservationState,
     EndpointReconRunState,
     EndpointReconStep,
     EndpointReconStepResult,
@@ -59,6 +61,13 @@ from .seed_service import (
     EndpointReconTimedOut,
     OfflineEndpointReconAdapter,
     OfflineEndpointReconScenario,
+)
+from .seed_state_machine import (
+    EndpointReconReservationTransitionRejected,
+    cancel_endpoint_recon,
+    consume_endpoint_recon_request,
+    expire_endpoint_recon,
+    reserve_endpoint_recon,
 )
 from .seed_store import (
     EndpointReconRecoveryRequired,
@@ -116,6 +125,9 @@ __all__ = [
     "EndpointReconOutcome",
     "EndpointReconOutcomeKind",
     "EndpointReconPlan",
+    "EndpointReconReservation",
+    "EndpointReconReservationState",
+    "EndpointReconReservationTransitionRejected",
     "EndpointReconRecoveryRequired",
     "EndpointReconRejected",
     "EndpointReconRunState",
@@ -127,6 +139,9 @@ __all__ = [
     "EndpointSeed",
     "EndpointSeedIdempotencyConflict",
     "EndpointSeedSet",
+    "cancel_endpoint_recon",
+    "consume_endpoint_recon_request",
+    "expire_endpoint_recon",
     "AttackSurfaceSnapshot",
     "AttackSurfaceServiceIdentity",
     "AttackSurfaceEndpoint",
@@ -171,4 +186,5 @@ __all__ = [
     "RulesOfEngagement",
     "ServiceIdentitySnapshot",
     "ServiceTlsVersion",
+    "reserve_endpoint_recon",
 ]

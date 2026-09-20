@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "EndpointReconReservationState": {
+      "enum": [
+        "active",
+        "consumed",
+        "cancelled",
+        "expired"
+      ],
+      "title": "EndpointReconReservationState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "endpoint_recon_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Recon Plan Id",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/EndpointReconReservationState"
+    },
+    "reserved_requests": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Reserved Requests",
+      "type": "integer"
+    },
+    "consumed_requests": {
+      "maximum": 1000,
+      "minimum": 0,
+      "title": "Consumed Requests",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "terminal_reason": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Terminal Reason"
+    }
+  },
+  "required": [
+    "endpoint_recon_plan_id",
+    "state",
+    "reserved_requests",
+    "consumed_requests",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "EndpointReconReservation",
+  "type": "object"
+}

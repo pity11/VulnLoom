@@ -229,6 +229,24 @@ class RedTeamStore:
             raise RedTeamStoreRejected("Red Team checkpoint is unavailable")
         return RedTeamCheckpoint.model_validate_json(row[0])
 
+    def checkpoint(self, checkpoint_id: str) -> RedTeamCheckpoint:
+        row = self.connection.execute(
+            "SELECT payload FROM red_team_checkpoints WHERE checkpoint_id=?",
+            (checkpoint_id,),
+        ).fetchone()
+        if row is None:
+            raise RedTeamStoreRejected("Red Team checkpoint is unavailable")
+        return RedTeamCheckpoint.model_validate_json(row[0])
+
+    def checkpoint_revision(self, plan_id: str, revision: int) -> RedTeamCheckpoint:
+        row = self.connection.execute(
+            "SELECT payload FROM red_team_checkpoints WHERE plan_id=? AND revision=?",
+            (plan_id, revision),
+        ).fetchone()
+        if row is None:
+            raise RedTeamStoreRejected("Red Team checkpoint revision is unavailable")
+        return RedTeamCheckpoint.model_validate_json(row[0])
+
     def observation(self, observation_id: str) -> RedTeamReconObservation:
         row = self.connection.execute(
             "SELECT payload FROM red_team_observations WHERE observation_id=?",

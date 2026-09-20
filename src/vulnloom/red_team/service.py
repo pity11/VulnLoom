@@ -32,6 +32,12 @@ from .models import (
     RedTeamStopConditions,
     RulesOfEngagement,
 )
+from .seed_models import (
+    EndpointReconPlan,
+    EndpointReconReservationState,
+    EndpointReconStep,
+)
+from .seed_store import EndpointReconStore
 from .state_machine import (
     activate_kill_switch,
     cancel_flow,
@@ -234,11 +240,111 @@ class RedTeamService:
         now: datetime,
     ) -> tuple[RedTeamCheckpoint, RedTeamReconObservation]:
         plan = self.store.plan(command.action.plan_id)
+        return self._execute_bound_recon(
+            command=command,
+            scope=scope,
+            adapter=adapter,
+            now=now,
+            expected_target_url=plan.target.url,
+        )
+
+    def prepare_endpoint_recon(
+        self,
+        *,
+        plan: RedTeamFlowPlan,
+        checkpoint: RedTeamCheckpoint,
+        endpoint_plan: EndpointReconPlan,
+        step: EndpointReconStep,
+        endpoint_recon_store: EndpointReconStore,
+        scope: Scope,
+        attempt: int,
+        now: datetime,
+    ) -> RedTeamReconCommand:
+        self._scope_binding(plan, scope)
+        if (
+            endpoint_recon_store.plan(endpoint_plan.endpoint_recon_plan_id)
+            != endpoint_plan
+            or endpoint_recon_store.reservation(
+                endpoint_plan.endpoint_recon_plan_id
+            ).state
+            is not EndpointReconReservationState.ACTIVE
+            or endpoint_plan.flow_plan_id != plan.plan_id
+            or endpoint_plan.target_id != plan.target.target_id
+            or endpoint_plan.scope_id != scope.scope_id
+            or endpoint_plan.scope_version != scope.version
+            or endpoint_plan.test_class not in plan.rules.allowed_test_classes
+            or step not in endpoint_plan.steps
+            or checkpoint.plan_id != plan.plan_id
+            or not endpoint_plan.created_at <= now < endpoint_plan.deadline
+        ):
+            raise RedTeamRejected("Endpoint Recon command binding is invalid")
+        action = RedTeamReconAction.create(
+            plan_id=plan.plan_id,
+            expected_checkpoint_id=checkpoint.checkpoint_id,
+            kind=RedTeamActionKind.HTTP_HEAD,
+            target_url=step.target_url,
+            test_class=endpoint_plan.test_class,
+            created_at=endpoint_plan.created_at,
+            deadline=endpoint_plan.deadline,
+            idempotency_key=(
+                f"endpoint-recon:{endpoint_plan.endpoint_recon_plan_id}:{step.step_id}"
+            ),
+        )
+        return RedTeamReconCommand.create(action=action, attempt=attempt)
+
+    def execute_endpoint_recon(
+        self,
+        *,
+        command: RedTeamReconCommand,
+        endpoint_plan: EndpointReconPlan,
+        step: EndpointReconStep,
+        endpoint_recon_store: EndpointReconStore,
+        scope: Scope,
+        adapter: RedTeamReconAdapter,
+        now: datetime,
+    ) -> tuple[RedTeamCheckpoint, RedTeamReconObservation]:
+        action = command.action
+        if (
+            endpoint_recon_store.plan(endpoint_plan.endpoint_recon_plan_id)
+            != endpoint_plan
+            or endpoint_recon_store.reservation(
+                endpoint_plan.endpoint_recon_plan_id
+            ).state
+            is not EndpointReconReservationState.ACTIVE
+            or endpoint_plan.flow_plan_id != action.plan_id
+            or step not in endpoint_plan.steps
+            or action.kind is not RedTeamActionKind.HTTP_HEAD
+            or action.target_url != step.target_url
+            or action.test_class != endpoint_plan.test_class
+            or action.created_at != endpoint_plan.created_at
+            or action.deadline != endpoint_plan.deadline
+            or action.idempotency_key
+            != f"endpoint-recon:{endpoint_plan.endpoint_recon_plan_id}:{step.step_id}"
+        ):
+            raise RedTeamRejected("Endpoint Recon action binding is invalid")
+        return self._execute_bound_recon(
+            command=command,
+            scope=scope,
+            adapter=adapter,
+            now=now,
+            expected_target_url=step.target_url,
+        )
+
+    def _execute_bound_recon(
+        self,
+        *,
+        command: RedTeamReconCommand,
+        scope: Scope,
+        adapter: RedTeamReconAdapter,
+        now: datetime,
+        expected_target_url: str,
+    ) -> tuple[RedTeamCheckpoint, RedTeamReconObservation]:
+        plan = self.store.plan(command.action.plan_id)
         checkpoint = self.store.latest(plan.plan_id)
         action = command.action
         self._scope_binding(plan, scope)
         if (
-            action.target_url != plan.target.url
+            action.target_url != expected_target_url
             or action.test_class not in plan.rules.allowed_test_classes
             or action.deadline > plan.deadline
         ):

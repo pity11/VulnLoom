@@ -96,6 +96,7 @@ class IsolatedLocalHttpReconAdapter:
         connect_seconds: float = 2.0,
         read_seconds: float = 2.0,
         max_redirects: int = 2,
+        allowed_url_digests: tuple[Digest, ...] | None = None,
     ):
         self.plan = RedTeamFlowPlan.model_validate(plan.model_dump(mode="python"))
         self.broker = broker
@@ -118,6 +119,23 @@ class IsolatedLocalHttpReconAdapter:
         self.connect_seconds = limits.connect_seconds
         self.read_seconds = limits.read_seconds
         self.max_redirects = limits.max_redirects
+        exact_digests = (
+            allowed_url_digests
+            if allowed_url_digests is not None
+            else (url_digest(self.plan.target.url),)
+        )
+        if (
+            not exact_digests
+            or len(exact_digests) > 1_000
+            or tuple(sorted(set(exact_digests))) != exact_digests
+            or any(
+                len(item) != 64 or any(character not in "0123456789abcdef" for character in item)
+                for item in exact_digests
+            )
+            or (allowed_url_digests is not None and self.max_redirects != 0)
+        ):
+            raise RedTeamRejected("isolated local Recon URL allowlist is invalid")
+        self.allowed_url_digests = frozenset(exact_digests)
         self.calls = 0
         self._preflight_static()
 
@@ -127,7 +145,11 @@ class IsolatedLocalHttpReconAdapter:
         self.calls += 1
         if now >= self.admission.expires_at:
             return self._rejected(action, now=now, reason="local_admission_expired")
-        if action.plan_id != self.plan.plan_id or action.kind is not RedTeamActionKind.HTTP_HEAD:
+        if (
+            action.plan_id != self.plan.plan_id
+            or action.kind is not RedTeamActionKind.HTTP_HEAD
+            or url_digest(action.target_url) not in self.allowed_url_digests
+        ):
             return self._rejected(action, now=now, reason="local_action_not_admitted")
         task = TaskEnvelope(
             engagement_id=self.broker.scope.engagement_id,

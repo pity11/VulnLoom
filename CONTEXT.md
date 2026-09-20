@@ -80,6 +80,10 @@ _Avoid_: Crawl frontier, Wordlist, Discovered URLs
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue
 
+**Endpoint Recon Reservation**：
+Endpoint Recon Plan 在一个精确 Flow checkpoint 上占用的动作预算；取消或过期只释放未消费部分，已进入 Flow 账本的动作不可回退。
+_Avoid_: Request estimate, Retry counter, Reversible action
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

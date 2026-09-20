@@ -21,6 +21,13 @@ class EndpointReconRunState(StrEnum):
     COMPLETED = "completed"
 
 
+class EndpointReconReservationState(StrEnum):
+    ACTIVE = "active"
+    CONSUMED = "consumed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
 class EndpointReconOutcomeKind(StrEnum):
     SUCCEEDED = "succeeded"
     REJECTED = "rejected"
@@ -196,6 +203,43 @@ class EndpointReconPlan(DomainModel):
             mode="python", exclude={"endpoint_recon_plan_id"}
         )
         return cls(endpoint_recon_plan_id=canonical_digest(expanded), **values)
+
+
+class EndpointReconReservation(DomainModel):
+    endpoint_recon_plan_id: Digest
+    state: EndpointReconReservationState
+    reserved_requests: int = Field(ge=1, le=1_000)
+    consumed_requests: int = Field(ge=0, le=1_000)
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+    terminal_reason: ReasonCode | None = None
+
+    @model_validator(mode="after")
+    def coherent(self) -> Self:
+        terminal = self.state is not EndpointReconReservationState.ACTIVE
+        if (
+            self.consumed_requests > self.reserved_requests
+            or self.updated_at < self.created_at
+            or terminal != (self.terminal_reason is not None)
+            or (
+                self.state is EndpointReconReservationState.ACTIVE
+                and self.consumed_requests >= self.reserved_requests
+            )
+            or (
+                self.state is EndpointReconReservationState.CONSUMED
+                and self.consumed_requests != self.reserved_requests
+            )
+            or (
+                self.state
+                in {
+                    EndpointReconReservationState.CANCELLED,
+                    EndpointReconReservationState.EXPIRED,
+                }
+                and self.consumed_requests >= self.reserved_requests
+            )
+        ):
+            raise ValueError("Endpoint Recon reservation state is inconsistent")
+        return self
 
 
 class EndpointReconStepResult(DomainModel):

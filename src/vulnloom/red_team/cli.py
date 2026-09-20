@@ -281,15 +281,18 @@ def _run_endpoint_recon_offline(args: argparse.Namespace) -> int:
 
 def _endpoint_recon_status(args: argparse.Namespace) -> int:
     with EndpointReconStore(Path(args.endpoint_recon_db)) as store:
+        reservation = store.reservation(args.endpoint_recon_plan_id)
         state = store.state(args.endpoint_recon_plan_id)
-        if state is None:
-            raise ValueError("Endpoint Recon is unavailable")
         payload = {
             "endpoint_recon_plan_id": args.endpoint_recon_plan_id,
-            "state": state[0].value,
-            "attempt": state[1],
+            "run_state": state[0].value if state is not None else "not_started",
+            "attempt": state[1] if state is not None else 0,
+            "reservation_state": reservation.state.value,
+            "reserved_requests": reservation.reserved_requests,
+            "consumed_requests": reservation.consumed_requests,
+            "terminal_reason": reservation.terminal_reason,
         }
-        if state[0].value == "completed":
+        if state is not None and state[0].value == "completed":
             outcome = store.outcome(args.endpoint_recon_plan_id)
             payload.update(
                 {
@@ -299,6 +302,54 @@ def _endpoint_recon_status(args: argparse.Namespace) -> int:
                 }
             )
     print(json.dumps(payload, indent=2))
+    return 0
+
+
+def _cancel_endpoint_recon(args: argparse.Namespace) -> int:
+    now = utc_now()
+    service, red_store, recon_store = _endpoint_service(args)
+    try:
+        reservation = service.cancel_reservation(
+            args.endpoint_recon_plan_id,
+            operator_ref=args.operator_ref,
+            now=now,
+        )
+    finally:
+        red_store.close()
+        recon_store.close()
+    print(
+        json.dumps(
+            {
+                "endpoint_recon_plan_id": reservation.endpoint_recon_plan_id,
+                "reservation_state": reservation.state.value,
+                "consumed_requests": reservation.consumed_requests,
+                "terminal_reason": reservation.terminal_reason,
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def _expire_endpoint_recon(args: argparse.Namespace) -> int:
+    now = utc_now()
+    service, red_store, recon_store = _endpoint_service(args)
+    try:
+        reservation = service.expire_reservation(args.endpoint_recon_plan_id, now=now)
+    finally:
+        red_store.close()
+        recon_store.close()
+    print(
+        json.dumps(
+            {
+                "endpoint_recon_plan_id": reservation.endpoint_recon_plan_id,
+                "reservation_state": reservation.state.value,
+                "consumed_requests": reservation.consumed_requests,
+                "terminal_reason": reservation.terminal_reason,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -575,6 +626,21 @@ def register_red_team_commands(subparsers) -> None:
     endpoint_status.add_argument("--endpoint-recon-plan-id", required=True)
     endpoint_status.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
     endpoint_status.set_defaults(handler=_endpoint_recon_status)
+
+    cancel_endpoint = actions.add_parser("cancel-endpoint-recon")
+    cancel_endpoint.add_argument("--endpoint-recon-plan-id", required=True)
+    cancel_endpoint.add_argument("--operator-ref", required=True)
+    cancel_endpoint.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    cancel_endpoint.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    cancel_endpoint.add_argument("--evidence-root", default=".vulnloom/evidence")
+    cancel_endpoint.set_defaults(handler=_cancel_endpoint_recon)
+
+    expire_endpoint = actions.add_parser("expire-endpoint-recon")
+    expire_endpoint.add_argument("--endpoint-recon-plan-id", required=True)
+    expire_endpoint.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    expire_endpoint.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
+    expire_endpoint.add_argument("--evidence-root", default=".vulnloom/evidence")
+    expire_endpoint.set_defaults(handler=_expire_endpoint_recon)
 
     prepare_surface = actions.add_parser("prepare-surface-reduction")
     prepare_surface.add_argument("--plan-id", required=True)

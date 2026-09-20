@@ -15,6 +15,7 @@ from vulnloom.policy import ActionRequest, DecisionEffect, PolicyEngine
 
 from .models import (
     ImpactClass,
+    ReconOutcome,
     RedTeamCheckpoint,
     RedTeamFlowPlan,
     RedTeamFlowStatus,
@@ -25,12 +26,16 @@ from .seed_models import (
     EndpointReconOutcome,
     EndpointReconOutcomeKind,
     EndpointReconPlan,
+    EndpointReconReservation,
+    EndpointReconReservationState,
+    EndpointReconRunState,
     EndpointReconStep,
     EndpointReconStepResult,
     EndpointSeed,
     EndpointSeedSet,
 )
 from .seed_store import EndpointReconStore, EndpointSeedIdempotencyConflict
+from .service import RedTeamReconAdapter, RedTeamService
 from .store import RedTeamStore
 
 
@@ -225,6 +230,72 @@ class EndpointReconService:
         claim = self._claim(plan, scope, now, recover=True)
         return self._run(plan, scope, adapter, now, claim.attempt)
 
+    def cancel_reservation(
+        self,
+        plan_id: str,
+        *,
+        operator_ref: str,
+        now: datetime,
+    ) -> EndpointReconReservation:
+        plan = self.recon_store.plan(plan_id)
+        seed_set = self.recon_store.seed_set(plan.seed_set_id)
+        if operator_ref != seed_set.operator_ref or now < plan.created_at:
+            raise EndpointReconRejected("Endpoint Recon cancellation operator binding is invalid")
+        run = self.recon_store.state(plan_id)
+        if run is not None and run[0] is EndpointReconRunState.STARTED:
+            raise EndpointReconRejected(
+                "Endpoint Recon cancellation requires recovery of its started action"
+            )
+        try:
+            return self.recon_store.cancel_reservation(plan_id, now=now)
+        except (ValueError, RuntimeError) as exc:
+            raise EndpointReconRejected(str(exc)) from exc
+
+    def expire_reservation(self, plan_id: str, *, now: datetime) -> EndpointReconReservation:
+        plan = self.recon_store.plan(plan_id)
+        if now < plan.deadline:
+            raise EndpointReconRejected("Endpoint Recon reservation is not expired")
+        try:
+            return self.recon_store.expire_reservation(plan_id, now=now)
+        except (ValueError, RuntimeError) as exc:
+            raise EndpointReconRejected(str(exc)) from exc
+
+    def execute_via_flow(
+        self,
+        plan: EndpointReconPlan,
+        *,
+        scope: Scope,
+        adapter: RedTeamReconAdapter,
+        now: datetime,
+    ) -> EndpointReconOutcome:
+        state = self.recon_store.state(plan.endpoint_recon_plan_id)
+        if state is not None and state[0].value == "completed":
+            outcome = self.recon_store.outcome(plan.endpoint_recon_plan_id)
+            if outcome.endpoint_recon_plan_id != plan.endpoint_recon_plan_id:
+                raise EndpointReconRejected("Endpoint Recon completed outcome binding is invalid")
+            return outcome
+        self._flow_execution_binding(plan, scope=scope, now=now, recover=False)
+        claim = self.recon_store.claim(plan, now=now)
+        if claim.outcome is not None:
+            return claim.outcome
+        return self._run_via_flow(
+            plan, scope=scope, adapter=adapter, now=now, attempt=claim.attempt
+        )
+
+    def recover_via_flow(
+        self,
+        plan: EndpointReconPlan,
+        *,
+        scope: Scope,
+        adapter: RedTeamReconAdapter,
+        now: datetime,
+    ) -> EndpointReconOutcome:
+        self._flow_execution_binding(plan, scope=scope, now=now, recover=True)
+        claim = self.recon_store.recover(plan, now=now)
+        return self._run_via_flow(
+            plan, scope=scope, adapter=adapter, now=now, attempt=claim.attempt
+        )
+
     def _claim(self, plan, scope, now, *, recover):
         self._plan_binding(plan, scope, now)
         return (
@@ -296,6 +367,168 @@ class EndpointReconService:
         self._plan_binding(plan, scope, outcome.completed_at)
         self.recon_store.complete(outcome)
         return outcome
+
+    def _run_via_flow(self, plan, *, scope, adapter, now, attempt):
+        flow = self.red_team_store.plan(plan.flow_plan_id)
+        source = self.red_team_store.checkpoint(plan.source_checkpoint_id)
+        flow_service = RedTeamService(store=self.red_team_store)
+        results: list[EndpointReconStepResult] = []
+        observation_ids: list[str] = []
+        for index, step in enumerate(plan.steps):
+            try:
+                expected = self.red_team_store.checkpoint_revision(
+                    flow.plan_id, source.revision + index
+                )
+            except ValueError as exc:
+                raise EndpointReconRejected(
+                    "Endpoint Recon checkpoint lineage is incomplete"
+                ) from exc
+            if expected.observation_ids != source.observation_ids + tuple(observation_ids):
+                raise EndpointReconRejected(
+                    "Endpoint Recon checkpoint lineage contains another action"
+                )
+            command = flow_service.prepare_endpoint_recon(
+                plan=flow,
+                checkpoint=expected,
+                endpoint_plan=plan,
+                step=step,
+                endpoint_recon_store=self.recon_store,
+                scope=scope,
+                attempt=attempt,
+                now=now,
+            )
+            checkpoint, observation = flow_service.execute_endpoint_recon(
+                command=command,
+                endpoint_plan=plan,
+                step=step,
+                endpoint_recon_store=self.recon_store,
+                scope=scope,
+                adapter=adapter,
+                now=now,
+            )
+            del checkpoint
+            reservation = self.recon_store.reservation(plan.endpoint_recon_plan_id)
+            if reservation.consumed_requests < index + 1:
+                if reservation.consumed_requests != index:
+                    raise EndpointReconRejected(
+                        "Endpoint Recon reservation progress is inconsistent"
+                    )
+                reservation = self.recon_store.consume_request(
+                    plan.endpoint_recon_plan_id, now=observation.observed_at
+                )
+            result = self._step_result(step, observation)
+            results.append(result)
+            observation_ids.append(observation.observation_id)
+            if result.outcome is not EndpointReconOutcomeKind.SUCCEEDED:
+                if reservation.state is EndpointReconReservationState.ACTIVE:
+                    self.recon_store.cancel_reservation(
+                        plan.endpoint_recon_plan_id,
+                        now=observation.observed_at,
+                        reason="execution_stopped",
+                    )
+                break
+        outcome = EndpointReconOutcome(
+            endpoint_recon_plan_id=plan.endpoint_recon_plan_id,
+            seed_set_id=plan.seed_set_id,
+            outcome=results[-1].outcome,
+            results=tuple(results),
+            requests_used=len(results),
+            attempt=attempt,
+            cleanup_complete=all(item.cleanup_complete for item in results),
+            completed_at=results[-1].completed_at,
+        )
+        self._verify_flow_results(plan, results, observation_ids)
+        self.recon_store.complete(outcome)
+        return outcome
+
+    def _step_result(self, step, observation):
+        outcome = {
+            ReconOutcome.SUCCEEDED: EndpointReconOutcomeKind.SUCCEEDED,
+            ReconOutcome.REJECTED: EndpointReconOutcomeKind.REJECTED,
+            ReconOutcome.TIMED_OUT: EndpointReconOutcomeKind.TIMED_OUT,
+            ReconOutcome.FAILED: EndpointReconOutcomeKind.FAILED,
+        }[observation.outcome]
+        surface = observation.attack_surface
+        invalid_success = outcome is EndpointReconOutcomeKind.SUCCEEDED and (
+            surface is None
+            or surface.requested_url_digest != step.target_url_digest
+            or surface.final_url_digest != step.target_url_digest
+            or surface.redirect_count != 0
+            or not surface.evidence_refs
+            or len(surface.evidence_refs) > 1
+        )
+        evidence_refs = surface.evidence_refs if surface is not None else ()
+        invalid_evidence = any(
+            not self.evidence_store.contains(ref) for ref in evidence_refs
+        )
+        if invalid_success or invalid_evidence:
+            return EndpointReconStepResult(
+                step_id=step.step_id,
+                target_url_digest=step.target_url_digest,
+                outcome=EndpointReconOutcomeKind.FAILED,
+                status_code=None,
+                reason_code=(
+                    "endpoint_observation_invalid"
+                    if invalid_success
+                    else "endpoint_evidence_missing"
+                ),
+                evidence_refs=(),
+                cleanup_complete=observation.cleanup_complete,
+                completed_at=observation.observed_at,
+            )
+        return EndpointReconStepResult(
+            step_id=step.step_id,
+            target_url_digest=step.target_url_digest,
+            outcome=outcome,
+            status_code=observation.status_code,
+            reason_code=observation.reason_code,
+            evidence_refs=evidence_refs,
+            cleanup_complete=observation.cleanup_complete,
+            completed_at=observation.observed_at,
+        )
+
+    def _verify_flow_results(self, plan, results, observation_ids):
+        source = self.red_team_store.checkpoint(plan.source_checkpoint_id)
+        latest = self.red_team_store.latest(plan.flow_plan_id)
+        if (
+            latest.revision != source.revision + len(results)
+            or latest.actions_used != source.actions_used + len(results)
+            or latest.observation_ids != source.observation_ids + tuple(observation_ids)
+        ):
+            raise EndpointReconRejected("Endpoint Recon Flow ledger consumption is inconsistent")
+        for step, result, observation_id in zip(
+            plan.steps, results, observation_ids, strict=False
+        ):
+            observation = self.red_team_store.observation(observation_id)
+            if self._step_result(step, observation) != result:
+                raise EndpointReconRejected("Endpoint Recon authoritative observation changed")
+
+    def _flow_execution_binding(self, plan, *, scope, now, recover):
+        seed_set = self.recon_store.seed_set(plan.seed_set_id)
+        flow = self.red_team_store.plan(plan.flow_plan_id)
+        source = self.red_team_store.checkpoint(plan.source_checkpoint_id)
+        latest = self.red_team_store.latest(flow.plan_id)
+        reservation = self.recon_store.reservation(plan.endpoint_recon_plan_id)
+        if (
+            self.recon_store.plan(plan.endpoint_recon_plan_id) != plan
+            or seed_set.flow_plan_id != flow.plan_id
+            or source.plan_id != flow.plan_id
+            or seed_set.source_checkpoint_id != source.checkpoint_id
+            or plan.target_id != flow.target.target_id
+            or plan.scope_id != scope.scope_id
+            or plan.scope_version != scope.version
+            or scope.state is not ScopeState.APPROVED
+            or not scope.valid_from <= now < scope.valid_until
+            or not plan.created_at <= now < plan.deadline
+            or reservation.state is not EndpointReconReservationState.ACTIVE
+            or (not recover and latest != source)
+        ):
+            raise EndpointReconRejected("Endpoint Recon Flow execution binding is invalid")
+        for seed, step in zip(seed_set.seeds, plan.steps, strict=True):
+            if step.target_url != self._authorize_exact(
+                flow, scope, seed.path, now, test_class=plan.test_class
+            ):
+                raise EndpointReconRejected("Endpoint Recon exact target binding is invalid")
 
     def _plan_binding(self, plan: EndpointReconPlan, scope: Scope, now: datetime) -> None:
         seed_set = self.recon_store.seed_set(plan.seed_set_id)

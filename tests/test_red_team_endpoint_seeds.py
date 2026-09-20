@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from datetime import timedelta
 
 import pytest
@@ -14,6 +15,8 @@ from vulnloom.red_team import (
     EndpointReconOutcomeKind,
     EndpointReconRecoveryRequired,
     EndpointReconRejected,
+    EndpointReconReservationState,
+    EndpointReconReservationTransitionRejected,
     EndpointReconService,
     EndpointReconStepResult,
     EndpointReconStore,
@@ -22,6 +25,10 @@ from vulnloom.red_team import (
     OfflineEndpointReconScenario,
     RedTeamService,
     RedTeamStore,
+    cancel_endpoint_recon,
+    consume_endpoint_recon_request,
+    expire_endpoint_recon,
+    reserve_endpoint_recon,
 )
 from vulnloom.workflows import Visibility
 
@@ -175,6 +182,44 @@ def test_endpoint_seed_cli_is_offline_and_redacts_paths(
     outcome_text = capsys.readouterr().out
     assert "/health" not in outcome_text
     assert "app.example.test" not in outcome_text
+    plan_id = prepared["endpoint_recon_plan_id"]
+    assert (
+        main(
+            [
+                "red-team",
+                "endpoint-recon-status",
+                "--endpoint-recon-plan-id",
+                plan_id,
+                "--endpoint-recon-db",
+                str(tmp_path / "endpoint-recon.sqlite3"),
+            ]
+        )
+        == 0
+    )
+    status = __import__("json").loads(capsys.readouterr().out)
+    assert status["run_state"] == "completed"
+    assert status["reservation_state"] == "active"
+    assert (
+        main(
+            [
+                "red-team",
+                "cancel-endpoint-recon",
+                "--endpoint-recon-plan-id",
+                plan_id,
+                "--operator-ref",
+                "operator:alice",
+                "--red-team-db",
+                str(tmp_path / "red-team.sqlite3"),
+                "--endpoint-recon-db",
+                str(tmp_path / "endpoint-recon.sqlite3"),
+                "--evidence-root",
+                str(tmp_path / "evidence"),
+            ]
+        )
+        == 0
+    )
+    cancelled = __import__("json").loads(capsys.readouterr().out)
+    assert cancelled["reservation_state"] == "cancelled"
 
 
 def test_endpoint_seed_cli_rejects_symlink_input(tmp_path, approved_scope, now, monkeypatch):
@@ -429,3 +474,136 @@ def test_final_interruption_records_failed_cleanup(tmp_path, approved_scope, now
     assert outcome.attempt == 3
     red_store.close()
     recon_store.close()
+
+
+def test_endpoint_recon_reservation_state_machine_is_monotonic(tmp_path, approved_scope, now):
+    _, red_store, recon_store, _, plan = _seed_and_plan(tmp_path, approved_scope, now)
+    reservation = reserve_endpoint_recon(plan)
+    assert reservation.state is EndpointReconReservationState.ACTIVE
+    with pytest.raises(EndpointReconReservationTransitionRejected, match="backwards"):
+        consume_endpoint_recon_request(
+            reservation, now=reservation.updated_at - timedelta(microseconds=1)
+        )
+    reservation = consume_endpoint_recon_request(reservation, now=now)
+    assert reservation.consumed_requests == 1
+    assert reservation.state is EndpointReconReservationState.ACTIVE
+    reservation = consume_endpoint_recon_request(reservation, now=now)
+    assert reservation.state is EndpointReconReservationState.CONSUMED
+    with pytest.raises(EndpointReconReservationTransitionRejected):
+        cancel_endpoint_recon(reservation, now=now)
+
+    fresh = reserve_endpoint_recon(plan)
+    cancelled = cancel_endpoint_recon(fresh, now=now)
+    assert cancelled.state is EndpointReconReservationState.CANCELLED
+    assert cancel_endpoint_recon(cancelled, now=now) == cancelled
+    with pytest.raises(EndpointReconReservationTransitionRejected):
+        expire_endpoint_recon(cancelled, now=now)
+    expired = expire_endpoint_recon(fresh, now=now)
+    assert expired.state is EndpointReconReservationState.EXPIRED
+    red_store.close()
+    recon_store.close()
+
+
+def test_reservation_cancel_expire_and_release_only_unconsumed_budget(
+    tmp_path, approved_scope, now
+):
+    service, red_store, recon_store, seed_set, plan = _seed_and_plan(tmp_path, approved_scope, now)
+    reservation = recon_store.consume_request(plan.endpoint_recon_plan_id, now=now)
+    assert reservation.consumed_requests == 1
+    cancelled = service.cancel_reservation(
+        plan.endpoint_recon_plan_id,
+        operator_ref="operator:alice",
+        now=now,
+    )
+    assert cancelled.state is EndpointReconReservationState.CANCELLED
+    assert cancelled.consumed_requests == 1
+    assert cancelled.reserved_requests == 2
+    with pytest.raises(EndpointReconRejected, match="operator binding"):
+        service.cancel_reservation(
+            plan.endpoint_recon_plan_id,
+            operator_ref="operator:bob",
+            now=now,
+        )
+
+    second = service.seal_seed_set(
+        flow_plan=red_store.plan(seed_set.flow_plan_id),
+        checkpoint=red_store.checkpoint(seed_set.source_checkpoint_id),
+        scope=approved_scope,
+        operator_ref="operator:alice",
+        paths=("/third",),
+        now=now,
+        expires_at=now + timedelta(minutes=5),
+        idempotency_key="reservation:released:set",
+    )
+    replacement = service.prepare(
+        seed_set_id=second.seed_set_id,
+        scope=approved_scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        now=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="reservation:released:plan",
+    )
+    with pytest.raises(EndpointReconRejected, match="not expired"):
+        service.expire_reservation(replacement.endpoint_recon_plan_id, now=now)
+    expired = service.expire_reservation(
+        replacement.endpoint_recon_plan_id, now=replacement.deadline
+    )
+    assert expired.state is EndpointReconReservationState.EXPIRED
+    red_store.close()
+    recon_store.close()
+
+
+def test_endpoint_recon_store_migrates_existing_plan_reservations(
+    tmp_path, approved_scope, now
+):
+    _, red_store, recon_store, _, plan = _seed_and_plan(tmp_path, approved_scope, now)
+    recon_store.close()
+    legacy_path = tmp_path / "legacy-endpoint-recon.sqlite3"
+    connection = sqlite3.connect(legacy_path)
+    connection.execute(
+        "CREATE TABLE endpoint_recon_plans ("
+        "endpoint_recon_plan_id TEXT PRIMARY KEY,"
+        "idempotency_key TEXT NOT NULL UNIQUE,"
+        "source_checkpoint_id TEXT NOT NULL,"
+        "request_count INTEGER NOT NULL,"
+        "payload TEXT NOT NULL)"
+    )
+    connection.execute(
+        "INSERT INTO endpoint_recon_plans VALUES (?,?,?,?,?)",
+        (
+            plan.endpoint_recon_plan_id,
+            plan.idempotency_key,
+            plan.source_checkpoint_id,
+            len(plan.steps),
+            plan.model_dump_json(),
+        ),
+    )
+    connection.commit()
+    connection.close()
+
+    migrated = EndpointReconStore(legacy_path)
+    reservation = migrated.reservation(plan.endpoint_recon_plan_id)
+    assert reservation.state is EndpointReconReservationState.ACTIVE
+    assert reservation.consumed_requests == 0
+    assert reservation.updated_at == plan.created_at
+    columns = {
+        row["name"]
+        for row in migrated.connection.execute(
+            "PRAGMA table_info(endpoint_recon_plans)"
+        ).fetchall()
+    }
+    assert {
+        "flow_plan_id",
+        "reservation_state",
+        "consumed_count",
+        "reservation_updated_at",
+        "terminal_reason",
+    } <= columns
+    row = migrated.connection.execute(
+        "SELECT flow_plan_id FROM endpoint_recon_plans WHERE endpoint_recon_plan_id=?",
+        (plan.endpoint_recon_plan_id,),
+    ).fetchone()
+    assert row["flow_plan_id"] == plan.flow_plan_id
+    migrated.close()
+    red_store.close()

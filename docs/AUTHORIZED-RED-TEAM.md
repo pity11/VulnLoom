@@ -179,3 +179,31 @@ DNS or port discovery, live Endpoint Recon adapter, or public scanning switch.
 Local R7 verification completed with 1427 tests passed, 27 integration tests skipped, and 85.85% total
 coverage. Ruff, 373 JSON Schema parses, `git diff --check`, and the 451-test CUC/DeepSeek compatibility slice
 also passed without making an external model call or network request.
+
+## R8: exact Endpoint execution through the Flow ledger
+
+R8 gives every prepared plan an explicit action-budget reservation. A reservation begins `active`; each
+authoritative Flow action consumes exactly one request and the final request moves it to `consumed`. Operator
+cancellation and deadline expiry release only the unconsumed remainder. Consumed actions remain in the Flow
+checkpoint and cannot be rolled back or made available to another plan.
+
+Endpoint execution now creates deterministic `RedTeamReconCommand` values and reuses the existing transactional
+action claim, Observation, checkpoint, Policy and Evidence path. Recovery replays completed actions without a
+second Broker call. It rejects a non-authoritative Endpoint plan, a changed Scope, a terminal Flow, an unrelated
+action inserted after the source checkpoint, inconsistent reservation progress, or altered Observation lineage.
+
+The pinned HTTP adapter accepts an optional exact URL-digest allowlist. When that allowlist is present,
+`max_redirects` must be zero. A successful Endpoint step must return an `AttackSurfaceSnapshot` whose requested
+and final URL digests both equal the sealed step, with zero redirects and an existing redacted Evidence object.
+Responses cannot add seeds or schedule another request.
+
+The local CLI adds cancellation, expiry and reservation-aware status but intentionally has no live execution
+command. Default tests use the fake pinned Broker. The opt-in `VULNLOOM_RED_TEAM_INTEGRATION=1` test extends the
+existing isolated private-address fixture to execute a sealed path and prove process cleanup; it never targets a
+public service.
+
+Local R8 verification completed with 1438 tests passed, 27 integration tests skipped, and 85.87% total
+coverage. Ruff, 374 JSON Schema parses, `git diff --check`, and the 589-pass/9-skip model-provider and
+CUC/DeepSeek compatibility slice passed without an external model call or public network request. The opt-in
+isolated private-address HTTP process test also passed separately, including the sealed Endpoint path and process
+cleanup assertions.
