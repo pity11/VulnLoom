@@ -1,0 +1,71 @@
+{
+  "$defs": {
+    "HybridCiGateStatus": {
+      "enum": [
+        "pass",
+        "block",
+        "error"
+      ],
+      "title": "HybridCiGateStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "default": "v1",
+      "pattern": "^v1$",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/HybridCiGateStatus"
+    },
+    "exit_code": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Exit Code",
+      "type": "integer"
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plan Id"
+    },
+    "result_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Id"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "exit_code",
+    "reason_codes"
+  ],
+  "title": "HybridCiGateResponse",
+  "type": "object"
+}

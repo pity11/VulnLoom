@@ -45,6 +45,9 @@ from vulnloom.hybrid import (
     HYBRID_FINDING_SIDE_EFFECTS,
     DeploymentProof,
     HybridCheckKind,
+    HybridCiGateAdapter,
+    HybridCiGateResponse,
+    HybridCiGateStatus,
     HybridConclusion,
     HybridEvidenceChain,
     HybridFindingConflict,
@@ -56,6 +59,16 @@ from vulnloom.hybrid import (
     HybridFindingState,
     HybridIdempotencyConflict,
     HybridRecoveryRequired,
+    HybridReleaseDecision,
+    HybridReleaseGateConflict,
+    HybridReleaseGateOutcome,
+    HybridReleaseGatePlan,
+    HybridReleaseGatePolicy,
+    HybridReleaseGateRecoveryRequired,
+    HybridReleaseGateResult,
+    HybridReleaseGateService,
+    HybridReleaseGateState,
+    HybridReleaseGateStore,
     HybridReportConflict,
     HybridReportOutcome,
     HybridReportPlan,
@@ -340,6 +353,96 @@ def _hybrid_runtime(tmp_path, approved_scope, candidate, now, *, result, key, cl
         idempotency_key=f"hybrid:{key}",
     )
     return service, hybrid_store, validation_store, evidence_store, plan, proof
+
+
+def _remediated_runtime(tmp_path, approved_scope, candidate, now, *, clock=None):
+    initial = _hybrid_runtime(
+        tmp_path,
+        approved_scope,
+        candidate,
+        now,
+        result=ValidationResult.REPRODUCED,
+        key="gate-initial:1",
+    )
+    service, hybrid_store, initial_validation_store, _, initial_plan, initial_proof = initial
+    confirmed = service.execute(
+        initial_plan,
+        candidate=candidate,
+        deployment_proof=initial_proof,
+        scope=approved_scope,
+        now=now,
+    ).chain
+    assert confirmed is not None
+    initial_validation_store.close()
+
+    repaired = candidate.model_copy(update={"target_version": "d" * 40})
+    evidence_store = EvidenceStore(tmp_path / "gate-retest-evidence")
+    validation_store, live_plan = _completed_validation(
+        tmp_path,
+        evidence_store,
+        approved_scope,
+        repaired,
+        now,
+        result=ValidationResult.NOT_REPRODUCED,
+        key="gate-live-retest:1",
+    )
+    validation_store, source_plan = _completed_validation(
+        tmp_path,
+        evidence_store,
+        approved_scope,
+        repaired,
+        now,
+        result=ValidationResult.NOT_REPRODUCED,
+        key="gate-source-retest:1",
+        store=validation_store,
+        source_only=True,
+    )
+    _, source_validation = validation_store.load_completed(source_plan.plan_id)
+    repaired_proof, _ = _proof_and_source(
+        evidence_store, repaired, now, live_target_id=initial_proof.live_target_id
+    )
+    retest_service = HybridValidationService(
+        validation_store=validation_store,
+        hybrid_store=hybrid_store,
+        evidence_store=evidence_store,
+    )
+    retest_plan = retest_service.prepare(
+        check_kind=HybridCheckKind.REMEDIATION_RETEST,
+        candidate=repaired,
+        deployment_proof=repaired_proof,
+        validation_plan=live_plan,
+        source_validation_plan=source_plan,
+        source_manifest_digest=repaired_proof.source_manifest_digest,
+        source_evidence_refs=source_validation.verdict.evidence_refs,
+        scope=approved_scope,
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="hybrid:gate-retest:1",
+        prior_chain=confirmed,
+    )
+    remediated = retest_service.execute(
+        retest_plan,
+        candidate=repaired,
+        deployment_proof=repaired_proof,
+        scope=approved_scope,
+        now=now,
+        prior_chain=confirmed,
+    ).chain
+    assert remediated is not None
+    validation_store.close()
+    release_store = HybridReleaseGateStore(tmp_path / "release-gate.sqlite3")
+    kwargs = {"hybrid_store": hybrid_store, "release_gate_store": release_store}
+    if clock is not None:
+        kwargs["monotonic"] = clock
+    return (
+        HybridReleaseGateService(**kwargs),
+        release_store,
+        hybrid_store,
+        confirmed,
+        initial_proof,
+        remediated,
+        repaired_proof,
+    )
 
 
 def test_hybrid_seals_source_deployment_and_http_evidence_and_replays(
@@ -699,6 +802,11 @@ def test_hybrid_contracts_exclude_raw_endpoint_and_credentials():
             HybridFindingPromotionPlan,
             HybridReportPlan,
             HybridReportOutcome,
+            HybridReleaseGatePolicy,
+            HybridReleaseGatePlan,
+            HybridReleaseGateResult,
+            HybridReleaseGateOutcome,
+            HybridCiGateResponse,
         )
     )
     for forbidden in (
@@ -711,6 +819,183 @@ def test_hybrid_contracts_exclude_raw_endpoint_and_credentials():
         "secret",
     ):
         assert forbidden not in schemas
+
+
+def test_hybrid_release_gate_passes_only_authoritative_remediated_chain_and_replays(
+    tmp_path, approved_scope, candidate, now
+):
+    service, release_store, hybrid_store, _, _, chain, proof = _remediated_runtime(
+        tmp_path, approved_scope, candidate, now
+    )
+    plan = HybridReleaseGatePlan.create(
+        chain=chain,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:pass:1",
+    )
+    adapter = HybridCiGateAdapter(service)
+    first = adapter.evaluate(plan, deployment_proof=proof, scope=approved_scope, now=now)
+    replay = adapter.evaluate(
+        plan,
+        deployment_proof=proof,
+        scope=approved_scope,
+        now=now + timedelta(seconds=1),
+    )
+
+    assert replay == first
+    assert first.status is HybridCiGateStatus.PASS
+    assert first.exit_code == 0
+    outcome = release_store.outcome(plan.plan_id)
+    assert outcome.state is HybridReleaseGateState.COMPLETED
+    assert outcome.result is not None
+    assert outcome.result.decision is HybridReleaseDecision.PASSED
+    assert outcome.result.source_remediation_proof_id == chain.source_remediation_proof_id
+    release_store.close()
+    hybrid_store.close()
+
+
+def test_hybrid_release_gate_blocks_confirmed_unremediated_chain(
+    tmp_path, approved_scope, candidate, now
+):
+    service, release_store, hybrid_store, confirmed, proof, _, _ = _remediated_runtime(
+        tmp_path, approved_scope, candidate, now
+    )
+    plan = HybridReleaseGatePlan.create(
+        chain=confirmed,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:block:1",
+    )
+    response = HybridCiGateAdapter(service).evaluate(
+        plan, deployment_proof=proof, scope=approved_scope, now=now
+    )
+
+    assert response.status is HybridCiGateStatus.BLOCK
+    assert response.exit_code == 1
+    assert response.reason_codes == ("hybrid_remediation_required",)
+    release_store.close()
+    hybrid_store.close()
+
+
+def test_hybrid_release_gate_rejects_drift_without_checkpoint_or_sensitive_output(
+    tmp_path, approved_scope, candidate, now
+):
+    service, release_store, hybrid_store, _, _, chain, proof = _remediated_runtime(
+        tmp_path, approved_scope, candidate, now
+    )
+    plan = HybridReleaseGatePlan.create(
+        chain=chain,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:drift:1",
+    )
+    drifted = proof.model_copy(update={"endpoint_url_digest": "f" * 64})
+    response = HybridCiGateAdapter(service).evaluate(
+        plan, deployment_proof=drifted, scope=approved_scope, now=now
+    )
+
+    assert response.status is HybridCiGateStatus.ERROR
+    assert response.exit_code == 2
+    assert response.reason_codes == ("release_gate_input_rejected",)
+    assert release_store.state(plan.plan_id) is None
+    encoded = response.model_dump_json().lower()
+    assert URL not in encoded
+    assert "authorization" not in encoded
+    release_store.close()
+    hybrid_store.close()
+
+
+def test_hybrid_release_gate_timeout_closes_with_cleanup(
+    tmp_path, approved_scope, candidate, now
+):
+    ticks = iter((0.0, 11.0))
+    service, release_store, hybrid_store, _, _, chain, proof = _remediated_runtime(
+        tmp_path, approved_scope, candidate, now, clock=lambda: next(ticks)
+    )
+    plan = HybridReleaseGatePlan.create(
+        chain=chain,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:timeout:1",
+    )
+    response = HybridCiGateAdapter(service).evaluate(
+        plan, deployment_proof=proof, scope=approved_scope, now=now
+    )
+
+    assert response.status is HybridCiGateStatus.ERROR
+    assert response.reason_codes == ("release_gate_budget_elapsed",)
+    outcome = release_store.outcome(plan.plan_id)
+    assert outcome.state is HybridReleaseGateState.TIMED_OUT
+    assert outcome.cleanup_complete
+    release_store.close()
+    hybrid_store.close()
+
+
+def test_hybrid_release_gate_requires_explicit_recovery_and_caps_attempts(
+    tmp_path, approved_scope, candidate, now
+):
+    service, release_store, hybrid_store, _, _, chain, proof = _remediated_runtime(
+        tmp_path, approved_scope, candidate, now
+    )
+    plan = HybridReleaseGatePlan.create(
+        chain=chain,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:recover:1",
+    )
+    release_store.claim(plan, now=now)
+    blocked = HybridCiGateAdapter(service).evaluate(
+        plan, deployment_proof=proof, scope=approved_scope, now=now
+    )
+    assert blocked.status is HybridCiGateStatus.ERROR
+    assert blocked.reason_codes == ("release_gate_recovery_required",)
+    recovered = service.evaluate(
+        plan,
+        deployment_proof=proof,
+        scope=approved_scope,
+        now=now + timedelta(seconds=1),
+        recover=True,
+    )
+    assert recovered.attempt == 2
+
+    collision = plan.model_copy(update={"plan_id": "a" * 64})
+    with pytest.raises(HybridReleaseGateConflict):
+        release_store.claim(collision, now=now)
+
+    exhausted_plan = HybridReleaseGatePlan.create(
+        chain=chain,
+        deployment_proof=proof,
+        scope=approved_scope,
+        policy=HybridReleaseGatePolicy(),
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="release-gate:exhaust:1",
+    )
+    release_store.claim(exhausted_plan, now=now)
+    release_store.recover(exhausted_plan, now=now + timedelta(seconds=1))
+    release_store.recover(exhausted_plan, now=now + timedelta(seconds=2))
+    with pytest.raises(HybridReleaseGateRecoveryRequired, match="exhausted"):
+        release_store.recover(exhausted_plan, now=now + timedelta(seconds=3))
+    exhausted = release_store.outcome(exhausted_plan.plan_id)
+    assert exhausted.state is HybridReleaseGateState.FAILED
+    assert exhausted.cleanup_complete
+    release_store.close()
+    hybrid_store.close()
 
 
 def _evidence_catalog(chain):

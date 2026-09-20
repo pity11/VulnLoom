@@ -25,6 +25,24 @@ from .models import (
     HybridValidationPlan,
     SourceRemediationProof,
 )
+from .release_gate_adapter import HybridCiGateAdapter
+from .release_gate_models import (
+    HybridCiGateResponse,
+    HybridCiGateStatus,
+    HybridReleaseDecision,
+    HybridReleaseGateOutcome,
+    HybridReleaseGatePlan,
+    HybridReleaseGatePolicy,
+    HybridReleaseGateResult,
+    HybridReleaseGateState,
+)
+from .release_gate_service import HybridReleaseGateRejected, HybridReleaseGateService
+from .release_gate_store import (
+    HybridReleaseGateClaim,
+    HybridReleaseGateConflict,
+    HybridReleaseGateRecoveryRequired,
+    HybridReleaseGateStore,
+)
 from .report_models import HybridReportOutcome, HybridReportPlan, HybridReportState
 from .report_service import HybridReportRejected, HybridReportService
 from .report_store import (
@@ -66,6 +84,9 @@ __all__ = [
     "EnvironmentLiveEndpointProvider",
     "HYBRID_FINDING_SIDE_EFFECTS",
     "HybridCheckKind",
+    "HybridCiGateAdapter",
+    "HybridCiGateResponse",
+    "HybridCiGateStatus",
     "HybridClaim",
     "HybridConclusion",
     "HybridEvidenceChain",
@@ -90,6 +111,18 @@ __all__ = [
     "HybridRouteState",
     "HybridRouteStore",
     "HybridRecoveryRequired",
+    "HybridReleaseDecision",
+    "HybridReleaseGateClaim",
+    "HybridReleaseGateConflict",
+    "HybridReleaseGateOutcome",
+    "HybridReleaseGatePlan",
+    "HybridReleaseGatePolicy",
+    "HybridReleaseGateRecoveryRequired",
+    "HybridReleaseGateRejected",
+    "HybridReleaseGateResult",
+    "HybridReleaseGateService",
+    "HybridReleaseGateState",
+    "HybridReleaseGateStore",
     "HybridReportClaim",
     "HybridReportConflict",
     "HybridReportOutcome",

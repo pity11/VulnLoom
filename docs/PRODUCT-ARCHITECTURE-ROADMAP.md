@@ -1173,8 +1173,10 @@ ValidationPlan，并将含完整 endpoint 的计划限制在权限受限本地�
 Finding promotion 已要求 Critic 针对完整合并 Evidence Bundle 独立复核，并通过 duplicate check 和精确人工
 Approval 后才生成引用该 Bundle 的 Finding。Hybrid Report 已以本地 Draft 复用共享报告引擎，并强制章节覆盖
 Source、Deployment 和 HTTP Evidence。双重自动复测现已要求独立无网络源码 Validation 与精确 Live Validation
-同时得到权威 `not_reproduced`，并封存 `SourceRemediationProof`；CI/CD adapter 和隔离预发布端到端验收仍待完成，
-因此 R10 尚未关闭。
+同时得到权威 `not_reproduced`，并封存 `SourceRemediationProof`。CI/CD Release Gate 已提供稳定脱敏的
+`pass/block/error` 与退出码合同，只有当前部署绑定的 remediated chain 才能通过。隔离预发布端到端验收已通过
+显式 opt-in 的本机私网 fixture 验证 Source discovery、精确 Live 初验、Finding/Report、双重复测、
+Release Gate 与清理的完整组合。R10 已关闭；该验收不访问公网，也不执行 Submission 或 CI 平台写入。
 
 ### R11：授权红队攻击链
 

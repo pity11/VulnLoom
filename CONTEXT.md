@@ -104,6 +104,10 @@ _Avoid_: Correlation guess, Combined report, Agent conclusion
 修复版本在独立、无网络的源码回归 Validation 中得到 `not_reproduced` 结论后封存的内容寻址证明；执行失败、没有新 Candidate 或 Live 复测单独通过都不能替代它。
 _Avoid_: Missing signal, Build success, Live-only retest
 
+**Hybrid Release Gate**：
+针对一条已知 Hybrid 缺陷链的发布资格判断；只有当前部署版本的源码和 Live 双重复测均已封存为修复事实时才通过，它不把“没有发现新线索”解释为安全。
+_Avoid_: Clean scan, No findings, CI success
+
 **Hybrid Finding**：
 由已确认的 Hybrid Evidence Chain 支撑，并且 Critic 已针对该链的完整源码、部署和 HTTP Evidence Bundle 完成独立反证后，经人工 Approval 晋升的 Finding。
 _Avoid_: Tagged Source Finding, Correlated Finding, Model-confirmed vulnerability

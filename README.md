@@ -44,7 +44,7 @@ there remain planned until their explicit acceptance stage passes.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
 - [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): approved no-tool generation and deterministic admission for advisory Candidate recommendations.
 - [docs/SOURCE-HUNT.md](./docs/SOURCE-HUNT.md): Source Hunt V1 contracts, CLI, security boundary, and remaining R9 depth.
-- [docs/HYBRID-VALIDATION.md](./docs/HYBRID-VALIDATION.md): R10 source-to-live deployment proof and Hybrid Evidence Chain contracts.
+- [docs/HYBRID-VALIDATION.md](./docs/HYBRID-VALIDATION.md): R10 source-to-live evidence, dual remediation retest, report, and fail-closed CI/CD release gate contracts.
 - [docs/AUTHORIZED-RED-TEAM.md](./docs/AUTHORIZED-RED-TEAM.md): fourth-entry Flow/RoE contract, offline Recon control slice, and safety boundary.
 
 ## Project layout
@@ -669,6 +669,10 @@ VULNLOOM_SOCKET_INTEGRATION=1 .venv/bin/pytest tests/test_live_http_integration.
 # Optional; combines one real Docker Worker and one temporary authorized HTTP fixture.
 VULNLOOM_COMPOSITION_INTEGRATION=1 \
   .venv/bin/pytest tests/test_validation_composition_integration.py
+
+# Explicitly opt in to the isolated Hybrid source-to-preprod acceptance.
+VULNLOOM_HYBRID_E2E_INTEGRATION=1 \
+  .venv/bin/pytest tests/test_hybrid_e2e_integration.py
 ```
 
 ## Basic usage
