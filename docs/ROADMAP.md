@@ -1231,6 +1231,19 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 
+### Hybrid R10（源码到 Live Evidence Chain，首个离线纵切）
+
+- 新增限时、内容寻址的 `DeploymentProof`，仅通过 digest 和 opaque ID 绑定源码版本、部署产物及精确 Live Endpoint；
+  不保存完整 endpoint、发布凭据或原始发布响应。
+- 新增 `HybridValidationPlan` 和事务账本。初验只接受权威 `reproduced` Validation，修复复测只接受权威
+  `not_reproduced` Validation 且必须引用前一条 confirmed chain；Scope、版本、endpoint 或来源漂移均 fail-closed。
+- `HybridEvidenceChain` 统一封存源码、部署和 HTTP Evidence，并复用共享 `EvidenceBundle`。状态机覆盖完成、超时、
+  完整性失败、幂等重放、显式恢复和三次 attempt 上限。
+- 当前服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。自动路由、Finding/报告、双重复测
+  编排、CI/CD adapter 与隔离预发布端到端验收仍属于 R10 后续纵切。
+
+详见 `docs/HYBRID-VALIDATION.md`。
+
 ## 延后事项
 
 - 公网资产自主发现。

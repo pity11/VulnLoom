@@ -242,6 +242,13 @@ from vulnloom.findings import (
     PilotFindingPromotionBinding,
     PilotFindingPromotionPlan,
 )
+from vulnloom.hybrid import (
+    DeploymentProof,
+    HybridEvidenceChain,
+    HybridValidationLimits,
+    HybridValidationOutcome,
+    HybridValidationPlan,
+)
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.provider_center import (
@@ -442,6 +449,11 @@ MODELS = (
     DisableProviderCommand,
     SetDefaultRouteCommand,
     WorkflowMode,
+    DeploymentProof,
+    HybridValidationLimits,
+    HybridValidationPlan,
+    HybridEvidenceChain,
+    HybridValidationOutcome,
     AttackSurfaceChange,
     AttackSurfaceDriftLimits,
     AttackSurfaceDriftOutcome,

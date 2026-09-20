@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "EvidenceBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "format": "uuid",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "sealed_at": {
+          "format": "date-time",
+          "title": "Sealed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "evidence_refs"
+      ],
+      "title": "EvidenceBundle",
+      "type": "object"
+    },
+    "HybridCheckKind": {
+      "enum": [
+        "initial",
+        "remediation_retest"
+      ],
+      "title": "HybridCheckKind",
+      "type": "string"
+    },
+    "HybridConclusion": {
+      "enum": [
+        "confirmed",
+        "remediated"
+      ],
+      "title": "HybridConclusion",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "chain_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "check_kind": {
+      "$ref": "#/$defs/HybridCheckKind"
+    },
+    "conclusion": {
+      "$ref": "#/$defs/HybridConclusion"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "source_target_id": {
+      "format": "uuid",
+      "title": "Source Target Id",
+      "type": "string"
+    },
+    "source_target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Source Target Version",
+      "type": "string"
+    },
+    "source_manifest_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Manifest Digest",
+      "type": "string"
+    },
+    "live_target_id": {
+      "format": "uuid",
+      "title": "Live Target Id",
+      "type": "string"
+    },
+    "endpoint_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Url Digest",
+      "type": "string"
+    },
+    "deployment_proof_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Deployment Proof Id",
+      "type": "string"
+    },
+    "validation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Plan Id",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "prior_chain_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prior Chain Id"
+    },
+    "source_evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Source Evidence Refs",
+      "type": "array"
+    },
+    "deployment_evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Deployment Evidence Ref",
+      "type": "string"
+    },
+    "http_evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Http Evidence Refs",
+      "type": "array"
+    },
+    "evidence_bundle": {
+      "$ref": "#/$defs/EvidenceBundle"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "sealed_at": {
+      "format": "date-time",
+      "title": "Sealed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "chain_id",
+    "plan_id",
+    "check_kind",
+    "conclusion",
+    "candidate_id",
+    "candidate_digest",
+    "source_target_id",
+    "source_target_version",
+    "source_manifest_digest",
+    "live_target_id",
+    "endpoint_url_digest",
+    "deployment_proof_id",
+    "validation_plan_id",
+    "validation_run_id",
+    "source_evidence_refs",
+    "deployment_evidence_ref",
+    "http_evidence_refs",
+    "evidence_bundle",
+    "scope_id",
+    "scope_version",
+    "sealed_at"
+  ],
+  "title": "HybridEvidenceChain",
+  "type": "object"
+}

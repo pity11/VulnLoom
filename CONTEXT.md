@@ -88,6 +88,14 @@ _Avoid_: Request estimate, Retry counter, Reversible action
 由操作员封存、在固定授权窗口内周期性物化新 Flow 的精确 Endpoint 检查模板；它是 Control Plane 触发器，不直接执行工具或网络请求。
 _Avoid_: Cron scanner, Background crawler, Long-running Flow
 
+**Deployment Proof**：
+将一个不可变源码版本和构建产物绑定到一个精确 Live Endpoint 摘要的限时脱敏证明。
+_Avoid_: Deployment claim, Raw release metadata, Endpoint URL
+
+**Hybrid Evidence Chain**：
+把源码路径、Deployment Proof 和精确 Live Validation 的 Evidence 封存为同一条可追溯事实链；修复复测通过引用前一条链表达版本演进。
+_Avoid_: Correlation guess, Combined report, Agent conclusion
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

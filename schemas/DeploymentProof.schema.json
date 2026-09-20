@@ -1,0 +1,77 @@
+{
+  "additionalProperties": false,
+  "description": "Redacted proof that one source version is deployed at one exact endpoint.",
+  "properties": {
+    "proof_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proof Id",
+      "type": "string"
+    },
+    "source_target_id": {
+      "format": "uuid",
+      "title": "Source Target Id",
+      "type": "string"
+    },
+    "source_target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Source Target Version",
+      "type": "string"
+    },
+    "source_manifest_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Manifest Digest",
+      "type": "string"
+    },
+    "live_target_id": {
+      "format": "uuid",
+      "title": "Live Target Id",
+      "type": "string"
+    },
+    "endpoint_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Url Digest",
+      "type": "string"
+    },
+    "deployed_artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Deployed Artifact Digest",
+      "type": "string"
+    },
+    "attestation_evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attestation Evidence Ref",
+      "type": "string"
+    },
+    "attested_by": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Attested By",
+      "type": "string"
+    },
+    "attested_at": {
+      "format": "date-time",
+      "title": "Attested At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "proof_id",
+    "source_target_id",
+    "source_target_version",
+    "source_manifest_digest",
+    "live_target_id",
+    "endpoint_url_digest",
+    "deployed_artifact_digest",
+    "attestation_evidence_ref",
+    "attested_by",
+    "attested_at",
+    "expires_at"
+  ],
+  "title": "DeploymentProof",
+  "type": "object"
+}
