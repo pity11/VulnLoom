@@ -1,0 +1,42 @@
+{
+  "$defs": {
+    "AttackDefensiveControl": {
+      "enum": [
+        "session_issuance_policy",
+        "session_activity_monitoring",
+        "object_level_authorization",
+        "session_revocation_assurance"
+      ],
+      "title": "AttackDefensiveControl",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "improvement_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Improvement Id",
+      "type": "string"
+    },
+    "control": {
+      "$ref": "#/$defs/AttackDefensiveControl"
+    },
+    "opportunity_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Opportunity Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "improvement_id",
+    "control",
+    "opportunity_ids"
+  ],
+  "title": "AttackDefensiveImprovement",
+  "type": "object"
+}

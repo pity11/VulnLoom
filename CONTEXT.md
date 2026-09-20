@@ -112,6 +112,18 @@ _Avoid_: Agent step, Command, Payload
 Attack Graph 中用于撤销链内测试状态的最终原子动作；目标 Evidence 已获得但 Cleanup 未成功时，攻击目标仍不算完成。
 _Avoid_: Best-effort teardown, Process exit, Manual follow-up
 
+**Attack Path Report**：
+从已完成且已清理的 Attack Chain 及其脱敏 Evidence 确定性生成的防御侧事实投影；它不晋升 Candidate/Finding，也不授权新动作。
+_Avoid_: Exploit write-up, Finding, Agent narrative
+
+**Detection Opportunity**：
+Attack Path 中一个可由防御方观测的 Evidence 绑定点；它表示应当具备的检测位置，不声称现有遥测已经覆盖。
+_Avoid_: Detection finding, Alert, Coverage claim
+
+**Defensive Improvement**：
+由 Detection Opportunity 确定性关联的有限控制改进类别；它不是自动修复或未经验证的自由文本建议。
+_Avoid_: Patch, Remediation execution, Model recommendation
+
 **Deployment Proof**：
 将一个不可变源码版本和构建产物绑定到一个精确 Live Endpoint 摘要的限时脱敏证明。
 _Avoid_: Deployment claim, Raw release metadata, Endpoint URL

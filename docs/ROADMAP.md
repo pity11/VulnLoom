@@ -1167,7 +1167,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R11.2（隔离攻击链执行边界）
+### Authorized Red Team R0.1–R11.3（R11 已关闭）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1248,6 +1248,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   不落盘。攻击路径/检测机会/防御改进报告尚未实现，因此 R11 总体未关闭。
 - R11.2 本地门禁：1499 passed、30 skipped、覆盖率 85.42%，Ruff、417 个 JSON Schema 解析和
   `git diff --check` 通过；显式启用的私网进程验收另行 1 passed，未访问公网或真实模型。
+- R11.3 新增独立的 Attack Path Report 聚合，只接受权威 `goal_reached` 且 Cleanup 已证明的 chain checkpoint。
+  每个成功 Action 确定性投影为 digest-only path step、Evidence 绑定的 Detection Opportunity 和有限的 Defensive
+  Improvement；它不生成 Candidate/Finding、不声称现有遥测已覆盖，也不授权新动作。
+- 报告 ledger 提供 STARTED/COMPLETED、幂等重放、冲突拒绝、三次显式恢复和 deadline 终态。JSON/Markdown
+  产物经有界临时目录、内容寻址、只读发布、no-follow/摘要复核；失败发布清理临时对象。schema 与产物均不含
+  target path、完整 endpoint、请求响应、header、Cookie、credential 或 secret。R11 的攻击链与防御报告验收关闭。
+- R11.3 本地门禁：1505 passed、30 skipped、覆盖率 85.39%，Ruff、424 个 JSON Schema 解析和
+  `git diff --check` 通过；本机私网进程验收另行 1 passed，未访问公网或真实模型。
 
 R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`；R11.2 攻击链另需显式设置

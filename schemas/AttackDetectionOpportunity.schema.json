@@ -1,0 +1,48 @@
+{
+  "$defs": {
+    "AttackDetectionKind": {
+      "enum": [
+        "session_creation",
+        "session_use",
+        "protected_resource_access",
+        "session_revocation"
+      ],
+      "title": "AttackDetectionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "opportunity_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Opportunity Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/AttackDetectionKind"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "opportunity_id",
+    "action_id",
+    "kind",
+    "evidence_refs"
+  ],
+  "title": "AttackDetectionOpportunity",
+  "type": "object"
+}

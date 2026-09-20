@@ -1,0 +1,433 @@
+{
+  "$defs": {
+    "AttackActionKind": {
+      "enum": [
+        "initial_access_attempt",
+        "verify_test_session",
+        "verify_objective",
+        "cleanup_test_session"
+      ],
+      "title": "AttackActionKind",
+      "type": "string"
+    },
+    "AttackActionOutcome": {
+      "enum": [
+        "succeeded",
+        "rejected",
+        "failed",
+        "timed_out"
+      ],
+      "title": "AttackActionOutcome",
+      "type": "string"
+    },
+    "AttackChainReport": {
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Id",
+          "type": "string"
+        },
+        "report_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Plan Id",
+          "type": "string"
+        },
+        "chain_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chain Plan Id",
+          "type": "string"
+        },
+        "graph_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Graph Id",
+          "type": "string"
+        },
+        "source_checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Checkpoint Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "chain_status": {
+          "$ref": "#/$defs/AttackChainStatus"
+        },
+        "objective_observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Objective Observation Id",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/AttackPathStep"
+          },
+          "maxItems": 32,
+          "minItems": 3,
+          "title": "Steps",
+          "type": "array"
+        },
+        "detection_opportunities": {
+          "items": {
+            "$ref": "#/$defs/AttackDetectionOpportunity"
+          },
+          "maxItems": 32,
+          "minItems": 3,
+          "title": "Detection Opportunities",
+          "type": "array"
+        },
+        "defensive_improvements": {
+          "items": {
+            "$ref": "#/$defs/AttackDefensiveImprovement"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Defensive Improvements",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_id",
+        "report_plan_id",
+        "chain_plan_id",
+        "graph_id",
+        "source_checkpoint_id",
+        "target_id",
+        "scope_id",
+        "scope_version",
+        "chain_status",
+        "objective_observation_id",
+        "steps",
+        "detection_opportunities",
+        "defensive_improvements",
+        "evidence_refs",
+        "generated_at"
+      ],
+      "title": "AttackChainReport",
+      "type": "object"
+    },
+    "AttackChainReportArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Id",
+          "type": "string"
+        },
+        "json_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Json Sha256",
+          "type": "string"
+        },
+        "markdown_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Markdown Sha256",
+          "type": "string"
+        },
+        "json_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/attack-report\\.json$",
+          "title": "Json Ref",
+          "type": "string"
+        },
+        "markdown_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/attack-report\\.md$",
+          "title": "Markdown Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_id",
+        "json_sha256",
+        "markdown_sha256",
+        "json_ref",
+        "markdown_ref"
+      ],
+      "title": "AttackChainReportArtifact",
+      "type": "object"
+    },
+    "AttackChainStatus": {
+      "enum": [
+        "planned",
+        "running",
+        "cleanup_required",
+        "goal_reached",
+        "failed",
+        "timed_out",
+        "killed"
+      ],
+      "title": "AttackChainStatus",
+      "type": "string"
+    },
+    "AttackDefensiveControl": {
+      "enum": [
+        "session_issuance_policy",
+        "session_activity_monitoring",
+        "object_level_authorization",
+        "session_revocation_assurance"
+      ],
+      "title": "AttackDefensiveControl",
+      "type": "string"
+    },
+    "AttackDefensiveImprovement": {
+      "additionalProperties": false,
+      "properties": {
+        "improvement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Improvement Id",
+          "type": "string"
+        },
+        "control": {
+          "$ref": "#/$defs/AttackDefensiveControl"
+        },
+        "opportunity_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Opportunity Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "improvement_id",
+        "control",
+        "opportunity_ids"
+      ],
+      "title": "AttackDefensiveImprovement",
+      "type": "object"
+    },
+    "AttackDetectionKind": {
+      "enum": [
+        "session_creation",
+        "session_use",
+        "protected_resource_access",
+        "session_revocation"
+      ],
+      "title": "AttackDetectionKind",
+      "type": "string"
+    },
+    "AttackDetectionOpportunity": {
+      "additionalProperties": false,
+      "properties": {
+        "opportunity_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Opportunity Id",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AttackDetectionKind"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "opportunity_id",
+        "action_id",
+        "kind",
+        "evidence_refs"
+      ],
+      "title": "AttackDetectionOpportunity",
+      "type": "object"
+    },
+    "AttackImpact": {
+      "enum": [
+        "read_only",
+        "state_change"
+      ],
+      "title": "AttackImpact",
+      "type": "string"
+    },
+    "AttackPathStep": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "ordinal": {
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "action_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AttackActionKind"
+        },
+        "phase": {
+          "$ref": "#/$defs/RedTeamPhase"
+        },
+        "impact": {
+          "$ref": "#/$defs/AttackImpact"
+        },
+        "outcome": {
+          "$ref": "#/$defs/AttackActionOutcome"
+        },
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "step_id",
+        "ordinal",
+        "action_id",
+        "kind",
+        "phase",
+        "impact",
+        "outcome",
+        "observation_id",
+        "evidence_refs"
+      ],
+      "title": "AttackPathStep",
+      "type": "object"
+    },
+    "AttackReportState": {
+      "enum": [
+        "completed",
+        "timed_out",
+        "failed"
+      ],
+      "title": "AttackReportState",
+      "type": "string"
+    },
+    "RedTeamPhase": {
+      "enum": [
+        "recon",
+        "initial_access",
+        "validation",
+        "post_exploitation"
+      ],
+      "title": "RedTeamPhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "report_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Plan Id",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/AttackReportState"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttackChainReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "artifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttackChainReportArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_plan_id",
+    "state",
+    "attempt",
+    "chain_plan_id",
+    "reason_code",
+    "cleanup_complete",
+    "completed_at"
+  ],
+  "title": "AttackChainReportOutcome",
+  "type": "object"
+}

@@ -1,0 +1,83 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "report_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Plan Id",
+      "type": "string"
+    },
+    "chain_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chain Plan Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "prepared_by": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Prepared By",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "report_plan_id",
+    "chain_plan_id",
+    "graph_id",
+    "source_checkpoint_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "prepared_by",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AttackChainReportPlan",
+  "type": "object"
+}

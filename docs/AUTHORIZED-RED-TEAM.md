@@ -274,9 +274,36 @@ every action; results become digest-only redacted Evidence references.
 
 Default tests remain offline. The explicit `VULNLOOM_R11_ATTACK_CHAIN_INTEGRATION=1` acceptance starts only a
 local private-address process and proves the exact `POST → GET → GET → DELETE` chain, goal-before-cleanup
-remaining nonterminal, target-state cleanup, process cleanup and sensitive-header redaction. R11 is not yet
-closed: attack-path, detection-opportunity and defensive-improvement reporting remains the next slice.
+remaining nonterminal, target-state cleanup, process cleanup and sensitive-header redaction. At the R11.2
+boundary, attack-path, detection-opportunity and defensive-improvement reporting remained the final slice.
 
 Local R11.2 verification completed with 1499 tests passed, 30 integration tests skipped, 85.42% coverage,
 Ruff, 417 JSON Schema parses, and `git diff --check`. The separately enabled private-address process test
 passed once. No public target or external model was contacted.
+
+## R11.3: deterministic Attack Path Report
+
+R11.3 closes the defensive reporting slice with a separate `Attack Path Report` domain object. It is not a
+disclosure `Report`, does not require or create a Candidate/Finding, and cannot authorize another action. The
+plan binds one authoritative successful chain, its final cleaned checkpoint, Target, Scope/version, operator
+reference, deadline and idempotency key.
+
+Each successful graph action becomes one digest-only `AttackPathStep`. Its Observation Evidence is checked by
+bounded no-follow content-addressed reads before the report checkpoint is claimed. A fixed trusted mapping
+creates one typed `DetectionOpportunity` and one finite `DefensiveImprovement` for session creation, session
+use, protected-resource access and session revocation. No model or free-form recommendation can add another
+path, target, control or claim that current telemetry already detects the action.
+
+The transactional report ledger supports completed replay, conflict rejection, explicit recovery and at most
+three attempts. Deadline expiry is a typed terminal outcome. JSON and Markdown artifacts are written through
+bounded temporary files into a read-only content-addressed directory, verified with no-follow reads and removed
+on failed publication. Artifacts contain action/evidence digests and enums, but no target path, endpoint,
+request/response, header, Cookie, credential or secret field.
+
+With the R11.2 isolated multi-step execution proof and this Evidence-backed defensive report, the scoped R11
+milestone is complete. This does not enable public scanning, lateral movement, persistence, real credentials,
+automatic Finding promotion, external report submission or production-target execution.
+
+Local R11.3 verification completed with 1505 tests passed, 30 integration tests skipped, 85.39% coverage,
+Ruff, 424 JSON Schema parses, and `git diff --check`. The isolated private-address process acceptance also
+passed again separately. No external model or public target was contacted.

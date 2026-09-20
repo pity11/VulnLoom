@@ -1196,12 +1196,13 @@ Release Gate 与清理的完整组合。R10 已关闭；该验收不访问公网
 
 验收：只在隔离红队靶场中完成多步攻击链；任何未批准状态变更、外部回连、横向目标或持久化动作均被代码边界拒绝并留下审计证据。
 
-实现状态（2026-09-20）：R11.1–R11.2 已建立内容寻址 AttackGraph/Objective/Action、显式 Cleanup 末节点、事务
+实现状态（2026-09-20）：R11.1–R11.3 已建立内容寻址 AttackGraph/Objective/Action、显式 Cleanup 末节点、事务
 checkpoint/恢复、逐动作 exact Approval、状态变更的双重 Approval、父 Flow Kill Switch、脱敏审计，以及固定无网络
 的 Post-exploitation Profile。可信 adapter 通过 expiring local admission 和 pinned Broker，只允许封存的私网 fixture、
 精确方法/URL/响应摘要及单一 network grant；显式 opt-in 验收已完成真实 `POST → GET → GET → DELETE` 链并证明
-目标状态与进程清理。外部回连、横向移动、持久化和真实凭据仍不可表达并由 RoE 禁止。攻击路径/检测机会/防御
-改进报告尚未生成，因此 R11 总体验收仍未关闭。
+目标状态与进程清理。确定性 Attack Path Report 进一步从权威成功链生成 Evidence 绑定的路径步骤、Detection
+Opportunity 和有限 Defensive Improvement，并通过事务 ledger 与内容寻址 JSON/Markdown 产物发布。外部回连、
+横向移动、持久化和真实凭据仍不可表达并由 RoE 禁止。R11 的限定交付与隔离验收现已关闭。
 
 ### R12：团队化和分布式部署
 

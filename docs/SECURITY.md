@@ -292,6 +292,11 @@ capability、只读根且只读 Evidence；所有真实传输必须留在受信�
 证明时以 `cleanup_unproven` fail-closed。
 默认测试不创建 socket；显式 opt-in 的本机私网进程测试已证明多步链、目标清理、进程清理与敏感 header 脱敏。
 
+R11.3 Attack Path Report 只从权威 `goal_reached` 且 Cleanup 已证明的 checkpoint 生成。Evidence 在报告 claim 前
+执行 no-follow、大小和内容摘要复核；报告只保存 Action/Observation/Evidence 摘要与有限枚举，不包含路径、完整
+endpoint、请求响应或凭据。Detection Opportunity 表示应观测的位置，不等同于已部署告警；Defensive Improvement
+是有限控制类别，不会执行修复。产物发布失败必须清理临时目录并留下需显式恢复的 STARTED checkpoint。
+
 ## 4. 凭据策略
 
 - Worker 环境从空环境开始，仅注入显式白名单变量。

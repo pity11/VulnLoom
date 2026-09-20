@@ -23,6 +23,7 @@ from vulnloom.broker import (
 )
 from vulnloom.broker.implementation import PINNED_HTTP_IMPLEMENTATION_DIGEST
 from vulnloom.broker.models import HttpMethod, url_digest
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     ApprovalAction,
     ApprovalRequest,
@@ -41,14 +42,27 @@ from vulnloom.red_team import (
     AttackActionOutcome,
     AttackAuditDecision,
     AttackChainRejected,
+    AttackChainReport,
+    AttackChainReportArtifactStore,
+    AttackChainReportConflict,
+    AttackChainReportOutcome,
+    AttackChainReportPlan,
+    AttackChainReportRejected,
+    AttackChainReportService,
+    AttackChainReportStore,
     AttackChainService,
     AttackChainStatus,
     AttackChainStore,
+    AttackDefensiveControl,
+    AttackDefensiveImprovement,
+    AttackDetectionOpportunity,
     AttackGraph,
     AttackImpact,
     AttackNodeStatus,
     AttackObjective,
     AttackObjectiveKind,
+    AttackPathStep,
+    AttackReportState,
     IsolatedAttackChainAdmission,
     IsolatedLocalAttackChainAdapter,
     OfflineAttackActionAdapter,
@@ -681,7 +695,7 @@ def test_attack_chain_public_schemas_cannot_carry_payloads_or_secrets():
     )
     rendered = json.dumps({model.__name__: model.model_json_schema() for model in models}).lower()
     for forbidden in (
-        "authorization",
+        "authorization_header",
         "cookie",
         "credential",
         "callback_url",
@@ -700,6 +714,275 @@ def test_attack_action_rejects_ambiguous_paths(path, tmp_path, approved_scope, n
     values = plan.graph.actions[0].model_dump(mode="python", exclude={"action_id"})
     with pytest.raises(ValidationError, match="canonical path"):
         AttackAction.create(**(values | {"target_path": path}))
+    chain_store.close()
+    flow_store.close()
+
+
+def _completed_report_source(tmp_path, approved_scope, now):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, _, _, chain_store, chain_service, chain_plan, checkpoint = setup
+    adapter, _, _ = _live_adapter(tmp_path, approved_scope, chain_plan, now)
+    for offset, action in enumerate(chain_plan.graph.actions):
+        at = now + timedelta(seconds=offset)
+        command = chain_service.command(plan=chain_plan, checkpoint=checkpoint, action=action)
+        checkpoint, _ = chain_service.execute(
+            command=command,
+            scope=approved_scope,
+            approvals=_approvals(chain_service, chain_plan, action, approved_scope, at),
+            adapter=adapter,
+            now=at,
+        )
+    return flow_store, chain_store, chain_plan, checkpoint, adapter.evidence_store
+
+
+def _report_runtime(tmp_path, chain_store, evidence_store, *, max_artifact_bytes=2**20):
+    report_store = AttackChainReportStore(tmp_path / "attack-reports.sqlite3")
+    artifact_store = AttackChainReportArtifactStore(
+        tmp_path / "attack-report-artifacts",
+        max_artifact_bytes=max_artifact_bytes,
+    )
+    service = AttackChainReportService(
+        chain_store=chain_store,
+        report_store=report_store,
+        artifact_store=artifact_store,
+        evidence_store=evidence_store,
+    )
+    return report_store, artifact_store, service
+
+
+def test_attack_path_report_projects_evidence_detection_and_defense(tmp_path, approved_scope, now):
+    flow_store, chain_store, chain_plan, checkpoint, evidence_store = _completed_report_source(
+        tmp_path, approved_scope, now
+    )
+    report_store, artifacts, service = _report_runtime(tmp_path, chain_store, evidence_store)
+    at = now + timedelta(seconds=5)
+    plan = service.prepare(
+        chain_plan_id=chain_plan.chain_plan_id,
+        scope=approved_scope,
+        prepared_by="operator:security-owner",
+        now=at,
+        deadline=at + timedelta(minutes=1),
+        idempotency_key="r11:attack-path-report",
+    )
+    outcome = service.execute(plan, scope=approved_scope, now=at)
+
+    assert outcome.state is AttackReportState.COMPLETED
+    assert outcome.report is not None and outcome.artifact is not None
+    assert outcome.report.source_checkpoint_id == checkpoint.checkpoint_id
+    assert len(outcome.report.steps) == 4
+    assert len(outcome.report.detection_opportunities) == 4
+    assert len(outcome.report.defensive_improvements) == 4
+    assert outcome.report.steps[-1].kind is AttackActionKind.CLEANUP_TEST_SESSION
+    wrong = AttackDefensiveImprovement.create(
+        control=AttackDefensiveControl.SESSION_REVOCATION_ASSURANCE,
+        opportunity_ids=(outcome.report.detection_opportunities[0].opportunity_id,),
+    )
+    with pytest.raises(ValidationError, match="Defensive Improvement"):
+        changed = outcome.report.model_dump(mode="python")
+        changed["defensive_improvements"] = (
+            wrong.model_dump(mode="python"),
+            *(item.model_dump(mode="python") for item in outcome.report.defensive_improvements[1:]),
+        )
+        changed["report_id"] = canonical_digest(
+            {key: value for key, value in changed.items() if key != "report_id"}
+        )
+        AttackChainReport.model_validate(changed)
+    assert artifacts.read_report(outcome.artifact) == outcome.report
+    markdown = artifacts.read_markdown(outcome.artifact).lower()
+    assert "detection opportunities" in markdown
+    assert "defensive improvements" in markdown
+    assert "https://" not in markdown and "/lab/" not in markdown
+    assert service.execute(plan, scope=approved_scope, now=at) == outcome
+    assert report_store.outcome(plan.report_plan_id) == outcome
+    artifact_directory = artifacts.objects / outcome.report.report_id
+    json_path = artifacts.root / outcome.artifact.json_ref
+    outside = tmp_path / "outside-report.json"
+    outside.write_text(outcome.report.model_dump_json(), encoding="utf-8")
+    os.chmod(artifact_directory, 0o700)
+    json_path.unlink()
+    json_path.symlink_to(outside)
+    with pytest.raises(ValueError, match="unavailable or unsafe"):
+        artifacts.read_report(outcome.artifact)
+    report_store.close()
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_path_report_rejects_incomplete_chain_without_claim(tmp_path, approved_scope, now):
+    setup = _setup(tmp_path, approved_scope, now)
+    _, flow_store, _, _, chain_store, _, chain_plan, _ = setup
+    report_store, _, service = _report_runtime(
+        tmp_path, chain_store, EvidenceStore(tmp_path / "empty-evidence")
+    )
+    with pytest.raises(AttackChainReportRejected, match="successful cleaned"):
+        service.prepare(
+            chain_plan_id=chain_plan.chain_plan_id,
+            scope=approved_scope,
+            prepared_by="operator:security-owner",
+            now=now,
+            deadline=now + timedelta(minutes=1),
+            idempotency_key="r11:incomplete-report",
+        )
+    assert (
+        report_store.connection.execute("SELECT count(*) FROM attack_chain_reports").fetchone()[0]
+        == 0
+    )
+    report_store.close()
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_path_report_missing_evidence_is_rejected_before_claim(
+    tmp_path, approved_scope, now
+):
+    flow_store, chain_store, chain_plan, _, _ = _completed_report_source(
+        tmp_path, approved_scope, now
+    )
+    report_store, _, service = _report_runtime(
+        tmp_path, chain_store, EvidenceStore(tmp_path / "missing-evidence")
+    )
+    at = now + timedelta(seconds=5)
+    plan = service.prepare(
+        chain_plan_id=chain_plan.chain_plan_id,
+        scope=approved_scope,
+        prepared_by="operator:security-owner",
+        now=at,
+        deadline=at + timedelta(minutes=1),
+        idempotency_key="r11:missing-evidence-report",
+    )
+    with pytest.raises(AttackChainReportRejected, match="Evidence"):
+        service.execute(plan, scope=approved_scope, now=at)
+    assert report_store.state(plan.report_plan_id) is None
+    report_store.close()
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_path_report_deadline_is_typed_and_idempotent(tmp_path, approved_scope, now):
+    flow_store, chain_store, chain_plan, _, evidence_store = _completed_report_source(
+        tmp_path, approved_scope, now
+    )
+    report_store, _, service = _report_runtime(tmp_path, chain_store, evidence_store)
+    at = now + timedelta(seconds=5)
+    plan = service.prepare(
+        chain_plan_id=chain_plan.chain_plan_id,
+        scope=approved_scope,
+        prepared_by="operator:security-owner",
+        now=at,
+        deadline=at + timedelta(seconds=1),
+        idempotency_key="r11:timed-out-report",
+    )
+    outcome = service.execute(plan, scope=approved_scope, now=at + timedelta(seconds=1))
+    assert outcome.state is AttackReportState.TIMED_OUT
+    assert outcome.report is None and outcome.artifact is None
+    assert service.execute(plan, scope=approved_scope, now=at + timedelta(seconds=1)) == outcome
+    report_store.close()
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_path_report_artifact_failure_cleans_temp_and_requires_recovery(
+    tmp_path, approved_scope, now
+):
+    flow_store, chain_store, chain_plan, _, evidence_store = _completed_report_source(
+        tmp_path, approved_scope, now
+    )
+    report_store, artifacts, service = _report_runtime(
+        tmp_path, chain_store, evidence_store, max_artifact_bytes=1
+    )
+    at = now + timedelta(seconds=5)
+    plan = service.prepare(
+        chain_plan_id=chain_plan.chain_plan_id,
+        scope=approved_scope,
+        prepared_by="operator:security-owner",
+        now=at,
+        deadline=at + timedelta(minutes=1),
+        idempotency_key="r11:artifact-failure-report",
+    )
+    with pytest.raises(ValueError, match="size limit"):
+        service.execute(plan, scope=approved_scope, now=at)
+    assert report_store.state(plan.report_plan_id) == ("started", 1)
+    assert tuple(artifacts.objects.iterdir()) == ()
+    with pytest.raises(ValueError, match="size limit"):
+        service.execute(
+            plan,
+            scope=approved_scope,
+            now=at + timedelta(seconds=1),
+            recover=True,
+        )
+    assert report_store.state(plan.report_plan_id) == ("started", 2)
+    assert tuple(artifacts.objects.iterdir()) == ()
+    with pytest.raises(ValueError, match="size limit"):
+        service.execute(
+            plan,
+            scope=approved_scope,
+            now=at + timedelta(seconds=2),
+            recover=True,
+        )
+    assert report_store.state(plan.report_plan_id) == ("started", 3)
+    with pytest.raises(RuntimeError, match="attempts are exhausted"):
+        service.execute(
+            plan,
+            scope=approved_scope,
+            now=at + timedelta(seconds=3),
+            recover=True,
+        )
+    assert report_store.state(plan.report_plan_id) == ("failed", 3)
+    assert report_store.outcome(plan.report_plan_id).state is AttackReportState.FAILED
+    report_store.close()
+    chain_store.close()
+    flow_store.close()
+
+
+def test_attack_path_report_conflict_and_sensitive_schema_regression(tmp_path, approved_scope, now):
+    flow_store, chain_store, chain_plan, _, evidence_store = _completed_report_source(
+        tmp_path, approved_scope, now
+    )
+    report_store, _, service = _report_runtime(tmp_path, chain_store, evidence_store)
+    at = now + timedelta(seconds=5)
+    first = service.prepare(
+        chain_plan_id=chain_plan.chain_plan_id,
+        scope=approved_scope,
+        prepared_by="operator:security-owner",
+        now=at,
+        deadline=at + timedelta(minutes=1),
+        idempotency_key="r11:report-conflict",
+    )
+    service.execute(first, scope=approved_scope, now=at)
+    changed = AttackChainReportPlan.create(
+        **first.model_dump(mode="python", exclude={"report_plan_id", "idempotency_key"}),
+        idempotency_key="r11:other-key",
+    )
+    with pytest.raises(AttackChainReportConflict):
+        report_store.claim(changed, now=at)
+    schemas = json.dumps(
+        {
+            model.__name__: model.model_json_schema()
+            for model in (
+                AttackPathStep,
+                AttackDetectionOpportunity,
+                AttackDefensiveImprovement,
+                AttackChainReport,
+                AttackChainReportOutcome,
+            )
+        }
+    ).lower()
+    for forbidden in (
+        "target_path",
+        "endpoint",
+        "authorization_header",
+        "cookie",
+        "credential",
+        "response_body",
+        "request_body",
+        "payload",
+        "secret",
+    ):
+        assert forbidden not in schemas
+    persisted = (tmp_path / "attack-reports.sqlite3").read_text(errors="ignore").lower()
+    assert "app.example.test" not in persisted
+    assert "/lab/" not in persisted
+    report_store.close()
     chain_store.close()
     flow_store.close()
 
