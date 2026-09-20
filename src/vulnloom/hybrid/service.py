@@ -28,6 +28,7 @@ from .models import (
     HybridValidationLimits,
     HybridValidationOutcome,
     HybridValidationPlan,
+    SourceRemediationProof,
 )
 from .store import HybridValidationStore
 
@@ -57,6 +58,7 @@ class HybridValidationService:
         candidate: Candidate,
         deployment_proof: DeploymentProof,
         validation_plan: ValidationPlan,
+        source_validation_plan: ValidationPlan | None = None,
         source_manifest_digest: str,
         source_evidence_refs: tuple[str, ...],
         scope: Scope,
@@ -82,6 +84,13 @@ class HybridValidationService:
             raise HybridValidationRejected(
                 "Hybrid source, deployment, or validation binding failed"
             )
+        self._source_plan(
+            check_kind=check_kind,
+            source_plan=source_validation_plan,
+            live_plan=validation_plan,
+            candidate=candidate,
+            scope=scope,
+        )
         self._prior(
             check_kind=check_kind,
             prior=prior_chain,
@@ -116,6 +125,9 @@ class HybridValidationService:
             "endpoint_url_digest": deployment_proof.endpoint_url_digest,
             "deployment_proof_id": deployment_proof.proof_id,
             "deployment_proof_digest": self._digest(deployment_proof),
+            "source_validation_plan_id": (
+                source_validation_plan.plan_id if source_validation_plan else None
+            ),
             "validation_plan_id": validation_plan.plan_id,
             "source_evidence_refs": canonical_source_refs,
             "expected_result": expected,
@@ -140,7 +152,7 @@ class HybridValidationService:
         prior_chain: HybridEvidenceChain | None = None,
         recover: bool = False,
     ) -> HybridValidationOutcome:
-        _, validation, http_refs = self._preflight(
+        _, validation, source_validation, http_refs = self._preflight(
             plan,
             candidate=candidate,
             deployment_proof=deployment_proof,
@@ -198,6 +210,23 @@ class HybridValidationService:
             evidence_refs=tuple(sorted(all_refs)),
             sealed_at=now,
         )
+        source_proof = None
+        if source_validation is not None:
+            assert plan.prior_chain_id is not None
+            source_proof = SourceRemediationProof.create(
+                prior_chain_id=plan.prior_chain_id,
+                candidate_id=candidate.candidate_id,
+                candidate_digest=plan.candidate_digest,
+                source_target_id=plan.source_target_id,
+                source_target_version=plan.source_target_version,
+                source_manifest_digest=plan.source_manifest_digest,
+                validation_plan_id=source_validation.plan_id,
+                validation_run_id=source_validation.validation_run.run_id,
+                evidence_refs=plan.source_evidence_refs,
+                scope_id=plan.scope_id,
+                scope_version=plan.scope_version,
+                sealed_at=now,
+            )
         chain = HybridEvidenceChain.create(
             plan_id=plan.plan_id,
             check_kind=plan.check_kind,
@@ -214,6 +243,7 @@ class HybridValidationService:
             live_target_id=plan.live_target_id,
             endpoint_url_digest=plan.endpoint_url_digest,
             deployment_proof_id=plan.deployment_proof_id,
+            source_remediation_proof_id=(source_proof.proof_id if source_proof else None),
             validation_plan_id=plan.validation_plan_id,
             validation_run_id=validation.validation_run.run_id,
             prior_chain_id=plan.prior_chain_id,
@@ -232,6 +262,7 @@ class HybridValidationService:
             reason_code="hybrid_evidence_chain_sealed",
             now=now,
             chain=chain,
+            source_remediation_proof=source_proof,
         )
 
     def _preflight(self, plan, *, candidate, deployment_proof, scope, now, prior_chain):
@@ -251,6 +282,22 @@ class HybridValidationService:
             raise HybridValidationRejected(
                 "authoritative completed dynamic Validation is unavailable"
             ) from exc
+        source_validation = None
+        if plan.source_validation_plan_id is not None:
+            try:
+                source_plan, source_validation = self.validation_store.load_completed(
+                    plan.source_validation_plan_id
+                )
+            except (ValueError, RuntimeError) as exc:
+                raise HybridValidationRejected(
+                    "authoritative completed source remediation Validation is unavailable"
+                ) from exc
+            self._source_validation(
+                plan,
+                source_plan=source_plan,
+                source_validation=source_validation,
+                candidate=candidate,
+            )
         if (
             plan.candidate_id != candidate.candidate_id
             or plan.candidate_digest != self._digest(candidate)
@@ -276,7 +323,56 @@ class HybridValidationService:
         http_refs = self._http_evidence(
             plan, validation_plan=validation_plan, validation=validation
         )
-        return validation_plan, validation, http_refs
+        return validation_plan, validation, source_validation, http_refs
+
+    @staticmethod
+    def _source_plan(*, check_kind, source_plan, live_plan, candidate, scope) -> None:
+        if check_kind is HybridCheckKind.INITIAL:
+            if source_plan is not None:
+                raise HybridValidationRejected(
+                    "initial Hybrid validation cannot bind a source remediation Validation"
+                )
+            return
+        if (
+            source_plan is None
+            or source_plan.plan_id == live_plan.plan_id
+            or source_plan.candidate_id != candidate.candidate_id
+            or source_plan.candidate_digest != HybridValidationService._digest(candidate)
+            or source_plan.target_id != candidate.target_id
+            or source_plan.target_version != candidate.target_version
+            or source_plan.scope_id != scope.scope_id
+            or source_plan.scope_version != scope.version
+            or source_plan.broker_calls
+            or source_plan.http_assertion is not None
+        ):
+            raise HybridValidationRejected(
+                "Hybrid remediation requires an independent network-free source Validation"
+            )
+
+    @staticmethod
+    def _source_validation(plan, *, source_plan, source_validation, candidate) -> None:
+        source_refs = tuple(sorted(set(source_validation.verdict.evidence_refs)))
+        if (
+            source_plan.plan_id != plan.source_validation_plan_id
+            or source_plan.candidate_id != candidate.candidate_id
+            or source_plan.candidate_digest != plan.candidate_digest
+            or source_plan.target_id != plan.source_target_id
+            or source_plan.target_version != plan.source_target_version
+            or source_plan.scope_id != plan.scope_id
+            or source_plan.scope_version != plan.scope_version
+            or source_plan.broker_calls
+            or source_plan.http_assertion is not None
+            or source_validation.candidate.candidate_id != candidate.candidate_id
+            or source_validation.validation_run.candidate_id != candidate.candidate_id
+            or source_validation.verdict.result is not ValidationResult.NOT_REPRODUCED
+            or source_validation.validation_run.result is not ValidationResult.NOT_REPRODUCED
+            or source_validation.evidence_bundle is None
+            or source_validation.evidence_bundle.evidence_refs != source_refs
+            or source_refs != plan.source_evidence_refs
+        ):
+            raise HybridValidationRejected(
+                "Hybrid source remediation authoritative provenance failed"
+            )
 
     @staticmethod
     def _scope(scope: Scope, *, now: datetime) -> None:
@@ -336,12 +432,23 @@ class HybridValidationService:
             raise HybridValidationRejected("Hybrid HTTP Evidence budget is invalid")
         return refs
 
-    def _terminal(self, plan, claim, *, state, reason_code, now, chain=None):
+    def _terminal(
+        self,
+        plan,
+        claim,
+        *,
+        state,
+        reason_code,
+        now,
+        chain=None,
+        source_remediation_proof=None,
+    ):
         outcome = HybridValidationOutcome(
             plan_id=plan.plan_id,
             state=state,
             attempt=claim.attempt,
             chain=chain,
+            source_remediation_proof=source_remediation_proof,
             reason_code=reason_code,
             cleanup_complete=True,
             completed_at=now,

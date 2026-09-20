@@ -23,6 +23,7 @@ from .models import (
     HybridValidationLimits,
     HybridValidationOutcome,
     HybridValidationPlan,
+    SourceRemediationProof,
 )
 from .report_models import HybridReportOutcome, HybridReportPlan, HybridReportState
 from .report_service import HybridReportRejected, HybridReportService
@@ -109,5 +110,6 @@ __all__ = [
     "LiveEndpointReference",
     "LiveEndpointUnavailable",
     "ResolvedLiveEndpoint",
+    "SourceRemediationProof",
     "hybrid_finding_approval_digest",
 ]

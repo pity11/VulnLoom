@@ -110,6 +110,19 @@
           "title": "Deployment Proof Id",
           "type": "string"
         },
+        "source_remediation_proof_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Remediation Proof Id"
+        },
         "validation_plan_id": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Validation Plan Id",
@@ -212,6 +225,100 @@
       ],
       "title": "HybridRunState",
       "type": "string"
+    },
+    "SourceRemediationProof": {
+      "additionalProperties": false,
+      "description": "Sealed proof that the repaired source passed an independent regression validation.",
+      "properties": {
+        "proof_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Proof Id",
+          "type": "string"
+        },
+        "prior_chain_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Prior Chain Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "candidate_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Digest",
+          "type": "string"
+        },
+        "source_target_id": {
+          "format": "uuid",
+          "title": "Source Target Id",
+          "type": "string"
+        },
+        "source_target_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Target Version",
+          "type": "string"
+        },
+        "source_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Manifest Digest",
+          "type": "string"
+        },
+        "validation_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Validation Plan Id",
+          "type": "string"
+        },
+        "validation_run_id": {
+          "format": "uuid",
+          "title": "Validation Run Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "sealed_at": {
+          "format": "date-time",
+          "title": "Sealed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proof_id",
+        "prior_chain_id",
+        "candidate_id",
+        "candidate_digest",
+        "source_target_id",
+        "source_target_version",
+        "source_manifest_digest",
+        "validation_plan_id",
+        "validation_run_id",
+        "evidence_refs",
+        "scope_id",
+        "scope_version",
+        "sealed_at"
+      ],
+      "title": "SourceRemediationProof",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -234,6 +341,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/HybridEvidenceChain"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_remediation_proof": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRemediationProof"
         },
         {
           "type": "null"

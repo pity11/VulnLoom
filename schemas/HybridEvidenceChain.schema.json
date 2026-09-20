@@ -110,6 +110,19 @@
       "title": "Deployment Proof Id",
       "type": "string"
     },
+    "source_remediation_proof_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Remediation Proof Id"
+    },
     "validation_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Validation Plan Id",

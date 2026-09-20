@@ -256,6 +256,7 @@ from vulnloom.hybrid import (
     HybridValidationOutcome,
     HybridValidationPlan,
     LiveEndpointReference,
+    SourceRemediationProof,
 )
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
@@ -466,6 +467,7 @@ MODELS = (
     HybridValidationPlan,
     HybridEvidenceChain,
     HybridValidationOutcome,
+    SourceRemediationProof,
     HybridFindingPromotionPlan,
     HybridFindingPromotionOutcome,
     HybridReportPlan,

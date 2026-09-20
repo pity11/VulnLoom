@@ -5,8 +5,9 @@ R10 的可信离线纵切建立源码到 Live Target 的统一证据链和 Findi
 ## 当前合同
 
 - `DeploymentProof` 只保存源码 Target/version、manifest digest、部署产物 digest、Live Target ID、精确 endpoint URL digest、限时操作员证明和 Evidence 引用。它不保存 URL、发布系统凭据或原始发布响应。
-- `HybridValidationPlan` 将一个源码 `Candidate`、一份 `DeploymentProof` 和一个既有 `ValidationPlan` 固定绑定到当前 Scope/version。初验固定期待 `reproduced`；修复复测固定期待 `not_reproduced` 并必须引用前一条 confirmed chain。
+- `HybridValidationPlan` 将一个源码 `Candidate`、一份 `DeploymentProof` 和一个既有 Live `ValidationPlan` 固定绑定到当前 Scope/version。初验固定期待 `reproduced`；修复复测必须引用前一条 confirmed chain，并额外绑定一条独立、无 Broker call 和 HTTP assertion 的源码回归 `ValidationPlan`。
 - `HybridValidationService` 只读取 `ValidationStore` 中权威的 completed outcome。动态 Validation 必须恰好包含一个指向封存 endpoint digest 的 Broker HTTP call，成功结果的 final URL digest 也必须相同。
+- 修复复测要求源码回归和精确 Live Validation 独立完成且都得到 `not_reproduced`。源码侧 Evidence 必须与源码 Validation Bundle 完全一致，随后封存为 `SourceRemediationProof`；失败、超时、无 Evidence 或单边通过均 fail-closed，不能生成 `remediated` chain。
 - `HybridEvidenceChain` 合并源码、部署和 HTTP Evidence 为一个共享 `EvidenceBundle`。所有引用在封存前都经过内容寻址完整性复核。
 - SQLite 账本提供 `started/completed/timed_out/failed` 状态、幂等重放、显式恢复和最多三次 attempt。超时或 Evidence 完整性失败以 cleanup proven 的 terminal outcome 关闭。
 - `LiveEndpointReference` 只定位权限受限的本地配置槽。可信 adapter 在内存中解析并复核规范 URL、Scope 和 `DeploymentProof` endpoint digest；Worker、Route outcome 和公共 schema 不包含解析后的 endpoint。
@@ -19,12 +20,11 @@ R10 的可信离线纵切建立源码到 Live Target 的统一证据链和 Findi
 
 ## 安全边界
 
-当前 R10 服务不调用 Runner、Broker、模型或网络。Evidence admission、Finding promotion 和 Report drafting 只接纳已有可信账本结果；Route materialization 只生成计划，不执行计划。普通输出和 JSON Schema 不包含完整 endpoint、Header、Cookie、API Key、认证响应或响应正文。Scope、部署证明、Candidate、Validation、Critic、Approval、Finding、Report、endpoint digest 或 retest lineage 任一漂移均 fail-closed。
+当前 R10 服务不调用 Runner、Broker、模型或网络。Evidence admission、双重复测协调、Finding promotion 和 Report drafting 只接纳已有可信账本结果；Route materialization 只生成计划，不执行计划。普通输出和 JSON Schema 不包含完整 endpoint、Header、Cookie、API Key、认证响应或响应正文。Scope、部署证明、Candidate、源码/Live Validation、Critic、Approval、Finding、Report、endpoint digest 或 retest lineage 任一漂移均 fail-closed。
 
 ## 尚未完成的 R10 工作
 
-- 修复后源码静态验证与 Live Validation 的双重自动复测编排；
 - CI/CD 发布门禁 adapter；
 - 对隔离预发布应用的完整 R10 端到端验收。
 
-本地离线验证：1473 项通过、27 项显式集成测试跳过，总覆盖率 85.79%；Ruff、390 个 JSON Schema 解析和 `git diff --check` 通过。验证未进行真实模型调用或网络请求。
+本地离线验证：1473 项通过、27 项显式集成测试跳过，总覆盖率 85.78%；Ruff、391 个 JSON Schema 解析和 `git diff --check` 通过。验证未进行真实模型调用或网络请求。

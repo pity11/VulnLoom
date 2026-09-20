@@ -83,6 +83,7 @@ class HybridValidationPlan(DomainModel):
     endpoint_url_digest: Digest
     deployment_proof_id: Digest
     deployment_proof_digest: Digest
+    source_validation_plan_id: Digest | None = None
     validation_plan_id: Digest
     source_evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=256)]
     expected_result: ValidationResult
@@ -105,6 +106,10 @@ class HybridValidationPlan(DomainModel):
         initial = self.check_kind is HybridCheckKind.INITIAL
         if initial != (self.prior_chain_id is None):
             raise ValueError("Hybrid retest must bind exactly one prior chain")
+        if initial != (self.source_validation_plan_id is None):
+            raise ValueError(
+                "Hybrid remediation retest must bind exactly one source validation"
+            )
         expected = (
             ValidationResult.REPRODUCED
             if initial
@@ -139,6 +144,7 @@ class HybridEvidenceChain(DomainModel):
     live_target_id: UUID
     endpoint_url_digest: Digest
     deployment_proof_id: Digest
+    source_remediation_proof_id: Digest | None = None
     validation_plan_id: Digest
     validation_run_id: UUID
     prior_chain_id: Digest | None = None
@@ -169,6 +175,8 @@ class HybridEvidenceChain(DomainModel):
         if (
             self.conclusion is not expected
             or (self.check_kind is HybridCheckKind.INITIAL) != (self.prior_chain_id is None)
+            or (self.check_kind is HybridCheckKind.INITIAL)
+            != (self.source_remediation_proof_id is None)
             or self.source_evidence_refs != tuple(sorted(set(self.source_evidence_refs)))
             or self.http_evidence_refs != tuple(sorted(set(self.http_evidence_refs)))
             or self.evidence_bundle.candidate_id != self.candidate_id
@@ -189,11 +197,47 @@ class HybridEvidenceChain(DomainModel):
         return cls(chain_id=canonical_digest(expanded), **expanded)
 
 
+class SourceRemediationProof(DomainModel):
+    """Sealed proof that the repaired source passed an independent regression validation."""
+
+    proof_id: Digest
+    prior_chain_id: Digest
+    candidate_id: UUID
+    candidate_digest: Digest
+    source_target_id: UUID
+    source_target_version: str = Field(min_length=1, max_length=256)
+    source_manifest_digest: Digest
+    validation_plan_id: Digest
+    validation_run_id: UUID
+    evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=256)]
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
+    sealed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.evidence_refs != tuple(sorted(set(self.evidence_refs))):
+            raise ValueError("Source remediation Evidence references must be sorted and unique")
+        if self.proof_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"proof_id"})
+        ):
+            raise ValueError("Source remediation proof content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> SourceRemediationProof:
+        expanded = cls.model_construct(proof_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"proof_id"}
+        )
+        return cls(proof_id=canonical_digest(expanded), **expanded)
+
+
 class HybridValidationOutcome(DomainModel):
     plan_id: Digest
     state: HybridRunState
     attempt: int = Field(ge=1, le=3)
     chain: HybridEvidenceChain | None = None
+    source_remediation_proof: SourceRemediationProof | None = None
     reason_code: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")
     cleanup_complete: bool
     completed_at: AwareDatetime
@@ -204,6 +248,19 @@ class HybridValidationOutcome(DomainModel):
             raise ValueError("Hybrid outcome must be terminal")
         if (self.state is HybridRunState.COMPLETED) != (self.chain is not None):
             raise ValueError("Only completed Hybrid outcomes contain an Evidence Chain")
+        if self.chain is None:
+            if self.source_remediation_proof is not None:
+                raise ValueError("Only completed Hybrid retests contain source remediation proof")
+        elif (self.chain.check_kind is HybridCheckKind.INITIAL) != (
+            self.source_remediation_proof is None
+        ):
+            raise ValueError("Hybrid retest outcome must contain its source remediation proof")
+        elif (
+            self.source_remediation_proof is not None
+            and self.chain.source_remediation_proof_id
+            != self.source_remediation_proof.proof_id
+        ):
+            raise ValueError("Hybrid source remediation proof binding is inconsistent")
         if not self.cleanup_complete:
             raise ValueError("Hybrid outcome requires proven cleanup")
         return self

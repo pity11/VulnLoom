@@ -111,6 +111,19 @@
       "title": "Deployment Proof Digest",
       "type": "string"
     },
+    "source_validation_plan_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Validation Plan Id"
+    },
     "validation_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Validation Plan Id",

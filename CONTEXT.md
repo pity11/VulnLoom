@@ -100,6 +100,10 @@ _Avoid_: Endpoint URL, Target string, Worker configuration
 把源码路径、Deployment Proof 和精确 Live Validation 的 Evidence 封存为同一条可追溯事实链；修复复测通过引用前一条链表达版本演进。
 _Avoid_: Correlation guess, Combined report, Agent conclusion
 
+**Source Remediation Proof**：
+修复版本在独立、无网络的源码回归 Validation 中得到 `not_reproduced` 结论后封存的内容寻址证明；执行失败、没有新 Candidate 或 Live 复测单独通过都不能替代它。
+_Avoid_: Missing signal, Build success, Live-only retest
+
 **Hybrid Finding**：
 由已确认的 Hybrid Evidence Chain 支撑，并且 Critic 已针对该链的完整源码、部署和 HTTP Evidence Bundle 完成独立反证后，经人工 Approval 晋升的 Finding。
 _Avoid_: Tagged Source Finding, Correlated Finding, Model-confirmed vulnerability

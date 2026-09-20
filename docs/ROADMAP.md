@@ -1242,8 +1242,10 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 - Evidence admission 服务只读取已完成的 Validation 账本，不调用 Runner、Broker、模型或网络。Finding promotion
   进一步要求 Critic 针对完整 Hybrid Evidence Bundle 独立复核、clear duplicate check 和精确人工 Approval；生成的
   Finding 直接引用合并后的源码、部署与 HTTP Evidence Bundle。
-- Hybrid Finding 使用独立事务账本，覆盖超时、清理、幂等重放、显式恢复和三次 attempt 上限。双重复测
-  编排、CI/CD adapter 与隔离预发布端到端验收仍属于 R10 后续纵切。
+- Hybrid Finding 使用独立事务账本，覆盖超时、清理、幂等重放、显式恢复和三次 attempt 上限。
+- 修复复测已强化为源码与 Live 双重门禁：源码侧必须是独立无网络 Validation，Live 侧必须是精确 endpoint
+  Validation；两边都以权威 completed `not_reproduced` 结果通过后才封存 `SourceRemediationProof` 和 remediated chain。
+  CI/CD adapter 与隔离预发布端到端验收仍属于 R10 后续纵切。
 - Hybrid Report admission 已复用通用确定性报告引擎，并强制代码位置、部署复现、请求响应与影响章节分别覆盖
   Source、Deployment 和 HTTP Evidence。输出保持本地 Draft，拒绝完整 endpoint，不增加导出、Submission、网络或模型调用。
 - 新增 opaque `LiveEndpointReference` 与可信解析 adapter。Route 服务可从 Source Candidate、Deployment Proof 和

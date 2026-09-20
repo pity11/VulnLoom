@@ -1172,8 +1172,9 @@ Bundle，并支持引用前一 confirmed chain 的修复复测、幂等重放、
 ValidationPlan，并将含完整 endpoint 的计划限制在权限受限本地仓。本阶段仍不执行网络或模型调用；Hybrid
 Finding promotion 已要求 Critic 针对完整合并 Evidence Bundle 独立复核，并通过 duplicate check 和精确人工
 Approval 后才生成引用该 Bundle 的 Finding。Hybrid Report 已以本地 Draft 复用共享报告引擎，并强制章节覆盖
-Source、Deployment 和 HTTP Evidence。双重自动复测、CI/CD adapter 和隔离预发布端到端验收仍待完成，因此
-R10 尚未关闭。
+Source、Deployment 和 HTTP Evidence。双重自动复测现已要求独立无网络源码 Validation 与精确 Live Validation
+同时得到权威 `not_reproduced`，并封存 `SourceRemediationProof`；CI/CD adapter 和隔离预发布端到端验收仍待完成，
+因此 R10 尚未关闭。
 
 ### R11：授权红队攻击链
 

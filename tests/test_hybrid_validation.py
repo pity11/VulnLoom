@@ -71,6 +71,7 @@ from vulnloom.hybrid import (
     HybridValidationRejected,
     HybridValidationService,
     HybridValidationStore,
+    SourceRemediationProof,
     hybrid_finding_approval_digest,
 )
 from vulnloom.policy import PolicyEngine
@@ -84,6 +85,7 @@ from vulnloom.reporting import (
 from vulnloom.runners import (
     NetworkGrant,
     OfflineSandboxRunner,
+    OfflineScenario,
     SandboxRunRequest,
     ToolInvocation,
     validation_profile,
@@ -116,7 +118,20 @@ class _Judge:
         )
 
 
-def _validation_plan(now, scope, candidate, *, key):
+class _EvidenceRunner:
+    def __init__(self, evidence_refs):
+        self.delegate = OfflineSandboxRunner(frozenset({"sandbox.test"}))
+        self.evidence_refs = evidence_refs
+
+    def execute(self, request, *, now):
+        return self.delegate.execute(
+            request,
+            now=now,
+            scenario=OfflineScenario(evidence_refs=self.evidence_refs),
+        )
+
+
+def _validation_plan(now, scope, candidate, *, key, source_only=False):
     runner_profile = validation_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
     runner_task = TaskEnvelope(
         engagement_id=scope.engagement_id,
@@ -188,21 +203,42 @@ def _validation_plan(now, scope, candidate, *, key):
         selected_at=now,
         selection_reason="Bind one source Candidate to one exact authorized endpoint",
         runner_request=runner_request,
-        broker_calls=(call,),
+        broker_calls=() if source_only else (call,),
         idempotency_key=key,
     )
 
 
-def _completed_validation(tmp_path, evidence_store, scope, candidate, now, *, result, key):
-    http = evidence_store.capture_text(
-        "redacted HTTP validation facts",
-        kind=EvidenceKind.HTTP,
-        source_ref="url-sha256:" + url_digest(URL),
-        producer="test.hybrid.http",
+def _completed_validation(
+    tmp_path,
+    evidence_store,
+    scope,
+    candidate,
+    now,
+    *,
+    result,
+    key,
+    store=None,
+    source_only=False,
+):
+    evidence = evidence_store.capture_text(
+        "redacted source regression facts"
+        if source_only
+        else "redacted HTTP validation facts",
+        kind=EvidenceKind.SOURCE if source_only else EvidenceKind.HTTP,
+        source_ref=(
+            "snapshot-sha256:" + "7" * 64
+            if source_only
+            else "url-sha256:" + url_digest(URL)
+        ),
+        producer="test.hybrid.source-regression" if source_only else "test.hybrid.http",
         target_version=candidate.target_version,
-        summary="redacted exact endpoint result",
+        summary=(
+            "repaired source regression is not reproducible"
+            if source_only
+            else "redacted exact endpoint result"
+        ),
     )
-    plan = _validation_plan(now, scope, candidate, key=key)
+    plan = _validation_plan(now, scope, candidate, key=key, source_only=source_only)
     transport = OfflineHttpTransport(
         {
             URL: OfflineHttpHop(
@@ -210,7 +246,7 @@ def _completed_validation(tmp_path, evidence_store, scope, candidate, now, *, re
                 peer_ip=IP,
                 response_bytes=32,
                 response_body_sha256=BODY,
-                evidence_ref=http.evidence_id,
+                evidence_ref=evidence.evidence_id,
             )
         }
     )
@@ -220,10 +256,14 @@ def _completed_validation(tmp_path, evidence_store, scope, candidate, now, *, re
         resolver=StaticResolver({"app.example.test": (IP,)}),
         http_transport=transport,
     )
-    store = ValidationStore(tmp_path / f"{key.replace(':', '-')}.sqlite3")
+    store = store or ValidationStore(tmp_path / f"{key.replace(':', '-')}.sqlite3")
     service = ValidationService(
         scope=scope,
-        runner=OfflineSandboxRunner(frozenset({"sandbox.test"})),
+        runner=(
+            _EvidenceRunner((evidence.evidence_id,))
+            if source_only
+            else OfflineSandboxRunner(frozenset({"sandbox.test"}))
+        ),
         broker=broker,
         store=store,
         evidence_store=evidence_store,
@@ -525,7 +565,19 @@ def test_hybrid_remediation_retest_requires_prior_confirmed_chain_and_new_versio
         result=ValidationResult.NOT_REPRODUCED,
         key="retest:1",
     )
-    repaired_proof, source_ref = _proof_and_source(
+    retest_store, source_validation_plan = _completed_validation(
+        tmp_path,
+        evidence_store,
+        approved_scope,
+        repaired,
+        now,
+        result=ValidationResult.NOT_REPRODUCED,
+        key="retest-source:1",
+        store=retest_store,
+        source_only=True,
+    )
+    _, source_validation = retest_store.load_completed(source_validation_plan.plan_id)
+    repaired_proof, _ = _proof_and_source(
         evidence_store, repaired, now, live_target_id=proof.live_target_id
     )
     service = HybridValidationService(
@@ -533,13 +585,79 @@ def test_hybrid_remediation_retest_requires_prior_confirmed_chain_and_new_versio
         hybrid_store=store,
         evidence_store=evidence_store,
     )
+    with pytest.raises(HybridValidationRejected, match="source Validation"):
+        service.prepare(
+            check_kind=HybridCheckKind.REMEDIATION_RETEST,
+            candidate=repaired,
+            deployment_proof=repaired_proof,
+            validation_plan=validation_plan,
+            source_manifest_digest=repaired_proof.source_manifest_digest,
+            source_evidence_refs=source_validation.verdict.evidence_refs,
+            scope=approved_scope,
+            created_at=now,
+            deadline=now + timedelta(minutes=1),
+            idempotency_key="hybrid:retest:missing-source",
+            prior_chain=confirmed,
+        )
+    retest_store, bad_source_plan = _completed_validation(
+        tmp_path,
+        evidence_store,
+        approved_scope,
+        repaired,
+        now,
+        result=ValidationResult.REPRODUCED,
+        key="retest-source-still-reproduced:1",
+        store=retest_store,
+        source_only=True,
+    )
+    _, bad_source_validation = retest_store.load_completed(bad_source_plan.plan_id)
+    bad_plan = service.prepare(
+        check_kind=HybridCheckKind.REMEDIATION_RETEST,
+        candidate=repaired,
+        deployment_proof=repaired_proof,
+        validation_plan=validation_plan,
+        source_validation_plan=bad_source_plan,
+        source_manifest_digest=repaired_proof.source_manifest_digest,
+        source_evidence_refs=bad_source_validation.verdict.evidence_refs,
+        scope=approved_scope,
+        created_at=now,
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="hybrid:retest:source-still-reproduced",
+        prior_chain=confirmed,
+    )
+    with pytest.raises(HybridValidationRejected, match="source remediation"):
+        service.execute(
+            bad_plan,
+            candidate=repaired,
+            deployment_proof=repaired_proof,
+            scope=approved_scope,
+            now=now,
+            prior_chain=confirmed,
+        )
+    assert store.state(bad_plan.plan_id) is None
+    with pytest.raises(HybridValidationRejected, match="independent network-free"):
+        service.prepare(
+            check_kind=HybridCheckKind.REMEDIATION_RETEST,
+            candidate=repaired,
+            deployment_proof=repaired_proof,
+            validation_plan=validation_plan,
+            source_validation_plan=validation_plan,
+            source_manifest_digest=repaired_proof.source_manifest_digest,
+            source_evidence_refs=source_validation.verdict.evidence_refs,
+            scope=approved_scope,
+            created_at=now,
+            deadline=now + timedelta(minutes=1),
+            idempotency_key="hybrid:retest:shared-validation",
+            prior_chain=confirmed,
+        )
     plan = service.prepare(
         check_kind=HybridCheckKind.REMEDIATION_RETEST,
         candidate=repaired,
         deployment_proof=repaired_proof,
         validation_plan=validation_plan,
+        source_validation_plan=source_validation_plan,
         source_manifest_digest=repaired_proof.source_manifest_digest,
-        source_evidence_refs=(source_ref,),
+        source_evidence_refs=source_validation.verdict.evidence_refs,
         scope=approved_scope,
         created_at=now,
         deadline=now + timedelta(minutes=1),
@@ -557,6 +675,13 @@ def test_hybrid_remediation_retest_requires_prior_confirmed_chain_and_new_versio
     assert outcome.chain is not None
     assert outcome.chain.conclusion is HybridConclusion.REMEDIATED
     assert outcome.chain.prior_chain_id == confirmed.chain_id
+    assert outcome.source_remediation_proof is not None
+    assert isinstance(outcome.source_remediation_proof, SourceRemediationProof)
+    assert (
+        outcome.chain.source_remediation_proof_id
+        == outcome.source_remediation_proof.proof_id
+    )
+    assert outcome.source_remediation_proof.validation_plan_id == source_validation_plan.plan_id
     store.close()
     retest_store.close()
 
@@ -570,6 +695,7 @@ def test_hybrid_contracts_exclude_raw_endpoint_and_credentials():
             HybridValidationLimits,
             HybridEvidenceChain,
             HybridValidationOutcome,
+            SourceRemediationProof,
             HybridFindingPromotionPlan,
             HybridReportPlan,
             HybridReportOutcome,
