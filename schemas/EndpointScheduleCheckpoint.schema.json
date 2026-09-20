@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "EndpointScheduleState": {
+      "enum": [
+        "active",
+        "paused",
+        "cancelled",
+        "expired"
+      ],
+      "title": "EndpointScheduleState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "schedule_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "state": {
+      "$ref": "#/$defs/EndpointScheduleState"
+    },
+    "next_due_at": {
+      "format": "date-time",
+      "title": "Next Due At",
+      "type": "string"
+    },
+    "active_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Active Run Id"
+    },
+    "last_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Run Id"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "schedule_id",
+    "revision",
+    "state",
+    "next_due_at",
+    "updated_at"
+  ],
+  "title": "EndpointScheduleCheckpoint",
+  "type": "object"
+}

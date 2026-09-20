@@ -84,6 +84,10 @@ _Avoid_: Crawler plan, Scan campaign, Dynamic queue
 Endpoint Recon Plan 在一个精确 Flow checkpoint 上占用的动作预算；取消或过期只释放未消费部分，已进入 Flow 账本的动作不可回退。
 _Avoid_: Request estimate, Retry counter, Reversible action
 
+**Endpoint Check Schedule**：
+由操作员封存、在固定授权窗口内周期性物化新 Flow 的精确 Endpoint 检查模板；它是 Control Plane 触发器，不直接执行工具或网络请求。
+_Avoid_: Cron scanner, Background crawler, Long-running Flow
+
 **Report**：
 基于 Finding 和脱敏 Evidence Bundle 生成的披露载体，可以有多个渠道和版本。
 _Avoid_: Finding, Raw evidence

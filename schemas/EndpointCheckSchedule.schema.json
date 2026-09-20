@@ -1,0 +1,170 @@
+{
+  "$defs": {
+    "EndpointReconLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "max_requests": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Requests",
+          "type": "integer"
+        },
+        "per_request_seconds": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 30,
+          "title": "Per Request Seconds",
+          "type": "number"
+        },
+        "total_seconds": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Total Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "EndpointReconLimits",
+      "type": "object"
+    },
+    "Visibility": {
+      "enum": [
+        "black_box",
+        "grey_box",
+        "white_box",
+        "hybrid"
+      ],
+      "title": "Visibility",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schedule_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "target_url": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Target Url",
+      "type": "string"
+    },
+    "visibility": {
+      "$ref": "#/$defs/Visibility"
+    },
+    "test_class": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Test Class",
+      "type": "string"
+    },
+    "operator_ref": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Operator Ref",
+      "type": "string"
+    },
+    "emergency_contact_ref": {
+      "pattern": "^contact:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Emergency Contact Ref",
+      "type": "string"
+    },
+    "paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Paths",
+      "type": "array"
+    },
+    "interval_seconds": {
+      "maximum": 2592000,
+      "minimum": 60,
+      "title": "Interval Seconds",
+      "type": "integer"
+    },
+    "run_ttl_seconds": {
+      "maximum": 300,
+      "minimum": 1,
+      "title": "Run Ttl Seconds",
+      "type": "integer"
+    },
+    "max_consecutive_failures": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Consecutive Failures",
+      "type": "integer"
+    },
+    "recon_limits": {
+      "$ref": "#/$defs/EndpointReconLimits"
+    },
+    "active_from": {
+      "format": "date-time",
+      "title": "Active From",
+      "type": "string"
+    },
+    "active_until": {
+      "format": "date-time",
+      "title": "Active Until",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schedule_id",
+    "scope_id",
+    "scope_version",
+    "target_url",
+    "visibility",
+    "test_class",
+    "operator_ref",
+    "emergency_contact_ref",
+    "paths",
+    "interval_seconds",
+    "run_ttl_seconds",
+    "recon_limits",
+    "active_from",
+    "active_until",
+    "created_at",
+    "idempotency_key"
+  ],
+  "title": "EndpointCheckSchedule",
+  "type": "object"
+}

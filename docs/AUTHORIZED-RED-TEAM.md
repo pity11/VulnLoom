@@ -207,3 +207,30 @@ coverage. Ruff, 374 JSON Schema parses, `git diff --check`, and the 589-pass/9-s
 CUC/DeepSeek compatibility slice passed without an external model call or public network request. The opt-in
 isolated private-address HTTP process test also passed separately, including the sealed Endpoint path and process
 cleanup assertions.
+
+## R9: recurring exact Endpoint check triggers
+
+R9 introduces `EndpointCheckSchedule` as a Control Plane trigger, not a network executor. A schedule seals one
+Scope/version, canonical Target, operator reference, exact path set, fixed UTC interval, authorization window,
+Flow stop conditions and Endpoint Recon limits. Every due slot creates a new bounded Flow, Seed Set and Recon
+Plan; it never reuses a long-running Flow and never calls the Broker or a Recon adapter.
+
+Schedule checkpoints have explicit `active`, `paused`, `cancelled` and `expired` states. Each content-addressed
+run is `started`, `materialized`, `timed_out` or `failed`. A STARTED run requires the next numbered recovery
+attempt and allows at most three. Replaying a materialized slot returns the existing run without creating a
+second Flow. A new slot is rejected while the prior Flow, reservation or Recon run has not reached a provably
+clean terminal state.
+
+If materialization crosses its deadline, the service cancels any partially created, unexecuted Endpoint
+reservation and Flow before closing the run. Unproven cleanup or exhausted recovery attempts pauses the
+schedule fail-closed. Scope expiry/version drift, a foreign operator, invalid path, non-due trigger, overlapping
+run and stale checkpoint are rejected transactionally.
+
+The local CLI exposes schedule create, trigger/recover, status, pause/resume, cancel and expire operations over
+the same application service intended for a future API. Its projections contain only identifiers, counts,
+digests and lifecycle state. There is no daemon, cron parser, public discovery, crawler, live execution flag,
+notification adapter or Web UI in R9.
+
+Local R9 verification completed with 1450 tests passed, 27 integration tests skipped, and 85.77% total
+coverage. Ruff, 377 JSON Schema parses, `git diff --check`, and the 589-pass/9-skip model-provider and
+CUC/DeepSeek compatibility slice passed without an external model call or network request.

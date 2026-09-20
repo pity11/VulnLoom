@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "EndpointScheduleRunState": {
+      "enum": [
+        "started",
+        "materialized",
+        "timed_out",
+        "failed"
+      ],
+      "title": "EndpointScheduleRunState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schedule_run_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Run Id",
+      "type": "string"
+    },
+    "schedule_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Id",
+      "type": "string"
+    },
+    "scheduled_for": {
+      "format": "date-time",
+      "title": "Scheduled For",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/EndpointScheduleRunState"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flow Plan Id"
+    },
+    "seed_set_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seed Set Id"
+    },
+    "endpoint_recon_plan_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Endpoint Recon Plan Id"
+    },
+    "cleanup_complete": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cleanup Complete"
+    },
+    "terminal_reason": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Terminal Reason"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    }
+  },
+  "required": [
+    "schedule_run_id",
+    "schedule_id",
+    "scheduled_for",
+    "state",
+    "attempt",
+    "started_at",
+    "deadline"
+  ],
+  "title": "EndpointScheduleRun",
+  "type": "object"
+}

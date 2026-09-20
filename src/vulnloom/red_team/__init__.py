@@ -40,6 +40,25 @@ from .models import (
     ServiceIdentitySnapshot,
     ServiceTlsVersion,
 )
+from .schedule_models import (
+    EndpointCheckSchedule,
+    EndpointScheduleCheckpoint,
+    EndpointScheduleRun,
+    EndpointScheduleRunState,
+    EndpointScheduleState,
+)
+from .schedule_service import (
+    EndpointScheduleMaterializationInterrupted,
+    EndpointScheduleRejected,
+    EndpointScheduleService,
+)
+from .schedule_state_machine import EndpointScheduleTransitionRejected
+from .schedule_store import (
+    EndpointScheduleClaim,
+    EndpointScheduleRecoveryRequired,
+    EndpointScheduleStore,
+    EndpointScheduleStoreRejected,
+)
 from .seed_models import (
     EndpointReconLimits,
     EndpointReconOutcome,
@@ -136,6 +155,19 @@ __all__ = [
     "EndpointReconStepResult",
     "EndpointReconStore",
     "EndpointReconTimedOut",
+    "EndpointCheckSchedule",
+    "EndpointScheduleCheckpoint",
+    "EndpointScheduleClaim",
+    "EndpointScheduleMaterializationInterrupted",
+    "EndpointScheduleRecoveryRequired",
+    "EndpointScheduleRejected",
+    "EndpointScheduleRun",
+    "EndpointScheduleRunState",
+    "EndpointScheduleService",
+    "EndpointScheduleState",
+    "EndpointScheduleStore",
+    "EndpointScheduleStoreRejected",
+    "EndpointScheduleTransitionRejected",
     "EndpointSeed",
     "EndpointSeedIdempotencyConflict",
     "EndpointSeedSet",

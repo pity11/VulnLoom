@@ -1163,7 +1163,7 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
-### Authorized Red Team R0.1–R8（精确 Endpoint 计划已接入权威执行账本）
+### Authorized Red Team R0.1–R9（可信定期 Endpoint 检查触发控制面）
 
 - 新增共享 `WorkflowMode`，将四入口、Visibility、Execution Profile 与自治等级分开表达；红队首版固定为
   `black_box/grey_box + red_team + A2 bounded execution`，不冒充未来 A4 Campaign。
@@ -1210,16 +1210,24 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - R7 CLI 只支持封存、准备、离线 fake 执行和脱敏状态查询。stdout 不返回 seed path 或完整 endpoint；该阶段没有
   live Endpoint Recon adapter，也没有 crawler、字典枚举、动态队列、DNS/端口发现或公网扫描入口。
 - R8 新增 `EndpointReconReservation` 显式状态机。`active` 预算只能逐次前进到 `consumed`，操作员取消或 deadline
-  过期只释放未消费部分；已经写入 Flow action ledger 的动作不会回退。多个 active reservation 仍在同一 source
-  checkpoint 上事务性竞争剩余 RoE 预算。
+  过期只释放未消费部分；已经写入 Flow action ledger 的动作不会回退。多个 active reservation 在同一 Flow 内
+  事务性竞争剩余 RoE 预算，跨 checkpoint 的未消费 reservation 也不会被重复分配。
 - 精确 Endpoint 步骤现在复用权威 `RedTeamReconCommand`、action claim、Observation 和 checkpoint 链；每次
   Broker 调用恰好增加一次 `actions_used`。恢复会重放已完成 action，并拒绝 source checkpoint 后夹入的其他动作、
   非权威 Plan、Scope 漂移和 terminal Flow。
 - pinned HTTP adapter 可绑定 plan 中的 URL digest allowlist；该模式强制 `HEAD`、零 redirect，并要求成功结果的
   requested/final URL digest 都等于 sealed step。Evidence 与 AttackSurfaceSnapshot 继续进入现有 Reduction/Drift
   链路。普通 CLI 仍不提供 live 执行开关，只新增 reservation cancel/expire/status。
+- R9 新增 `EndpointCheckSchedule`、checkpoint 与 run 状态机。Schedule 固定绑定 Scope/version、规范 Target、
+  operator、精确路径、UTC 固定周期、有效窗口和每轮预算；触发只物化新的 Flow、Seed Set 与 Endpoint Recon Plan，
+  不直接调用 Broker、adapter 或网络。
+- 每个 due slot 只有一个内容寻址 run；完成重试只读重放，STARTED 必须显式恢复且最多三次。上一轮 Flow、
+  reservation 或 Recon run 未达到可证明的 clean terminal 状态时拒绝下一轮，避免并发重复 Flow 与重复副作用。
+- 物化超时会取消已经创建但尚未执行的 Flow 和 reservation；清理无法证明或恢复次数耗尽时 Schedule 自动暂停。
+  CLI 只提供 create/trigger/recover/status 和生命周期命令，输出不包含完整 endpoint 或路径，也没有后台 daemon、
+  crawler 或 live 网络开关。
 
-R3/R5/R8 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
+R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显式设置 `VULNLOOM_RED_TEAM_INTEGRATION=1` 或
 `VULNLOOM_RED_TEAM_TLS_INTEGRATION=1`，且仅启动本机隔离夹具。公网扫描和主动利用仍不可用。
 详见 `docs/AUTHORIZED-RED-TEAM.md`。
 

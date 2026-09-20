@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import stat
@@ -21,6 +22,8 @@ from .models import (
     RedTeamActionKind,
     RedTeamReconCommand,
 )
+from .schedule_service import EndpointScheduleService
+from .schedule_store import EndpointScheduleStore
 from .seed_models import EndpointReconLimits, EndpointReconOutcomeKind
 from .seed_service import (
     EndpointReconService,
@@ -176,6 +179,150 @@ def _endpoint_service(args):
         evidence_store=EvidenceStore(Path(args.evidence_root)),
     )
     return service, red_store, recon_store
+
+
+def _schedule_service(args):
+    red_store = RedTeamStore(Path(args.red_team_db))
+    recon_store = EndpointReconStore(Path(args.endpoint_recon_db))
+    schedule_store = EndpointScheduleStore(Path(args.endpoint_schedule_db))
+    endpoint_service = EndpointReconService(
+        red_team_store=red_store,
+        recon_store=recon_store,
+        evidence_store=EvidenceStore(Path(args.evidence_root)),
+    )
+    service = EndpointScheduleService(
+        schedule_store=schedule_store,
+        red_team_store=red_store,
+        recon_store=recon_store,
+        endpoint_service=endpoint_service,
+    )
+    return service, schedule_store, red_store, recon_store
+
+
+def _close_schedule_stores(schedule_store, red_store, recon_store):
+    schedule_store.close()
+    red_store.close()
+    recon_store.close()
+
+
+def _schedule_projection(checkpoint, run=None):
+    payload = {
+        "schedule_id": checkpoint.schedule_id,
+        "state": checkpoint.state.value,
+        "revision": checkpoint.revision,
+        "next_due_at": checkpoint.next_due_at.isoformat(),
+        "active_run_id": checkpoint.active_run_id,
+        "last_run_id": checkpoint.last_run_id,
+        "reason_code": checkpoint.reason_code,
+    }
+    if run is not None:
+        payload["run"] = {
+            "schedule_run_id": run.schedule_run_id,
+            "state": run.state.value,
+            "attempt": run.attempt,
+            "flow_plan_id": run.flow_plan_id,
+            "seed_set_id": run.seed_set_id,
+            "endpoint_recon_plan_id": run.endpoint_recon_plan_id,
+            "cleanup_complete": run.cleanup_complete,
+            "terminal_reason": run.terminal_reason,
+        }
+    return payload
+
+
+def _create_endpoint_schedule(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    service, schedule_store, red_store, recon_store = _schedule_service(args)
+    try:
+        schedule, checkpoint = service.create(
+            scope=scope,
+            target_url=args.target_url,
+            visibility=Visibility(args.visibility),
+            test_class=args.test_class,
+            operator_ref=args.operator_ref,
+            emergency_contact_ref=args.emergency_contact_ref,
+            paths=_seed_paths(args.paths_file),
+            interval_seconds=args.interval_seconds,
+            run_ttl_seconds=args.run_ttl_seconds,
+            max_consecutive_failures=args.max_consecutive_failures,
+            recon_limits=EndpointReconLimits(
+                max_steps=args.max_steps,
+                max_requests=args.max_requests,
+                per_request_seconds=args.per_request_seconds,
+                total_seconds=args.total_seconds,
+                max_attempts=args.max_attempts,
+            ),
+            active_from=now,
+            active_until=now + timedelta(seconds=args.schedule_ttl_seconds),
+            now=now,
+            idempotency_key=args.idempotency_key,
+        )
+    finally:
+        _close_schedule_stores(schedule_store, red_store, recon_store)
+    payload = _schedule_projection(checkpoint)
+    payload.update(
+        {
+            "path_count": len(schedule.paths),
+            "path_digests": [
+                hashlib.sha256(path.encode()).hexdigest() for path in schedule.paths
+            ],
+        }
+    )
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
+def _trigger_endpoint_schedule(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file)
+    service, schedule_store, red_store, recon_store = _schedule_service(args)
+    try:
+        claim = (
+            service.recover(args.schedule_id, scope=scope, now=now)
+            if args.recover
+            else service.trigger(args.schedule_id, scope=scope, now=now)
+        )
+    finally:
+        _close_schedule_stores(schedule_store, red_store, recon_store)
+    print(json.dumps(_schedule_projection(claim.checkpoint, claim.run), indent=2))
+    return 0
+
+
+def _endpoint_schedule_status(args: argparse.Namespace) -> int:
+    with EndpointScheduleStore(Path(args.endpoint_schedule_db)) as store:
+        checkpoint = store.latest(args.schedule_id)
+        run_id = checkpoint.active_run_id or checkpoint.last_run_id
+        run = store.run(run_id) if run_id is not None else None
+    print(json.dumps(_schedule_projection(checkpoint, run), indent=2))
+    return 0
+
+
+def _endpoint_schedule_lifecycle(args: argparse.Namespace) -> int:
+    now = utc_now()
+    scope = _scope(args.scope_file) if args.action == "resume" else None
+    service, schedule_store, red_store, recon_store = _schedule_service(args)
+    try:
+        if args.action == "pause":
+            checkpoint = service.pause(
+                args.schedule_id, operator_ref=args.operator_ref, now=now
+            )
+        elif args.action == "resume":
+            checkpoint = service.resume(
+                args.schedule_id,
+                scope=scope,
+                operator_ref=args.operator_ref,
+                now=now,
+            )
+        elif args.action == "cancel":
+            checkpoint = service.cancel(
+                args.schedule_id, operator_ref=args.operator_ref, now=now
+            )
+        else:
+            checkpoint = service.expire(args.schedule_id, now=now)
+    finally:
+        _close_schedule_stores(schedule_store, red_store, recon_store)
+    print(json.dumps(_schedule_projection(checkpoint), indent=2))
+    return 0
 
 
 def _seal_endpoint_seeds(args: argparse.Namespace) -> int:
@@ -641,6 +788,76 @@ def register_red_team_commands(subparsers) -> None:
     expire_endpoint.add_argument("--endpoint-recon-db", default=".vulnloom/endpoint-recon.db")
     expire_endpoint.add_argument("--evidence-root", default=".vulnloom/evidence")
     expire_endpoint.set_defaults(handler=_expire_endpoint_recon)
+
+    create_schedule = actions.add_parser("create-endpoint-schedule")
+    create_schedule.add_argument("--scope-file", required=True)
+    create_schedule.add_argument("--target-url", required=True)
+    create_schedule.add_argument("--paths-file", required=True)
+    create_schedule.add_argument("--operator-ref", required=True)
+    create_schedule.add_argument("--emergency-contact-ref", required=True)
+    create_schedule.add_argument("--test-class", default="read_only")
+    create_schedule.add_argument(
+        "--visibility",
+        choices=(Visibility.BLACK_BOX.value, Visibility.GREY_BOX.value),
+        default=Visibility.BLACK_BOX.value,
+    )
+    create_schedule.add_argument("--interval-seconds", type=int, default=3_600)
+    create_schedule.add_argument("--schedule-ttl-seconds", type=int, default=86_400)
+    create_schedule.add_argument("--run-ttl-seconds", type=int, default=60)
+    create_schedule.add_argument("--max-consecutive-failures", type=int, default=2)
+    create_schedule.add_argument("--max-steps", type=int, default=100)
+    create_schedule.add_argument("--max-requests", type=int, default=100)
+    create_schedule.add_argument("--per-request-seconds", type=float, default=5.0)
+    create_schedule.add_argument("--total-seconds", type=float, default=60.0)
+    create_schedule.add_argument("--max-attempts", type=int, default=3)
+    create_schedule.add_argument("--idempotency-key", required=True)
+    create_schedule.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    create_schedule.add_argument(
+        "--endpoint-recon-db", default=".vulnloom/endpoint-recon.db"
+    )
+    create_schedule.add_argument(
+        "--endpoint-schedule-db", default=".vulnloom/endpoint-schedule.db"
+    )
+    create_schedule.add_argument("--evidence-root", default=".vulnloom/evidence")
+    create_schedule.set_defaults(handler=_create_endpoint_schedule)
+
+    trigger_schedule = actions.add_parser("trigger-endpoint-schedule")
+    trigger_schedule.add_argument("--schedule-id", required=True)
+    trigger_schedule.add_argument("--scope-file", required=True)
+    trigger_schedule.add_argument("--recover", action="store_true")
+    trigger_schedule.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+    trigger_schedule.add_argument(
+        "--endpoint-recon-db", default=".vulnloom/endpoint-recon.db"
+    )
+    trigger_schedule.add_argument(
+        "--endpoint-schedule-db", default=".vulnloom/endpoint-schedule.db"
+    )
+    trigger_schedule.add_argument("--evidence-root", default=".vulnloom/evidence")
+    trigger_schedule.set_defaults(handler=_trigger_endpoint_schedule)
+
+    schedule_status = actions.add_parser("endpoint-schedule-status")
+    schedule_status.add_argument("--schedule-id", required=True)
+    schedule_status.add_argument(
+        "--endpoint-schedule-db", default=".vulnloom/endpoint-schedule.db"
+    )
+    schedule_status.set_defaults(handler=_endpoint_schedule_status)
+
+    for action in ("pause", "cancel", "expire", "resume"):
+        lifecycle = actions.add_parser(f"{action}-endpoint-schedule")
+        lifecycle.add_argument("--schedule-id", required=True)
+        if action != "expire":
+            lifecycle.add_argument("--operator-ref", required=True)
+        if action == "resume":
+            lifecycle.add_argument("--scope-file", required=True)
+        lifecycle.add_argument("--red-team-db", default=".vulnloom/red-team.db")
+        lifecycle.add_argument(
+            "--endpoint-recon-db", default=".vulnloom/endpoint-recon.db"
+        )
+        lifecycle.add_argument(
+            "--endpoint-schedule-db", default=".vulnloom/endpoint-schedule.db"
+        )
+        lifecycle.add_argument("--evidence-root", default=".vulnloom/evidence")
+        lifecycle.set_defaults(handler=_endpoint_schedule_lifecycle, action=action)
 
     prepare_surface = actions.add_parser("prepare-surface-reduction")
     prepare_surface.add_argument("--plan-id", required=True)

@@ -107,6 +107,12 @@ class EndpointReconStore:
             raise EndpointSeedIdempotencyConflict("Endpoint Seed Set is unavailable")
         return EndpointSeedSet.model_validate_json(row["payload"])
 
+    def seed_set_by_key(self, key: str) -> EndpointSeedSet | None:
+        row = self.connection.execute(
+            "SELECT payload FROM endpoint_seed_sets WHERE idempotency_key=?", (key,)
+        ).fetchone()
+        return EndpointSeedSet.model_validate_json(row["payload"]) if row else None
+
     def reserve(self, plan: EndpointReconPlan, *, remaining_actions: int) -> EndpointReconPlan:
         with self.connection:
             row = self.connection.execute(
@@ -156,6 +162,12 @@ class EndpointReconStore:
         if row is None:
             raise EndpointSeedIdempotencyConflict("Endpoint Recon plan is unavailable")
         return EndpointReconPlan.model_validate_json(row["payload"])
+
+    def plan_by_key(self, key: str) -> EndpointReconPlan | None:
+        row = self.connection.execute(
+            "SELECT payload FROM endpoint_recon_plans WHERE idempotency_key=?", (key,)
+        ).fetchone()
+        return EndpointReconPlan.model_validate_json(row["payload"]) if row else None
 
     def reservation(self, plan_id: str) -> EndpointReconReservation:
         row = self.connection.execute(
