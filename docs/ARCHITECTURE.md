@@ -54,6 +54,22 @@ VulnLoom 采用可信控制面与不可信 Worker 分离的架构。LLM 输出�
 
 人工审批对象不是聊天文本，而是不可变 `ApprovalRequest`：包含请求动作、目标、预期副作用、证据摘要、过期时间和策略版本。批准只对该对象生效，不能泛化为后续动作。
 
+### Authoritative Audit Chain（S1.4 首个纵切）
+
+共享审计骨架使用 per-stream SQLite append-only hash chain。每条 `AuditRecord` 同时绑定前一记录摘要、固定合同、
+事件和状态迁移摘要，以及 Engagement、Scope/version、Policy、Sandbox Profile、Agent Context、Tool Registry、
+Provider revision 和关键输入摘要。事务同时提交记录与 head；并发、幂等冲突、过期或本地链损坏均在写入前
+fail-closed。
+
+仅检查本地链不能识别“记录和 head 一起被回滚”的自洽旧副本，因此控制面可发行内容寻址 `AuditCheckpoint`
+交由独立可信边界保存。验证会区分本地 corruption、checkpoint-ahead rollback 和 checkpoint-head fork；只有
+验证通过才允许返回 `AuditRecordProjection`。投影不包含原始 payload、输入列表、Engagement、幂等材料或任何
+stdout/stderr。当前恢复语义固定为停止写入与查询、从外部恢复完整副本、使用同一 checkpoint 重新验证；不得
+自动截断、重算或覆盖可疑记录。外部签名、WORM 与透明日志仍按计划延后。
+
+该纵切提供共享协议与存储骨架，尚未声称所有历史业务账本已迁移。后续 S1.4 工作只把关键 Control Plane 状态
+变更通过事务 adapter 接入，不允许应用层在状态已变更后把审计失败当作可忽略的观察性故障。
+
 ## 4. Worker 角色
 
 ### Scope Interpreter

@@ -235,3 +235,11 @@ fail-closed。`builtin-v3` Redactor 支持可信注入的已知秘密及确定�
 strict UTF-8 和终态清零；Worker 输出发现敏感内容时不发布对象，外部工具与 Provider 的原始 stderr/解析异常不
 进入异常链。全量离线回归、437 份 schema 和本机无网络 Docker 的成功/拒绝/清理路径通过；没有公网访问、真实
 模型调用或真实攻击。S1.3 关闭，下一项固定为 S1.4。
+
+S1.4 首个纵切已达到 `offline_tested`：共享权威审计合同和 SQLite append-only hash chain 强制每条记录绑定前序
+摘要、Scope/Policy/Profile/Context/Tool Registry/Provider revision、状态迁移与关键输入摘要；同 stream 不能跨
+Engagement。类型化外部 checkpoint 区分本地 corruption、完整 rollback 和有效替代 fork；验证失败后禁止追加和
+digest-only 投影，不会自动截断或重算，恢复必须来自通过同一 checkpoint 的外部完整副本。删除、插入、改写、
+重排、head 漂移、回滚、分叉、过期、事务失败、幂等、恶意记录膨胀和恢复路径已覆盖。全量门禁为 1586 passed、
+39 skipped、85.51% coverage，443 份 schema 通过。S1.4 仍是当前工作：下一纵切将关键 Control Plane 状态变化与审计追加收进同一事务边界，
+在完成该接入前不宣称所有历史业务账本已防篡改。

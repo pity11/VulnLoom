@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "AuditOutcome": {
+      "enum": [
+        "committed",
+        "rejected",
+        "timed_out",
+        "cleanup_failed"
+      ],
+      "title": "AuditOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Secret-free query surface for CLI and future API adapters.",
+  "properties": {
+    "record_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Digest",
+      "type": "string"
+    },
+    "stream_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Stream Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Previous Digest",
+      "type": "string"
+    },
+    "event_type": {
+      "title": "Event Type",
+      "type": "string"
+    },
+    "aggregate_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Aggregate Id",
+      "type": "string"
+    },
+    "transition_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Transition Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Context Digest",
+      "type": "string"
+    },
+    "tool_registry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Registry Digest",
+      "type": "string"
+    },
+    "provider_revision_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Revision Digest",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/AuditOutcome"
+    },
+    "cleanup_verified": {
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_digest",
+    "stream_id",
+    "sequence",
+    "previous_digest",
+    "event_type",
+    "aggregate_id",
+    "transition_digest",
+    "scope_id",
+    "scope_version",
+    "policy_digest",
+    "sandbox_profile_digest",
+    "context_digest",
+    "tool_registry_digest",
+    "provider_revision_digest",
+    "outcome",
+    "cleanup_verified",
+    "occurred_at"
+  ],
+  "title": "AuditRecordProjection",
+  "type": "object"
+}

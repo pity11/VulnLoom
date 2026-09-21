@@ -1369,6 +1369,18 @@ Docker/Provider 错误只暴露稳定类型和代码，不保留可能含秘密�
 对象不发布/临时目录清理/容器缺失路径。未访问公网、未调用真实模型或执行真实攻击。S1.3 关闭，Shared
 Assurance 当前进入 S1.4 防篡改审计骨架。
 
+S1.4 首个 `offline_tested` 纵切已完成：新增固定合同、内容寻址的 `AuditStateBindings`、`AuditAppendPlan`、
+`AuditRecord`、外部 `AuditCheckpoint`、`AuditVerificationResult` 和 digest-only `AuditRecordProjection`，以及
+事务性 `AuthoritativeAuditStore`。每条记录强制绑定前序摘要、Scope/Policy/Profile/Context/Tool Registry/
+Provider revision 和关键输入；同 stream 跨 Engagement、过期新写、幂等冲突和完整性未知均拒绝。
+
+离线篡改矩阵已覆盖删除、插入、字段改写、重排、head 漂移、完整 rollback、合法替代 fork、未来/错误 stream
+checkpoint、未验证模型副本、事务中断和外部副本恢复。检测后不会自动修复，追加与投影均 fail-closed；只有
+恢复完整外部副本并通过原 checkpoint 后才能继续。投影 schema 不含 payload、secret、stdout/stderr、原始输入、
+Engagement 或幂等材料。校验会在解析前限制每流记录数和单条记录字节数，恶意膨胀同样 fail-closed。当前全量门禁为
+1586 passed、39 skipped、85.51% coverage，Ruff、443 份 schema 和 diff check 通过。
+下一纵切把关键 Control Plane 状态变化与审计追加放入同一事务边界；在此之前不宣称所有历史账本已防篡改。
+
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
 隔离测试必须显式 opt-in。当前开发顺序和两个方向的后续计划见 `docs/DEVELOPMENT-PLAN.md`。

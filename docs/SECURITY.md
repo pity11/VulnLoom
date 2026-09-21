@@ -92,6 +92,19 @@ response 临时缓冲。Event、Evidence、Report 与 Agent context 的普通和
 容器完成删除；安全输出成功路径同时通过。全量离线测试、Ruff、437 份 schema 解析和 diff check 通过，未访问
 公网、未调用真实模型、未执行真实攻击。S1.3 关闭，下一项为 S1.4 防篡改审计骨架。
 
+S1.4 首个纵切已经建立共享权威审计链。固定合同要求每条记录绑定前序摘要和 Scope、Policy、Sandbox Profile、
+Context、Tool Registry、Provider revision、状态迁移及关键输入摘要；同一 stream 不得跨 Engagement。SQLite
+事务原子提交记录与 head，幂等只保存调用方 key 的摘要。过期新写入、绑定漂移、并发冲突或链完整性未知均拒绝。
+
+本地验证可检测删除、插入、改写、重排和 head 漂移。由于自洽的旧数据库副本无法靠自身识别，类型化外部
+checkpoint 固定 sequence/head；checkpoint 超前判定为 rollback，相同位置摘要不同判定为 fork，未来或其他 stream
+的 checkpoint 也拒绝。checkpoint 允许验证后的后继记录，不把正常增长误判为篡改。检测异常后禁止追加和查询，
+也不自动截断或重算；唯一恢复路径是从独立边界恢复完整副本，再用原 checkpoint 验证。
+
+查询只返回 `AuditRecordProjection`：包含必要的事件名、状态和控制面摘要，不包含 payload、输入摘要列表、
+Engagement、幂等材料、stdout/stderr 或 secret。该纵切为 `offline_tested` 的共享骨架，尚不声称所有历史业务账本
+已经事务接入；下一纵切将接入关键 Control Plane 状态服务，并验证“状态变化与审计记录同事务或共同失败”。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

@@ -457,6 +457,14 @@ from vulnloom.source_hunt import (
     SourceToolReport,
     SourceValidationBinding,
 )
+from vulnloom.storage import (
+    AuditAppendPlan,
+    AuditCheckpoint,
+    AuditRecord,
+    AuditRecordProjection,
+    AuditStateBindings,
+    AuditVerificationResult,
+)
 from vulnloom.validation import (
     AgentValidationIntakeCommand,
     AgentValidationIntakePlan,
@@ -806,6 +814,12 @@ MODELS = (
     LeakageProbeObservation,
     LeakageQualificationPlan,
     LeakageQualificationOutcome,
+    AuditStateBindings,
+    AuditAppendPlan,
+    AuditRecord,
+    AuditCheckpoint,
+    AuditVerificationResult,
+    AuditRecordProjection,
     SeccompContract,
     ToolRegistration,
     HttpRequestPlan,

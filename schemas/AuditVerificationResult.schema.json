@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "AuditVerificationStatus": {
+      "enum": [
+        "verified",
+        "corruption_detected",
+        "rollback_detected",
+        "fork_detected"
+      ],
+      "title": "AuditVerificationStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "result_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "stream_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Stream Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/AuditVerificationStatus"
+    },
+    "record_count": {
+      "minimum": 0,
+      "title": "Record Count",
+      "type": "integer"
+    },
+    "head_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Head Digest",
+      "type": "string"
+    },
+    "trusted_checkpoint_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trusted Checkpoint Id"
+    },
+    "failure_code": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Code"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_id",
+    "stream_id",
+    "status",
+    "record_count",
+    "head_digest",
+    "checked_at"
+  ],
+  "title": "AuditVerificationResult",
+  "type": "object"
+}

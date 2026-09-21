@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "contract_digest": {
+      "default": "343d7af3ff2b05983272ecd1a8a3d73a1ba89435e9ecec9b1ecfd296b3863e91",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contract Digest",
+      "type": "string"
+    },
+    "stream_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Stream Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "head_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Head Digest",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "stream_id",
+    "sequence",
+    "head_digest",
+    "issued_at"
+  ],
+  "title": "AuditCheckpoint",
+  "type": "object"
+}

@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "description": "Exact authority and input identities for one state transition.",
+  "properties": {
+    "engagement_id": {
+      "format": "uuid",
+      "title": "Engagement Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "policy_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Context Digest",
+      "type": "string"
+    },
+    "tool_registry_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Registry Digest",
+      "type": "string"
+    },
+    "provider_revision_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Provider Revision Digest",
+      "type": "string"
+    },
+    "input_digests": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Input Digests",
+      "type": "array"
+    }
+  },
+  "required": [
+    "engagement_id",
+    "scope_id",
+    "scope_version",
+    "policy_digest",
+    "sandbox_profile_digest",
+    "context_digest",
+    "tool_registry_digest",
+    "provider_revision_digest",
+    "input_digests"
+  ],
+  "title": "AuditStateBindings",
+  "type": "object"
+}
