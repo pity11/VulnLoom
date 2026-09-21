@@ -45,6 +45,7 @@ class FakeDockerBackend:
 
     def engine_info(self):
         return {
+            "ServerVersion": "29.7.2",
             "SecurityOptions": self.security_options,
             "CgroupVersion": "2",
             "MemoryLimit": True,
@@ -188,6 +189,17 @@ def test_docker_runner_rejects_non_rootless_engine_before_create(tmp_path, now):
     runner, backend, profile = _runner(tmp_path, now, rootless=False)
     with pytest.raises(RunnerRejected, match="rootless"):
         runner.execute(_request(now, profile), now=now)
+    assert backend.created_arguments is None
+
+
+def test_docker_runner_rejects_engine_outside_versioned_seccomp_contract(tmp_path, now):
+    runner, backend, profile = _runner(tmp_path, now)
+    original = backend.engine_info
+    backend.engine_info = lambda: {**original(), "ServerVersion": "29.7.3"}
+
+    with pytest.raises(RunnerRejected, match="seccomp contract"):
+        runner.execute(_request(now, profile), now=now)
+
     assert backend.created_arguments is None
 
 
@@ -400,6 +412,26 @@ def test_post_create_hardening_refusal_still_removes_container(tmp_path, now):
     inspection = _inspection(profile, source)
     inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
     inspection["HostConfig"]["ReadonlyRootfs"] = False
+    backend = FakeDockerBackend(inspection)
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+    )
+
+    with pytest.raises(RunnerRejected, match="hardening"):
+        runner.execute(request, now=now)
+    assert backend.removed and not backend.container_exists
+
+
+def test_post_create_verification_rejects_unconfined_seccomp(tmp_path, now):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    inspection["HostConfig"]["SecurityOpt"].append("seccomp=unconfined")
     backend = FakeDockerBackend(inspection)
     runner = DockerSandboxRunner(
         backend,

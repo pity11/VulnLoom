@@ -411,6 +411,7 @@ from vulnloom.runners import (
     SandboxProfile,
     SandboxRunRequest,
     SandboxRunResult,
+    SeccompContract,
     ToolInvocation,
 )
 from vulnloom.source_hunt import (
@@ -787,6 +788,7 @@ MODELS = (
     HostileWorkerProbeObservation,
     HostileWorkerQualificationPlan,
     HostileWorkerQualificationOutcome,
+    SeccompContract,
     ToolRegistration,
     HttpRequestPlan,
     BrokerCall,

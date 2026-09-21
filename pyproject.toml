@@ -27,6 +27,9 @@ vulnloom-codeql-query-wrapper = "vulnloom.runners.codeql_query_wrapper:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+vulnloom = ["runners/contracts/*.json"]
+
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers"
 testpaths = ["tests"]

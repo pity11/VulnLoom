@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "docker-builtin-worker-v1",
+  "mode": "runtime_default",
+  "engine_versions": [
+    "29.7.2"
+  ],
+  "required_engine_security_option": "name=seccomp,profile=builtin",
+  "forbidden_container_security_options": [
+    "seccomp=unconfined"
+  ],
+  "required_linux_seccomp_mode": 2
+}

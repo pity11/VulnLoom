@@ -226,6 +226,7 @@ Both completed successfully on 2026-09-07 UTC.
 | Broker gateway policy | Actual daemon gateways discovered and denied before transport | PASS |
 | DNS rebinding | Redirect hop is re-resolved; metadata-address drift is denied before a second socket | PASS |
 | Timeout and cleanup | Timed-out Worker is killed; container and anonymous storage absence is verified | PASS |
+| S1.1 hostile Worker | Synthetic canaries prove secret, host-resource, daemon-socket, network, authority, persistence, crash, timeout, and cleanup boundaries under arbitrary in-container execution | PASS (`35549659248`) |
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |

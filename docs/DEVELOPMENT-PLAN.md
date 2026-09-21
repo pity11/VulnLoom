@@ -194,8 +194,14 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **S1.1 敌对 Worker 准入**。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **S1.2 执行隔离和资源压力**。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
-以及 rootless opt-in 组合 canary 已实现。全量离线门禁为 1527 passed、31 skipped、覆盖率 85.41%。由于本机未运行
-专用 rootless Linux Admission，S1.1 尚未关闭；下一步先取得该真实隔离结果并修复任何失败，再进入 S1.2。
+以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
+Admission run `35549659248` 已通过，生产准入批次为 8 passed、9 passed、5 passed/9 deselected；新增 hostile
+Worker canary 所在批次无 skip，S1.1 关闭。
+
+S1.2 已开始首个纵切：仓库内版本化、内容寻址的 `docker-builtin-worker-v1` seccomp 合同绑定到每个 Sandbox
+Profile；生产默认只接受准入的 Docker Engine 29.7.2 builtin profile，版本漂移与 `seccomp=unconfined` fail-closed，
+rootless probe 从容器内复核 Linux `Seccomp: 2`。本地全量门禁为 1534 passed、31 skipped、覆盖率 85.42%；真实
+rootless 复核待该变更进入 Phase 3 后确认。后续继续覆盖 PID/FD/输出/磁盘/内存压力与进程组回收。

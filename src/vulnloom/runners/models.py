@@ -13,6 +13,7 @@ from vulnloom.domain.models import DomainModel
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope
 
 from .environment import build_worker_environment
+from .seccomp import WORKER_SECCOMP_CONTRACT
 
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 ImageDigest = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
@@ -105,6 +106,7 @@ class SandboxLimits(DomainModel):
 class SandboxProfile(DomainModel):
     kind: SandboxProfileKind
     image_digest: ImageDigest
+    seccomp_contract_digest: Digest = WORKER_SECCOMP_CONTRACT.contract_id
     run_as_uid: int = Field(gt=0, le=2**31 - 1)
     run_as_gid: int = Field(gt=0, le=2**31 - 1)
     read_only_root: bool = True
@@ -121,6 +123,8 @@ class SandboxProfile(DomainModel):
 
     @model_validator(mode="after")
     def enforce_security_invariants(self) -> Self:
+        if self.seccomp_contract_digest != WORKER_SECCOMP_CONTRACT.contract_id:
+            raise ValueError("sandbox profile must bind the admitted seccomp contract")
         if not self.read_only_root or not self.no_new_privileges or self.capabilities:
             raise ValueError("sandbox hardening flags cannot be weakened")
         if self.writable_paths != {"/tmp", "/workspace/output"}:

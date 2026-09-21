@@ -152,8 +152,10 @@ Plane-owned registries.
 
 The adapter currently supports network-disabled runs. It creates the container without starting it,
 inspects the resulting Docker configuration, and only then starts the registered tool. Rootless mode
-and seccomp are engine preconditions by default. A terminal result is returned only after the
-container is removed and an inspection confirms absence.
+and the content-addressed `docker-builtin-worker-v1` seccomp contract are engine preconditions by
+default. Every Sandbox Profile binds the contract digest; production admission pins Docker Engine
+29.7.2, rejects unconfined overrides, and verifies Linux seccomp mode 2 in the Worker. A terminal
+result is returned only after the container is removed and an inspection confirms absence.
 
 Direct Worker `TARGET_ONLY` networking is deliberately rejected. A Docker bridge alone is not a
 destination egress policy. Instead, the trusted Broker now owns a live HTTP/HTTPS adapter: policy

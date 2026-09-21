@@ -97,6 +97,7 @@ class FakeAnalyzerDockerBackend:
 
     def engine_info(self):
         return {
+            "ServerVersion": "29.7.2",
             "SecurityOptions": ["name=seccomp,profile=builtin", "name=rootless"],
             "CgroupVersion": "2",
             "MemoryLimit": True,
@@ -519,7 +520,10 @@ def _setup(
         registry.docker_tools,
         engine_policy=(
             DockerEnginePolicy(
-                require_rootless=os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1"
+                require_rootless=os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1",
+                require_versioned_seccomp=(
+                    os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1"
+                ),
             )
             if real_backend is not None
             else None

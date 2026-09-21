@@ -40,6 +40,15 @@ Alpine、假 Provider token、假 SSH agent、宿主 canary 和无攻击性的 s
 daemon socket/宿主资源不可见、权威输入只读、匿名 tmpfs 不跨任务、崩溃与超时后容器缺失。该测试继续由
 `VULNLOOM_ROOTLESS_QUALIFICATION=1` 显式启用，不连接公网、不调用模型，也不生成真实逃逸或外传载荷。
 
+S1.1 已由 commit `4363236151e67e04022b926cbdccf0fffd223412` 的 rootless Linux Phase 3 run
+`35549659248` 证明并关闭。该 run 使用 Docker Engine 29.7.2 rootless user service，生产 probe 三批均通过，新增
+hostile Worker canary 未跳过。
+
+S1.2 的首个合同使用仓库内 `worker-seccomp-v1.json`。它不是提示词声明，也不允许 `unconfined`：每个 Sandbox
+Profile 都绑定合同内容摘要；生产 Engine 必须是合同准入的 29.7.2 并报告 builtin seccomp，创建后 inspection 拒绝
+unconfined override，rootless 容器再从 `/proc/self/status` 证明 mode 2。Docker Desktop 的显式版本例外只用于本地
+回归，不能形成生产资格。资源压力与进程组回收仍属于后续 S1.2 纵切。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

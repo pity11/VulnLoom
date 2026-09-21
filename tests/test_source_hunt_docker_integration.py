@@ -42,7 +42,7 @@ from vulnloom.source_hunt import (
 def _engine_policy() -> DockerEnginePolicy:
     if os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1":
         return DockerEnginePolicy()
-    return DockerEnginePolicy(require_rootless=False)
+    return DockerEnginePolicy(require_rootless=False, require_versioned_seccomp=False)
 
 
 @pytest.mark.docker_integration

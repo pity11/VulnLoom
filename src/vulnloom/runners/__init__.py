@@ -59,6 +59,12 @@ from .profiles import (
     static_profile,
     validation_profile,
 )
+from .seccomp import (
+    WORKER_SECCOMP_CONTRACT,
+    SeccompContract,
+    SeccompContractMode,
+    load_worker_seccomp_contract,
+)
 
 __all__ = [
     "CleanupReport",
@@ -97,13 +103,17 @@ __all__ = [
     "SandboxRunResult",
     "SandboxRunStatus",
     "SandboxRunner",
+    "SeccompContract",
+    "SeccompContractMode",
     "RegisteredObjectStore",
     "ToolInvocation",
     "UnsafeEnvironmentName",
     "UnsafeEnvironmentValue",
     "WorkingDirectory",
+    "WORKER_SECCOMP_CONTRACT",
     "build_worker_environment",
     "qualify_hostile_worker",
+    "load_worker_seccomp_contract",
     "analyzer_profile",
     "post_exploitation_profile",
     "report_profile",

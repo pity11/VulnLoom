@@ -31,6 +31,7 @@ from .models import (
 )
 from .output import RunnerOutputCaptureFailed, RunnerOutputStore
 from .preflight import RunnerIdempotencyConflict, RunnerRejected, validate_run_request
+from .seccomp import WORKER_SECCOMP_CONTRACT
 
 
 class DockerBackendError(RuntimeError):
@@ -53,6 +54,7 @@ class DockerEnginePolicy:
     require_seccomp: bool = True
     require_cgroup_v2: bool = True
     require_resource_controls: bool = True
+    require_versioned_seccomp: bool = True
 
 
 @dataclass(frozen=True)
@@ -413,6 +415,11 @@ class DockerSandboxRunner:
             info.get(field) is True for field in ("MemoryLimit", "CpuCfsQuota", "PidsLimit")
         ):
             raise RunnerRejected("Docker engine cannot enforce required resource controls")
+        if self.engine_policy.require_versioned_seccomp:
+            if str(info.get("ServerVersion")) not in WORKER_SECCOMP_CONTRACT.engine_versions:
+                raise RunnerRejected("Docker engine version is outside the seccomp contract")
+            if WORKER_SECCOMP_CONTRACT.required_engine_security_option not in normalized:
+                raise RunnerRejected("Docker engine builtin seccomp profile is not admitted")
 
     def _create_arguments(self, request: SandboxRunRequest) -> tuple[str, ...]:
         profile = request.profile
@@ -521,6 +528,13 @@ class DockerSandboxRunner:
             host.get("ReadonlyRootfs") is True,
             set(host.get("CapDrop") or ()) == {"ALL"},
             any("no-new-privileges" in item for item in host.get("SecurityOpt") or ()),
+            not (
+                {
+                    str(item).lower()
+                    for item in host.get("SecurityOpt") or ()
+                }
+                & WORKER_SECCOMP_CONTRACT.forbidden_container_security_options
+            ),
             host.get("NetworkMode") == "none",
             host.get("Privileged") is False,
             host.get("PidMode") != "host",

@@ -49,7 +49,7 @@ def _engine_policy() -> DockerEnginePolicy:
     if os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1":
         return DockerEnginePolicy()
     # Local Docker Desktop can exercise the container boundary, but cannot qualify production.
-    return DockerEnginePolicy(require_rootless=False)
+    return DockerEnginePolicy(require_rootless=False, require_versioned_seccomp=False)
 
 
 def _docker(backend: DockerCliBackend, *arguments: str) -> subprocess.CompletedProcess[str]:
@@ -138,6 +138,7 @@ set -eu
 [ "$(id -u)" = "65532" ]
 grep -q '^CapEff:[[:space:]]*0000000000000000$' /proc/self/status
 grep -q '^NoNewPrivs:[[:space:]]*1$' /proc/self/status
+grep -q '^Seccomp:[[:space:]]*2$' /proc/self/status
 ! touch /root-filesystem-must-be-read-only
 ! touch /workspace/source/source-must-be-read-only
 touch /workspace/output/output-is-writable

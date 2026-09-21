@@ -1322,9 +1322,16 @@ cleanup unknown 均 fail-closed 为显式 denied。Docker post-create inspection
 device、端口发布、额外 host 映射和继承卷。rootless opt-in canary 把秘密、禁网、宿主资源、权威只读、跨任务
 持久化、崩溃清理和超时清理收敛为一份资格结果；仍只使用本地假秘密和非攻击性断言。
 
-本地离线门禁：1527 passed、31 skipped，覆盖率 85.41%，定向 Ruff 与 schema 生成通过。新增 rootless canary 已
-接入既有 Phase 3 Admission 工作流，但当前主机未执行该显式资格门禁，因此 S1.1 保持进行中，待 rootless Linux
-实测通过后关闭；未访问公网、未调用真实模型或执行真实攻击。
+本地离线门禁：1527 passed、31 skipped，覆盖率 85.41%，定向 Ruff 与 schema 生成通过。commit
+`4363236151e67e04022b926cbdccf0fffd223412` 的 rootless Linux Phase 3 Admission run `35549659248` 已成功，
+生产 probe 批次为 8 passed、9 passed、5 passed/9 deselected；新增 hostile Worker canary 所在批次没有 skip。
+S1.1 至此关闭；未调用真实模型或执行真实攻击。
+
+S1.2 首个纵切已开始：新增仓库版本化、内容寻址的 `docker-builtin-worker-v1` seccomp 合同并绑定到所有 Sandbox
+Profile。生产 Runner 默认只接受准入 Docker Engine 29.7.2 报告的 builtin profile，版本漂移、合同摘要漂移和
+`seccomp=unconfined` 均 fail-closed；真实 rootless hardening probe 进一步要求容器内 `/proc/self/status` 报告
+`Seccomp: 2`。普通 Docker Desktop 测试只能显式关闭版本资格检查且不能提供生产准入。当前本地全量门禁为
+1534 passed、31 skipped，覆盖率 85.42%；真实 rootless 结果待本纵切推送后由 Phase 3 复核。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless

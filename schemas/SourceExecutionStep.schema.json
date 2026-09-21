@@ -231,6 +231,12 @@
           "title": "Image Digest",
           "type": "string"
         },
+        "seccomp_contract_digest": {
+          "default": "76f4a50d2de81ec675ea08d610db0ec72724590b96a28695f4bea6ec08f933dd",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Seccomp Contract Digest",
+          "type": "string"
+        },
         "run_as_uid": {
           "exclusiveMinimum": 0,
           "maximum": 2147483647,

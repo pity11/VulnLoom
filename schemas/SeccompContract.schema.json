@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "SeccompContractMode": {
+      "enum": [
+        "runtime_default"
+      ],
+      "title": "SeccompContractMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/SeccompContractMode"
+    },
+    "engine_versions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Engine Versions",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "required_engine_security_option": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Required Engine Security Option",
+      "type": "string"
+    },
+    "forbidden_container_security_options": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Forbidden Container Security Options",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "required_linux_seccomp_mode": {
+      "const": 2,
+      "title": "Required Linux Seccomp Mode",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "contract_id",
+    "schema_version",
+    "name",
+    "mode",
+    "engine_versions",
+    "required_engine_security_option",
+    "forbidden_container_security_options",
+    "required_linux_seccomp_mode"
+  ],
+  "title": "SeccompContract",
+  "type": "object"
+}

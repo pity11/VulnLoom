@@ -88,7 +88,7 @@ def _engine_policy() -> DockerEnginePolicy:
     if os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") == "1":
         return DockerEnginePolicy()
     # Local Docker Desktop can exercise composition, but cannot qualify production.
-    return DockerEnginePolicy(require_rootless=False)
+    return DockerEnginePolicy(require_rootless=False, require_versioned_seccomp=False)
 
 
 class _Handler(BaseHTTPRequestHandler):

@@ -198,7 +198,7 @@ Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered
 
 - Adds a trusted Docker CLI adapter that uses argument arrays only; Workers never receive the Docker socket or the host process environment.
 - Resolves content mounts through a Control Plane-owned registry, pins exact image IDs, disables pulls, and replaces image entrypoints with registered absolute tool executables.
-- Applies and re-inspects a read-only root, non-root UID/GID, dropped capabilities, `no-new-privileges`, seccomp, no network, resource limits, read-only content, and bounded `noexec,nosuid,nodev` tmpfs mounts.
+- Applies and re-inspects a read-only root, non-root UID/GID, dropped capabilities, `no-new-privileges`, a content-bound versioned seccomp contract, no network, resource limits, read-only content, and bounded `noexec,nosuid,nodev` tmpfs mounts.
 - Kills timed-out Workers, removes containers and anonymous storage, and refuses to report a normal result unless absence is verified.
 - Includes opt-in real-container probes for isolation, secret non-inheritance, timeout, and cleanup.
 - Adds a live Broker-owned HTTP/HTTPS transport that connects directly to the policy-selected IP, preserves the authorized hostname for HTTP Host and TLS verification, ignores proxy environment variables, verifies the actual peer, and enforces response limits.
