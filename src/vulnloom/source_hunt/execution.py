@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Protocol
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import ValidationError
 
@@ -63,6 +63,43 @@ class SourceExecutionRejected(ValueError):
     pass
 
 
+class ProjectRecipeCandidateBindingView(Protocol):
+    binding_id: str
+    index_id: str
+    manifest_id: str
+    target_id: UUID
+    target_version: str
+    scope_id: UUID
+    scope_version: int
+    candidate_id: UUID
+    candidate_digest: str
+
+
+class ProjectRecipeCandidateBindingStore(Protocol):
+    def load_candidate_binding(
+        self, binding_id: str
+    ) -> ProjectRecipeCandidateBindingView: ...
+
+
+def _recipe_binding_matches(
+    binding: ProjectRecipeCandidateBindingView,
+    *,
+    index: RepositoryIndex,
+    candidate: Candidate,
+    scope: Scope,
+) -> bool:
+    return (
+        binding.index_id == index.index_id
+        and binding.manifest_id == index.manifest_id
+        and binding.target_id == index.target_id
+        and binding.target_version == index.target_version
+        and binding.scope_id == scope.scope_id
+        and binding.scope_version == scope.version
+        and binding.candidate_id == candidate.candidate_id
+        and binding.candidate_digest == candidate_content_digest(candidate)
+    )
+
+
 class SourceExecutionPlanningService:
     """Builds the fixed, digest-bound validation chain from trusted inputs."""
 
@@ -80,6 +117,7 @@ class SourceExecutionPlanningService:
         idempotency_key: str,
         stage_wall_seconds: int = 600,
         tool_registry: SourceExecutionToolRegistry | None = None,
+        project_recipe_binding: ProjectRecipeCandidateBindingView | None = None,
     ) -> SourceExecutionPlan:
         if (
             scope.state is not ScopeState.APPROVED
@@ -97,6 +135,15 @@ class SourceExecutionPlanningService:
             or candidate.scope_version != scope.version
         ):
             raise SourceExecutionRejected("source execution planning preflight failed")
+        if project_recipe_binding is not None and not _recipe_binding_matches(
+            project_recipe_binding,
+            index=index,
+            candidate=candidate,
+            scope=scope,
+        ):
+            raise SourceExecutionRejected(
+                "source execution project recipe binding drifted"
+            )
         if not 0 < stage_wall_seconds <= 600:
             raise SourceExecutionRejected("source execution stage budget is invalid")
         profile = source_execution_profile(
@@ -132,6 +179,14 @@ class SourceExecutionPlanningService:
                 input_refs=(
                     f"source-hunt:{investigation.checkpoint_id}",
                     f"candidate:{candidate_digest}",
+                    *(
+                        (
+                            "project-recipe-binding:"
+                            f"{project_recipe_binding.binding_id}",
+                        )
+                        if project_recipe_binding is not None
+                        else ()
+                    ),
                 ),
                 allowed_tools=profile.allowed_tools,
                 budget=TaskBudget(
@@ -180,6 +235,11 @@ class SourceExecutionPlanningService:
             index_id=index.index_id,
             candidate_id=candidate.candidate_id,
             candidate_digest=candidate_digest,
+            project_recipe_binding_id=(
+                project_recipe_binding.binding_id
+                if project_recipe_binding is not None
+                else None
+            ),
             scope_id=scope.scope_id,
             scope_version=scope.version,
             target_version=index.target_version,
@@ -261,12 +321,14 @@ class SourceExecutionService:
         evidence_store: EvidenceStore,
         store: SourceExecutionStore,
         output_evidence_adapter: SourceExecutionEvidenceAdapter | None = None,
+        project_recipe_binding_store: ProjectRecipeCandidateBindingStore | None = None,
     ):
         self.scope = scope
         self.runner = runner
         self.evidence_store = evidence_store
         self.store = store
         self.output_evidence_adapter = output_evidence_adapter
+        self.project_recipe_binding_store = project_recipe_binding_store
 
     def execute(
         self,
@@ -277,8 +339,17 @@ class SourceExecutionService:
         candidate: Candidate,
         approval: ApprovalRequest,
         now: datetime,
+        project_recipe_binding: ProjectRecipeCandidateBindingView | None = None,
     ) -> SourceExecutionOutcome:
-        self.preflight(plan, index, investigation, candidate, approval, now=now)
+        self.preflight(
+            plan,
+            index,
+            investigation,
+            candidate,
+            approval,
+            now=now,
+            project_recipe_binding=project_recipe_binding,
+        )
         initial = SourceExecutionOutcome(
             plan_id=plan.plan_id,
             status=SourceExecutionStatus.RUNNING,
@@ -379,7 +450,15 @@ class SourceExecutionService:
         return final
 
     def preflight(
-        self, plan, index, investigation, candidate, approval, *, now: datetime
+        self,
+        plan,
+        index,
+        investigation,
+        candidate,
+        approval,
+        *,
+        now: datetime,
+        project_recipe_binding: ProjectRecipeCandidateBindingView | None = None,
     ) -> None:
         if (
             self.scope.state is not ScopeState.APPROVED
@@ -403,6 +482,47 @@ class SourceExecutionService:
             or candidate.target_version != index.target_version
         ):
             raise SourceExecutionRejected("source execution provenance is incomplete")
+        binding_ref = None
+        if plan.project_recipe_binding_id is None:
+            if project_recipe_binding is not None:
+                raise SourceExecutionRejected(
+                    "source execution plan does not admit a project recipe binding"
+                )
+        else:
+            if (
+                project_recipe_binding is None
+                or self.project_recipe_binding_store is None
+                or project_recipe_binding.binding_id
+                != plan.project_recipe_binding_id
+            ):
+                raise SourceExecutionRejected(
+                    "source execution project recipe binding is unavailable"
+                )
+            try:
+                authoritative_binding = (
+                    self.project_recipe_binding_store.load_candidate_binding(
+                        plan.project_recipe_binding_id
+                    )
+                )
+            except (LookupError, ValueError) as exc:
+                raise SourceExecutionRejected(
+                    "source execution project recipe binding is unavailable"
+                ) from exc
+            if (
+                authoritative_binding != project_recipe_binding
+                or not _recipe_binding_matches(
+                    authoritative_binding,
+                    index=index,
+                    candidate=candidate,
+                    scope=self.scope,
+                )
+            ):
+                raise SourceExecutionRejected(
+                    "source execution project recipe binding drifted"
+                )
+            binding_ref = (
+                f"project-recipe-binding:{plan.project_recipe_binding_id}"
+            )
         if not approval.is_valid_for(
             action=ApprovalAction.RUN_UNTRUSTED_BUILD,
             digest=source_execution_approval_digest(plan),
@@ -449,6 +569,10 @@ class SourceExecutionService:
                 or request.task.deadline > plan.deadline
                 or expected_input not in request.task.input_refs
                 or expected_candidate not in request.task.input_refs
+                or (
+                    binding_ref is not None
+                    and binding_ref not in request.task.input_refs
+                )
                 or request.profile.kind is not SandboxProfileKind.VALIDATION
                 or request.profile.network_mode is not NetworkMode.NONE
                 or not request.profile.execute_target_code

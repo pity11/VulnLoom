@@ -6,11 +6,17 @@ from pathlib import Path
 
 import pytest
 from test_project_recipes import _approval
-from test_source_hunt import _indexed
+from test_source_hunt import _indexed, _snapshot
 
-from vulnloom.domain.models import ApprovalAction, ApprovalRequest, ApprovalStatus
+from vulnloom.domain.models import (
+    ApprovalAction,
+    ApprovalRequest,
+    ApprovalStatus,
+    Candidate,
+)
 from vulnloom.project_recipes import (
     ProjectRecipe,
+    ProjectRecipeCandidateBindingService,
     ProjectRecipeExecutionService,
     ProjectRecipePhase,
     ProjectRecipePlanningService,
@@ -26,7 +32,12 @@ from vulnloom.runners import (
     DockerSandboxRunner,
     RegisteredObjectStore,
 )
-from vulnloom.source_hunt import BuildSystem
+from vulnloom.source_hunt import (
+    BuildSystem,
+    SourceHuntLimits,
+    SourceHuntService,
+    SourceHuntStore,
+)
 
 
 def _engine_policy() -> DockerEnginePolicy:
@@ -302,6 +313,134 @@ def test_project_recipe_rejects_inherited_image_environment_and_cleans_container
     assert outcome.status is ProjectRecipeRunStatus.FAILED
     assert outcome.reason_code == "runner_rejected"
     assert not outcome.runner_results
+    assert recording_backend.container_ids
+    assert all(not recording_backend.exists(item) for item in recording_backend.container_ids)
+    hunt_store.close()
+
+
+@pytest.mark.docker_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_PROJECT_RECIPE_LOCAL_PROJECT") != "1",
+    reason="set VULNLOOM_PROJECT_RECIPE_LOCAL_PROJECT=1 for A1.3 local project admission",
+)
+def test_current_vulnloom_project_recipe_binds_a_real_indexed_candidate(
+    tmp_path, approved_scope, now
+):
+    repository_root = Path(__file__).parents[1]
+    paths = (repository_root / "pyproject.toml", *sorted((repository_root / "src").rglob("*.py")))
+    files = {
+        path.relative_to(repository_root).as_posix(): path.read_text(encoding="utf-8")
+        for path in paths
+    }
+    snapshot, scope, object_root = _snapshot(tmp_path, approved_scope, files)
+    hunt_store = SourceHuntStore(tmp_path / "a1.3-source-hunt.sqlite3")
+    index = SourceHuntService(store=hunt_store).index_repository(
+        snapshot=snapshot,
+        store_root=object_root,
+        scope=scope,
+        limits=SourceHuntLimits(max_files_per_partition=100),
+        now=now,
+    )
+    symbols = sorted(index.symbols, key=lambda item: item.qualified_name)
+    assert symbols
+    candidate = Candidate(
+        target_id=index.target_id,
+        target_version=index.target_version,
+        source_graph_id=index.index_id,
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        title="VulnLoom local repository admission candidate",
+        cwe="CWE-20",
+        entry_point=symbols[0].location,
+        sink=symbols[-1].location,
+        code_path=(symbols[0].location, symbols[-1].location),
+        security_invariant="Only bounded indexed inputs enter validation",
+        hypothesis="The local indexed project is ready for isolated validation",
+        signal_ids=("a" * 64,),
+        cheapest_disproof="Run the approval-gated validation chain",
+        duplicate_fingerprint="d" * 64,
+        confidence=0.5,
+    )
+    backend = DockerCliBackend()
+    image_digest = backend.inspect_image("vulnloom-project-recipe-python312:local")["Id"]
+    recipe = ProjectRecipe.create(
+        name="vulnloom-local",
+        version="1.0.0",
+        required_build_systems=(BuildSystem.PYPROJECT,),
+        image_digest=image_digest,
+        steps=(
+            ProjectRecipeStep.create(
+                phase=ProjectRecipePhase.BUILD,
+                tool_id="recipe.vulnloom-local.build",
+                argv=(
+                    "/usr/local/bin/python",
+                    "-m",
+                    "compileall",
+                    "-q",
+                    "src/vulnloom",
+                ),
+                environment={
+                    "HOME": "/tmp",
+                    "TMPDIR": "/tmp",
+                    "PYTHONPYCACHEPREFIX": "/workspace/output/pycache",
+                },
+                wall_seconds=60,
+            ),
+            ProjectRecipeStep.create(
+                phase=ProjectRecipePhase.TEST,
+                tool_id="recipe.vulnloom-local.test",
+                argv=(
+                    "/usr/local/bin/python",
+                    "-c",
+                    "from pathlib import Path; "
+                    "p=Path('pyproject.toml').read_text(); "
+                    "assert '[project]' in p and 'vulnloom' in p.lower()",
+                ),
+                environment={"HOME": "/tmp", "TMPDIR": "/tmp"},
+                wall_seconds=30,
+            ),
+        ),
+    )
+    registry = ProjectRecipeRegistry((recipe,))
+    plan = ProjectRecipePlanningService(registry=registry).prepare(
+        recipe_id=recipe.recipe_id,
+        index=index,
+        scope=scope,
+        now=now,
+        deadline=now + timedelta(minutes=3),
+        idempotency_key="a1.3:vulnloom-local",
+    )
+    recording_backend, runner = _runner(tmp_path, registry, index)
+    with ProjectRecipeRunStore(tmp_path / "a1.3-project-recipes.sqlite3") as store:
+        outcome = ProjectRecipeExecutionService(
+            scope=scope,
+            registry=registry,
+            runner=runner,
+            store=store,
+        ).execute(
+            plan=plan,
+            index=index,
+            approval=_approval(plan, scope, index, now),
+            now=now,
+        )
+        assert outcome.status is ProjectRecipeRunStatus.COMPLETED, tuple(
+            (result.status, result.error_codes) for result in outcome.runner_results
+        )
+        binding = ProjectRecipeCandidateBindingService(
+            scope=scope, store=store
+        ).bind(
+            plan=plan,
+            outcome=outcome,
+            index=index,
+            candidate=candidate,
+            now=now,
+        )
+
+        assert store.load_candidate_binding(binding.binding_id) == binding
+    assert outcome.status is ProjectRecipeRunStatus.COMPLETED
+    assert binding.index_id == index.index_id
+    assert binding.candidate_id == candidate.candidate_id
+    assert all(result.cleanup.complete for result in outcome.runner_results)
     assert recording_backend.container_ids
     assert all(not recording_backend.exists(item) for item in recording_backend.container_ids)
     hunt_store.close()

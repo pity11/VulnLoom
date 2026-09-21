@@ -10,12 +10,15 @@ from vulnloom.domain.models import (
     ApprovalAction,
     ApprovalRequest,
     ApprovalStatus,
+    Candidate,
     Scope,
     ScopeState,
+    SourceLocation,
     utc_now,
 )
 from vulnloom.project_recipes import (
     ProjectRecipe,
+    ProjectRecipeCandidateBindingService,
     ProjectRecipeExecutionService,
     ProjectRecipePhase,
     ProjectRecipePlanningService,
@@ -130,6 +133,28 @@ def _plan(now):
     return recipe, registry, scope, index, plan
 
 
+def _candidate(index: RepositoryIndex, scope: Scope) -> Candidate:
+    location = SourceLocation(path="src/example.py", line=1, symbol="example")
+    return Candidate(
+        target_id=index.target_id,
+        target_version=index.target_version,
+        source_graph_id=index.index_id,
+        scope_id=scope.scope_id,
+        scope_version=scope.version,
+        title="Project recipe binding candidate",
+        cwe="CWE-20",
+        entry_point=location,
+        sink=location,
+        code_path=(location,),
+        security_invariant="Input must be validated before use",
+        hypothesis="The indexed project contains a bounded candidate path",
+        signal_ids=("3" * 64,),
+        cheapest_disproof="Run the isolated validation chain",
+        duplicate_fingerprint="4" * 64,
+        confidence=0.5,
+    )
+
+
 def test_registry_is_content_addressed_and_rejects_shells_or_duplicates():
     recipe = _recipe()
     registry = ProjectRecipeRegistry((recipe,))
@@ -201,6 +226,93 @@ def test_success_is_persisted_and_exact_retry_is_idempotent(tmp_path):
         assert outcome == replay == store.load(plan.plan_id)
         assert outcome.executed_step_ids == tuple(step.step_id for step in plan.steps)
         assert all(result.cleanup.complete for result in outcome.runner_results)
+
+
+def test_successful_recipe_binds_exact_candidate_idempotently(tmp_path):
+    now = utc_now()
+    _, registry, scope, index, plan = _plan(now)
+    candidate = _candidate(index, scope)
+    with ProjectRecipeRunStore(tmp_path / "recipes.db") as store:
+        outcome = ProjectRecipeExecutionService(
+            scope=scope,
+            registry=registry,
+            runner=OfflineSandboxRunner(registry.tool_ids),
+            store=store,
+        ).execute(
+            plan=plan,
+            index=index,
+            approval=_approval(plan, scope, index, now),
+            now=now,
+        )
+        service = ProjectRecipeCandidateBindingService(scope=scope, store=store)
+        binding = service.bind(
+            plan=plan,
+            outcome=outcome,
+            index=index,
+            candidate=candidate,
+            now=now,
+        )
+
+        assert binding == service.bind(
+            plan=plan,
+            outcome=outcome,
+            index=index,
+            candidate=candidate,
+            now=now,
+        )
+        assert store.load_candidate_binding(binding.binding_id) == binding
+        assert binding.candidate_id == candidate.candidate_id
+        assert binding.manifest_id == index.manifest_id
+
+        changed_candidate = candidate.model_copy(update={"confidence": 0.6})
+        with pytest.raises(ProjectRecipeRejected, match="authoritative state"):
+            service.bind(
+                plan=plan,
+                outcome=outcome,
+                index=index,
+                candidate=changed_candidate,
+                now=now,
+            )
+
+
+def test_incomplete_or_unavailable_recipe_cannot_bind_candidate(tmp_path):
+    now = utc_now()
+    _, registry, scope, index, plan = _plan(now)
+    candidate = _candidate(index, scope)
+    with ProjectRecipeRunStore(tmp_path / "failed.db") as store:
+        outcome = ProjectRecipeExecutionService(
+            scope=scope,
+            registry=registry,
+            runner=_ScenarioRunner(
+                registry.tool_ids, OfflineScenario(wall_seconds=601)
+            ),
+            store=store,
+        ).execute(
+            plan=plan,
+            index=index,
+            approval=_approval(plan, scope, index, now),
+            now=now,
+        )
+        with pytest.raises(ProjectRecipeRejected, match="provenance"):
+            ProjectRecipeCandidateBindingService(scope=scope, store=store).bind(
+                plan=plan,
+                outcome=outcome,
+                index=index,
+                candidate=candidate,
+                now=now,
+            )
+
+    with (
+        ProjectRecipeRunStore(tmp_path / "missing.db") as store,
+        pytest.raises(ProjectRecipeRejected, match="source is unavailable"),
+    ):
+        ProjectRecipeCandidateBindingService(scope=scope, store=store).bind(
+            plan=plan,
+            outcome=outcome,
+            index=index,
+            candidate=candidate,
+            now=now,
+        )
 
 
 def test_missing_approval_and_build_system_mismatch_fail_closed(tmp_path):

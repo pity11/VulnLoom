@@ -141,6 +141,12 @@ A1.2 已在本地 Docker 上验证该边界。首次运行因官方 Python image
 `network=none`、UID/GID 65532、只读 root/source、cap-drop ALL、`NoNewPrivileges` 和有界资源/tmpfs；所有创建的
 容器最终均不存在。本机 daemon 非 rootless，不能替代 S1 的独立 rootless 生产资格。
 
+A1.3 防止把“项目能构建”误当成“漏洞已复现”。内容寻址 binding 精确绑定成功 Recipe outcome 和 Candidate
+provenance，并由独立持久化表保存。Source Execution 在任何 Runner 调用前从权威 store 重读；仅由调用方提供、
+缺失、篡改或与 Index/Manifest/Target/Scope/Candidate 不一致的 binding 一律拒绝。通过 binding 仍必须执行完整
+Validation receipt 链，Candidate 不会由 Recipe 直接提升。非 fixture 验收使用当前仓库只读 Snapshot、本地清洁
+Python 3.12 image、`network=none` 和完整 cleanup proof；未安装依赖、未访问公网、未调用模型或执行攻击。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

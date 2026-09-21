@@ -5,7 +5,11 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from .models import ProjectRecipeRunOutcome, ProjectRecipeRunPlan
+from .models import (
+    ProjectRecipeCandidateBinding,
+    ProjectRecipeRunOutcome,
+    ProjectRecipeRunPlan,
+)
 
 
 class ProjectRecipeRunStoreError(ValueError):
@@ -24,6 +28,15 @@ class ProjectRecipeRunStore:
                 idempotency_key TEXT NOT NULL UNIQUE,
                 plan_payload TEXT NOT NULL,
                 outcome_payload TEXT NOT NULL
+            )
+            """
+        )
+        self.connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_recipe_candidate_bindings (
+                binding_id TEXT PRIMARY KEY,
+                recipe_plan_id TEXT NOT NULL UNIQUE,
+                payload TEXT NOT NULL
             )
             """
         )
@@ -77,6 +90,54 @@ class ProjectRecipeRunStore:
         if row is None:
             raise ProjectRecipeRunStoreError("project recipe run is unavailable")
         return ProjectRecipeRunOutcome.model_validate_json(row[0])
+
+    def load_plan(self, plan_id: str) -> ProjectRecipeRunPlan:
+        row = self.connection.execute(
+            "SELECT plan_payload FROM project_recipe_runs WHERE plan_id = ?",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise ProjectRecipeRunStoreError("project recipe plan is unavailable")
+        return ProjectRecipeRunPlan.model_validate_json(row[0])
+
+    def put_candidate_binding(
+        self, binding: ProjectRecipeCandidateBinding
+    ) -> ProjectRecipeCandidateBinding:
+        with self.connection:
+            row = self.connection.execute(
+                "SELECT payload FROM project_recipe_candidate_bindings "
+                "WHERE recipe_plan_id = ?",
+                (binding.recipe_plan_id,),
+            ).fetchone()
+            if row is not None:
+                existing = ProjectRecipeCandidateBinding.model_validate_json(row[0])
+                if existing != binding:
+                    raise ProjectRecipeRunStoreError(
+                        "project recipe Candidate binding collision"
+                    )
+                return existing
+            self.connection.execute(
+                "INSERT INTO project_recipe_candidate_bindings VALUES (?, ?, ?)",
+                (
+                    binding.binding_id,
+                    binding.recipe_plan_id,
+                    binding.model_dump_json(),
+                ),
+            )
+        return binding
+
+    def load_candidate_binding(
+        self, binding_id: str
+    ) -> ProjectRecipeCandidateBinding:
+        row = self.connection.execute(
+            "SELECT payload FROM project_recipe_candidate_bindings WHERE binding_id = ?",
+            (binding_id,),
+        ).fetchone()
+        if row is None:
+            raise ProjectRecipeRunStoreError(
+                "project recipe Candidate binding is unavailable"
+            )
+        return ProjectRecipeCandidateBinding.model_validate_json(row[0])
 
     def close(self) -> None:
         self.connection.close()

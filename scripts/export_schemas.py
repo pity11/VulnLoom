@@ -267,6 +267,7 @@ from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
 from vulnloom.project_recipes import (
     ProjectRecipe,
+    ProjectRecipeCandidateBinding,
     ProjectRecipeRunOutcome,
     ProjectRecipeRunPlan,
     ProjectRecipeRunStep,
@@ -625,6 +626,7 @@ MODELS = (
     SourceToolReport,
     ProjectRecipeStep,
     ProjectRecipe,
+    ProjectRecipeCandidateBinding,
     ProjectRecipeRunStep,
     ProjectRecipeRunPlan,
     ProjectRecipeRunOutcome,

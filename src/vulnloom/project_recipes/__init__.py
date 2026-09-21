@@ -2,6 +2,7 @@
 
 from .models import (
     ProjectRecipe,
+    ProjectRecipeCandidateBinding,
     ProjectRecipePhase,
     ProjectRecipeRunOutcome,
     ProjectRecipeRunPlan,
@@ -12,6 +13,7 @@ from .models import (
 )
 from .registry import ProjectRecipeRegistry, ProjectRecipeRegistryError
 from .service import (
+    ProjectRecipeCandidateBindingService,
     ProjectRecipeExecutionService,
     ProjectRecipePlanningService,
     ProjectRecipeRejected,
@@ -20,6 +22,8 @@ from .store import ProjectRecipeRunStore, ProjectRecipeRunStoreError
 
 __all__ = [
     "ProjectRecipe",
+    "ProjectRecipeCandidateBinding",
+    "ProjectRecipeCandidateBindingService",
     "ProjectRecipeExecutionService",
     "ProjectRecipePhase",
     "ProjectRecipePlanningService",

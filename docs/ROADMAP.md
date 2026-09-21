@@ -1177,6 +1177,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   Admission 为 3 passed，448 份 schema、Ruff 和 diff check 通过。A1 下一步为非 fixture 本地项目的端到端
   Recipe→Validation 绑定。
 
+- A1.3 已完成并关闭 A1。`ProjectRecipeCandidateBinding` 内容寻址地绑定成功 Recipe plan/outcome、Registry、
+  Recipe、Index、Manifest、Target、Scope 与 Candidate；Source Execution 执行前从权威 store 重读，缺失、伪造或
+  provenance 漂移均拒绝，且不能绕过五阶段 Validation/Critic/Finding Gate。当前 VulnLoom 仓库作为非 fixture
+  只读 Snapshot 在本地清洁 Python 3.12 容器中通过无网络 Compile→结构检查并生成 binding；互补离线纵切消费
+  binding 到共享 `VALIDATED` 状态。无依赖安装、公网、真实模型或攻击，容器全部清理。默认门禁为 1615 passed、
+  43 skipped、85.53% coverage，显式 A1.3 Docker Admission 为 1 passed（完整 A1 Docker 回归 4 passed），449 份 schema、Ruff 和 diff check 通过。下一纵切按双线
+  轮转进入 B1.1 Observation-driven bounded replanning。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

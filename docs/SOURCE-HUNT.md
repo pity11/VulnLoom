@@ -86,10 +86,11 @@ V1 completes the safe Source Hunt orchestration and shared Candidate-to-report e
 closes its fixed-Benchmark acceptance with a dedicated C coverage/ASAN adapter, persistent Crash
 deduplication, and independently replayed PoV qualification. A1.1 now provides the offline-tested trusted
 Project Recipe Registry and Approval-bound Build→Test orchestration described in `PROJECT-RECIPES.md`; A1.2
-has passed its explicit local, network-disabled Docker fixture admission. The Python adapter provides AST navigation;
+passed its fixture Docker admission and A1.3 now binds a successful non-fixture local project Recipe into the
+authoritative Candidate→Validation path. The Python adapter provides AST navigation;
 JavaScript/TypeScript currently provides conservative navigation only. UBSAN/MSAN variants, automatic harness
 synthesis, patch generation, and blind-holdout quality gates remain later depth work and must not be inferred
-from the fixed Benchmark adapter or A1.1.
+from the fixed Benchmark adapter or the A1 acceptance paths.
 
 No Source Hunt command accepts a Provider secret, full private endpoint, disclosure token, or raw
 Authorization response. Network integration and real model calls remain explicit, disabled-by-default
@@ -97,7 +98,6 @@ activities outside this workflow.
 
 ## Next development sequence
 
-Source Hunt 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：S1 已关闭，A1.1 Registry 与 A1.2 本地无网络
-Docker Admission 已完成；下一步是非 fixture 本地项目端到端闭环，再推进 JavaScript/TypeScript 深度、受限 Harness 与更多
-运行时证据、Blind Holdout 质量门禁，以及只读 Patch proposal 和双重复测。固定 native Benchmark 或 A1.1
-离线结果不得外推为通用项目自动构建或广泛漏洞发现能力。
+Source Hunt 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：S1 与 A1 已关闭；下一次回到 A 线时推进
+JavaScript/TypeScript 深度、受限 Harness 与更多运行时证据、Blind Holdout 质量门禁，以及只读 Patch proposal 和
+双重复测。固定 native Benchmark 或 A1 验收结果不得外推为广泛漏洞发现能力。

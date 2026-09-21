@@ -194,9 +194,8 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **A1.3 非 fixture 本地项目端到端 Recipe 闭环**。A1.1 Registry 与离线执行合同、A1.2
-本地 Docker Admission 已完成，
-Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B1.1 Observation-driven bounded replanning 首个纵切**。A1 通用 Project Recipe
+Registry 与 Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -279,3 +278,13 @@ Desktop 不冒充 rootless，生产继续要求 S1 已验证的 rootless policy�
 Candidate→Validation 链。
 最终默认离线门禁为 1612 passed、42 skipped、85.45% coverage；显式 Docker Admission 为 3 passed；448 份
 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-21）：A1.3 达到 `isolated_integration_tested` 并关闭 A1。新增内容寻址的
+`ProjectRecipeCandidateBinding`，精确绑定成功 Recipe plan/outcome、Registry、Recipe、Index、Manifest、Target、
+Scope 与 `PROPOSED` Candidate。Source Execution 可封存 binding ID，但执行前必须从权威 Recipe store 重读并逐项
+核对；缺失、伪造、Candidate/Index/Manifest 漂移均 fail-closed，五阶段 Validation 与后续 Critic/Finding Gate
+没有被 Recipe 成功替代。显式验收把当前 VulnLoom 的 `pyproject.toml` 和全部 Python package 源码物化为只读
+Snapshot，在无网络、无依赖安装的本地清洁 Python 3.12 容器中完成 Compile→结构检查、持久化 Candidate binding
+并证明容器清理；离线端到端回归消费同类权威 binding 完成 Candidate→Validation，同时覆盖缺失与伪造拒绝。
+本轮未访问公网、未调用真实模型、未执行真实攻击。默认门禁为 1615 passed、43 skipped、85.53% coverage；显式 A1.3 Docker
+Admission 为 1 passed；449 份 schema、Ruff 和 diff check 通过。下一项按双线轮转进入 B1.1。

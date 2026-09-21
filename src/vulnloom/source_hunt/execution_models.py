@@ -121,6 +121,7 @@ class SourceExecutionPlan(DomainModel):
     index_id: Digest
     candidate_id: UUID
     candidate_digest: Digest
+    project_recipe_binding_id: Digest | None = None
     scope_id: UUID
     scope_version: int = Field(ge=1)
     target_version: str = Field(min_length=1)
@@ -144,6 +145,7 @@ class SourceExecutionPlan(DomainModel):
     @classmethod
     def create(cls, **values: object) -> SourceExecutionPlan:
         digest_values = dict(values)
+        digest_values.setdefault("project_recipe_binding_id", None)
         digest_values["steps"] = tuple(
             item.model_dump(mode="python") for item in values["steps"]  # type: ignore[union-attr]
         )

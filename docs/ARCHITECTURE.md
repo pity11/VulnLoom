@@ -119,6 +119,11 @@ A1.2 将同一合同接入真实 Docker Runner。摘要固定的本地 Python fi
 tmpfs 和精确挂载；成功与真实超时路径均验证容器不存在。本机 Docker Desktop 不冒充 rootless，生产仍要求已由
 S1 单独资格验证的 rootless engine policy。
 
+A1.3 在 Recipe 与动态验证之间加入权威 `ProjectRecipeCandidateBinding`。它封存成功 run outcome 及
+Registry/Recipe/Index/Manifest/Target/Scope/Candidate 摘要；Source Execution plan 只携带 binding ID，并在执行前
+从 Recipe store 重读原件。绑定缺失、伪造或漂移时不启动 Runner。Recipe 成功只表示项目已通过准入构建/测试，
+不会改变 Candidate 状态；五阶段 Validation、Critic 和 Finding promotion 仍是独立门禁。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

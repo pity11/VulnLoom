@@ -204,3 +204,34 @@ class ProjectRecipeRunOutcome(DomainModel):
         if self.status is ProjectRecipeRunStatus.COMPLETED and not self.runner_results:
             raise ValueError("completed project recipe requires runner results")
         return self
+
+
+class ProjectRecipeCandidateBinding(DomainModel):
+    """Authoritative proof that one Candidate's exact project passed its recipe."""
+
+    binding_id: Digest
+    recipe_plan_id: Digest
+    recipe_outcome_digest: Digest
+    registry_digest: Digest
+    recipe_id: Digest
+    index_id: Digest
+    manifest_id: Digest
+    target_id: UUID
+    target_version: str = Field(min_length=1)
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
+    candidate_id: UUID
+    candidate_digest: Digest
+    bound_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if self.binding_id != canonical_digest(
+            self.model_dump(mode="python", exclude={"binding_id"})
+        ):
+            raise ValueError("project recipe Candidate binding content digest mismatch")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> ProjectRecipeCandidateBinding:
+        return cls(binding_id=canonical_digest(values), **values)

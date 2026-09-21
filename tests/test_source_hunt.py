@@ -44,6 +44,17 @@ from vulnloom.findings import DuplicateCheckResult, FindingDuplicateCheck
 from vulnloom.hypotheses import CandidateSet, CandidateSetStore
 from vulnloom.hypotheses.models import candidate_set_digest
 from vulnloom.policy import PolicyEngine
+from vulnloom.project_recipes import (
+    ProjectRecipe,
+    ProjectRecipeCandidateBindingService,
+    ProjectRecipeExecutionService,
+    ProjectRecipePhase,
+    ProjectRecipePlanningService,
+    ProjectRecipeRegistry,
+    ProjectRecipeRunStore,
+    ProjectRecipeStep,
+    project_recipe_approval_digest,
+)
 from vulnloom.reporting import (
     DeterministicReportService,
     ReportArtifactStore,
@@ -902,6 +913,172 @@ def test_source_execution_requires_approval_and_resumes_after_interruption(
     ) == binding
     hunt_store.close()
     store.close()
+
+
+def test_project_recipe_binding_is_authoritative_for_source_validation(
+    tmp_path, approved_scope, now
+):
+    (
+        hunt_store,
+        index,
+        scope,
+        checkpoint,
+        candidate,
+        _,
+        _,
+        evidence_store,
+        evidence,
+    ) = _execution_fixture(tmp_path, approved_scope, now)
+    recipe = ProjectRecipe.create(
+        name="source-hunt-python",
+        version="1.0.0",
+        required_build_systems=(BuildSystem.PYPROJECT,),
+        image_digest="sha256:" + "1" * 64,
+        steps=(
+            ProjectRecipeStep.create(
+                phase=ProjectRecipePhase.BUILD,
+                tool_id="recipe.source-hunt.build",
+                argv=("/usr/local/bin/python", "-m", "compileall", "-q", "src"),
+            ),
+            ProjectRecipeStep.create(
+                phase=ProjectRecipePhase.TEST,
+                tool_id="recipe.source-hunt.test",
+                argv=("/usr/local/bin/python", "-m", "pytest", "-q"),
+            ),
+        ),
+    )
+    registry = ProjectRecipeRegistry((recipe,))
+    recipe_plan = ProjectRecipePlanningService(registry=registry).prepare(
+        recipe_id=recipe.recipe_id,
+        index=index,
+        scope=scope,
+        now=now,
+        deadline=now + timedelta(minutes=5),
+        idempotency_key="source-hunt:recipe-binding",
+    )
+    recipe_approval = ApprovalRequest(
+        engagement_id=scope.engagement_id,
+        target_id=index.target_id,
+        action=ApprovalAction.RUN_UNTRUSTED_BUILD,
+        action_digest=project_recipe_approval_digest(recipe_plan),
+        expected_side_effects=("execute sealed local project recipe",),
+        evidence_summary="Exact offline recipe plan approved",
+        policy_version=scope.version,
+        expires_at=now + timedelta(minutes=5),
+        status=ApprovalStatus.GRANTED,
+        decided_by="human-reviewer",
+        decided_at=now,
+    )
+    recipe_store = ProjectRecipeRunStore(tmp_path / "bound-recipes.sqlite3")
+    recipe_outcome = ProjectRecipeExecutionService(
+        scope=scope,
+        registry=registry,
+        runner=OfflineSandboxRunner(registry.tool_ids),
+        store=recipe_store,
+    ).execute(
+        plan=recipe_plan,
+        index=index,
+        approval=recipe_approval,
+        now=now,
+    )
+    recipe_binding = ProjectRecipeCandidateBindingService(
+        scope=scope, store=recipe_store
+    ).bind(
+        plan=recipe_plan,
+        outcome=recipe_outcome,
+        index=index,
+        candidate=candidate,
+        now=now,
+    )
+    execution_plan = SourceExecutionPlanningService().prepare(
+        index=index,
+        investigation=checkpoint,
+        candidate=candidate,
+        scope=scope,
+        image_digest="sha256:" + "1" * 64,
+        tool_registry_digest="f" * 64,
+        now=now,
+        deadline=now + timedelta(minutes=5),
+        idempotency_key="source-hunt:bound-execution",
+        stage_wall_seconds=60,
+        project_recipe_binding=recipe_binding,
+    )
+    assert all(
+        f"project-recipe-binding:{recipe_binding.binding_id}"
+        in step.request.task.input_refs
+        for step in execution_plan.steps
+    )
+    execution_approval = ApprovalRequest(
+        engagement_id=scope.engagement_id,
+        target_id=index.target_id,
+        action=ApprovalAction.RUN_UNTRUSTED_BUILD,
+        action_digest=source_execution_approval_digest(execution_plan),
+        expected_side_effects=("execute isolated Candidate validation chain",),
+        evidence_summary="Exact recipe-bound validation plan approved",
+        policy_version=scope.version,
+        expires_at=now + timedelta(minutes=5),
+        status=ApprovalStatus.GRANTED,
+        decided_by="human-reviewer",
+        decided_at=now,
+    )
+    execution_store = SourceExecutionStore(tmp_path / "bound-executions.sqlite3")
+    service = SourceExecutionService(
+        scope=scope,
+        runner=_ScriptedRunner(
+            tuple(OfflineScenario(evidence_refs=(item.evidence_id,)) for item in evidence)
+        ),
+        evidence_store=evidence_store,
+        store=execution_store,
+        project_recipe_binding_store=recipe_store,
+    )
+    with pytest.raises(SourceExecutionRejected, match="binding is unavailable"):
+        service.execute(
+            plan=execution_plan,
+            index=index,
+            investigation=checkpoint,
+            candidate=candidate,
+            approval=execution_approval,
+            now=now,
+        )
+    forged_binding = recipe_binding.model_copy(
+        update={"candidate_digest": "8" * 64}
+    )
+    with pytest.raises(SourceExecutionRejected, match="binding drifted"):
+        service.execute(
+            plan=execution_plan,
+            index=index,
+            investigation=checkpoint,
+            candidate=candidate,
+            approval=execution_approval,
+            now=now,
+            project_recipe_binding=forged_binding,
+        )
+    outcome = service.execute(
+        plan=execution_plan,
+        index=index,
+        investigation=checkpoint,
+        candidate=candidate,
+        approval=execution_approval,
+        now=now,
+        project_recipe_binding=recipe_binding,
+    )
+    validation_binding = SourceExecutionValidationService(
+        scope=scope,
+        evidence_store=evidence_store,
+        store=execution_store,
+    ).bind(
+        plan=execution_plan,
+        candidate=candidate,
+        outcome=outcome,
+        evidence=evidence,
+        now=now + timedelta(seconds=1),
+    )
+
+    assert outcome.status is SourceExecutionStatus.COMPLETED
+    assert validation_binding.validated_candidate.state.value == "validated"
+    recipe_store.close()
+    execution_store.close()
+    hunt_store.close()
 
 
 def test_source_execution_rejects_untyped_or_broken_stage_receipts(

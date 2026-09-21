@@ -66,12 +66,24 @@ that policy as well. No image pull, package installation, public access, model i
 
 ## Current boundary
 
-A1.1 uses the offline Runner and A1.2 adds the explicit local Docker admission above. Neither path pulls
-images, installs dependencies, accesses a package registry, invokes a model, or exposes a generic recipe-file
-CLI. Recipe construction is a trusted deployment/configuration action, not an Agent capability.
+A1.3 adds `ProjectRecipeCandidateBinding`, an immutable proof over the exact successful Recipe plan/outcome,
+Registry, Recipe, RepositoryIndex, Manifest, Target, Scope, and proposed Candidate digest. The binding store
+is authoritative and idempotent. Source Execution plans may carry its binding ID; before any validation stage,
+the service reloads the binding from that store and rejects missing, caller-forged, or drifted values. Every
+stage also carries the binding reference. A Recipe proves only project readiness: it cannot change Candidate
+state, omit Build→Harness→Fuzz→Sanitizer→PoV replay, or bypass the existing Validation/Critic/Finding gates.
 
-The next A1 vertical slice must exercise a non-fixture local project snapshot and bind its recipe outcome into
-the Source Hunt Candidate→Validation flow. A1 remains open until that repeatable end-to-end path is proven.
+The opt-in A1.3 admission snapshots the current VulnLoom `pyproject.toml` and all Python package sources,
+indexes that non-fixture project, compiles it in a clean local Python 3.12 container, runs a fixed structural
+check, and persists a Candidate binding. The complementary offline end-to-end test consumes the authoritative
+binding through Source Execution and reaches shared `VALIDATED` state; missing and forged bindings are rejected.
+The local image is addressed by its inspected image ID and contains only the explicit Worker base environment.
 
-A1.2 acceptance: 1612 passed, 42 skipped, 85.45% coverage in the default offline suite; 3 passed in the
-explicit Docker admission; 448 JSON Schemas, Ruff, and diff check passed.
+A1.1 uses the offline Runner, A1.2 adds fixture Docker admission, and A1.3 closes the non-fixture
+Recipe→Candidate→Validation integration. None pulls images, installs dependencies, accesses a package registry,
+invokes a model, performs an attack, or exposes a generic recipe-file CLI. Recipe construction remains a trusted
+deployment/configuration action, not an Agent capability.
+
+A1.3 acceptance: 1615 passed, 43 skipped and 85.53% coverage in the default offline suite; the explicit non-fixture Docker admission
+passed, and the complete A1 Docker regression was 4 passed; 449 JSON Schemas, Ruff, and diff check passed. A1 is closed. Remaining language depth, harness synthesis,
+blind holdouts, and patch proposal work belongs to later A milestones.

@@ -6,7 +6,15 @@ from datetime import datetime
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid5
 
-from vulnloom.domain.models import ApprovalAction, ApprovalRequest, Scope, ScopeState
+from vulnloom.domain.digests import canonical_digest
+from vulnloom.domain.models import (
+    ApprovalAction,
+    ApprovalRequest,
+    Candidate,
+    CandidateState,
+    Scope,
+    ScopeState,
+)
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
 from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
@@ -22,9 +30,11 @@ from vulnloom.runners import (
 )
 from vulnloom.runners.models import invocation_digest, sandbox_profile_digest
 from vulnloom.source_hunt.models import RepositoryIndex
+from vulnloom.validation import candidate_content_digest
 
 from .models import (
     ProjectRecipe,
+    ProjectRecipeCandidateBinding,
     ProjectRecipeRunOutcome,
     ProjectRecipeRunPlan,
     ProjectRecipeRunStatus,
@@ -32,7 +42,7 @@ from .models import (
     project_recipe_approval_digest,
 )
 from .registry import ProjectRecipeRegistry, ProjectRecipeRegistryError
-from .store import ProjectRecipeRunStore
+from .store import ProjectRecipeRunStore, ProjectRecipeRunStoreError
 
 
 class ProjectRecipeRejected(ValueError):
@@ -325,3 +335,81 @@ class ProjectRecipeExecutionService:
         if result.status is SandboxRunStatus.CANCELLED:
             return ProjectRecipeRunStatus.CANCELLED, "step_cancelled"
         return ProjectRecipeRunStatus.FAILED, "step_failed"
+
+
+class ProjectRecipeCandidateBindingService:
+    """Bind successful project readiness without claiming vulnerability reproduction."""
+
+    def __init__(self, *, scope: Scope, store: ProjectRecipeRunStore):
+        self.scope = scope
+        self.store = store
+
+    def bind(
+        self,
+        *,
+        plan: ProjectRecipeRunPlan,
+        outcome: ProjectRecipeRunOutcome,
+        index: RepositoryIndex,
+        candidate: Candidate,
+        now: datetime,
+    ) -> ProjectRecipeCandidateBinding:
+        candidate_digest = candidate_content_digest(candidate)
+        try:
+            authoritative_plan = self.store.load_plan(plan.plan_id)
+            authoritative_outcome = self.store.load(plan.plan_id)
+        except (ProjectRecipeRunStoreError, ValueError) as exc:
+            raise ProjectRecipeRejected(
+                "project recipe Candidate binding source is unavailable"
+            ) from exc
+        if (
+            authoritative_plan != plan
+            or authoritative_outcome != outcome
+            or outcome.plan_id != plan.plan_id
+            or outcome.status is not ProjectRecipeRunStatus.COMPLETED
+            or outcome.executed_step_ids != tuple(step.step_id for step in plan.steps)
+            or len(outcome.runner_results) != len(plan.steps)
+            or not all(
+                result.status is SandboxRunStatus.COMPLETED
+                and result.cleanup.complete
+                for result in outcome.runner_results
+            )
+            or self.scope.state is not ScopeState.APPROVED
+            or not self.scope.valid_from <= now < self.scope.valid_until
+            or plan.index_id != index.index_id
+            or plan.manifest_id != index.manifest_id
+            or plan.target_version != index.target_version
+            or plan.scope_id != self.scope.scope_id
+            or plan.scope_version != self.scope.version
+            or index.scope_id != self.scope.scope_id
+            or index.scope_version != self.scope.version
+            or candidate.state is not CandidateState.PROPOSED
+            or candidate.target_id != index.target_id
+            or candidate.target_version != index.target_version
+            or candidate.source_graph_id != index.index_id
+            or candidate.scope_id != self.scope.scope_id
+            or candidate.scope_version != self.scope.version
+        ):
+            raise ProjectRecipeRejected(
+                "project recipe Candidate binding provenance is incomplete"
+            )
+        binding = ProjectRecipeCandidateBinding.create(
+            recipe_plan_id=plan.plan_id,
+            recipe_outcome_digest=canonical_digest(outcome.model_dump(mode="python")),
+            registry_digest=plan.registry_digest,
+            recipe_id=plan.recipe_id,
+            index_id=index.index_id,
+            manifest_id=index.manifest_id,
+            target_id=index.target_id,
+            target_version=index.target_version,
+            scope_id=self.scope.scope_id,
+            scope_version=self.scope.version,
+            candidate_id=candidate.candidate_id,
+            candidate_digest=candidate_digest,
+            bound_at=now,
+        )
+        try:
+            return self.store.put_candidate_binding(binding)
+        except (ProjectRecipeRunStoreError, ValueError) as exc:
+            raise ProjectRecipeRejected(
+                "project recipe Candidate binding collided with authoritative state"
+            ) from exc
