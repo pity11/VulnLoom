@@ -194,8 +194,9 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B1.1 Observation-driven bounded replanning 首个纵切**。A1 通用 Project Recipe
-Registry 与 Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B2.1 sealed-path Web/API 只读观察首个纵切**。A1 通用 Project Recipe Registry、
+B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他
+里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -288,3 +289,13 @@ Snapshot，在无网络、无依赖安装的本地清洁 Python 3.12 容器中�
 并证明容器清理；离线端到端回归消费同类权威 binding 完成 Candidate→Validation，同时覆盖缺失与伪造拒绝。
 本轮未访问公网、未调用真实模型、未执行真实攻击。默认门禁为 1615 passed、43 skipped、85.53% coverage；显式 A1.3 Docker
 Admission 为 1 passed；449 份 schema、Ruff 和 diff check 通过。下一项按双线轮转进入 B1.1。
+
+进展记录（2026-09-21）：B1 达到 `offline_tested` 并关闭。新增内容寻址的 `RedTeamReplanToolView`、Proposal 和
+Admission：有限视图绑定最新 checkpoint、权威 Observation、原 Target 摘要、Scope、允许的 Action/test class 和
+剩余预算，但不暴露原始 URL；Proposal 协议没有 Target、命令或任意请求参数。Control Plane 从封存 Plan 重建每个
+Action，重新执行 Policy，并用 SQLite `BEGIN IMMEDIATE` 原子预留预算；每次执行仍要求针对精确 Action ID 的
+`EXECUTE_RED_TEAM_ACTION` Approval。相同 Proposal 跨 checkpoint 重放只返回原 Admission；并发超额、陈旧视图、
+Observation/Scope/Policy/Approval 漂移均 fail-closed，取消与到期可释放未消费预留。离线验收完成两轮
+`TLS_INSPECT → HTTP_HEAD` 调整且 Target 不变，并覆盖成功、拒绝、超时、cleanup unknown、取消、到期和重放。
+本轮未访问公网、未调用真实模型、未执行真实攻击。全量离线门禁为 1621 passed、43 skipped、覆盖率 85.44%；452 份 schema、
+Ruff 和 diff check 通过。下一项按 B 线进入 B2.1。

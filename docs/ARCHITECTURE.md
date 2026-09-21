@@ -124,6 +124,14 @@ Registry/Recipe/Index/Manifest/Target/Scope/Candidate 摘要；Source Execution 
 从 Recipe store 重读原件。绑定缺失、伪造或漂移时不启动 Runner。Recipe 成功只表示项目已通过准入构建/测试，
 不会改变 Candidate 状态；五阶段 Validation、Critic 和 Finding promotion 仍是独立门禁。
 
+### B1 Observation-driven replanning boundary
+
+B1 将“提出下一步”与“取得执行权”分开。不可信 Proposal 只能引用 Control Plane 签发的有限 Tool View，选择已列出
+的 Action kind/test class，并引用当前 checkpoint 的权威 Observation；协议没有 Target URL、命令或任意请求参数。
+Control Plane 从原 Plan 派生目标，重新封存 Action、重新做 Policy 判定，并在事务中预留 Action 预算。执行时仍需
+针对精确 Action ID 的 `EXECUTE_RED_TEAM_ACTION` Approval，随后进入既有 Recon claim/checkpoint 状态机。
+Admission 的取消/到期释放未消费预算，精确重放返回原对象，不产生第二份权限。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

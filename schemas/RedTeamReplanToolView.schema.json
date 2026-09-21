@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "RedTeamActionKind": {
+      "enum": [
+        "dns_lookup",
+        "tls_inspect",
+        "http_head"
+      ],
+      "title": "RedTeamActionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Finite authority view exposed to a proposer; it contains no raw target.",
+  "properties": {
+    "tool_view_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool View Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_url_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Url Digest",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "allowed_action_kinds": {
+      "items": {
+        "$ref": "#/$defs/RedTeamActionKind"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Allowed Action Kinds",
+      "type": "array"
+    },
+    "allowed_test_classes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Allowed Test Classes",
+      "type": "array"
+    },
+    "remaining_actions": {
+      "minimum": 1,
+      "title": "Remaining Actions",
+      "type": "integer"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool_view_id",
+    "flow_plan_id",
+    "checkpoint_id",
+    "target_id",
+    "target_url_digest",
+    "scope_id",
+    "scope_version",
+    "observation_ids",
+    "allowed_action_kinds",
+    "allowed_test_classes",
+    "remaining_actions",
+    "issued_at",
+    "expires_at"
+  ],
+  "title": "RedTeamReplanToolView",
+  "type": "object"
+}

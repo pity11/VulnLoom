@@ -98,6 +98,12 @@ from .models import (
     ServiceIdentitySnapshot,
     ServiceTlsVersion,
 )
+from .replan_models import (
+    RedTeamReplanAdmission,
+    RedTeamReplanProposal,
+    RedTeamReplanToolView,
+)
+from .replan_service import RedTeamReplanningService, RedTeamReplanRejected
 from .schedule_models import (
     EndpointCheckSchedule,
     EndpointScheduleCheckpoint,
@@ -315,6 +321,11 @@ __all__ = [
     "RedTeamReconObservation",
     "RedTeamRecoveryRequired",
     "RedTeamRejected",
+    "RedTeamReplanAdmission",
+    "RedTeamReplanProposal",
+    "RedTeamReplanRejected",
+    "RedTeamReplanningService",
+    "RedTeamReplanToolView",
     "RedTeamService",
     "RedTeamStopConditions",
     "RedTeamStore",

@@ -147,6 +147,14 @@ provenance，并由独立持久化表保存。Source Execution 在任何 Runner 
 Validation receipt 链，Candidate 不会由 Recipe 直接提升。非 fixture 验收使用当前仓库只读 Snapshot、本地清洁
 Python 3.12 image、`network=none` 和完整 cleanup proof；未安装依赖、未访问公网、未调用模型或执行攻击。
 
+### 1.3 B1 Replanning authority confinement
+
+B1 的 Agent-facing 数据只包含短期有限 Tool View 和 Observation 摘要引用，不包含原始 Target URL、凭据、请求正文
+或可执行命令。Proposal 不能声明新 Target；Control Plane 必须从原 Plan 重建 Action，并重新核对 Scope、Policy、
+checkpoint 和权威 Observation provenance。每个准入在事务中占用一个 Action 预算，并要求与该 Action ID 精确绑定的
+人工 Approval。并发超额、陈旧视图、Observation 替换、Scope/Policy 漂移和 Approval 重用均 fail-closed；取消或
+到期只能释放未消费的预留。该边界仍只开放已有的低影响 Recon kind，不允许 crawler、枚举或任意请求脚本。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

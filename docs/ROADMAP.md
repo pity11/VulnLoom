@@ -1185,6 +1185,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   43 skipped、85.53% coverage，显式 A1.3 Docker Admission 为 1 passed（完整 A1 Docker 回归 4 passed），449 份 schema、Ruff 和 diff check 通过。下一纵切按双线
   轮转进入 B1.1 Observation-driven bounded replanning。
 
+- B1 已达到 `offline_tested` 并关闭。短期 `RedTeamReplanToolView` 仅向不可信提议方暴露当前 Observation 引用、
+  有限 Action kind/test class 和剩余预算，不含原始 URL 或命令；Proposal 不能声明或扩展 Target。Control Plane
+  从封存 Plan 重建 Action，重新做 Scope/Policy 判定，在事务中预留预算，并要求针对 Action ID 的精确
+  `EXECUTE_RED_TEAM_ACTION` Approval。两轮离线 replanning 已证明可从 TLS 观察切换到 HTTP HEAD 且 Target 不变；
+  陈旧视图、伪造 Observation、并发超额、错误 Approval、超时、cleanup unknown、取消、到期与幂等重放均有回归。
+  全量门禁为 1621 passed、43 skipped、覆盖率 85.44%，452 份 schema、Ruff 和 diff check 通过；无公网、真实模型或真实攻击。
+  下一纵切进入 B2.1 sealed-path Web/API 只读观察。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

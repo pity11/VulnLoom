@@ -334,10 +334,30 @@ Ruff, 424 JSON Schema parses, and `git diff --check`. The opt-in private-process
 this host because no private non-loopback IPv4 was available; it was not counted as a new pass. See
 `docs/R11-ARCHITECTURE-HARDENING.md` for the reviewed control/data flows, failure matrix, and residual risks.
 
+## B1 Observation-driven bounded replanning
+
+B1 在现有 `RedTeamFlowPlan` 上增加了一个不可信提议层，而没有把目标或执行权交给 Agent。Control Plane 只签发
+短期、内容寻址的 `RedTeamReplanToolView`：它绑定当前 checkpoint、全部权威 Observation ID、原 Target URL
+摘要、Scope 版本、剩余 Action 预算，以及有限的 Action kind/test class。视图不包含原始 URL；
+`RedTeamReplanProposal` 也没有 URL、命令、header、body 或任意参数字段。
+
+准入时服务重新读取 Plan、最新 checkpoint、Observation 及其来源 Action，从封存 Plan 派生目标，重新执行
+Policy 判定，并在 SQLite `BEGIN IMMEDIATE` 事务中为恰好一个 Action 预留预算。并发或重复提议不能越过
+`max_actions`；取消和到期只释放尚未消费的预留，已消费的权限不能回滚。相同 Proposal 的重放直接返回最初的
+Admission，即使 checkpoint 已前进也不会生成第二份权限；相同 idempotency key 的不同内容被拒绝。
+
+执行要求调用方提交与 Admission 中 Action ID 精确绑定的 `EXECUTE_RED_TEAM_ACTION` Approval。服务再次核对
+Scope、Policy request 摘要、命令和 Admission 状态，然后才复用既有 Recon 状态机；成功、失败、超时和 cleanup
+unknown 均保留原有终态语义。离线验收完成了 `HTTP_HEAD → TLS_INSPECT → HTTP_HEAD` 的两轮观察驱动调整，
+两轮始终使用同一封存 Target，并覆盖缺失/伪造 Observation、过期视图、策略或 Approval 漂移、预算竞争、取消、
+到期、超时、清理失败和幂等重放。测试只使用离线 adapter，没有访问网络、调用真实模型或执行真实攻击。
+
+因此 B1 达到 `offline_tested`。B2 才会在明确封存的路径集合上增加类型化 Web/API 只读观察；B1 不提供
+crawler、字典枚举、动态 Target 扩展或任意 HTTP 请求能力。
+
 ## Next development sequence
 
-Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：先通过共享 S1 敌对 Worker 安全资格，
-再推进 Observation-driven bounded replanning、已封存路径上的 Web/API 只读观察、按漏洞类别版本化的
-Evidence Requirement、受控测试身份和隔离靶场 A3/A4 资格。任何新 Action 仍必须重新封存并经过 Scope、预算、
-Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态 Target 扩展、真实第三方账户、横向移动或
-持久化。
+Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，下一步是在已封存
+路径上增加 Web/API 只读观察，之后才按漏洞类别推进版本化 Evidence Requirement、受控测试身份和隔离靶场
+A3/A4 资格。任何新 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典
+枚举、公网扫描、动态 Target 扩展、真实第三方账户、横向移动或持久化。

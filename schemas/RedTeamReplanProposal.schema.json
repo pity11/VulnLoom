@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "RedTeamActionKind": {
+      "enum": [
+        "dns_lookup",
+        "tls_inspect",
+        "http_head"
+      ],
+      "title": "RedTeamActionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Untrusted next-step intent. Target URL and executable fields are absent.",
+  "properties": {
+    "proposal_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "tool_view_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool View Id",
+      "type": "string"
+    },
+    "source_observation_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Observation Ids",
+      "type": "array"
+    },
+    "action_kind": {
+      "$ref": "#/$defs/RedTeamActionKind"
+    },
+    "test_class": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Test Class",
+      "type": "string"
+    },
+    "rationale_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rationale Digest",
+      "type": "string"
+    },
+    "ttl_seconds": {
+      "maximum": 300,
+      "minimum": 1,
+      "title": "Ttl Seconds",
+      "type": "integer"
+    },
+    "proposed_at": {
+      "format": "date-time",
+      "title": "Proposed At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "proposal_id",
+    "tool_view_id",
+    "source_observation_ids",
+    "action_kind",
+    "test_class",
+    "rationale_digest",
+    "ttl_seconds",
+    "proposed_at",
+    "idempotency_key"
+  ],
+  "title": "RedTeamReplanProposal",
+  "type": "object"
+}
