@@ -135,6 +135,12 @@ Scope/Manifest/Policy 任一漂移均 fail-closed。每步结果持久化，time
 证明容器清理时记录 `cleanup_unverified`，不保存伪造成功结果。A1.1 仅使用离线 Runner，尚未声明真实项目或 Docker
 集成已通过；该声明留给下一纵切的显式本地、无网络 Admission。
 
+A1.2 已在本地 Docker 上验证该边界。首次运行因官方 Python image metadata 带有未显式声明的 `GPG_KEY` 被 Runner
+正确拒绝；没有通过扩大环境白名单绕过。最终 Admission image 从摘要固定的本地 Python filesystem 进入
+`scratch` final stage，仅声明 `PATH/LANG/LC_ALL`。成功 Build→Test 与真实一秒 timeout 均使用 `--pull never`、
+`network=none`、UID/GID 65532、只读 root/source、cap-drop ALL、`NoNewPrivileges` 和有界资源/tmpfs；所有创建的
+容器最终均不存在。本机 daemon 非 rootless，不能替代 S1 的独立 rootless 生产资格。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

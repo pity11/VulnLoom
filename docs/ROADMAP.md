@@ -1169,6 +1169,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   仍属于后续增强，不能从固定 Benchmark 或 A1.1 离线结果外推。A1.1 全量门禁为 1611 passed、39 skipped、
   85.45% coverage，448 份 schema、Ruff 和 diff check 通过。
 
+- A1.2 已完成显式本地 Docker Admission。环境不干净的官方 Python image 首先被 fail-closed 拒绝；最终使用
+  摘要固定、经 `scratch` 重封装且仅含显式基础环境的本地 image。在无 pull、无网络的真实容器中，Python
+  Build→Test 成功路径和真实 timeout 路径均证明非 root、只读 root/source、无 capability、
+  `NoNewPrivileges`、资源/tmpfs 限制、无 Docker socket及所有容器清理。本机 daemon 不宣称 rootless，生产仍
+  依赖 S1 rootless qualification。默认离线门禁为 1612 passed、42 skipped、85.45% coverage，显式 Docker
+  Admission 为 3 passed，448 份 schema、Ruff 和 diff check 通过。A1 下一步为非 fixture 本地项目的端到端
+  Recipe→Validation 绑定。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

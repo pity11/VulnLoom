@@ -85,8 +85,8 @@ profiles retain `noexec`. The source mount and root filesystem remain read-only.
 V1 completes the safe Source Hunt orchestration and shared Candidate-to-report evidence chain. R9 now also
 closes its fixed-Benchmark acceptance with a dedicated C coverage/ASAN adapter, persistent Crash
 deduplication, and independently replayed PoV qualification. A1.1 now provides the offline-tested trusted
-Project Recipe Registry and Approval-bound Build→Test orchestration described in `PROJECT-RECIPES.md`; it has
-not yet passed real Docker project admission. The Python adapter provides AST navigation;
+Project Recipe Registry and Approval-bound Build→Test orchestration described in `PROJECT-RECIPES.md`; A1.2
+has passed its explicit local, network-disabled Docker fixture admission. The Python adapter provides AST navigation;
 JavaScript/TypeScript currently provides conservative navigation only. UBSAN/MSAN variants, automatic harness
 synthesis, patch generation, and blind-holdout quality gates remain later depth work and must not be inferred
 from the fixed Benchmark adapter or A1.1.
@@ -97,7 +97,7 @@ activities outside this workflow.
 
 ## Next development sequence
 
-Source Hunt 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：S1 已关闭，A1.1 已完成 Registry 与离线执行
-合同；下一步是本地无网络 Docker recipe Admission，再推进 JavaScript/TypeScript 深度、受限 Harness 与更多
+Source Hunt 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：S1 已关闭，A1.1 Registry 与 A1.2 本地无网络
+Docker Admission 已完成；下一步是非 fixture 本地项目端到端闭环，再推进 JavaScript/TypeScript 深度、受限 Harness 与更多
 运行时证据、Blind Holdout 质量门禁，以及只读 Patch proposal 和双重复测。固定 native Benchmark 或 A1.1
 离线结果不得外推为通用项目自动构建或广泛漏洞发现能力。

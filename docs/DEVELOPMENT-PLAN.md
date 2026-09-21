@@ -194,7 +194,8 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **A1.2 Project Recipe 本地 Docker Admission**。A1.1 Registry 与离线执行合同已完成，
+当前下一项工作固定为 **A1.3 非 fixture 本地项目端到端 Recipe 闭环**。A1.1 Registry 与离线执行合同、A1.2
+本地 Docker Admission 已完成，
 Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
@@ -267,3 +268,14 @@ Snapshot 的确定性请求；执行前重新物化计划，并要求精确 `RUN
 均有离线回归。本纵切未运行 Docker、未执行真实项目或依赖安装、未联网、未调用模型。下一步 A1.2 使用预构建
 本地镜像和非固定项目 fixture 做显式无网络 Docker Admission；通过前不关闭 A1。
 全量离线门禁为 1611 passed、39 skipped、85.45% coverage，448 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-21）：A1.2 达到 `isolated_integration_tested`。摘要固定的本地 Python filesystem 经
+`scratch` final stage 重封装，剔除上游 `GPG_KEY` 等隐式镜像环境；首次带该变量的官方镜像已被 Runner 正确
+拒绝，未扩大白名单。显式 Admission 使用 `--network none --pull=false` 构建，并由生产 Docker Runner 实际执行
+dependency-free Python 项目的 Build→Test 与一秒 timeout。两条路径均复核 UID/GID 65532、只读 root/source、
+无 capability、`NoNewPrivileges`、无网络、无 Docker socket、资源/tmpfs 限制和容器最终不存在。本机 Docker
+Desktop 不冒充 rootless，生产继续要求 S1 已验证的 rootless policy。本轮无镜像拉取、依赖安装、公网访问、
+真实模型或攻击。A1 尚未关闭；下一步 A1.3 必须在非 fixture 本地项目上绑定 Recipe outcome 至完整 Source Hunt
+Candidate→Validation 链。
+最终默认离线门禁为 1612 passed、42 skipped、85.45% coverage；显式 Docker Admission 为 3 passed；448 份
+schema、Ruff 和 diff check 通过。

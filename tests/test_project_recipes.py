@@ -33,6 +33,7 @@ from vulnloom.runners import (
     OfflineSandboxRunner,
     OfflineScenario,
     RunnerCleanupFailed,
+    RunnerRejected,
     SandboxRunRequest,
 )
 from vulnloom.source_hunt import BuildSystem, RepositoryIndex
@@ -280,6 +281,15 @@ class _IncompleteCleanupRunner:
         raise RunnerCleanupFailed("fixture cleanup cannot be proven")
 
 
+class _RejectingRunner:
+    def __init__(self, registered_tools):
+        del registered_tools
+
+    def execute(self, request, *, now):
+        del request, now
+        raise RunnerRejected("fixture image environment drifted")
+
+
 @pytest.mark.parametrize(
     ("runner_factory", "expected_status", "reason"),
     [
@@ -294,6 +304,11 @@ class _IncompleteCleanupRunner:
             _IncompleteCleanupRunner,
             ProjectRecipeRunStatus.FAILED,
             "cleanup_unverified",
+        ),
+        (
+            _RejectingRunner,
+            ProjectRecipeRunStatus.FAILED,
+            "runner_rejected",
         ),
     ],
 )

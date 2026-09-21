@@ -113,6 +113,12 @@ Recipe、RepositoryIndex、Manifest、Scope 与 Policy。执行前从可信 Regi
 另获 Approval 也会因漂移而拒绝；精确 `RUN_UNTRUSTED_BUILD` Approval 仍是必需条件。SQLite run store 在每步后
 写 checkpoint，超时、取消、失败或无法证明 cleanup 均为终态失败，不得冒充完成。
 
+A1.2 将同一合同接入真实 Docker Runner。摘要固定的本地 Python filesystem 经 `scratch` final stage 重封装，
+删除上游镜像自带的 `GPG_KEY` 等环境元数据，只保留显式 Worker 基础环境。实际 Build/Test 使用两个全新容器，
+生产 Runner 在 start 前复核非 root、只读 root/source、无 capability、`NoNewPrivileges`、无网络、资源限制、
+tmpfs 和精确挂载；成功与真实超时路径均验证容器不存在。本机 Docker Desktop 不冒充 rootless，生产仍要求已由
+S1 单独资格验证的 rootless engine policy。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

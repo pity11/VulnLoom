@@ -12,6 +12,7 @@ from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     NetworkMode,
     RunnerCleanupFailed,
+    RunnerRejected,
     SandboxProfile,
     SandboxRunRequest,
     SandboxRunResult,
@@ -202,6 +203,17 @@ class ProjectRecipeExecutionService:
                     executed_step_ids=outcome.executed_step_ids,
                     runner_results=outcome.runner_results,
                     reason_code="cleanup_unverified",
+                    updated_at=now,
+                )
+                self.store.save(plan, outcome, failed)
+                return failed
+            except RunnerRejected:
+                failed = ProjectRecipeRunOutcome(
+                    plan_id=plan.plan_id,
+                    status=ProjectRecipeRunStatus.FAILED,
+                    executed_step_ids=outcome.executed_step_ids,
+                    runner_results=outcome.runner_results,
+                    reason_code="runner_rejected",
                     updated_at=now,
                 )
                 self.store.save(plan, outcome, failed)
