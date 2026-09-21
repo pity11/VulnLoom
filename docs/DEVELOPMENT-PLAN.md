@@ -194,9 +194,9 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B2.1 sealed-path Web/API 只读观察首个纵切**。A1 通用 Project Recipe Registry、
-B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他
-里程碑开始。
+当前下一项工作固定为 **B2.2 sealed OpenAPI document observation 首个纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1 已达到
+`offline_tested`。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -299,3 +299,12 @@ Observation/Scope/Policy/Approval 漂移均 fail-closed，取消与到期可释�
 `TLS_INSPECT → HTTP_HEAD` 调整且 Target 不变，并覆盖成功、拒绝、超时、cleanup unknown、取消、到期和重放。
 本轮未访问公网、未调用真实模型、未执行真实攻击。全量离线门禁为 1621 passed、43 skipped、覆盖率 85.44%；452 份 schema、
 Ruff 和 diff check 通过。下一项按 B 线进入 B2.1。
+
+进展记录（2026-09-21）：B2.1 达到 `offline_tested`。R7/R8 的 operator-sealed Endpoint Plan 现可选择同质
+`HEAD` 或 `GET` step；GET 只能从权威 Seed Set 的 canonical path 派生，通用 Recon、直接 execute 和 B1 Tool
+View 均不能准入。pinned Broker 要求精确 URL digest allowlist、redirects=0、空 header/credential/body 和 64 KiB
+响应上限。内容寻址 `WebResponseSnapshot` 及 Endpoint outcome 仅保存状态码、Peer、响应大小、正文 SHA-256、
+Policy 摘要和 Evidence ID，原始 URL/正文不会进入普通 Observation。离线纵切覆盖成功、幂等重放、未封存路径、
+通用绕过、缺失 Snapshot、重定向绑定漂移、原始正文 schema 注入、超时和 cleanup-unproven；已发出请求始终消费
+预算。本轮未访问公网、未调用真实模型、未执行真实攻击，也未新增 live CLI 开关。全量门禁为 1627 passed、
+43 skipped、85.46% coverage；453 份 schema、Ruff 和 diff check 通过。B2 尚未关闭，下一项为 B2.2。

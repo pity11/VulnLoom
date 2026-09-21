@@ -55,6 +55,46 @@
       "title": "Evidence Refs",
       "type": "array"
     },
+    "web_response_snapshot_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Web Response Snapshot Id"
+    },
+    "response_bytes": {
+      "anyOf": [
+        {
+          "maximum": 65536,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Bytes"
+    },
+    "response_body_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Body Sha256"
+    },
     "cleanup_complete": {
       "title": "Cleanup Complete",
       "type": "boolean"

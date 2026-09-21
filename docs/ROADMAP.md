@@ -1193,6 +1193,13 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   全量门禁为 1621 passed、43 skipped、覆盖率 85.44%，452 份 schema、Ruff 和 diff check 通过；无公网、真实模型或真实攻击。
   下一纵切进入 B2.1 sealed-path Web/API 只读观察。
 
+- B2.1 已达到 `offline_tested`。operator-sealed Endpoint Plan 可生成无重定向的精确路径 GET；通用 Recon、直接
+  execute 和 B1 Tool View 均不能获得该权限。Broker 请求没有 header、credential 或 body，响应限制为 64 KiB；
+  新 `WebResponseSnapshot` 与 outcome 只携带状态、Peer、字节数、正文摘要、Policy 摘要和 Evidence ID。离线回归
+  覆盖成功/重放、未封存路径、缺失 Snapshot、原始正文注入、绑定漂移、超时与 cleanup-unproven，失败不返还已
+  发出请求的预算。全量门禁为 1627 passed、43 skipped、85.46% coverage，453 份 schema、Ruff 和 diff check
+  通过；无公网、真实模型或真实攻击。B2 保持进行中，下一纵切为 B2.2 sealed OpenAPI document observation。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

@@ -16,7 +16,8 @@
       "enum": [
         "dns_lookup",
         "tls_inspect",
-        "http_head"
+        "http_head",
+        "http_get"
       ],
       "title": "RedTeamActionKind",
       "type": "string"

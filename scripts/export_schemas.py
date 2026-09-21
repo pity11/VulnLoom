@@ -368,6 +368,7 @@ from vulnloom.red_team import (
     RedTeamStopConditions,
     RulesOfEngagement,
     ServiceIdentitySnapshot,
+    WebResponseSnapshot,
 )
 from vulnloom.reporting import (
     AgentReportDraftExecutionPlan,
@@ -572,6 +573,7 @@ MODELS = (
     RedTeamStopConditions,
     RulesOfEngagement,
     ServiceIdentitySnapshot,
+    WebResponseSnapshot,
     RedTeamFlowPlan,
     RedTeamCheckpoint,
     RedTeamReconAction,

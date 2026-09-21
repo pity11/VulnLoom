@@ -97,6 +97,7 @@ from .models import (
     RulesOfEngagement,
     ServiceIdentitySnapshot,
     ServiceTlsVersion,
+    WebResponseSnapshot,
 )
 from .replan_models import (
     RedTeamReplanAdmission,
@@ -334,5 +335,6 @@ __all__ = [
     "RulesOfEngagement",
     "ServiceIdentitySnapshot",
     "ServiceTlsVersion",
+    "WebResponseSnapshot",
     "reserve_endpoint_recon",
 ]

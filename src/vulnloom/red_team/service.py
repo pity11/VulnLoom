@@ -299,6 +299,8 @@ class RedTeamService:
         attempt: int = 1,
     ) -> RedTeamReconCommand:
         self._preflight_running(plan, checkpoint, scope, now)
+        if kind is RedTeamActionKind.HTTP_GET:
+            raise RedTeamRejected("HTTP GET requires an operator-sealed Endpoint plan")
         if test_class not in plan.rules.allowed_test_classes:
             raise RedTeamRejected("Red Team Recon test class is not authorized")
         if not 0 < ttl_seconds <= 300:
@@ -323,6 +325,8 @@ class RedTeamService:
         adapter: RedTeamReconAdapter,
         now: datetime,
     ) -> tuple[RedTeamCheckpoint, RedTeamReconObservation]:
+        if command.action.kind is RedTeamActionKind.HTTP_GET:
+            raise RedTeamRejected("HTTP GET requires an operator-sealed Endpoint plan")
         plan = self.store.plan(command.action.plan_id)
         return self._execute_bound_recon(
             command=command,
@@ -365,7 +369,11 @@ class RedTeamService:
         action = RedTeamReconAction.create(
             plan_id=plan.plan_id,
             expected_checkpoint_id=checkpoint.checkpoint_id,
-            kind=RedTeamActionKind.HTTP_HEAD,
+            kind=(
+                RedTeamActionKind.HTTP_HEAD
+                if step.method == "HEAD"
+                else RedTeamActionKind.HTTP_GET
+            ),
             target_url=step.target_url,
             test_class=endpoint_plan.test_class,
             created_at=endpoint_plan.created_at,
@@ -397,7 +405,12 @@ class RedTeamService:
             is not EndpointReconReservationState.ACTIVE
             or endpoint_plan.flow_plan_id != action.plan_id
             or step not in endpoint_plan.steps
-            or action.kind is not RedTeamActionKind.HTTP_HEAD
+            or action.kind
+            is not (
+                RedTeamActionKind.HTTP_HEAD
+                if step.method == "HEAD"
+                else RedTeamActionKind.HTTP_GET
+            )
             or action.target_url != step.target_url
             or action.test_class != endpoint_plan.test_class
             or action.created_at != endpoint_plan.created_at
@@ -472,11 +485,30 @@ class RedTeamService:
             observation.action_id != action.action_id
             or not action.created_at <= observation.observed_at < action.deadline
             or (
-                action.kind is RedTeamActionKind.HTTP_HEAD
+                action.kind
+                in {RedTeamActionKind.HTTP_HEAD, RedTeamActionKind.HTTP_GET}
                 and observation.outcome is ReconOutcome.SUCCEEDED
                 and (
                     observation.status_code is None
                     or observation.service_identity is not None
+                    or (
+                        action.kind is RedTeamActionKind.HTTP_HEAD
+                        and observation.web_response is not None
+                    )
+                    or (
+                        action.kind is RedTeamActionKind.HTTP_GET
+                        and (
+                            observation.web_response is None
+                            or observation.attack_surface is not None
+                            or observation.web_response.plan_id != plan.plan_id
+                            or observation.web_response.target_id
+                            != plan.target.target_id
+                            or observation.web_response.scope_id != scope.scope_id
+                            or observation.web_response.scope_version != scope.version
+                            or observation.web_response.requested_url_digest
+                            != observation.web_response.final_url_digest
+                        )
+                    )
                 )
             )
             or (

@@ -155,6 +155,14 @@ checkpoint 和权威 Observation provenance。每个准入在事务中占用一�
 人工 Approval。并发超额、陈旧视图、Observation 替换、Scope/Policy 漂移和 Approval 重用均 fail-closed；取消或
 到期只能释放未消费的预留。该边界仍只开放已有的低影响 Recon kind，不允许 crawler、枚举或任意请求脚本。
 
+### 1.4 B2.1 sealed-path GET confinement
+
+`HTTP_GET` 只接受权威 `EndpointSeedSet` 中的精确 canonical path，不能通过通用 Recon 或 B1 Proposal 构造。
+adapter 必须处于显式 URL-digest allowlist 模式且 redirects=0；请求协议不允许 header、credential 或 body，响应
+最多 64 KiB。原始响应正文只写入脱敏 Evidence Store，普通 Observation/outcome 仅保存正文摘要和大小。
+requested/final URL digest 不相等、缺失 Evidence、原始正文混入 schema、通用执行绕过或成功结果缺少类型化
+Web Snapshot 时均拒绝。失败、超时和 cleanup unknown 不返还已经发出的请求预算。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import Literal, Protocol
 from urllib.parse import urlsplit, urlunsplit
 
 from vulnloom.domain.models import Scope, ScopeState
@@ -155,6 +155,7 @@ class EndpointReconService:
         scope: Scope,
         test_class: str,
         limits: EndpointReconLimits,
+        method: Literal["HEAD", "GET"] = "HEAD",
         now: datetime,
         deadline: datetime,
         idempotency_key: str,
@@ -165,6 +166,8 @@ class EndpointReconService:
         self._seed_binding(seed_set, flow, checkpoint, scope, now)
         if test_class not in flow.rules.allowed_test_classes:
             raise EndpointReconRejected("Endpoint Recon test class is not authorized")
+        if method not in {"HEAD", "GET"}:
+            raise EndpointReconRejected("Endpoint Recon method is not read-only")
         remaining = flow.rules.stop_conditions.max_actions - checkpoint.actions_used
         if len(seed_set.seeds) > min(limits.max_steps, limits.max_requests, remaining):
             raise EndpointReconRejected("Endpoint Recon exceeds the remaining action budget")
@@ -182,8 +185,14 @@ class EndpointReconService:
                 seed_id=seed.seed_id,
                 ordinal=ordinal,
                 target_url=self._authorize_exact(
-                    flow, scope, seed.path, now, test_class=test_class
+                    flow,
+                    scope,
+                    seed.path,
+                    now,
+                    test_class=test_class,
+                    method=method,
                 ),
+                method=method,
             )
             for ordinal, seed in enumerate(seed_set.seeds, 1)
         )
@@ -349,6 +358,27 @@ class EndpointReconService:
                 or result.target_url_digest != step.target_url_digest
                 or not plan.created_at <= result.completed_at < plan.deadline
                 or any(not self.evidence_store.contains(ref) for ref in result.evidence_refs)
+                or (
+                    result.outcome is EndpointReconOutcomeKind.SUCCEEDED
+                    and step.method == "GET"
+                    and (
+                        result.web_response_snapshot_id is None
+                        or result.response_bytes is None
+                        or result.response_body_sha256 is None
+                        or len(result.evidence_refs) != 1
+                    )
+                )
+                or (
+                    step.method == "HEAD"
+                    and any(
+                        item is not None
+                        for item in (
+                            result.web_response_snapshot_id,
+                            result.response_bytes,
+                            result.response_body_sha256,
+                        )
+                    )
+                )
             ):
                 raise EndpointReconRejected("Endpoint Recon result provenance is invalid")
             results.append(result)
@@ -448,16 +478,29 @@ class EndpointReconService:
             ReconOutcome.TIMED_OUT: EndpointReconOutcomeKind.TIMED_OUT,
             ReconOutcome.FAILED: EndpointReconOutcomeKind.FAILED,
         }[observation.outcome]
-        surface = observation.attack_surface
-        invalid_success = outcome is EndpointReconOutcomeKind.SUCCEEDED and (
-            surface is None
-            or surface.requested_url_digest != step.target_url_digest
-            or surface.final_url_digest != step.target_url_digest
-            or surface.redirect_count != 0
-            or not surface.evidence_refs
-            or len(surface.evidence_refs) > 1
+        snapshot = (
+            observation.attack_surface
+            if step.method == "HEAD"
+            else observation.web_response
         )
-        evidence_refs = surface.evidence_refs if surface is not None else ()
+        invalid_success = outcome is EndpointReconOutcomeKind.SUCCEEDED and (
+            snapshot is None
+            or snapshot.requested_url_digest != step.target_url_digest
+            or snapshot.final_url_digest != step.target_url_digest
+            or not snapshot.evidence_refs
+            or len(snapshot.evidence_refs) > 1
+            or (
+                step.method == "HEAD"
+                and observation.attack_surface is not None
+                and observation.attack_surface.redirect_count != 0
+            )
+            or (
+                step.method == "GET"
+                and observation.web_response is not None
+                and observation.web_response.method != "GET"
+            )
+        )
+        evidence_refs = snapshot.evidence_refs if snapshot is not None else ()
         invalid_evidence = any(
             not self.evidence_store.contains(ref) for ref in evidence_refs
         )
@@ -483,6 +526,21 @@ class EndpointReconService:
             status_code=observation.status_code,
             reason_code=observation.reason_code,
             evidence_refs=evidence_refs,
+            web_response_snapshot_id=(
+                observation.web_response.snapshot_id
+                if observation.web_response is not None
+                else None
+            ),
+            response_bytes=(
+                observation.web_response.response_bytes
+                if observation.web_response is not None
+                else None
+            ),
+            response_body_sha256=(
+                observation.web_response.response_body_sha256
+                if observation.web_response is not None
+                else None
+            ),
             cleanup_complete=observation.cleanup_complete,
             completed_at=observation.observed_at,
         )
@@ -526,7 +584,12 @@ class EndpointReconService:
             raise EndpointReconRejected("Endpoint Recon Flow execution binding is invalid")
         for seed, step in zip(seed_set.seeds, plan.steps, strict=True):
             if step.target_url != self._authorize_exact(
-                flow, scope, seed.path, now, test_class=plan.test_class
+                flow,
+                scope,
+                seed.path,
+                now,
+                test_class=plan.test_class,
+                method=step.method,
             ):
                 raise EndpointReconRejected("Endpoint Recon exact target binding is invalid")
 
@@ -549,7 +612,12 @@ class EndpointReconService:
             raise EndpointReconRejected("Endpoint Recon plan binding is invalid")
         for seed, step in zip(seed_set.seeds, plan.steps, strict=True):
             if step.target_url != self._authorize_exact(
-                flow, scope, seed.path, now, test_class=plan.test_class
+                flow,
+                scope,
+                seed.path,
+                now,
+                test_class=plan.test_class,
+                method=step.method,
             ):
                 raise EndpointReconRejected("Endpoint Recon exact target binding is invalid")
 
@@ -590,7 +658,9 @@ class EndpointReconService:
             raise EndpointReconRejected("Endpoint Recon requires the current running Flow")
 
     @staticmethod
-    def _authorize_exact(flow, scope, path, now, *, test_class=None) -> str:
+    def _authorize_exact(
+        flow, scope, path, now, *, test_class=None, method: str = "HEAD"
+    ) -> str:
         base = urlsplit(flow.target.url)
         base_path = base.path.rstrip("/")
         if base_path and path != base_path and not path.startswith(f"{base_path}/"):
@@ -600,7 +670,7 @@ class EndpointReconService:
             ActionRequest(
                 engagement_id=scope.engagement_id,
                 target_id=flow.target.target_id,
-                action="red_team.recon.http_head",
+                action=f"red_team.recon.http_{method.lower()}",
                 requested_at=now,
                 url=url,
                 test_class=test_class or flow.rules.allowed_test_classes[0],

@@ -34,6 +34,7 @@ from .models import (
     RedTeamFlowPlan,
     RedTeamReconAction,
     RedTeamReconObservation,
+    WebResponseSnapshot,
 )
 from .service import RedTeamAdapterInterrupted, RedTeamRejected
 
@@ -83,7 +84,7 @@ class IsolatedLocalReconAdmission(DomainModel):
 
 
 class IsolatedLocalHttpReconAdapter:
-    """Route one HEAD action through the pinned Broker under exact local admission."""
+    """Route one admitted HEAD or sealed-path GET through the pinned Broker."""
 
     def __init__(
         self,
@@ -119,6 +120,7 @@ class IsolatedLocalHttpReconAdapter:
         self.connect_seconds = limits.connect_seconds
         self.read_seconds = limits.read_seconds
         self.max_redirects = limits.max_redirects
+        self.sealed_path_mode = allowed_url_digests is not None
         exact_digests = (
             allowed_url_digests
             if allowed_url_digests is not None
@@ -147,7 +149,12 @@ class IsolatedLocalHttpReconAdapter:
             return self._rejected(action, now=now, reason="local_admission_expired")
         if (
             action.plan_id != self.plan.plan_id
-            or action.kind is not RedTeamActionKind.HTTP_HEAD
+            or action.kind
+            not in {RedTeamActionKind.HTTP_HEAD, RedTeamActionKind.HTTP_GET}
+            or (
+                action.kind is RedTeamActionKind.HTTP_GET
+                and not self.sealed_path_mode
+            )
             or url_digest(action.target_url) not in self.allowed_url_digests
         ):
             return self._rejected(action, now=now, reason="local_action_not_admitted")
@@ -179,7 +186,11 @@ class IsolatedLocalHttpReconAdapter:
             profile=self.profile,
             tool_id="http.request",
             http=HttpRequestPlan(
-                method=HttpMethod.HEAD,
+                method=(
+                    HttpMethod.HEAD
+                    if action.kind is RedTeamActionKind.HTTP_HEAD
+                    else HttpMethod.GET
+                ),
                 url=action.target_url,
                 test_class=action.test_class,
                 follow_redirects=self.max_redirects > 0,
@@ -211,32 +222,56 @@ class IsolatedLocalHttpReconAdapter:
                     outcome=ReconOutcome.FAILED,
                     reason="evidence_integrity_failed",
                 )
-            surface = AttackSurfaceSnapshot.create(
-                plan_id=self.plan.plan_id,
-                action_id=action.action_id,
-                target_id=self.plan.target.target_id,
-                scope_id=self.broker.scope.scope_id,
-                scope_version=self.broker.scope.version,
-                requested_url_digest=url_digest(action.target_url),
-                final_url_digest=result.http.final_url_digest,
-                status_code=result.http.status_code,
-                peer_ip=result.http.peer_ip,
-                redirect_count=len(result.http.redirects),
-                evidence_refs=result.http.evidence_refs,
-                policy_record_digests=tuple(
-                    canonical_digest(record.model_dump(mode="python"))
-                    for record in result.policy_records
-                ),
-                captured_at=result.completed_at,
+            policy_digests = tuple(
+                canonical_digest(record.model_dump(mode="python"))
+                for record in result.policy_records
             )
+            if action.kind is RedTeamActionKind.HTTP_HEAD:
+                surface = AttackSurfaceSnapshot.create(
+                    plan_id=self.plan.plan_id,
+                    action_id=action.action_id,
+                    target_id=self.plan.target.target_id,
+                    scope_id=self.broker.scope.scope_id,
+                    scope_version=self.broker.scope.version,
+                    requested_url_digest=url_digest(action.target_url),
+                    final_url_digest=result.http.final_url_digest,
+                    status_code=result.http.status_code,
+                    peer_ip=result.http.peer_ip,
+                    redirect_count=len(result.http.redirects),
+                    evidence_refs=result.http.evidence_refs,
+                    policy_record_digests=policy_digests,
+                    captured_at=result.completed_at,
+                )
+                web_response = None
+                reason = "live_http_head_succeeded"
+            else:
+                surface = None
+                web_response = WebResponseSnapshot.create(
+                    plan_id=self.plan.plan_id,
+                    action_id=action.action_id,
+                    target_id=self.plan.target.target_id,
+                    scope_id=self.broker.scope.scope_id,
+                    scope_version=self.broker.scope.version,
+                    requested_url_digest=url_digest(action.target_url),
+                    final_url_digest=result.http.final_url_digest,
+                    status_code=result.http.status_code,
+                    peer_ip=result.http.peer_ip,
+                    response_bytes=result.http.response_bytes,
+                    response_body_sha256=result.http.response_body_sha256,
+                    evidence_refs=result.http.evidence_refs,
+                    policy_record_digests=policy_digests,
+                    captured_at=result.completed_at,
+                )
+                reason = "sealed_http_get_succeeded"
             return RedTeamReconObservation.create(
                 action_id=action.action_id,
                 outcome=ReconOutcome.SUCCEEDED,
                 status_code=result.http.status_code,
-                reason_code="live_http_head_succeeded",
+                reason_code=reason,
                 cleanup_complete=True,
                 sensitive_data_redacted=True,
                 attack_surface=surface,
+                web_response=web_response,
                 observed_at=result.completed_at,
             )
         outcome = {

@@ -355,9 +355,27 @@ unknown 均保留原有终态语义。离线验收完成了 `HTTP_HEAD → TLS_I
 因此 B1 达到 `offline_tested`。B2 才会在明确封存的路径集合上增加类型化 Web/API 只读观察；B1 不提供
 crawler、字典枚举、动态 Target 扩展或任意 HTTP 请求能力。
 
+## B2.1 operator-sealed path GET observation
+
+B2.1 在 R7/R8 的 `EndpointSeedSet`、请求预算预留和 Flow ledger 上增加第二种且仅有的路径方法 `GET`。GET 计划
+仍由操作员精确封存的 canonical path 派生；同一计划只能包含一种方法。通用 `prepare_recon`、通用
+`execute_recon` 和 B1 Tool View 都拒绝 `HTTP_GET`，因此调用方不能绕过 Endpoint Plan 自行构造 GET 权限。
+
+执行沿用已准入的 pinned HTTP Broker，但仅在 adapter 获得显式 URL digest allowlist 且 redirects=0 时接受 GET。
+请求没有 header、credential、body 或 query 扩展，响应上限固定为 64 KiB。正文只进入既有脱敏 Evidence Store；
+新 `WebResponseSnapshot` 和 Endpoint outcome 只保存 method、状态码、Peer、响应字节数、正文 SHA-256、Policy
+摘要和 Evidence ID，不包含 URL、正文或完整响应。requested/final URL digest 必须相同，伪造重定向绑定、原始
+正文扩展字段、多 Snapshot 或缺失 Evidence 均 fail-closed。
+
+离线 Broker 纵切已证明 sealed GET 的执行、Flow action 记账、预算消费、幂等重放，以及未封存路径、通用 Recon
+绕过、缺失 Web Snapshot、超时和 cleanup-unproven 拒绝/终态。已发出的失败或超时请求仍消耗 Action 预算，不能
+通过失败回滚获得额外请求。普通 CLI 没有新增 live GET 开关；本轮没有打开 socket、访问公网、调用真实模型或
+执行真实攻击。B2.1 达到 `offline_tested`，尚不等同于 B2 完成或生产支持。
+
 ## Next development sequence
 
-Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，下一步是在已封存
-路径上增加 Web/API 只读观察，之后才按漏洞类别推进版本化 Evidence Requirement、受控测试身份和隔离靶场
-A3/A4 资格。任何新 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典
-枚举、公网扫描、动态 Target 扩展、真实第三方账户、横向移动或持久化。
+Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
+路径 GET，下一步是对已封存 OpenAPI 文档做摘要化只读观察；文档内路径只能成为待审发现，不能自动执行。之后
+才推进 GraphQL 观察、按漏洞类别版本化 Evidence Requirement、受控测试身份和隔离靶场 A3/A4 资格。任何新
+Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
+Target 扩展、真实第三方账户、横向移动或持久化。

@@ -131,7 +131,7 @@ class EndpointReconStep(DomainModel):
     ordinal: int = Field(ge=1, le=1_000)
     target_url: str = Field(min_length=1, max_length=2_048)
     target_url_digest: Digest
-    method: Literal["HEAD"] = "HEAD"
+    method: Literal["HEAD", "GET"] = "HEAD"
     follow_redirects: Literal[False] = False
 
     @model_validator(mode="after")
@@ -150,18 +150,21 @@ class EndpointReconStep(DomainModel):
 
     @classmethod
     def create(cls, **values: object) -> EndpointReconStep:
-        target_url_digest = hashlib.sha256(str(values["target_url"]).encode()).hexdigest()
+        expanded = dict(values)
+        method = expanded.pop("method", "HEAD")
+        target_url_digest = hashlib.sha256(str(expanded["target_url"]).encode()).hexdigest()
         identity = {
-            "seed_id": values["seed_id"],
-            "ordinal": values["ordinal"],
+            "seed_id": expanded["seed_id"],
+            "ordinal": expanded["ordinal"],
             "target_url_digest": target_url_digest,
-            "method": "HEAD",
+            "method": method,
             "follow_redirects": False,
         }
         return cls(
             step_id=canonical_digest(identity),
             target_url_digest=target_url_digest,
-            **values,
+            method=method,
+            **expanded,
         )
 
 
@@ -184,9 +187,11 @@ class EndpointReconPlan(DomainModel):
     def sealed(self) -> Self:
         ordinals = tuple(item.ordinal for item in self.steps)
         seed_ids = tuple(item.seed_id for item in self.steps)
+        methods = {item.method for item in self.steps}
         if (
             ordinals != tuple(range(1, len(self.steps) + 1))
             or len(seed_ids) != len(set(seed_ids))
+            or len(methods) != 1
             or len(self.steps) > min(self.limits.max_steps, self.limits.max_requests)
             or self.deadline <= self.created_at
         ):
@@ -249,17 +254,32 @@ class EndpointReconStepResult(DomainModel):
     status_code: int | None = Field(default=None, ge=100, le=599)
     reason_code: ReasonCode
     evidence_refs: Annotated[tuple[Digest, ...], Field(max_length=1)] = ()
+    web_response_snapshot_id: Digest | None = None
+    response_bytes: int | None = Field(default=None, ge=0, le=64 * 1024)
+    response_body_sha256: Digest | None = None
     cleanup_complete: bool
     completed_at: AwareDatetime
 
     @model_validator(mode="after")
     def coherent(self) -> Self:
+        web_fields = (
+            self.web_response_snapshot_id,
+            self.response_bytes,
+            self.response_body_sha256,
+        )
         if self.outcome is EndpointReconOutcomeKind.SUCCEEDED and (
             self.status_code is None or not self.cleanup_complete
         ):
             raise ValueError("Successful Endpoint Recon requires status and cleanup proof")
         if self.outcome is not EndpointReconOutcomeKind.SUCCEEDED and self.status_code:
             raise ValueError("Unsuccessful Endpoint Recon cannot include an HTTP status")
+        if any(item is not None for item in web_fields) != all(
+            item is not None for item in web_fields
+        ) or (
+            self.outcome is not EndpointReconOutcomeKind.SUCCEEDED
+            and any(item is not None for item in web_fields)
+        ):
+            raise ValueError("Endpoint Web observation projection is inconsistent")
         return self
 
 

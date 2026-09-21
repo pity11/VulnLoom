@@ -73,8 +73,11 @@
           "type": "string"
         },
         "method": {
-          "const": "HEAD",
           "default": "HEAD",
+          "enum": [
+            "HEAD",
+            "GET"
+          ],
           "title": "Method",
           "type": "string"
         },

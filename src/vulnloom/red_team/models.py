@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID, uuid4
 
@@ -43,6 +43,7 @@ class RedTeamActionKind(StrEnum):
     DNS_LOOKUP = "dns_lookup"
     TLS_INSPECT = "tls_inspect"
     HTTP_HEAD = "http_head"
+    HTTP_GET = "http_get"
 
 
 class RedTeamFlowStatus(StrEnum):
@@ -134,6 +135,46 @@ class ServiceIdentitySnapshot(DomainModel):
 
     @classmethod
     def create(cls, **values: object) -> ServiceIdentitySnapshot:
+        expanded = cls.model_construct(snapshot_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"snapshot_id"}
+        )
+        return cls(snapshot_id=canonical_digest(expanded), **expanded)
+
+
+class WebResponseSnapshot(DomainModel):
+    """Digest-only facts from one exact, operator-sealed read-only GET."""
+
+    snapshot_id: Digest
+    plan_id: Digest
+    action_id: Digest
+    target_id: UUID
+    scope_id: UUID
+    scope_version: int = Field(ge=1)
+    requested_url_digest: Digest
+    final_url_digest: Digest
+    method: Literal["GET"] = "GET"
+    status_code: int = Field(ge=100, le=599)
+    peer_ip: str = Field(min_length=1, max_length=64)
+    response_bytes: int = Field(ge=0, le=64 * 1024)
+    response_body_sha256: Digest
+    evidence_refs: Annotated[tuple[Digest, ...], Field(min_length=1, max_length=1)]
+    policy_record_digests: Annotated[
+        tuple[Digest, ...], Field(min_length=1, max_length=1)
+    ]
+    captured_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if (
+            self.requested_url_digest != self.final_url_digest
+            or self.snapshot_id
+            != canonical_digest(self.model_dump(mode="python", exclude={"snapshot_id"}))
+        ):
+            raise ValueError("Web Response Snapshot content binding is invalid")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> WebResponseSnapshot:
         expanded = cls.model_construct(snapshot_id="0" * 64, **values).model_dump(
             mode="python", exclude={"snapshot_id"}
         )
@@ -370,6 +411,7 @@ class RedTeamReconObservation(DomainModel):
     sensitive_data_redacted: bool = True
     attack_surface: AttackSurfaceSnapshot | None = None
     service_identity: ServiceIdentitySnapshot | None = None
+    web_response: WebResponseSnapshot | None = None
     observed_at: AwareDatetime
 
     @model_validator(mode="after")
@@ -390,7 +432,20 @@ class RedTeamReconObservation(DomainModel):
             or self.action_id != self.service_identity.action_id
         ):
             raise ValueError("Recon Service Identity binding is invalid")
-        if self.attack_surface is not None and self.service_identity is not None:
+        if self.web_response is not None and (
+            self.outcome is not ReconOutcome.SUCCEEDED
+            or self.status_code != self.web_response.status_code
+            or self.action_id != self.web_response.action_id
+        ):
+            raise ValueError("Recon Web Response binding is invalid")
+        if sum(
+            snapshot is not None
+            for snapshot in (
+                self.attack_surface,
+                self.service_identity,
+                self.web_response,
+            )
+        ) > 1:
             raise ValueError("Recon observation cannot contain multiple snapshot kinds")
         if self.observation_id != canonical_digest(
             self.model_dump(mode="python", exclude={"observation_id"})

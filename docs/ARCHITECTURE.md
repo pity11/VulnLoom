@@ -132,6 +132,14 @@ Control Plane 从原 Plan 派生目标，重新封存 Action、重新做 Policy 
 针对精确 Action ID 的 `EXECUTE_RED_TEAM_ACTION` Approval，随后进入既有 Recon claim/checkpoint 状态机。
 Admission 的取消/到期释放未消费预算，精确重放返回原对象，不产生第二份权限。
 
+### B2.1 sealed-path Web observation
+
+B2.1 复用 `EndpointSeedSet → EndpointReconPlan → Flow action` 权威链，只在 Plan 中增加同质的 `GET` step。
+`HTTP_GET` 不能经通用 Recon 或 B1 Tool View 准入；Control Plane 必须从 operator-sealed path 派生精确 URL，
+adapter 还必须持有相同 URL digest allowlist。Broker 请求固定无重定向、header、credential 和 body，最多读取
+64 KiB。`WebResponseSnapshot` 是正文之外的内容寻址投影，只携带状态、Peer、字节数、正文摘要、Policy 摘要和
+Evidence 引用；Endpoint outcome 不携带 URL 或正文。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。
