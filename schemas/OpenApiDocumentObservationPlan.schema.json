@@ -1,0 +1,163 @@
+{
+  "$defs": {
+    "OpenApiObservationLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_document_bytes": {
+          "default": 65536,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Max Document Bytes",
+          "type": "integer"
+        },
+        "max_paths": {
+          "default": 256,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Paths",
+          "type": "integer"
+        },
+        "max_operations": {
+          "default": 1024,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Operations",
+          "type": "integer"
+        },
+        "max_nodes": {
+          "default": 20000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Nodes",
+          "type": "integer"
+        },
+        "max_depth": {
+          "default": 32,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "max_servers": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Max Servers",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "OpenApiObservationLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "endpoint_recon_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Recon Plan Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "source_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Observation Id",
+      "type": "string"
+    },
+    "web_response_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Web Response Snapshot Id",
+      "type": "string"
+    },
+    "evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "document_body_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Document Body Sha256",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "limits": {
+      "$ref": "#/$defs/OpenApiObservationLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "endpoint_recon_plan_id",
+    "flow_plan_id",
+    "source_checkpoint_id",
+    "source_observation_id",
+    "web_response_snapshot_id",
+    "evidence_ref",
+    "document_body_sha256",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "OpenApiDocumentObservationPlan",
+  "type": "object"
+}

@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "OpenApiHttpMethod": {
+      "enum": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "title": "OpenApiHttpMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "discovery_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Discovery Id",
+      "type": "string"
+    },
+    "path_template": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Path Template",
+      "type": "string"
+    },
+    "path_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Path Digest",
+      "type": "string"
+    },
+    "methods": {
+      "items": {
+        "$ref": "#/$defs/OpenApiHttpMethod"
+      },
+      "maxItems": 7,
+      "minItems": 1,
+      "title": "Methods",
+      "type": "array"
+    },
+    "execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "discovery_id",
+    "path_template",
+    "path_digest",
+    "methods"
+  ],
+  "title": "OpenApiPathDiscovery",
+  "type": "object"
+}

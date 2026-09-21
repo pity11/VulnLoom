@@ -163,6 +163,15 @@ adapter 必须处于显式 URL-digest allowlist 模式且 redirects=0；请求�
 requested/final URL digest 不相等、缺失 Evidence、原始正文混入 schema、通用执行绕过或成功结果缺少类型化
 Web Snapshot 时均拒绝。失败、超时和 cleanup unknown 不返还已经发出的请求预算。
 
+### 1.5 B2.2 OpenAPI discovery confinement
+
+OpenAPI reducer 没有网络、resolver、模型或执行接口，只能消费一条权威 sealed GET 的已脱敏、内容寻址 Evidence。
+Plan 绑定 Endpoint outcome、Flow checkpoint、Observation、Web Snapshot、Scope/version 和原始响应摘要；来源漂移、
+过期、缺失 Evidence 或非成功/未清理 GET 均拒绝。解析只接受预算内 OpenAPI 3.0/3.1 JSON，重复 key、结构炸弹、
+非规范 path 和 operation 超额 fail-closed。所有 `servers` 与 `$ref` 均不解析、不输出、不访问。Discovery schema
+固定 `execution_authorized=false`，Observation 固定 `target_expansion_authorized=false`，因此解析结果不能成为隐式
+Target、Seed 或 Action。STARTED checkpoint 只在完整解析成功后写入，超时/拒绝不留下部分权限或部分结果。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

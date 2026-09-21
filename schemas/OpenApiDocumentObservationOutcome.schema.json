@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "OpenApiDocumentObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "endpoint_recon_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Endpoint Recon Plan Id",
+          "type": "string"
+        },
+        "source_observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Observation Id",
+          "type": "string"
+        },
+        "web_response_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Web Response Snapshot Id",
+          "type": "string"
+        },
+        "evidence_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evidence Ref",
+          "type": "string"
+        },
+        "document_body_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Document Body Sha256",
+          "type": "string"
+        },
+        "openapi_version": {
+          "pattern": "^3\\.(?:0|1)\\.[0-9]+$",
+          "title": "Openapi Version",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/OpenApiPathDiscovery"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "operation_count": {
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Operation Count",
+          "type": "integer"
+        },
+        "server_entries_ignored": {
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Server Entries Ignored",
+          "type": "integer"
+        },
+        "reference_entries_ignored": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Reference Entries Ignored",
+          "type": "integer"
+        },
+        "target_expansion_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Target Expansion Authorized",
+          "type": "boolean"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "plan_id",
+        "endpoint_recon_plan_id",
+        "source_observation_id",
+        "web_response_snapshot_id",
+        "evidence_ref",
+        "document_body_sha256",
+        "openapi_version",
+        "paths",
+        "operation_count",
+        "server_entries_ignored",
+        "reference_entries_ignored",
+        "observed_at"
+      ],
+      "title": "OpenApiDocumentObservation",
+      "type": "object"
+    },
+    "OpenApiHttpMethod": {
+      "enum": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "title": "OpenApiHttpMethod",
+      "type": "string"
+    },
+    "OpenApiPathDiscovery": {
+      "additionalProperties": false,
+      "properties": {
+        "discovery_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Discovery Id",
+          "type": "string"
+        },
+        "path_template": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path Template",
+          "type": "string"
+        },
+        "path_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Path Digest",
+          "type": "string"
+        },
+        "methods": {
+          "items": {
+            "$ref": "#/$defs/OpenApiHttpMethod"
+          },
+          "maxItems": 7,
+          "minItems": 1,
+          "title": "Methods",
+          "type": "array"
+        },
+        "execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Execution Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "discovery_id",
+        "path_template",
+        "path_digest",
+        "methods"
+      ],
+      "title": "OpenApiPathDiscovery",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "observation": {
+      "$ref": "#/$defs/OpenApiDocumentObservation"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "observation",
+    "attempt"
+  ],
+  "title": "OpenApiDocumentObservationOutcome",
+  "type": "object"
+}

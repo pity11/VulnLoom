@@ -372,10 +372,28 @@ B2.1 在 R7/R8 的 `EndpointSeedSet`、请求预算预留和 Flow ledger 上增�
 通过失败回滚获得额外请求。普通 CLI 没有新增 live GET 开关；本轮没有打开 socket、访问公网、调用真实模型或
 执行真实攻击。B2.1 达到 `offline_tested`，尚不等同于 B2 完成或生产支持。
 
+## B2.2 sealed OpenAPI document observation
+
+B2.2 是 B2.1 之后的纯离线 reducer，不会发送第二个请求。Control Plane 只接受一条已成功且 cleanup proven 的
+operator-sealed GET，重新读取权威 Endpoint Plan/outcome、当前 Flow checkpoint、Observation、
+`WebResponseSnapshot` 和内容寻址 Evidence；任一来源、Scope/version、正文摘要或 checkpoint 漂移都 fail-closed。
+
+解析面固定为 64 KiB 内的 OpenAPI 3.0/3.1 JSON，并有 path、operation、node、depth、server、墙钟和最多三次
+恢复预算。重复 JSON key、非 object operation、无有限 HTTP method 的 path、URL-like/转义/遍历 path 以及预算
+超限全部在写 STARTED checkpoint 前拒绝。`servers` 和任何层级的 `$ref` 仅计数后丢弃，服务没有 resolver、HTTP
+adapter 或 Target 扩展接口，因此不会访问或信任文档声明的外部 authority。
+
+结果只保留 canonical path template、`GET/HEAD/OPTIONS/PATCH/POST/PUT/DELETE` 方法集合和内容摘要。
+每个 `OpenApiPathDiscovery` 都固定 `execution_authorized=false`，文档 Observation 固定
+`target_expansion_authorized=false`；它们既不是 Endpoint Seed，也不是 Action。独立 SQLite ledger 提供幂等重放、
+STARTED 恢复和完成态内容一致性。离线测试覆盖成功、拒绝、结构预算、超时、恢复、schema 注入与无部分结果。
+B2.2 达到 `offline_tested`，不等同于生产支持，也没有新增 live CLI 开关。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
-路径 GET，下一步是对已封存 OpenAPI 文档做摘要化只读观察；文档内路径只能成为待审发现，不能自动执行。之后
-才推进 GraphQL 观察、按漏洞类别版本化 Evidence Requirement、受控测试身份和隔离靶场 A3/A4 资格。任何新
+路径 GET，B2.2 已把已封存 OpenAPI 文档降为无执行权的摘要发现。下一步是显式人工选择并重新封存 discovery 的
+promotion gate；未选择项不得进入 Seed Set。之后才推进 GraphQL 观察、按漏洞类别版本化 Evidence Requirement、
+受控测试身份和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 Target 扩展、真实第三方账户、横向移动或持久化。

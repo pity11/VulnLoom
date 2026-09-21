@@ -99,6 +99,25 @@ from .models import (
     ServiceTlsVersion,
     WebResponseSnapshot,
 )
+from .openapi_models import (
+    OpenApiDocumentObservation,
+    OpenApiDocumentObservationOutcome,
+    OpenApiDocumentObservationPlan,
+    OpenApiHttpMethod,
+    OpenApiObservationLimits,
+    OpenApiObservationState,
+    OpenApiPathDiscovery,
+)
+from .openapi_service import (
+    OpenApiObservationRejected,
+    OpenApiObservationService,
+    OpenApiObservationTimedOut,
+)
+from .openapi_store import (
+    OpenApiObservationRecoveryRequired,
+    OpenApiObservationStore,
+    OpenApiObservationStoreRejected,
+)
 from .replan_models import (
     RedTeamReplanAdmission,
     RedTeamReplanProposal,
@@ -309,6 +328,19 @@ __all__ = [
     "OfflineEndpointReconAdapter",
     "OfflineEndpointReconScenario",
     "OfflineRedTeamReconAdapter",
+    "OpenApiDocumentObservation",
+    "OpenApiDocumentObservationOutcome",
+    "OpenApiDocumentObservationPlan",
+    "OpenApiHttpMethod",
+    "OpenApiObservationLimits",
+    "OpenApiObservationRecoveryRequired",
+    "OpenApiObservationRejected",
+    "OpenApiObservationService",
+    "OpenApiObservationState",
+    "OpenApiObservationStore",
+    "OpenApiObservationStoreRejected",
+    "OpenApiObservationTimedOut",
+    "OpenApiPathDiscovery",
     "ReconOutcome",
     "RedTeamActionKind",
     "RedTeamAdapterInterrupted",

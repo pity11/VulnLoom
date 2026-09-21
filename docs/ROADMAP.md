@@ -1200,6 +1200,13 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   发出请求的预算。全量门禁为 1627 passed、43 skipped、85.46% coverage，453 份 schema、Ruff 和 diff check
   通过；无公网、真实模型或真实攻击。B2 保持进行中，下一纵切为 B2.2 sealed OpenAPI document observation。
 
+- B2.2 已达到 `offline_tested`。确定性 OpenAPI reducer 只消费一条权威 sealed GET 的当前 checkpoint、
+  `WebResponseSnapshot` 与脱敏 Evidence，不持有网络或模型能力。它在 64 KiB、节点、深度、path、operation、server
+  和时间预算内解析 OpenAPI 3.0/3.1 JSON；重复 key、结构超限、非规范 path、来源漂移和超时均 fail-closed。
+  `servers` 与 `$ref` 只计数后丢弃，输出 discovery 固定无执行权、无 Target 扩展权。事务 ledger 覆盖幂等、
+  STARTED 恢复和 cleanup proof。全量门禁为 1637 passed、43 skipped、85.47% coverage，458 份 schema；无公网、
+  真实模型或真实攻击。B2 保持进行中，下一纵切为 B2.3 reviewed OpenAPI discovery promotion gate。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

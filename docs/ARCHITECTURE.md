@@ -140,6 +140,17 @@ adapter 还必须持有相同 URL digest allowlist。Broker 请求固定无重�
 64 KiB。`WebResponseSnapshot` 是正文之外的内容寻址投影，只携带状态、Peer、字节数、正文摘要、Policy 摘要和
 Evidence 引用；Endpoint outcome 不携带 URL 或正文。
 
+### B2.2 sealed OpenAPI observation
+
+B2.2 位于 Evidence Store 之后，是不持有网络 adapter 的确定性 reducer。Plan 内容寻址地绑定单一成功 GET 的
+Endpoint Plan、当前 Flow checkpoint、Observation、`WebResponseSnapshot`、Scope/version 和 Evidence ID。
+服务从权威 stores 重新加载这些对象，只解析已脱敏 Evidence 中的 OpenAPI 3.0/3.1 JSON，并以字节、节点、深度、
+path、operation、server 和时间预算 fail-closed。
+
+输出是 canonical path template 与有限 method 的摘要投影。`servers`、`$ref` 和正文不会进入 projection，
+Path Discovery 固定无执行权且不能声明 URL/Target。单独的 STARTED/COMPLETED ledger 提供幂等与有界恢复；后续若
+要形成 Endpoint Seed，必须经过独立的人工 review/promotion 边界，不能由 reducer 自动完成。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

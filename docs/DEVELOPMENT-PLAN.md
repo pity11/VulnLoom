@@ -194,9 +194,10 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B2.2 sealed OpenAPI document observation 首个纵切**。A1 通用 Project Recipe
-Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1 已达到
-`offline_tested`。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B2.3 reviewed OpenAPI discovery promotion gate 首个纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1、B2.2 已达到
+`offline_tested`。B2.3 只能把操作员明确选中的 discovery 重新封存为新的 Endpoint Seed Set，不得自动执行、
+隐式扩展 Target 或继承文档中的 server authority。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -308,3 +309,13 @@ Policy 摘要和 Evidence ID，原始 URL/正文不会进入普通 Observation�
 通用绕过、缺失 Snapshot、重定向绑定漂移、原始正文 schema 注入、超时和 cleanup-unproven；已发出请求始终消费
 预算。本轮未访问公网、未调用真实模型、未执行真实攻击，也未新增 live CLI 开关。全量门禁为 1627 passed、
 43 skipped、85.46% coverage；453 份 schema、Ruff 和 diff check 通过。B2 尚未关闭，下一项为 B2.2。
+
+进展记录（2026-09-21）：B2.2 达到 `offline_tested`。新增内容寻址的 OpenAPI Observation Plan、Path Discovery、
+Outcome 与独立 SQLite STARTED/COMPLETED ledger；服务只接受一条已成功、已清理的 operator-sealed GET 及其当前
+Flow checkpoint、`WebResponseSnapshot` 和脱敏 Evidence。离线 reducer 仅解析 64 KiB 内的 OpenAPI 3.0/3.1
+JSON，拒绝重复 key、非规范 path、未知结构、超深/超量文档和超时；`servers` 与所有 `$ref` 只计数后丢弃，
+从不解析、访问或转为 Target。输出只含 canonical path、有限 HTTP method 和摘要，且
+`execution_authorized=false`、`target_expansion_authorized=false`。幂等重放、最多三次恢复、来源漂移与无部分
+结果语义由事务 ledger 约束。本轮未访问公网、未调用真实模型、未执行真实攻击，也未新增 live CLI 开关。
+全量门禁为 1637 passed、43 skipped、85.47% coverage；458 份 schema、Ruff 和专项红队回归通过。B2 保持进行中，
+下一项为 B2.3 reviewed discovery promotion gate。
