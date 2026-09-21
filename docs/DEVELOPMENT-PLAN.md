@@ -203,5 +203,7 @@ Worker canary 所在批次无 skip，S1.1 关闭。
 
 S1.2 已开始首个纵切：仓库内版本化、内容寻址的 `docker-builtin-worker-v1` seccomp 合同绑定到每个 Sandbox
 Profile；生产默认只接受准入的 Docker Engine 29.7.2 builtin profile，版本漂移与 `seccomp=unconfined` fail-closed，
-rootless probe 从容器内复核 Linux `Seccomp: 2`。本地全量门禁为 1534 passed、31 skipped、覆盖率 85.42%；真实
-rootless 复核待该变更进入 Phase 3 后确认。后续继续覆盖 PID/FD/输出/磁盘/内存压力与进程组回收。
+rootless probe 从容器内复核 Linux `Seccomp: 2`。本地全量门禁为 1534 passed、31 skipped、覆盖率 85.42%；
+commit `5fd74a385a4493baddb31526f876e8e77935a10b` 的 Phase 3 run `35550502151` 已通过真实 rootless 复核。
+同提交的 CI run `35550502111` 已在 Python 3.12/3.13/3.14 全部通过。后续继续覆盖 PID/FD/输出/磁盘/内存
+压力与进程组回收。

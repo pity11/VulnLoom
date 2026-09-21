@@ -1331,7 +1331,10 @@ S1.2 首个纵切已开始：新增仓库版本化、内容寻址的 `docker-bui
 Profile。生产 Runner 默认只接受准入 Docker Engine 29.7.2 报告的 builtin profile，版本漂移、合同摘要漂移和
 `seccomp=unconfined` 均 fail-closed；真实 rootless hardening probe 进一步要求容器内 `/proc/self/status` 报告
 `Seccomp: 2`。普通 Docker Desktop 测试只能显式关闭版本资格检查且不能提供生产准入。当前本地全量门禁为
-1534 passed、31 skipped，覆盖率 85.42%；真实 rootless 结果待本纵切推送后由 Phase 3 复核。
+1534 passed、31 skipped，覆盖率 85.42%。commit `5fd74a385a4493baddb31526f876e8e77935a10b` 的 rootless
+Phase 3 run `35550502151` 已成功，生产 probe 批次为 8 passed、9 passed、5 passed/9 deselected；S1.2 seccomp
+合同纵切达到 `isolated_integration_tested`。同提交 CI run `35550502111` 在 Python 3.12/3.13/3.14 全部通过；
+S1.2 其余资源压力范围继续进行。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless

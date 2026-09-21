@@ -47,7 +47,8 @@ hostile Worker canary 未跳过。
 S1.2 的首个合同使用仓库内 `worker-seccomp-v1.json`。它不是提示词声明，也不允许 `unconfined`：每个 Sandbox
 Profile 都绑定合同内容摘要；生产 Engine 必须是合同准入的 29.7.2 并报告 builtin seccomp，创建后 inspection 拒绝
 unconfined override，rootless 容器再从 `/proc/self/status` 证明 mode 2。Docker Desktop 的显式版本例外只用于本地
-回归，不能形成生产资格。资源压力与进程组回收仍属于后续 S1.2 纵切。
+回归，不能形成生产资格。commit `5fd74a385a4493baddb31526f876e8e77935a10b` 的 rootless Phase 3 run
+`35550502151` 已通过上述真实配置复核。资源压力与进程组回收仍属于后续 S1.2 纵切。
 
 ## 2. Sandbox Profile
 
