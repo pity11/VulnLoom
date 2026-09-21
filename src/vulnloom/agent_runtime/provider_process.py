@@ -142,14 +142,14 @@ class SubprocessProviderTransportRunner:
             reader.start()
             try:
                 return_code = process.wait(timeout=timeout_seconds)
-            except subprocess.TimeoutExpired as exc:
+            except subprocess.TimeoutExpired:
                 _terminate(process)
                 process.wait(timeout=5)
                 raise ProviderProcessExecutionError(
                     "provider_process_timeout",
                     timed_out=True,
                     captured_bytes=min(len(captured), max_response_bytes),
-                ) from exc
+                ) from None
             reader.join(timeout=5)
             if reader.is_alive():
                 _terminate(process)
@@ -187,13 +187,13 @@ class SubprocessProviderTransportRunner:
                 peer_ip=peer_ip,
                 tls_version=tls_version,
             )
-        except (BrokenPipeError, OSError) as exc:
+        except (BrokenPipeError, OSError):
             _terminate(process)
             process.wait(timeout=5)
             raise ProviderProcessExecutionError(
                 "provider_process_io_failed",
                 captured_bytes=min(len(captured), max_response_bytes),
-            ) from exc
+            ) from None
         finally:
             wire[:] = b"\x00" * len(wire)
             if process.poll() is None:
@@ -242,11 +242,11 @@ def _parse_worker_output(
         if tls_version not in {"TLSv1.2", "TLSv1.3"}:
             raise ValueError("TLS version mismatch")
         return response, peer_ip, tls_version
-    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise ProviderProcessExecutionError(
             "provider_process_output_invalid",
             captured_bytes=min(len(captured), max_response_bytes),
-        ) from exc
+        ) from None
     finally:
         captured[:] = b"\x00" * len(captured)
 
@@ -273,7 +273,7 @@ def _parse_failure_output(captured: bytearray) -> ProviderDiagnostic:
         if result.failure_stage not in ("transport_process", "http_status"):
             raise ValueError()
         return result
-    except (ValueError, TypeError) as exc:
-        raise ProviderProcessExecutionError("provider_process_output_invalid") from exc
+    except (ValueError, TypeError):
+        raise ProviderProcessExecutionError("provider_process_output_invalid") from None
     finally:
         captured[:] = b"\x00" * len(captured)

@@ -172,3 +172,23 @@ def test_git_timeout_is_closed_and_leaves_no_snapshot(tmp_path, approved_scope, 
             repo, repository_url=repository_url, commit=commit, scope=scope
         )
     assert list((store / "snapshots").iterdir()) == []
+
+
+def test_git_failure_does_not_expose_stderr_or_timeout_command(tmp_path, monkeypatch):
+    canary = "vl-canary-S1.3-git-stderr"
+
+    class Failed:
+        returncode = 1
+        stdout = b""
+        stderr = canary.encode()
+
+    monkeypatch.setattr(subprocess, "run", lambda *_args, **_kwargs: Failed())
+    monkeypatch.setattr(ingestion_module.shutil, "which", lambda _: "/usr/bin/git")
+    service = IngestionService(tmp_path / "store")
+
+    with pytest.raises(IngestionError) as failure:
+        service._git_bytes(tmp_path, ["status"], ingestion_module._Deadline(1))
+
+    assert canary not in str(failure.value)
+    assert canary not in repr(failure.value)
+    assert failure.value.__cause__ is None

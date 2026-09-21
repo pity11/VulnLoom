@@ -73,6 +73,25 @@ Docker canary 与 rootless Phase 3 run `35553910680` 均已通过，CI run `3555
 S1.2 的 seccomp、资源压力、超时、取消、进程组回收、残留对象清理和 Profile 差异已经形成真实隔离证据，
 S1.2 关闭。
 
+S1.3 已将秘密泄漏回归收敛为内容寻址的八表面资格合同：Worker output、Provider transport、exception chain、
+event log、Evidence、Report、CLI/API 和 model context 缺一不可。计划与 observation 只保存表面、测试产物摘要、
+布尔安全结论和有界错误码，schema 无法承载 canary、stdout、stderr、payload 或 environment；缺失、重复、摘要
+漂移、过期、canary 命中、出口/大小/清理未证明均确定性 `denied`。
+
+统一 `builtin-v3` Redactor 可由可信控制面注入已知秘密，只生成纯文本、URL、Base64/Base64URL、hex 和 JSON
+escape 的确定性变体，不依赖模型或语义 DLP。分段 Evidence 先按原始字节限额收集，再以 strict UTF-8 解码并
+一次性脱敏，成功或失败都会清零内部缓冲；畸形、超限和复用均拒绝。Worker 结构化输出不做可能破坏 JSON 的
+静默改写：发现敏感内容或畸形 UTF-8 时不发布对象，Runner 返回 `output_capture_failed` 并照常验证容器清理。
+
+Git、Semgrep、Docker 和 Provider subprocess 的外部 stderr、响应解析内容及底层异常不再进入可见异常链；
+Provider 仍使用固定 subprocess、空白名单环境、丢弃 stderr、受限响应缓冲并在终态清零 credential/request/wire/
+response 临时缓冲。Event、Evidence、Report 与 Agent context 的普通和编码 canary 均有持久化回归；CLI 继续只
+输出稳定错误码。当前没有 HTTP API 实现，因此 API 是零运行表面，未来实现必须复用同一应用服务和本合同。
+
+本机 Docker 的无网络 synthetic canary 已证明真实 Worker 输出秘密时不会发布对象，终态为失败、临时目录为空、
+容器完成删除；安全输出成功路径同时通过。全量离线测试、Ruff、437 份 schema 解析和 diff check 通过，未访问
+公网、未调用真实模型、未执行真实攻击。S1.3 关闭，下一项为 S1.4 防篡改审计骨架。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

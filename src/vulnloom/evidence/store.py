@@ -6,11 +6,12 @@ import hashlib
 import os
 import stat
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
 
 from vulnloom.domain.models import Evidence, EvidenceKind
 
-from .redaction import Redactor
+from .redaction import BoundedRedactionBuffer, Redactor
 
 
 class EvidenceStore:
@@ -39,6 +40,8 @@ class EvidenceStore:
         target_version: str,
         summary: str,
     ) -> Evidence:
+        if len(content.encode("utf-8")) > self.max_evidence_bytes:
+            raise ValueError("raw Evidence exceeds the configured size limit")
         redacted = self.redactor.text(content)
         safe_summary = self.redactor.text(summary)
         encoded = redacted.encode("utf-8")
@@ -69,6 +72,36 @@ class EvidenceStore:
             redaction_policy=self.redactor.policy_name,
             content_ref=str(destination.relative_to(self.root)),
             summary=safe_summary,
+        )
+
+    def capture_chunks(
+        self,
+        chunks: Iterable[bytes],
+        *,
+        kind: EvidenceKind,
+        source_ref: str,
+        producer: str,
+        target_version: str,
+        summary: str,
+    ) -> Evidence:
+        buffer = BoundedRedactionBuffer(
+            self.redactor,
+            max_input_bytes=self.max_evidence_bytes,
+            max_output_bytes=self.max_evidence_bytes,
+        )
+        try:
+            buffer.feed(chunks)
+            content = buffer.finalize()
+        except Exception:
+            buffer.close()
+            raise
+        return self.capture_text(
+            content,
+            kind=kind,
+            source_ref=source_ref,
+            producer=producer,
+            target_version=target_version,
+            summary=summary,
         )
 
     def read_text(self, evidence: Evidence) -> str:

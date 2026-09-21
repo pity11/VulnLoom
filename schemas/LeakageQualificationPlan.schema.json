@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "LeakageProbeExpectation": {
+      "additionalProperties": false,
+      "properties": {
+        "surface": {
+          "$ref": "#/$defs/LeakageSurface"
+        },
+        "artifact_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Digest",
+          "type": "string"
+        },
+        "probe_contract_digest": {
+          "default": "bbdae32185c9538abb7b5fcffd1b1414798fda9c3ed484a69f23955ec5690296",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Probe Contract Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "surface",
+        "artifact_digest"
+      ],
+      "title": "LeakageProbeExpectation",
+      "type": "object"
+    },
+    "LeakageSurface": {
+      "enum": [
+        "worker_output",
+        "provider_transport",
+        "exception_chain",
+        "event_log",
+        "evidence",
+        "report",
+        "cli_api",
+        "model_context"
+      ],
+      "title": "LeakageSurface",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "probes": {
+      "items": {
+        "$ref": "#/$defs/LeakageProbeExpectation"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "title": "Probes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_id",
+    "created_at",
+    "expires_at",
+    "probes"
+  ],
+  "title": "LeakageQualificationPlan",
+  "type": "object"
+}

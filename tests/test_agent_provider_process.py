@@ -144,6 +144,9 @@ def test_subprocess_runner_timeout_kills_process_group(monkeypatch):
     assert failure.value.timed_out is True
     assert killed and killed[0][0] == process.pid
     assert process.terminated is True
+    assert "timeout-secret" not in str(failure.value)
+    assert "timeout-secret" not in repr(failure.value)
+    assert failure.value.__cause__ is None
 
 
 @pytest.mark.parametrize(
@@ -165,3 +168,4 @@ def test_worker_output_parser_rejects_malformed_frames_and_zeroes_capture(captur
 
     assert failure.value.code == "provider_process_output_invalid"
     assert captured == bytearray(len(captured))
+    assert failure.value.__cause__ is None

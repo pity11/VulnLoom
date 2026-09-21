@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import os
 import stat
 from datetime import timedelta
@@ -115,6 +116,31 @@ def test_context_is_redacted_sealed_untrusted_and_stored_read_only(tmp_path, now
     persisted = path.read_text(encoding="utf-8")
     assert "raw-token-value" not in persisted
     assert "super-secret-value" not in persisted
+
+
+def test_context_redacts_fragmented_known_canary_encoding(tmp_path, now):
+    canary = "vl-canary-S1.3-model-context"
+    encoded = base64.b64encode(canary.encode()).decode()
+    task = _task(now, refs=("summary:" + "d" * 64,))
+    snapshot = AgentContextAssembler(Redactor((canary,))).assemble(
+        task=task,
+        sources=(
+            AgentContextSource(
+                source_ref=task.input_refs[0],
+                kind=AgentContextSourceKind.TASK_SUMMARY,
+                text=f"provider result: {encoded}",
+            ),
+        ),
+        limits=AgentContextLimits(),
+        now=now,
+        deadline=now + timedelta(minutes=1),
+    )
+    path = AgentContextStore(tmp_path / "contexts").publish(snapshot)
+
+    persisted = path.read_text(encoding="utf-8")
+    assert canary not in persisted
+    assert encoded not in persisted
+    assert "[REDACTED]" in persisted
 
 
 def test_agent_plan_binds_exact_context_snapshot(now):

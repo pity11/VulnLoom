@@ -1303,7 +1303,7 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 
 详见 `docs/HYBRID-VALIDATION.md`。
 
-### Shared Assurance S1（下一重大里程碑）
+### Shared Assurance S1（当前重大里程碑）
 
 S1 是 Source Hunt、Authorized Red Team、Hybrid 和 Provider 路径共同依赖的安全资格，不增加公网扫描、目标
 扩展、攻击类别或 Submission 能力，也不占用长期路线中已保留给团队化部署的 R12 编号。
@@ -1354,6 +1354,20 @@ S1.2，随后进入 S1.3。
 commit `5986d40150420f9270b7b4044fec2208b96815b1` 的 rootless Phase 3 run `35553910680` 已通过 Profile
 matrix，生产批次为 8 passed、16 passed、5 passed/9 deselected；CI run `35553910683` 在 Python
 3.12/3.13/3.14 全部通过。S1.2 达到 `isolated_integration_tested` 并关闭；Shared Assurance 当前进入 S1.3。
+
+S1.3 已完成：新增内容寻址的八表面 secret-leakage plan/observation/outcome 协议，要求 Worker output、Provider
+transport、exception chain、event log、Evidence、Report、CLI/API 与 model context 全覆盖；任何缺项、重复、
+摘要漂移、过期、canary 命中或出口/大小/清理未证明均 fail-closed。协议只保存 digest 和布尔结论，禁止 secret、
+stdout、stderr、payload 和 environment 字段。
+
+`builtin-v3` 统一已知秘密及其 URL/Base64/Base64URL/hex/JSON-escape 变体的确定性脱敏；分段输入受原始与输出
+双重字节上限、strict UTF-8 和终态清零约束。Worker 输出发现秘密或畸形内容时拒绝发布，外部 Git/Semgrep/
+Docker/Provider 错误只暴露稳定类型和代码，不保留可能含秘密的异常 cause。Evidence、Event、报告、CLI 和模型
+上下文持久化均增加 synthetic canary 回归；现阶段 HTTP API 尚不存在，不虚构 API 运行资格。
+
+默认全量离线门禁与 437 份 schema 解析通过；本机无网络 Docker 同时验证安全输出成功路径和 secret 输出拒绝/
+对象不发布/临时目录清理/容器缺失路径。未访问公网、未调用真实模型或执行真实攻击。S1.3 关闭，Shared
+Assurance 当前进入 S1.4 防篡改审计骨架。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless

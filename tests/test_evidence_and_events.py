@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
 import sqlite3
+from urllib.parse import quote
 from uuid import uuid4
 
 import pytest
 
 from vulnloom.domain.models import EvidenceKind
+from vulnloom.evidence import BoundedRedactionBuffer, Redactor, SensitiveDataRejected
 from vulnloom.evidence.store import EvidenceStore
 from vulnloom.storage.events import Event, EventStore, IdempotencyConflict
 
@@ -63,6 +66,27 @@ def test_evidence_store_rejects_oversize_and_symlink_objects(tmp_path):
         store.read_text(evidence)
 
 
+def test_evidence_size_limit_applies_before_secret_redaction_can_shrink_input(tmp_path):
+    canary = "vl-canary-S1.3-raw-input-must-remain-bounded"
+    store = EvidenceStore(
+        tmp_path / "evidence",
+        Redactor((canary,)),
+        max_evidence_bytes=16,
+    )
+
+    with pytest.raises(ValueError, match="raw Evidence"):
+        store.capture_text(
+            canary,
+            kind=EvidenceKind.TEST,
+            source_ref="fixture:oversize-canary",
+            producer="test",
+            target_version="v1",
+            summary="oversize",
+        )
+
+    assert tuple(store.objects.iterdir()) == ()
+
+
 def test_evidence_redaction_covers_json_shaped_secrets(tmp_path):
     store = EvidenceStore(tmp_path / "evidence")
     evidence = store.capture_text(
@@ -77,6 +101,72 @@ def test_evidence_redaction_covers_json_shaped_secrets(tmp_path):
     assert "json-secret" not in content
     assert "also-secret" not in content
     assert content.count("[REDACTED]") == 2
+
+
+def test_known_canary_variants_are_redacted_across_fragmented_chunks(tmp_path):
+    canary = "vl-canary-S1.3-credential"
+    encoded = base64.urlsafe_b64encode(canary.encode()).decode().rstrip("=")
+    content = (
+        f"plain={canary}\nurl={quote(canary, safe='')}\n"
+        f"b64={encoded}\nhex={canary.encode().hex()}"
+    )
+    chunks = tuple(
+        content.encode()[index : index + 3] for index in range(0, len(content), 3)
+    )
+    redactor = Redactor((canary,))
+    buffer = BoundedRedactionBuffer(redactor, max_input_bytes=4096)
+    buffer.feed(chunks)
+
+    redacted = buffer.finalize()
+
+    assert canary not in redacted
+    assert encoded not in redacted
+    assert canary.encode().hex() not in redacted
+    assert redacted.count("[REDACTED]") == 4
+    assert buffer._buffer == bytearray()
+    with pytest.raises(SensitiveDataRejected, match="finalized"):
+        buffer.feed(b"late")
+
+    store = EvidenceStore(tmp_path / "chunked-evidence", redactor, max_evidence_bytes=4096)
+    evidence = store.capture_chunks(
+        chunks,
+        kind=EvidenceKind.TEST,
+        source_ref="fixture:fragmented-canary",
+        producer="test",
+        target_version="v1",
+        summary=f"captured {canary}",
+    )
+    persisted = store.read_text(evidence)
+    assert canary not in persisted
+    assert encoded not in persisted
+    assert canary not in evidence.summary
+
+
+@pytest.mark.parametrize("chunks", ((b"valid", b"\xff"), (b"x" * 9,)))
+def test_bounded_redaction_buffer_rejects_malformed_or_oversized_input(chunks):
+    buffer = BoundedRedactionBuffer(max_input_bytes=8)
+
+    with pytest.raises(SensitiveDataRejected):
+        buffer.feed(chunks)
+        buffer.finalize()
+
+    assert buffer._buffer == bytearray()
+    with pytest.raises(SensitiveDataRejected, match="finalized"):
+        buffer.feed(b"reuse")
+
+
+def test_bounded_redaction_buffer_enforces_post_redaction_limit_and_clears():
+    buffer = BoundedRedactionBuffer(
+        Redactor(("12345678",)),
+        max_input_bytes=8,
+        max_output_bytes=8,
+    )
+    buffer.feed(b"12345678")
+
+    with pytest.raises(SensitiveDataRejected, match="output exceeds"):
+        buffer.finalize()
+
+    assert buffer._buffer == bytearray()
 
 
 def test_event_store_is_idempotent_and_redacts_secrets(tmp_path, engagement_id):
@@ -98,6 +188,26 @@ def test_event_store_is_idempotent_and_redacts_secrets(tmp_path, engagement_id):
     assert len(events) == 1
     assert events[0].payload["api_key"] == "[REDACTED]"
     assert "me@example.org" not in str(events[0].payload)
+
+
+def test_event_store_redacts_known_encoded_canary(tmp_path, engagement_id):
+    canary = "vl-canary-S1.3-event-secret"
+    encoded = base64.b64encode(canary.encode()).decode()
+    event = Event(
+        engagement_id=engagement_id,
+        event_type="WorkerReported",
+        aggregate_id="task-canary",
+        payload={"message": f"fragment:{encoded}"},
+        idempotency_key="task-canary:report",
+    )
+    with EventStore(tmp_path / "events.db", Redactor((canary,))) as store:
+        store.append(event)
+        raw_database = (tmp_path / "events.db").read_bytes()
+        stored = store.list_for_engagement(engagement_id)[0]
+
+    assert canary.encode() not in raw_database
+    assert encoded.encode() not in raw_database
+    assert stored.payload == {"message": "fragment:[REDACTED]"}
 
 
 def test_event_store_closes_connection_on_error(tmp_path):

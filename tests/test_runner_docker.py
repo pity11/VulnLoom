@@ -7,7 +7,9 @@ from uuid import uuid4
 import pytest
 
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
+from vulnloom.evidence import Redactor
 from vulnloom.runners import (
+    DockerCliBackend,
     DockerSandboxRunner,
     DockerTool,
     NetworkGrant,
@@ -24,6 +26,7 @@ from vulnloom.runners import (
     static_profile,
     validation_profile,
 )
+from vulnloom.runners import docker as docker_module
 from vulnloom.runners.docker import DockerBackendError, _network_gateway_ips
 
 IMAGE = "sha256:" + "1" * 64
@@ -487,6 +490,48 @@ def test_output_capture_failure_is_typed_and_still_cleans_container(
     assert tuple(outputs.temporary.iterdir()) == ()
 
 
+@pytest.mark.parametrize(
+    "unsafe_output",
+    (
+        b'{"result":"vl-canary-S1.3-worker-secret"}',
+        b'{"result":"dmwtY2FuYXJ5LVMxLjMtd29ya2VyLXNlY3JldA=="}',
+        b'{"result":"\xff"}',
+    ),
+)
+def test_output_capture_rejects_secret_or_malformed_worker_output_and_cleans(
+    tmp_path, now, unsafe_output
+):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    backend = FakeDockerBackend(inspection)
+    backend.output_bytes = unsafe_output
+    canary = "vl-canary-S1.3-worker-secret"
+    outputs = RunnerOutputStore(
+        tmp_path / "runner-outputs", redactor=Redactor((canary,))
+    )
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.FAILED
+    assert result.error_codes == ("output_capture_failed",)
+    assert result.outputs == ()
+    assert result.cleanup.complete
+    assert backend.removed and not backend.container_exists
+    assert tuple(outputs.temporary.iterdir()) == ()
+    assert tuple(outputs.objects.iterdir()) == ()
+
+
 def test_post_create_hardening_refusal_still_removes_container(tmp_path, now):
     source = tmp_path / "objects" / SNAPSHOT
     source.mkdir(parents=True)
@@ -662,3 +707,22 @@ def test_docker_network_gateway_parser_normalizes_and_fails_closed():
 
     with pytest.raises(DockerBackendError, match="malformed"):
         _network_gateway_ips(({"IPAM": {"Config": [{"Gateway": "not-an-ip"}]}},))
+
+
+def test_docker_cli_failure_does_not_expose_stderr(monkeypatch):
+    canary = "vl-canary-S1.3-docker-stderr"
+    monkeypatch.setattr(docker_module.shutil, "which", lambda _: "/usr/bin/docker")
+    monkeypatch.setattr(
+        docker_module.subprocess,
+        "run",
+        lambda *args, **kwargs: docker_module.subprocess.CompletedProcess(
+            args[0], 125, stdout="", stderr=canary
+        ),
+    )
+
+    with pytest.raises(DockerBackendError) as failure:
+        DockerCliBackend().engine_info()
+
+    assert str(failure.value) == "Docker command failed with exit code 125"
+    assert canary not in repr(failure.value)
+    assert failure.value.__cause__ is None

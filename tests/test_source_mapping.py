@@ -372,6 +372,32 @@ def test_semgrep_adapter_rejects_timeout_bad_output_and_escaped_path(
         SemgrepAdapter(executable, {"web": linked_config}).analyze(snapshot, root, "web")
 
 
+def test_semgrep_failure_does_not_expose_stderr_in_exception_chain(
+    tmp_path, approved_scope, monkeypatch
+):
+    canary = "vl-canary-S1.3-semgrep-stderr"
+    snapshot, store, _scope = _snapshot(tmp_path, approved_scope, {"app.py": "pass\n"})
+    executable = tmp_path / "semgrep"
+    executable.write_text("binary", encoding="utf-8")
+    executable.chmod(0o700)
+    config = tmp_path / "rules.yml"
+    config.write_text("rules: []\n", encoding="utf-8")
+
+    def failed(command, **kwargs):
+        kwargs["stderr"].write(canary.encode())
+        return subprocess.CompletedProcess(command, 2)
+
+    monkeypatch.setattr(subprocess, "run", failed)
+    with pytest.raises(AnalyzerAdapterError) as failure:
+        SemgrepAdapter(executable, {"web": config}).analyze(
+            snapshot, store / snapshot.root_ref, "web"
+        )
+
+    assert canary not in str(failure.value)
+    assert canary not in repr(failure.value)
+    assert failure.value.__cause__ is None
+
+
 @pytest.mark.semgrep_integration
 @pytest.mark.skipif(shutil.which("semgrep") is None, reason="Semgrep is not installed")
 def test_real_semgrep_adapter_with_local_rule(tmp_path, approved_scope):

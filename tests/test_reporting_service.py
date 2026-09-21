@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import sqlite3
 from datetime import timedelta
 from uuid import NAMESPACE_URL, uuid5
@@ -21,7 +22,7 @@ from vulnloom.domain.models import (
     ValidationRun,
 )
 from vulnloom.domain.state_machine import promote_candidate
-from vulnloom.evidence import EvidenceStore
+from vulnloom.evidence import EvidenceStore, Redactor
 from vulnloom.reporting import (
     DeterministicReportService,
     ReportArtifactStore,
@@ -158,7 +159,7 @@ def _plan(now, candidate, finding, bundle, *, sections=None, key="report:1", **u
     return ReportDraftPlan.create(**values)
 
 
-def _service(tmp_path, scope, evidence_store, *, artifact_store=None):
+def _service(tmp_path, scope, evidence_store, *, artifact_store=None, redactor=None):
     store = ReportDraftStore(tmp_path / "reports.db")
     artifacts = artifact_store or ReportArtifactStore(tmp_path / "reports")
     service = DeterministicReportService(
@@ -166,6 +167,7 @@ def _service(tmp_path, scope, evidence_store, *, artifact_store=None):
         evidence_store=evidence_store,
         store=store,
         artifact_store=artifacts,
+        redactor=redactor,
     )
     return service, store, artifacts
 
@@ -204,6 +206,34 @@ def test_report_draft_is_redacted_traceable_deterministic_and_locally_exported(
     unsafe = first.report.model_copy(update={"title": "Authorization: Bearer leaked-token"})
     with pytest.raises(ValueError, match="not passed redaction"):
         artifacts.put(unsafe)
+
+
+def test_report_artifacts_redact_known_encoded_canary(
+    tmp_path, candidate, approved_scope, now
+):
+    canary = "vl-canary-S1.3-report-secret"
+    encoded = base64.b64encode(canary.encode()).decode()
+    evidence_store, evidence, promoted, finding, bundle = _finding_inputs(
+        tmp_path, candidate, approved_scope, now
+    )
+    sections = list(_sections(*bundle.evidence_refs))
+    sections[0] = sections[0].model_copy(update={"text": f"finding {encoded}"})
+    plan = _plan(now, promoted, finding, bundle, sections=tuple(sections))
+    service, store, artifacts = _service(
+        tmp_path,
+        approved_scope,
+        evidence_store,
+        redactor=Redactor((canary,)),
+    )
+
+    outcome = service.draft(finding, promoted, bundle, evidence, plan, now=plan.created_at)
+    markdown = artifacts.read_markdown(outcome.artifact)
+    persisted = artifacts.read_report(outcome.artifact).model_dump_json()
+    store.close()
+
+    assert canary not in markdown + persisted
+    assert encoded not in markdown + persisted
+    assert "[REDACTED]" in persisted
 
 
 @pytest.mark.parametrize(

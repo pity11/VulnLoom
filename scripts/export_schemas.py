@@ -418,6 +418,12 @@ from vulnloom.runners import (
     SeccompContract,
     ToolInvocation,
 )
+from vulnloom.security import (
+    LeakageProbeExpectation,
+    LeakageProbeObservation,
+    LeakageQualificationOutcome,
+    LeakageQualificationPlan,
+)
 from vulnloom.source_hunt import (
     InvestigationCheckpoint,
     InvestigationDecision,
@@ -796,6 +802,10 @@ MODELS = (
     ResourcePressureProbeObservation,
     ResourcePressureQualificationPlan,
     ResourcePressureQualificationOutcome,
+    LeakageProbeExpectation,
+    LeakageProbeObservation,
+    LeakageQualificationPlan,
+    LeakageQualificationOutcome,
     SeccompContract,
     ToolRegistration,
     HttpRequestPlan,

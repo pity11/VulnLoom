@@ -248,8 +248,8 @@ class DockerCliBackend:
         result = self._run(arguments)
         try:
             return json.loads(result.stdout)
-        except json.JSONDecodeError as exc:
-            raise DockerBackendError("Docker returned malformed JSON") from exc
+        except json.JSONDecodeError:
+            raise DockerBackendError("Docker returned malformed JSON") from None
 
     def _run(
         self, arguments: Sequence[str], *, check: bool = True
@@ -264,8 +264,9 @@ class DockerCliBackend:
             env=self.environment,
         )
         if check and result.returncode != 0:
-            message = result.stderr.strip()[:500]
-            raise DockerBackendError(f"Docker command failed: {message}")
+            raise DockerBackendError(
+                f"Docker command failed with exit code {result.returncode}"
+            )
         return result
 
 

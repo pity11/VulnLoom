@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "LeakageSurface": {
+      "enum": [
+        "worker_output",
+        "provider_transport",
+        "exception_chain",
+        "event_log",
+        "evidence",
+        "report",
+        "cli_api",
+        "model_context"
+      ],
+      "title": "LeakageSurface",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "surface": {
+      "$ref": "#/$defs/LeakageSurface"
+    },
+    "artifact_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Digest",
+      "type": "string"
+    },
+    "canary_absent": {
+      "title": "Canary Absent",
+      "type": "boolean"
+    },
+    "egress_boundary_enforced": {
+      "title": "Egress Boundary Enforced",
+      "type": "boolean"
+    },
+    "size_boundary_enforced": {
+      "title": "Size Boundary Enforced",
+      "type": "boolean"
+    },
+    "cleanup_verified": {
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "error_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Error Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "surface",
+    "artifact_digest",
+    "canary_absent",
+    "egress_boundary_enforced",
+    "size_boundary_enforced",
+    "cleanup_verified"
+  ],
+  "title": "LeakageProbeObservation",
+  "type": "object"
+}

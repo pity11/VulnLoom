@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Protocol
 
+from vulnloom.evidence.redaction import Redactor
+
 from .base import RunnerCancellation, RunnerCancellationRequested
 from .models import SandboxOutput
 
@@ -32,7 +34,13 @@ class RunnerOutputCaptureFailed(RuntimeError):
 class RunnerOutputStore:
     """Capture bounded bytes, validate no-follow, then publish by digest."""
 
-    def __init__(self, root: Path, *, max_output_bytes: int = 64 * 1024 * 1024):
+    def __init__(
+        self,
+        root: Path,
+        *,
+        max_output_bytes: int = 64 * 1024 * 1024,
+        redactor: Redactor | None = None,
+    ):
         if max_output_bytes <= 0:
             raise ValueError("sandbox output size limit must be positive")
         self.root = root.resolve()
@@ -41,6 +49,7 @@ class RunnerOutputStore:
         self.objects.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.temporary.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.max_output_bytes = max_output_bytes
+        self.redactor = redactor or Redactor()
 
     def capture_attached(
         self,
@@ -79,6 +88,12 @@ class RunnerOutputStore:
         return self._verify(output)
 
     def _publish(self, content: bytes) -> SandboxOutput:
+        try:
+            decoded = content.decode("utf-8", "strict")
+        except UnicodeDecodeError:
+            raise RunnerOutputCaptureFailed("sandbox output is not valid UTF-8") from None
+        if not self.redactor.is_safe_text(decoded):
+            raise RunnerOutputCaptureFailed("sandbox output contains sensitive data")
         digest = hashlib.sha256(content).hexdigest()
         output = SandboxOutput(
             object_id=digest,

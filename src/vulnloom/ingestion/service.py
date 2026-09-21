@@ -571,11 +571,10 @@ class IngestionService:
                 env=environment,
                 timeout=deadline.remaining(),
             )
-        except subprocess.TimeoutExpired as exc:
-            raise IngestionError("Git ingestion timed out") from exc
+        except subprocess.TimeoutExpired:
+            raise IngestionError("Git ingestion timed out") from None
         if result.returncode != 0:
-            error = result.stderr.decode("utf-8", "replace").strip()
-            raise IngestionError(f"Git object read failed: {error[:300]}")
+            raise IngestionError("Git object read failed")
         return result.stdout
 
     def _git_text(self, source: Path, args: list[str], deadline: _Deadline) -> str:

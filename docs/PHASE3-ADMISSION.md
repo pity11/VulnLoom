@@ -994,3 +994,25 @@ credential/config preflight completed without network access. The prior full
 offline run had 1122 passed, 23 integration tests deselected, coverage 86.45%.
 This acceptance proves the fixed JSON probe only, not a general Chat interface,
 model-driven research, target validation, or an autonomous tool workflow.
+
+## S1.3 secret leakage and egress regression (2026-09-21)
+
+S1.3 adds a content-addressed, fail-closed qualification contract for eight required surfaces:
+Worker output, provider transport, exception chains, event logs, Evidence, reports, CLI/API, and
+model context. The protocol stores only artifact digests, boolean checks, and bounded error codes;
+raw canaries and output cannot be represented. Missing, duplicate, drifted, expired, leaking, or
+unproven observations deny admission.
+
+The deterministic `builtin-v3` redaction policy covers trusted exact secrets and their URL,
+Base64/Base64URL, hex, and JSON-escaped variants. Fragmented Evidence is bounded before and after
+redaction, decoded as strict UTF-8, and clears its buffer on every terminal path. Sensitive or
+malformed Worker output is rejected without publishing a partial object. External Git, Semgrep,
+Docker, and provider-process diagnostics expose stable errors without retaining raw stderr or
+untrusted parser exceptions in the visible cause chain.
+
+Default offline regression covers all eight surfaces, encoded and chunk-split canaries, malformed
+and overlong data, schema drift, success, denial, expiry, and cleanup. A local no-network Docker
+canary additionally proves that real Worker secret output becomes `output_capture_failed`, publishes
+no object, clears temporary capture, and removes the container; the safe output path also passes.
+The existing Phase 3 provider test remains a pinned loopback TLS subprocess with no real model.
+There was no public target access, real credential, real model call, or attack payload in this work.

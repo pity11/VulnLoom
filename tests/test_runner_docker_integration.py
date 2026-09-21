@@ -21,6 +21,7 @@ from vulnloom.broker import (
 )
 from vulnloom.domain.models import NetworkTargetScope, Scope, ScopeState
 from vulnloom.domain.protocol import TaskBudget, TaskEnvelope, WorkerRole
+from vulnloom.evidence import Redactor
 from vulnloom.policy import PolicyEngine
 from vulnloom.runners import (
     DockerCliBackend,
@@ -250,6 +251,54 @@ def test_real_output_is_captured_before_container_cleanup(tmp_path: Path):
     assert result.status is SandboxRunStatus.COMPLETED
     assert outputs.read(result.outputs[0]) == b'{"results":[]}'
     assert result.cleanup.complete
+    assert runner.last_inspection is not None
+    assert not backend.exists(runner.last_inspection["Id"])
+
+
+@pytest.mark.docker_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_DOCKER_INTEGRATION") != "1",
+    reason="set VULNLOOM_DOCKER_INTEGRATION=1 to run real Docker isolation probes",
+)
+def test_real_worker_canary_output_is_rejected_and_container_is_cleaned(tmp_path: Path):
+    canary = "vl-canary-S1.3-real-worker-output"
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    source.chmod(0o755)
+    profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+    now = datetime.now(UTC)
+    request = _request(profile, now)
+    outputs = RunnerOutputStore(
+        tmp_path / "outputs", redactor=Redactor((canary,))
+    )
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (
+            DockerTool(
+                tool_id="source.read",
+                argv_prefix=(
+                    "/bin/sh",
+                    "-c",
+                    f"printf '%s' '{{\"result\":\"{canary}\"}}'",
+                ),
+            ),
+        ),
+        engine_policy=_engine_policy(),
+        output_store=outputs,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.FAILED
+    assert result.error_codes == ("output_capture_failed",)
+    assert result.outputs == ()
+    assert result.cleanup.complete
+    assert tuple(outputs.objects.iterdir()) == ()
+    assert tuple(outputs.temporary.iterdir()) == ()
     assert runner.last_inspection is not None
     assert not backend.exists(runner.last_inspection["Id"])
 

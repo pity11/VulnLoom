@@ -94,18 +94,15 @@ class SemgrepAdapter:
                     raise AnalyzerAdapterError("Semgrep output exceeds the configured limit")
                 stdout.seek(0)
                 encoded_output = stdout.read(self.max_output_bytes + 1)
-                stderr.seek(0)
-                encoded_error = stderr.read(1_024)
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise AnalyzerAdapterError("Semgrep execution failed or timed out") from exc
+        except (OSError, subprocess.TimeoutExpired):
+            raise AnalyzerAdapterError("Semgrep execution failed or timed out") from None
         if completed.returncode != 0:
-            error = encoded_error.decode("utf-8", "replace").strip()
-            raise AnalyzerAdapterError(f"Semgrep returned an analyzer error: {error[:300]}")
+            raise AnalyzerAdapterError("Semgrep returned an analyzer error")
         try:
             payload = json.loads(encoded_output.decode("utf-8", "strict"))
             results = payload["results"]
-        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
-            raise AnalyzerAdapterError("Semgrep returned invalid JSON") from exc
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+            raise AnalyzerAdapterError("Semgrep returned invalid JSON") from None
         if not isinstance(results, list):
             raise AnalyzerAdapterError("Semgrep results must be a list")
         signals = [self._signal(snapshot, root, result) for result in results]
