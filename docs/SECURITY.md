@@ -50,6 +50,13 @@ unconfined override，rootless 容器再从 `/proc/self/status` 证明 mode 2。
 回归，不能形成生产资格。commit `5fd74a385a4493baddb31526f876e8e77935a10b` 的 rootless Phase 3 run
 `35550502151` 已通过上述真实配置复核。资源压力与进程组回收仍属于后续 S1.2 纵切。
 
+第二个 S1.2 纵切新增内容寻址的六 probe 资源压力资格协议。PID、FD 和临时盘 canary 必须在固定上限内自行
+观察拒绝后正常退出；输出、内存和超时 canary 必须分别精确终止为 `output_capture_failed`、
+`memory_limit_exceeded` 和 `wall_time_budget_exceeded`。每个 observation 同时绑定 run/task/Profile/调用摘要，
+要求边界已观察、cleanup 完整且容器不存在。probe 载荷全部有界、无网络且不包含真实攻击：PID 饱和最多创建
+64 个短进程，其他载荷也有固定字节或时间上限。本地协议、拒绝回归和 canary 脚本已通过；只有专用 rootless
+Admission 通过后才可把该纵切提升为生产资格。运行中取消仍未接入 Docker Runner，不在当前六 probe 结论内。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

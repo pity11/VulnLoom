@@ -207,3 +207,10 @@ rootless probe 从容器内复核 Linux `Seccomp: 2`。本地全量门禁为 153
 commit `5fd74a385a4493baddb31526f876e8e77935a10b` 的 Phase 3 run `35550502151` 已通过真实 rootless 复核。
 同提交的 CI run `35550502111` 已在 Python 3.12/3.13/3.14 全部通过。后续继续覆盖 PID/FD/输出/磁盘/内存
 压力与进程组回收。
+
+S1.2 第二个纵切已完成本地实现：新增内容寻址的六类 resource-pressure probe/plan/observation/outcome 协议，
+固定 PID、FD、输出、临时盘、内存和超时进程组的终态与错误码；缺失、摘要漂移、边界未证明、容器残留或
+cleanup unknown 均 fail-closed。rootless opt-in canary 仅使用最多 64 个短进程、有限 FD、64 KiB 输出、2 MiB
+写入和 64 MiB 分段分配等有界本地载荷。Ruff、全量离线测试、433 份 schema 解析和 diff check 已通过；本地
+Docker Desktop 仅验证了 canary 自身能触发 PID/FD/tmpfs/OOM 边界，不构成生产资格。专用 rootless Admission
+尚未运行，因此该纵切仍标记为 `local_tested`；运行中取消接口和取消后的进程组回收继续属于 S1.2 后续工作。

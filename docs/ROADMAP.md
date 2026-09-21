@@ -1336,6 +1336,11 @@ Phase 3 run `35550502151` 已成功，生产 probe 批次为 8 passed、9 passed
 合同纵切达到 `isolated_integration_tested`。同提交 CI run `35550502111` 在 Python 3.12/3.13/3.14 全部通过；
 S1.2 其余资源压力范围继续进行。
 
+S1.2 第二个纵切已达到 `local_tested`：六类内容寻址的资源压力资格协议固定 PID、FD、输出、临时盘、内存和
+超时进程组的精确终态，并要求 boundary observed、完整 cleanup 和容器缺失；本地有界 Docker canary 已分别
+触发 cgroup PID、nofile、tmpfs 和 OOM 边界。rootless opt-in 组合测试已接入 Phase 3，但尚未取得远端 run
+证据，因此不得标记为生产通过。下一纵切补运行中取消接口与取消后的进程组/残留对象回收。
+
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
 隔离测试必须显式 opt-in。当前开发顺序和两个方向的后续计划见 `docs/DEVELOPMENT-PLAN.md`。

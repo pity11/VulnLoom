@@ -32,11 +32,17 @@ from vulnloom.runners import (
     HostileWorkerQualificationStatus,
     NetworkGrant,
     RegisteredObjectStore,
+    ResourcePressureProbeExpectation,
+    ResourcePressureProbeKind,
+    ResourcePressureProbeObservation,
+    ResourcePressureQualificationPlan,
+    ResourcePressureQualificationStatus,
     RunnerOutputStore,
     SandboxRunRequest,
     SandboxRunStatus,
     ToolInvocation,
     qualify_hostile_worker,
+    qualify_resource_pressure,
     sandbox_profile_digest,
     static_profile,
     validation_profile,
@@ -476,6 +482,140 @@ sleep 300 &
     assert authority_canary.read_text() == "FAKE_CONTROL_PLANE_SECRET\n"
     assert (source / "immutable.txt").read_text() == "sealed\n"
     assert not (source / "injected").exists()
+
+
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_ROOTLESS_QUALIFICATION=1 on a rootless Linux daemon",
+)
+def test_rootless_resource_pressure_canary_qualification(tmp_path: Path):
+    """S1.2 uses bounded local saturation canaries, never an unbounded fork bomb."""
+
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    now = datetime.now(UTC)
+    base_profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+    store = RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source})
+    observations = []
+    expectations = []
+
+    def execute(
+        kind: ResourcePressureProbeKind,
+        argv_prefix: tuple[str, ...],
+        *,
+        limits: dict[str, int],
+        captured_output: bool = False,
+        wall_seconds: int = 20,
+    ):
+        profile_limits = base_profile.limits.model_copy(update=limits)
+        profile = base_profile.model_copy(update={"limits": profile_limits})
+        request = _request(profile, now, wall_seconds=wall_seconds)
+        expectation = ResourcePressureProbeExpectation.from_request(
+            kind=kind, request=request
+        )
+        output_store = (
+            RunnerOutputStore(tmp_path / f"capture-{kind.value}", max_output_bytes=4096)
+            if captured_output
+            else None
+        )
+        runner = DockerSandboxRunner(
+            backend,
+            store,
+            (DockerTool(tool_id="source.read", argv_prefix=argv_prefix),),
+            output_store=output_store,
+            captured_output_tools=(
+                frozenset({"source.read"}) if captured_output else frozenset()
+            ),
+        )
+        result = runner.execute(request, now=now)
+        assert runner.last_inspection is not None
+        observation = ResourcePressureProbeObservation.from_result(
+            kind=kind,
+            result=result,
+            boundary_observed=(
+                result.status is expectation.expected_status
+                and result.error_codes == expectation.expected_error_codes
+            ),
+            container_absent=not backend.exists(runner.last_inspection["Id"]),
+        )
+        expectations.append(expectation)
+        observations.append(observation)
+
+    execute(
+        ResourcePressureProbeKind.PID_LIMIT,
+        (
+            "/bin/sh",
+            "-c",
+            "set -eu; [ \"$(cat /sys/fs/cgroup/pids.max)\" = 16 ]; "
+            "! seq 1 64 | xargs -P 64 -n 1 sh -c 'sleep 2'; "
+            "awk '$1 == \"max\" && $2 > 0 { seen=1 } END { exit !seen }' "
+            "/sys/fs/cgroup/pids.events",
+            "vulnloom-s1.2-pid-canary",
+        ),
+        limits={"pids": 16},
+    )
+    execute(
+        ResourcePressureProbeKind.OPEN_FILES_LIMIT,
+        (
+            "/bin/sh",
+            "-c",
+            "set -eu; [ \"$(ulimit -n)\" = 32 ]; "
+            "! (n=10; while [ $n -lt 128 ]; do "
+            "eval \"exec $n</dev/null\" 2>/dev/null; n=$((n+1)); done)",
+            "vulnloom-s1.2-fd-canary",
+        ),
+        limits={"open_files": 32},
+    )
+    execute(
+        ResourcePressureProbeKind.OUTPUT_LIMIT,
+        ("/bin/sh", "-c", "yes x | head -c 65536", "vulnloom-s1.2-output-canary"),
+        limits={},
+        captured_output=True,
+    )
+    execute(
+        ResourcePressureProbeKind.TEMP_STORAGE_LIMIT,
+        (
+            "/bin/sh",
+            "-c",
+            "set -eu; ! dd if=/dev/zero of=/tmp/fill bs=1048576 count=2 2>/dev/null; "
+            "[ \"$(wc -c < /tmp/fill)\" -le 1048576 ]",
+            "vulnloom-s1.2-temp-canary",
+        ),
+        limits={"tmp_bytes": 1024 * 1024},
+    )
+    execute(
+        ResourcePressureProbeKind.MEMORY_LIMIT,
+        (
+            "/usr/bin/awk",
+            "BEGIN { for (i=0; i<64; i++) a[i]=sprintf(\"%1048576s\", \"x\") }",
+        ),
+        limits={"memory_bytes": 16 * 1024 * 1024},
+    )
+    execute(
+        ResourcePressureProbeKind.TIMEOUT_PROCESS_GROUP,
+        (
+            "/bin/sh",
+            "-c",
+            "sleep 300 & wait",
+            "vulnloom-s1.2-timeout-canary",
+        ),
+        limits={"wall_seconds": 1, "cpu_millis": 1000},
+        wall_seconds=1,
+    )
+
+    plan = ResourcePressureQualificationPlan.create(
+        image_digest=image,
+        created_at=now,
+        expires_at=now + timedelta(minutes=5),
+        probes=tuple(expectations),
+    )
+    outcome = qualify_resource_pressure(plan, tuple(observations), now=now)
+
+    assert outcome.status is ResourcePressureQualificationStatus.ADMITTED
+    assert outcome.denial_codes == ()
 
 
 @pytest.mark.rootless_integration

@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "ResourcePressureProbeKind": {
+      "enum": [
+        "pid_limit",
+        "open_files_limit",
+        "output_limit",
+        "temporary_storage_limit",
+        "memory_limit",
+        "timeout_process_group"
+      ],
+      "title": "ResourcePressureProbeKind",
+      "type": "string"
+    },
+    "ResourcePressureProbeObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ResourcePressureProbeKind"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SandboxRunStatus"
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "boundary_observed": {
+          "title": "Boundary Observed",
+          "type": "boolean"
+        },
+        "cleanup_verified": {
+          "title": "Cleanup Verified",
+          "type": "boolean"
+        },
+        "container_absent": {
+          "title": "Container Absent",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "run_id",
+        "task_id",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "status",
+        "boundary_observed",
+        "cleanup_verified",
+        "container_absent"
+      ],
+      "title": "ResourcePressureProbeObservation",
+      "type": "object"
+    },
+    "ResourcePressureQualificationStatus": {
+      "enum": [
+        "admitted",
+        "denied"
+      ],
+      "title": "ResourcePressureQualificationStatus",
+      "type": "string"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ResourcePressureQualificationStatus"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/ResourcePressureProbeObservation"
+      },
+      "maxItems": 6,
+      "title": "Observations",
+      "type": "array"
+    },
+    "denial_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Denial Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "plan_id",
+    "status",
+    "observations"
+  ],
+  "title": "ResourcePressureQualificationOutcome",
+  "type": "object"
+}

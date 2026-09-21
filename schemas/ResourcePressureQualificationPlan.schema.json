@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "ResourcePressureProbeExpectation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ResourcePressureProbeKind"
+        },
+        "probe_contract_digest": {
+          "default": "57f8cd4c85b7998e1f1816ab5843089a9a8e29e034e8a33b0bdf74b9254f9147",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Probe Contract Digest",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "expected_status": {
+          "$ref": "#/$defs/SandboxRunStatus"
+        },
+        "expected_error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Expected Error Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "run_id",
+        "task_id",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "expected_status"
+      ],
+      "title": "ResourcePressureProbeExpectation",
+      "type": "object"
+    },
+    "ResourcePressureProbeKind": {
+      "enum": [
+        "pid_limit",
+        "open_files_limit",
+        "output_limit",
+        "temporary_storage_limit",
+        "memory_limit",
+        "timeout_process_group"
+      ],
+      "title": "ResourcePressureProbeKind",
+      "type": "string"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "probes": {
+      "items": {
+        "$ref": "#/$defs/ResourcePressureProbeExpectation"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Probes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_id",
+    "image_digest",
+    "created_at",
+    "expires_at",
+    "probes"
+  ],
+  "title": "ResourcePressureQualificationPlan",
+  "type": "object"
+}
