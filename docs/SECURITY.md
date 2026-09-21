@@ -55,7 +55,15 @@ unconfined override，rootless 容器再从 `/proc/self/status` 证明 mode 2。
 `memory_limit_exceeded` 和 `wall_time_budget_exceeded`。每个 observation 同时绑定 run/task/Profile/调用摘要，
 要求边界已观察、cleanup 完整且容器不存在。probe 载荷全部有界、无网络且不包含真实攻击：PID 饱和最多创建
 64 个短进程，其他载荷也有固定字节或时间上限。本地协议、拒绝回归和 canary 脚本已通过；只有专用 rootless
-Admission 通过后才可把该纵切提升为生产资格。运行中取消仍未接入 Docker Runner，不在当前六 probe 结论内。
+Admission 通过后才可把该纵切提升为生产资格。该六 probe 合同不包含运行中取消，取消由后续独立纵切证明。
+
+commit `d8dc12d614736decf32ffab35dcafb968639497b` 的 rootless Phase 3 run `35551489391` 已通过六 probe
+资源压力资格，CI run `35551489390` 同时通过三版本回归。资源压力纵切现为 `isolated_integration_tested`。
+
+后续取消纵切使用 run-bound `RunnerCancellation`，不接受跨 run 信号。预取消在任何 Engine/container 分配前
+结束；活动取消由 Docker CLI 的有界轮询观察，随后同时终止 attach 客户端和容器 cgroup，并继续执行强制删除与
+absence verification。有界输出捕获在取消时丢弃临时/部分输出。本地无网络 Docker 已验证普通和 capture 两条
+路径；rootless 证据仍待专用 Admission。
 
 ## 2. Sandbox Profile
 

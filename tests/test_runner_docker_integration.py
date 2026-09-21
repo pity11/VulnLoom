@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -37,6 +39,7 @@ from vulnloom.runners import (
     ResourcePressureProbeObservation,
     ResourcePressureQualificationPlan,
     ResourcePressureQualificationStatus,
+    RunnerCancellation,
     RunnerOutputStore,
     SandboxRunRequest,
     SandboxRunStatus,
@@ -616,6 +619,87 @@ def test_rootless_resource_pressure_canary_qualification(tmp_path: Path):
 
     assert outcome.status is ResourcePressureQualificationStatus.ADMITTED
     assert outcome.denial_codes == ()
+
+
+@pytest.mark.docker_integration
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_DOCKER_INTEGRATION") != "1"
+    and os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_DOCKER_INTEGRATION=1 for a local Docker canary",
+)
+@pytest.mark.parametrize("captured_output", (False, True))
+def test_live_docker_active_cancellation_reaps_process_group_and_container(
+    tmp_path: Path, captured_output: bool
+):
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    now = datetime.now(UTC)
+    profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+    request = _request(profile, now)
+    cancellation = RunnerCancellation(request.run_id)
+    output_store = (
+        RunnerOutputStore(tmp_path / "cancelled-output")
+        if captured_output
+        else None
+    )
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (
+            DockerTool(
+                tool_id="source.read",
+                argv_prefix=(
+                    "/bin/sh",
+                    "-c",
+                    "sleep 300 & sleep 300 & wait",
+                    "vulnloom-s1.2-cancellation-canary",
+                ),
+            ),
+        ),
+        engine_policy=_engine_policy(),
+        output_store=output_store,
+        captured_output_tools=(
+            frozenset({"source.read"}) if captured_output else frozenset()
+        ),
+    )
+    result_box = []
+    error_box = []
+
+    def execute() -> None:
+        try:
+            result_box.append(
+                runner.execute(request, now=now, cancellation=cancellation)
+            )
+        except BaseException as exc:
+            error_box.append(exc)
+
+    worker = threading.Thread(target=execute, name="rootless-cancellation-canary")
+    worker.start()
+    try:
+        deadline = time.monotonic() + 10
+        while runner.last_inspection is None and worker.is_alive():
+            if time.monotonic() >= deadline:
+                pytest.fail("Docker cancellation canary did not reach the running boundary")
+            time.sleep(0.05)
+        assert runner.last_inspection is not None
+        container_id = runner.last_inspection["Id"]
+    finally:
+        cancellation.cancel()
+        worker.join(timeout=10)
+
+    assert not worker.is_alive()
+    assert error_box == []
+    assert len(result_box) == 1
+    assert result_box[0].status is SandboxRunStatus.CANCELLED
+    assert result_box[0].error_codes == ("cancelled_by_control_plane",)
+    assert result_box[0].outputs == ()
+    assert result_box[0].cleanup.complete
+    assert not backend.exists(container_id)
+    if output_store is not None:
+        assert tuple(output_store.temporary.iterdir()) == ()
 
 
 @pytest.mark.rootless_integration

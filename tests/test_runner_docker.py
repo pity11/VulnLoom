@@ -12,6 +12,8 @@ from vulnloom.runners import (
     DockerTool,
     NetworkGrant,
     RegisteredObjectStore,
+    RunnerCancellation,
+    RunnerCancellationRequested,
     RunnerCleanupFailed,
     RunnerOutputStore,
     RunnerRejected,
@@ -64,7 +66,7 @@ class FakeDockerBackend:
     def inspect_container(self, container):
         return self.inspection
 
-    def start(self, container, timeout):
+    def start(self, container, timeout, cancellation=None):
         if self.start_error:
             raise self.start_error
         return self.exit_code
@@ -72,7 +74,9 @@ class FakeDockerBackend:
     def kill(self, container):
         self.killed = True
 
-    def start_capture(self, container, timeout, destination, max_bytes):
+    def start_capture(
+        self, container, timeout, destination, max_bytes, cancellation=None
+    ):
         if self.start_error:
             raise self.start_error
         if self.copy_error:
@@ -289,6 +293,53 @@ def test_docker_runner_timeout_kills_and_removes_container(tmp_path, now):
     assert backend.killed and backend.removed
 
 
+def test_docker_runner_pre_cancelled_run_allocates_no_container(tmp_path, now):
+    runner, backend, profile = _runner(tmp_path, now)
+    request = _request(now, profile)
+    cancellation = RunnerCancellation(request.run_id)
+    cancellation.cancel()
+
+    result = runner.execute(request, now=now, cancellation=cancellation)
+
+    assert result.status is SandboxRunStatus.CANCELLED
+    assert result.error_codes == ("cancelled_by_control_plane",)
+    assert result.budget_used.tool_calls == 0
+    assert backend.created_arguments is None
+
+
+def test_docker_runner_active_cancellation_kills_and_removes_container(tmp_path, now):
+    runner, backend, profile = _runner(tmp_path, now)
+    request = _request(now, profile)
+    backend.inspection["Config"]["Env"][-1] = (
+        f"VULNLOOM_TASK_ID={request.task.task_id}"
+    )
+    backend.start_error = RunnerCancellationRequested()
+
+    result = runner.execute(
+        request,
+        now=now,
+        cancellation=RunnerCancellation(request.run_id),
+    )
+
+    assert result.status is SandboxRunStatus.CANCELLED
+    assert result.error_codes == ("cancelled_by_control_plane",)
+    assert backend.killed and backend.removed
+    assert not backend.container_exists
+
+
+def test_docker_runner_rejects_cross_run_cancellation_before_create(tmp_path, now):
+    runner, backend, profile = _runner(tmp_path, now)
+
+    with pytest.raises(RunnerRejected, match="another run"):
+        runner.execute(
+            _request(now, profile),
+            now=now,
+            cancellation=RunnerCancellation(uuid4()),
+        )
+
+    assert backend.created_arguments is None
+
+
 def test_docker_runner_captures_one_immutable_output_before_cleanup(tmp_path, now):
     source = tmp_path / "objects" / SNAPSHOT
     source.mkdir(parents=True)
@@ -314,6 +365,38 @@ def test_docker_runner_captures_one_immutable_output_before_cleanup(tmp_path, no
     assert outputs.read(result.outputs[0]) == backend.output_bytes
     assert result.usage.output_bytes == len(backend.output_bytes)
     assert backend.removed and not backend.container_exists
+
+
+def test_cancellation_during_output_capture_discards_output_and_cleans(tmp_path, now):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(
+        f"VULNLOOM_TASK_ID={request.task.task_id}"
+    )
+    backend = FakeDockerBackend(inspection)
+    backend.start_error = RunnerCancellationRequested()
+    output_store = RunnerOutputStore(tmp_path / "runner-outputs")
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+        output_store=output_store,
+        captured_output_tools=frozenset({"source.read"}),
+    )
+
+    result = runner.execute(
+        request,
+        now=now,
+        cancellation=RunnerCancellation(request.run_id),
+    )
+
+    assert result.status is SandboxRunStatus.CANCELLED
+    assert result.outputs == ()
+    assert backend.killed and backend.removed
+    assert tuple(output_store.temporary.iterdir()) == ()
 
 
 @pytest.mark.parametrize(

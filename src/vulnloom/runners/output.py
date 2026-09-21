@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Protocol
 
+from .base import RunnerCancellation, RunnerCancellationRequested
 from .models import SandboxOutput
 
 
@@ -20,6 +21,7 @@ class ContainerOutputAttacher(Protocol):
         timeout: float,
         destination: Path,
         max_bytes: int,
+        cancellation: RunnerCancellation | None = None,
     ) -> int: ...
 
 
@@ -46,6 +48,7 @@ class RunnerOutputStore:
         container: str,
         *,
         timeout: float,
+        cancellation: RunnerCancellation | None = None,
     ) -> tuple[int, SandboxOutput]:
         directory = Path(tempfile.mkdtemp(prefix="sandbox-output-", dir=self.temporary))
         path = directory / "output.json"
@@ -55,11 +58,12 @@ class RunnerOutputStore:
                 timeout,
                 path,
                 self.max_output_bytes,
+                cancellation,
             )
             if {item.name for item in directory.iterdir()} != {"output.json"}:
                 raise RunnerOutputCaptureFailed("sandbox output capture created unexpected entries")
             return exit_code, self._publish(self._read_regular(path))
-        except (TimeoutError, RunnerOutputCaptureFailed):
+        except (TimeoutError, RunnerCancellationRequested, RunnerOutputCaptureFailed):
             raise
         except Exception as exc:
             raise RunnerOutputCaptureFailed("sandbox output capture failed") from exc

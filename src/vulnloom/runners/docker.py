@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from .base import RunnerCancellation, RunnerCancellationRequested
 from .environment import build_worker_environment
 from .models import (
     CleanupReport,
@@ -86,7 +87,12 @@ class DockerBackend(Protocol):
 
     def inspect_container(self, container: str) -> Mapping[str, Any]: ...
 
-    def start(self, container: str, timeout: float) -> int: ...
+    def start(
+        self,
+        container: str,
+        timeout: float,
+        cancellation: RunnerCancellation | None = None,
+    ) -> int: ...
 
     def start_capture(
         self,
@@ -94,6 +100,7 @@ class DockerBackend(Protocol):
         timeout: float,
         destination: Path,
         max_bytes: int,
+        cancellation: RunnerCancellation | None = None,
     ) -> int: ...
 
     def kill(self, container: str) -> None: ...
@@ -148,21 +155,25 @@ class DockerCliBackend:
             raise DockerBackendError("Docker reported no network gateway addresses")
         return gateways
 
-    def start(self, container: str, timeout: float) -> int:
+    def start(
+        self,
+        container: str,
+        timeout: float,
+        cancellation: RunnerCancellation | None = None,
+    ) -> int:
+        process = subprocess.Popen(
+            (self.executable, "start", "--attach", container),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=self.environment,
+        )
         try:
-            result = subprocess.run(
-                (self.executable, "start", "--attach", container),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                text=True,
-                check=False,
-                timeout=timeout,
-                env=self.environment,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise TimeoutError("Docker Worker exceeded its wall-clock limit") from exc
-        return result.returncode
+            return _wait_for_process(process, timeout, cancellation)
+        except (TimeoutError, RunnerCancellationRequested):
+            process.kill()
+            process.wait(timeout=5)
+            raise
 
     def kill(self, container: str) -> None:
         self._run(("kill", container), check=False)
@@ -173,6 +184,7 @@ class DockerCliBackend:
         timeout: float,
         destination: Path,
         max_bytes: int,
+        cancellation: RunnerCancellation | None = None,
     ) -> int:
         if destination.exists() or max_bytes <= 0:
             raise DockerBackendError("Docker output capture target is invalid")
@@ -205,12 +217,12 @@ class DockerCliBackend:
         reader = threading.Thread(target=copy_bounded, name="docker-output-capture", daemon=True)
         reader.start()
         try:
-            return_code = process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired as exc:
+            return_code = _wait_for_process(process, timeout, cancellation)
+        except (TimeoutError, RunnerCancellationRequested):
             process.kill()
             process.wait(timeout=5)
             reader.join(timeout=5)
-            raise TimeoutError("Docker Worker exceeded its wall-clock limit") from exc
+            raise
         reader.join(timeout=5)
         if reader.is_alive():
             process.kill()
@@ -310,8 +322,16 @@ class DockerSandboxRunner:
         self.last_inspection: Mapping[str, Any] | None = None
         self.last_terminal_inspection: Mapping[str, Any] | None = None
 
-    def execute(self, request: SandboxRunRequest, *, now: datetime) -> SandboxRunResult:
+    def execute(
+        self,
+        request: SandboxRunRequest,
+        *,
+        now: datetime,
+        cancellation: RunnerCancellation | None = None,
+    ) -> SandboxRunResult:
         request = validate_run_request(request, frozenset(self._tools))
+        if cancellation is not None and cancellation.run_id != request.run_id:
+            raise RunnerRejected("cancellation signal is bound to another run")
         digest = run_request_digest(request)
         existing = self._results.get(request.idempotency_key)
         if existing is not None:
@@ -320,6 +340,17 @@ class DockerSandboxRunner:
                     "run idempotency key was reused with a different request"
                 )
             return existing[1]
+
+        if cancellation is not None and cancellation.requested:
+            result = self._result(
+                request,
+                SandboxRunStatus.CANCELLED,
+                0.0,
+                ("cancelled_by_control_plane",),
+                0,
+            )
+            self._results[request.idempotency_key] = (digest, result)
+            return result
 
         wall_limit = min(request.task.budget.wall_seconds, request.profile.limits.wall_seconds)
         if now >= request.task.deadline:
@@ -357,10 +388,15 @@ class DockerSandboxRunner:
                         self.backend,
                         container,
                         timeout=wall_limit,
+                        cancellation=cancellation,
                     )
                     outputs = (output,)
                 else:
-                    exit_code = self.backend.start(container, wall_limit)
+                    exit_code = self.backend.start(container, wall_limit, cancellation)
+            except RunnerCancellationRequested:
+                status = SandboxRunStatus.CANCELLED
+                errors = ("cancelled_by_control_plane",)
+                self.backend.kill(container)
             except TimeoutError:
                 status = SandboxRunStatus.TIMED_OUT
                 errors = ("wall_time_budget_exceeded",)
@@ -625,6 +661,24 @@ def _tmpfs(
     destination: str, size: int, uid: int, gid: int, *, executable: bool
 ) -> str:
     return f"{destination}:{_tmpfs_options(size, uid, gid, executable=executable)}"
+
+
+def _wait_for_process(
+    process: subprocess.Popen[Any],
+    timeout: float,
+    cancellation: RunnerCancellation | None,
+) -> int:
+    deadline = time.monotonic() + timeout
+    while True:
+        if cancellation is not None and cancellation.requested:
+            raise RunnerCancellationRequested("Docker Worker was cancelled")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Docker Worker exceeded its wall-clock limit")
+        try:
+            return process.wait(timeout=min(0.1, remaining))
+        except subprocess.TimeoutExpired:
+            continue
 
 
 def _tmpfs_options(size: int, uid: int, gid: int, *, executable: bool) -> str:

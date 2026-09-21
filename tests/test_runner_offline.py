@@ -13,6 +13,7 @@ from vulnloom.runners import (
     OfflineOutcome,
     OfflineSandboxRunner,
     OfflineScenario,
+    RunnerCancellation,
     RunnerIdempotencyConflict,
     RunnerRejected,
     SandboxProfile,
@@ -207,6 +208,30 @@ def test_offline_runner_terminal_paths_are_clean(now, scenario, status, error):
     assert any(error in item for item in result.error_codes)
     assert result.cleanup.complete
     assert result.evidence_refs == ()
+
+
+def test_offline_runner_honors_run_bound_pre_cancellation(now):
+    request = _request(now)
+    cancellation = RunnerCancellation(request.run_id)
+    cancellation.cancel()
+
+    result = OfflineSandboxRunner(frozenset({"source.read"})).execute(
+        request, now=now, cancellation=cancellation
+    )
+
+    assert result.status is SandboxRunStatus.CANCELLED
+    assert result.error_codes == ("cancelled_by_control_plane",)
+    assert result.budget_used.tool_calls == 0
+    assert result.cleanup.complete
+
+
+def test_offline_runner_rejects_cross_run_cancellation(now):
+    with pytest.raises(RunnerRejected, match="another run"):
+        OfflineSandboxRunner(frozenset({"source.read"})).execute(
+            _request(now),
+            now=now,
+            cancellation=RunnerCancellation(uuid4()),
+        )
 
 
 def test_expired_task_times_out_without_running_tool(now):

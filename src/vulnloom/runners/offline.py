@@ -10,6 +10,7 @@ from pydantic import Field
 from vulnloom.domain.models import DomainModel
 from vulnloom.domain.protocol import TaskBudget
 
+from .base import RunnerCancellation
 from .models import (
     CleanupReport,
     Digest,
@@ -23,7 +24,7 @@ from .models import (
     run_request_digest,
     sandbox_profile_digest,
 )
-from .preflight import RunnerIdempotencyConflict, validate_run_request
+from .preflight import RunnerIdempotencyConflict, RunnerRejected, validate_run_request
 
 
 class OfflineOutcome(StrEnum):
@@ -58,8 +59,11 @@ class OfflineSandboxRunner:
         *,
         now: datetime,
         scenario: OfflineScenario | None = None,
+        cancellation: RunnerCancellation | None = None,
     ) -> SandboxRunResult:
         request = validate_run_request(request, self.registered_tools)
+        if cancellation is not None and cancellation.run_id != request.run_id:
+            raise RunnerRejected("cancellation signal is bound to another run")
         digest = run_request_digest(request)
         existing = self._results.get(request.idempotency_key)
         if existing is not None:
@@ -70,13 +74,19 @@ class OfflineSandboxRunner:
             return existing[1]
 
         selected = scenario or OfflineScenario()
+        cancelled_before_execution = (
+            cancellation is not None and cancellation.requested
+        )
         profile_digest = sandbox_profile_digest(request.profile)
         invocation_id = invocation_digest(request.invocation)
         status = SandboxRunStatus.COMPLETED
         errors: tuple[str, ...] = ()
         checkpoint = None
         wall_limit = min(request.task.budget.wall_seconds, request.profile.limits.wall_seconds)
-        if now >= request.task.deadline or selected.wall_seconds > wall_limit:
+        if cancelled_before_execution:
+            status = SandboxRunStatus.CANCELLED
+            errors = ("cancelled_by_control_plane",)
+        elif now >= request.task.deadline or selected.wall_seconds > wall_limit:
             status = SandboxRunStatus.TIMED_OUT
             errors = ("wall_time_budget_exceeded",)
         elif (
@@ -132,7 +142,12 @@ class OfflineSandboxRunner:
             budget_used=TaskBudget(
                 wall_seconds=max(1, min(int(selected.wall_seconds), wall_limit)),
                 model_tokens=0,
-                tool_calls=0 if status is SandboxRunStatus.TIMED_OUT else 1,
+                tool_calls=(
+                    0
+                    if status is SandboxRunStatus.TIMED_OUT
+                    or cancelled_before_execution
+                    else 1
+                ),
             ),
             usage=SandboxUsage(
                 wall_seconds=selected.wall_seconds,

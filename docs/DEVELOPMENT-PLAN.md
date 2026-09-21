@@ -213,4 +213,10 @@ S1.2 第二个纵切已完成本地实现：新增内容寻址的六类 resource
 cleanup unknown 均 fail-closed。rootless opt-in canary 仅使用最多 64 个短进程、有限 FD、64 KiB 输出、2 MiB
 写入和 64 MiB 分段分配等有界本地载荷。Ruff、全量离线测试、433 份 schema 解析和 diff check 已通过；本地
 Docker Desktop 仅验证了 canary 自身能触发 PID/FD/tmpfs/OOM 边界，不构成生产资格。专用 rootless Admission
-尚未运行，因此该纵切仍标记为 `local_tested`；运行中取消接口和取消后的进程组回收继续属于 S1.2 后续工作。
+run `35551489391` 已通过，资源压力纵切提升为 `isolated_integration_tested`；同提交 CI run `35551489390`
+在 Python 3.12/3.13/3.14 全部通过。
+
+S1.2 第三个纵切已达到本地集成测试：新增绑定唯一 run id 的线程安全 `RunnerCancellation`，跨运行取消在容器
+创建前 fail-closed，预取消不分配资源，活动取消会终止 Docker attach 客户端、kill 容器并验证 remove/absence。
+普通执行与有界输出捕获的本地无网络 Docker canary 均返回 `CANCELLED`、不发布部分输出并回收两个后台进程及
+匿名存储。专用 rootless Admission 尚未运行；通过前保持 `local_tested`。

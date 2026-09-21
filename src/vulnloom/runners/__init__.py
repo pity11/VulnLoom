@@ -1,6 +1,6 @@
 """Typed sandbox profiles and an offline lifecycle runner."""
 
-from .base import SandboxRunner
+from .base import RunnerCancellation, RunnerCancellationRequested, SandboxRunner
 from .docker import (
     DockerBackendError,
     DockerCliBackend,
@@ -99,6 +99,8 @@ __all__ = [
     "OfflineSandboxRunner",
     "OfflineScenario",
     "RunnerCheckpoint",
+    "RunnerCancellation",
+    "RunnerCancellationRequested",
     "RunnerCleanupFailed",
     "RunnerIdempotencyConflict",
     "RunnerOutputCaptureFailed",

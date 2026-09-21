@@ -116,10 +116,12 @@ class FakeAnalyzerDockerBackend:
     def inspect_container(self, container):
         return self.inspection
 
-    def start(self, container, timeout):
+    def start(self, container, timeout, cancellation=None):
         raise AssertionError("analyzer execution must use bounded attached output")
 
-    def start_capture(self, container, timeout, destination, max_bytes):
+    def start_capture(
+        self, container, timeout, destination, max_bytes, cancellation=None
+    ):
         self.starts += 1
         if self.on_start is not None:
             self.on_start()
