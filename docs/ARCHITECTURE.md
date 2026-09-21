@@ -106,6 +106,13 @@ M2 的首版 mapper 只读取 M1 已验证的文件系统 Snapshot，并在读�
 
 只处理一个 Candidate。通过 Tool Broker 在 Validation Sandbox 中运行有限实验，输出 Evidence Bundle 和复现结论。
 
+A1.1 的 Project Recipe Registry 位于可信 Control Plane。Recipe 和 Step 均内容寻址，固定版本、镜像摘要、绝对
+非 Shell argv、显式无密钥环境、构建系统要求与预算。Agent 只能选择已注册 recipe ID，不能提交 argv 或宿主
+Shell。计划器为每一步生成单工具、空运行时参数、无网络、只读 Snapshot 的 Validation Profile，并绑定 Registry、
+Recipe、RepositoryIndex、Manifest、Scope 与 Policy。执行前从可信 Registry 重新物化完整计划，即使篡改计划
+另获 Approval 也会因漂移而拒绝；精确 `RUN_UNTRUSTED_BUILD` Approval 仍是必需条件。SQLite run store 在每步后
+写 checkpoint，超时、取消、失败或无法证明 cleanup 均为终态失败，不得冒充完成。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

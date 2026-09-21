@@ -1162,8 +1162,12 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
 - 默认测试只使用 fake adapter；opt-in Docker 验收已实际从固定 C 源码得到 coverage-guided 输入与 ASAN
   heap-buffer-overflow，并证明五阶段容器非 root、无 capability、`NoNewPrivs`、源码/根只读、无默认路由、
   无 Docker socket、无模型 Key 继承和无残留容器。R9 固定 Benchmark 验收已关闭。
-- 通用项目构建 recipe、UBSAN/MSAN、自动 Harness/Patch 和 blind holdout 仍属于后续增强，不能从固定 Benchmark
-  的通过结果外推。
+- A1.1 已增加版本化、内容寻址的通用 Project Recipe Registry 与离线执行合同：只允许已注册镜像和绝对非 Shell
+  固定 argv，生成无运行时参数、无网络、只读 Snapshot 的逐步计划，并要求精确 `RUN_UNTRUSTED_BUILD` Approval；
+  执行前重建计划拒绝 Registry/image/argv/environment/Scope/Manifest/Policy 漂移，SQLite store 覆盖成功、拒绝、
+  超时、幂等和 cleanup unknown。真实 Docker 项目 Admission、UBSAN/MSAN、自动 Harness/Patch 和 blind holdout
+  仍属于后续增强，不能从固定 Benchmark 或 A1.1 离线结果外推。A1.1 全量门禁为 1611 passed、39 skipped、
+  85.45% coverage，448 份 schema、Ruff 和 diff check 通过。
 
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 

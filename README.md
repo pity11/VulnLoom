@@ -45,6 +45,7 @@ there remain planned until their explicit acceptance stage passes.
 - [docs/CODE-REVIEW-ASSIST.md](./docs/CODE-REVIEW-ASSIST.md): independent, approved, read-only model commentary on a manually selected Python snippet.
 - [docs/CANDIDATE-RECOMMENDATIONS.md](./docs/CANDIDATE-RECOMMENDATIONS.md): approved no-tool generation and deterministic admission for advisory Candidate recommendations.
 - [docs/SOURCE-HUNT.md](./docs/SOURCE-HUNT.md): Source Hunt V1 contracts, CLI, security boundary, and remaining R9 depth.
+- [docs/PROJECT-RECIPES.md](./docs/PROJECT-RECIPES.md): A1 trusted, versioned project build/test recipe registry and execution boundary.
 - [docs/HYBRID-VALIDATION.md](./docs/HYBRID-VALIDATION.md): R10 source-to-live evidence, dual remediation retest, report, and fail-closed CI/CD release gate contracts.
 - [docs/AUTHORIZED-RED-TEAM.md](./docs/AUTHORIZED-RED-TEAM.md): fourth-entry Flow/RoE contract, offline Recon control slice, and safety boundary.
 
@@ -124,7 +125,7 @@ Approved scope
 → Produce a Markdown report draft
 ```
 
-The current implementation now also exposes the Source Hunt V1 application service and nested CLI: bounded multi-language indexing, observation-driven cross-file investigation, integrity-checked redacted source windows, Candidate materialization, deterministic five-stage execution planning, resumable validation, authoritative Critic/Finding promotion, and report drafting. R9 fixed-Benchmark acceptance adds a sealed native coverage/ASAN adapter, normalized persistent Crash deduplication, and independently replayed PoV qualification. General project recipes and blind-holdout acceptance remain later depth work. External disclosure remains a separate future stage.
+The current implementation now also exposes the Source Hunt V1 application service and nested CLI: bounded multi-language indexing, observation-driven cross-file investigation, integrity-checked redacted source windows, Candidate materialization, deterministic five-stage execution planning, resumable validation, authoritative Critic/Finding promotion, and report drafting. R9 fixed-Benchmark acceptance adds a sealed native coverage/ASAN adapter, normalized persistent Crash deduplication, and independently replayed PoV qualification. A1.1 adds an offline-tested, content-addressed Project Recipe Registry with exact Approval-bound build/test plans; real Docker project admission and blind-holdout acceptance remain later depth work. External disclosure remains a separate future stage.
 
 Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered host shell access remain out of scope. The first isolated local HTTP HEAD Recon admission is implemented; broader authorized Web reconnaissance remains staged in the product architecture roadmap.
 

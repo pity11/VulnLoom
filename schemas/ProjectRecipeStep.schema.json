@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "ProjectRecipePhase": {
+      "enum": [
+        "build",
+        "test"
+      ],
+      "title": "ProjectRecipePhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One exact, trusted in-image command. Runtime arguments are forbidden.",
+  "properties": {
+    "step_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "phase": {
+      "$ref": "#/$defs/ProjectRecipePhase"
+    },
+    "tool_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Tool Id",
+      "type": "string"
+    },
+    "argv": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Argv",
+      "type": "array"
+    },
+    "environment": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "wall_seconds": {
+      "default": 600,
+      "maximum": 600,
+      "minimum": 1,
+      "title": "Wall Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "step_id",
+    "phase",
+    "tool_id",
+    "argv"
+  ],
+  "title": "ProjectRecipeStep",
+  "type": "object"
+}

@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "BuildSystem": {
+      "enum": [
+        "pyproject",
+        "requirements",
+        "npm"
+      ],
+      "title": "BuildSystem",
+      "type": "string"
+    },
+    "ProjectRecipePhase": {
+      "enum": [
+        "build",
+        "test"
+      ],
+      "title": "ProjectRecipePhase",
+      "type": "string"
+    },
+    "ProjectRecipeStep": {
+      "additionalProperties": false,
+      "description": "One exact, trusted in-image command. Runtime arguments are forbidden.",
+      "properties": {
+        "step_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/ProjectRecipePhase"
+        },
+        "tool_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Tool Id",
+          "type": "string"
+        },
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "wall_seconds": {
+          "default": 600,
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Wall Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "step_id",
+        "phase",
+        "tool_id",
+        "argv"
+      ],
+      "title": "ProjectRecipeStep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned recipe selected only from the trusted registry.",
+  "properties": {
+    "recipe_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recipe Id",
+      "type": "string"
+    },
+    "name": {
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-z0-9.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "required_build_systems": {
+      "items": {
+        "$ref": "#/$defs/BuildSystem"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Required Build Systems",
+      "type": "array"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/ProjectRecipeStep"
+      },
+      "maxItems": 16,
+      "minItems": 2,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "recipe_id",
+    "name",
+    "version",
+    "required_build_systems",
+    "image_digest",
+    "steps"
+  ],
+  "title": "ProjectRecipe",
+  "type": "object"
+}

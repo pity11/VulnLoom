@@ -265,6 +265,13 @@ from vulnloom.hybrid import (
 )
 from vulnloom.hypotheses import CandidateGeneratorLimits, CandidateSet
 from vulnloom.ingestion import IngestionLimits
+from vulnloom.project_recipes import (
+    ProjectRecipe,
+    ProjectRecipeRunOutcome,
+    ProjectRecipeRunPlan,
+    ProjectRecipeRunStep,
+    ProjectRecipeStep,
+)
 from vulnloom.provider_center import (
     BindProviderProbeCommand,
     CapabilityProbeFixture,
@@ -616,6 +623,11 @@ MODELS = (
     SourcePovBenchmarkCase,
     SourcePovBenchmarkResult,
     SourceToolReport,
+    ProjectRecipeStep,
+    ProjectRecipe,
+    ProjectRecipeRunStep,
+    ProjectRecipeRunPlan,
+    ProjectRecipeRunOutcome,
     ProviderMutationResult,
     ProviderAuditEvent,
     ProviderCenterView,

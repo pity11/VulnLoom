@@ -194,8 +194,8 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **A1 通用 Project Recipe Registry**。Shared Assurance S1 已关闭；只有出现新的用户优先级
-决定，才从其他里程碑开始。
+当前下一项工作固定为 **A1.2 Project Recipe 本地 Docker Admission**。A1.1 Registry 与离线执行合同已完成，
+Shared Assurance S1 已关闭；只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -258,3 +258,12 @@ S1.4 最终纵切已达到 `offline_tested`：本地 checkpoint custody 强制 d
 其他独立内容寻址账本的风险驱动迁移仍按计划延后。最终全量门禁为 1604 passed、39 skipped、85.51% coverage，
 443 份 schema、Ruff 和 diff check 通过；无公网、真实模型或真实攻击。S1.4 与 Shared Assurance S1 至此关闭，
 下一项固定为 A1 通用 Project Recipe Registry。
+
+进展记录（2026-09-21）：A1.1 达到 `offline_tested`。新增版本化、内容寻址的 `ProjectRecipe`/Step/Run Plan，
+可信 Registry 只接受绝对非 Shell 固定 argv、显式无密钥环境和精确镜像 digest，并派生唯一 Docker tool 注册。
+计划器只接受 recipe ID，在已批准 Scope 和匹配 RepositoryIndex 上生成单工具、无运行时参数、无网络、只读
+Snapshot 的确定性请求；执行前重新物化计划，并要求精确 `RUN_UNTRUSTED_BUILD` Approval。SQLite store 支持
+逐步 checkpoint、幂等重放与冲突拒绝；成功、审批拒绝、构建系统不匹配、超时、计划漂移和 cleanup unknown
+均有离线回归。本纵切未运行 Docker、未执行真实项目或依赖安装、未联网、未调用模型。下一步 A1.2 使用预构建
+本地镜像和非固定项目 fixture 做显式无网络 Docker Admission；通过前不关闭 A1。
+全量离线门禁为 1611 passed、39 skipped、85.45% coverage，448 份 schema、Ruff 和 diff check 通过。

@@ -123,6 +123,18 @@ Report review/export——以及 `status` 已迁移到 `CheckpointedEventStore`�
 继续延后。本轮全量门禁为 1604 passed、39 skipped、85.51% coverage，443 份 schema、Ruff 和 diff check 通过。
 S1.4 与 Shared Assurance S1 至此达到 `offline_tested` 并关闭，未访问公网、未调用真实模型、未执行真实攻击。
 
+### 1.2 A1 Project Recipe Registry
+
+A1.1 把项目构建入口收窄为可信 Registry 中的内容寻址 recipe。每个 step 固定绝对非 Shell executable、完整 argv、
+显式环境、工具 ID 和预算；recipe 固定版本、镜像 digest、构建系统要求及 Build→Test 顺序。包含 URL、模板占位、
+换行、NUL、Shell 入口或疑似凭据环境名的注册拒绝。Agent 仅能选择 recipe ID，不能携带命令或运行时参数。
+
+物化的 Runner 请求逐步只开放一个工具，Snapshot 只读、网络关闭、模型预算为零。执行必须具备针对完整 plan 的
+`RUN_UNTRUSTED_BUILD` Approval，并从可信 Registry 重建计划后逐字段比对；Registry/image/argv/environment/
+Scope/Manifest/Policy 任一漂移均 fail-closed。每步结果持久化，timeout/failure/cancel 为非成功终态；Runner 无法
+证明容器清理时记录 `cleanup_unverified`，不保存伪造成功结果。A1.1 仅使用离线 Runner，尚未声明真实项目或 Docker
+集成已通过；该声明留给下一纵切的显式本地、无网络 Admission。
+
 ## 2. Sandbox Profile
 
 ### Static Profile
