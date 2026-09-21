@@ -44,8 +44,10 @@ from vulnloom.runners import (
     SandboxRunRequest,
     SandboxRunStatus,
     ToolInvocation,
+    post_exploitation_profile,
     qualify_hostile_worker,
     qualify_resource_pressure,
+    report_profile,
     sandbox_profile_digest,
     static_profile,
     validation_profile,
@@ -700,6 +702,144 @@ def test_live_docker_active_cancellation_reaps_process_group_and_container(
     assert not backend.exists(container_id)
     if output_store is not None:
         assert tuple(output_store.temporary.iterdir()) == ()
+
+
+@pytest.mark.docker_integration
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_DOCKER_INTEGRATION") != "1"
+    and os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_DOCKER_INTEGRATION=1 for a local Docker canary",
+)
+@pytest.mark.parametrize(
+    ("profile_name", "role", "tool_id", "working_directory", "content_slot", "output_mode"),
+    (
+        ("static", WorkerRole.SOURCE_MAPPER, "source.read", "source", "source", "noexec"),
+        (
+            "validation",
+            WorkerRole.VALIDATOR,
+            "sandbox.test",
+            "source",
+            "source",
+            "exec",
+        ),
+        ("report", WorkerRole.REPORTER, "evidence.read", "output", "evidence", "noexec"),
+        (
+            "post_exploitation",
+            WorkerRole.RED_TEAM_OPERATOR,
+            "red_team.evidence_read",
+            "output",
+            "evidence",
+            "noexec",
+        ),
+    ),
+)
+def test_live_docker_profile_least_privilege_matrix(
+    tmp_path: Path,
+    profile_name: str,
+    role: WorkerRole,
+    tool_id: str,
+    working_directory: str,
+    content_slot: str,
+    output_mode: str,
+):
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    object_id = SNAPSHOT if content_slot == "source" else "e" * 64
+    content = tmp_path / "objects" / object_id
+    content.mkdir(parents=True)
+    (content / "sealed.txt").write_text("sealed\n")
+    (content / "sealed.txt").chmod(0o444)
+    content.chmod(0o555)
+    if profile_name == "static":
+        profile = static_profile(image_digest=image, snapshot_id=object_id)
+    elif profile_name == "validation":
+        profile = validation_profile(image_digest=image, snapshot_id=object_id)
+    elif profile_name == "report":
+        profile = report_profile(image_digest=image, evidence_object_id=object_id)
+    else:
+        profile = post_exploitation_profile(
+            image_digest=image, evidence_object_id=object_id
+        )
+    now = datetime.now(UTC)
+    task = TaskEnvelope(
+        engagement_id=uuid4(),
+        target_id=uuid4(),
+        target_version="b" * 40,
+        scope_id=uuid4(),
+        worker_role=role,
+        scope_version=1,
+        policy_digest="c" * 64,
+        sandbox_profile_digest=sandbox_profile_digest(profile),
+        tool_registry_digest="d" * 64,
+        input_refs=(f"object:{object_id}",),
+        allowed_tools=frozenset({tool_id}),
+        budget=TaskBudget(wall_seconds=20, model_tokens=0, tool_calls=1),
+        deadline=now + timedelta(seconds=25),
+        idempotency_key=f"task:profile-matrix:{profile_name}:{uuid4()}",
+    )
+    request = SandboxRunRequest(
+        task=task,
+        profile=profile,
+        invocation=ToolInvocation(
+            tool_id=tool_id, working_directory=working_directory
+        ),
+        environment={"VULNLOOM_TASK_ID": str(task.task_id)},
+        idempotency_key=f"run:profile-matrix:{profile_name}:{uuid4()}",
+    )
+    other_slot = "evidence" if content_slot == "source" else "source"
+    probe = f"""
+set -eu
+[ "$(id -u)" = 65532 ]
+awk '$1 == "NoNewPrivs:" && $2 == 1 {{ ok=1 }} END {{ exit !ok }}' /proc/self/status
+awk '$1 == "Seccomp:" && $2 == 2 {{ ok=1 }} END {{ exit !ok }}' /proc/self/status
+awk '$1 == "CapEff:" && $2 == "0000000000000000" {{ ok=1 }} END {{ exit !ok }}' /proc/self/status
+[ "$(wc -l < /proc/net/route)" = 1 ]
+[ -r /workspace/{content_slot}/sealed.txt ]
+[ ! -e /workspace/{other_slot} ]
+! touch /profile-root-write
+! printf tampered >> /workspace/{content_slot}/sealed.txt
+printf '#!/bin/sh\nexit 0\n' > /workspace/output/profile-canary
+chmod 700 /workspace/output/profile-canary
+if [ "$1" = exec ]; then
+  /workspace/output/profile-canary
+else
+  ! /workspace/output/profile-canary
+fi
+touch /tmp/profile-canary
+""".strip()
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {object_id: content}),
+        (
+            DockerTool(
+                tool_id=tool_id,
+                argv_prefix=(
+                    "/bin/sh",
+                    "-c",
+                    probe,
+                    "vulnloom-s1.2-profile-canary",
+                    output_mode,
+                ),
+            ),
+        ),
+        engine_policy=_engine_policy(),
+    )
+
+    result = runner.execute(request, now=now)
+
+    assert result.status is SandboxRunStatus.COMPLETED
+    assert result.cleanup.complete
+    assert runner.last_inspection is not None
+    inspection = runner.last_inspection
+    assert inspection["HostConfig"]["NetworkMode"] == "none"
+    assert inspection["HostConfig"]["ReadonlyRootfs"] is True
+    assert {item["Destination"] for item in inspection["Mounts"]} == {
+        f"/workspace/{content_slot}"
+    }
+    output_options = inspection["HostConfig"]["Tmpfs"]["/workspace/output"]
+    assert ("noexec" in output_options) is (output_mode == "noexec")
+    assert not backend.exists(inspection["Id"])
 
 
 @pytest.mark.rootless_integration

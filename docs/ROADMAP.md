@@ -1344,7 +1344,12 @@ S1.2 第二个纵切已达到 `local_tested`：六类内容寻址的资源压力
 commit `d8dc12d614736decf32ffab35dcafb968639497b` 已由 rootless Phase 3 run `35551489391` 和三版本 CI
 run `35551489390` 共同通过，资源压力纵切提升为 `isolated_integration_tested`。运行中取消纵切随后完成本地
 实现：run-bound 信号、跨 run 拒绝、预取消零分配、普通/capture 活动取消、部分输出隔离、容器进程组与匿名
-存储回收均有回归；本地 live Docker canary 已通过，rootless 资格待下一次 Phase 3。
+存储回收均有回归；rootless Phase 3 run `35553231582` 和三版本 CI run `35553231580` 均已通过，取消纵切
+提升为 `isolated_integration_tested`。
+
+S1.2 最后的 Profile least-privilege matrix 已达到 `local_tested`：四类 live Docker canary 验证 exact 内容槽、
+共同 hardening、network-none 和清理，并证明只有 Validation 输出 tmpfs 可执行。rootless Phase 3 通过后关闭
+S1.2，随后进入 S1.3。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless

@@ -219,4 +219,11 @@ run `35551489391` 已通过，资源压力纵切提升为 `isolated_integration_
 S1.2 第三个纵切已达到本地集成测试：新增绑定唯一 run id 的线程安全 `RunnerCancellation`，跨运行取消在容器
 创建前 fail-closed，预取消不分配资源，活动取消会终止 Docker attach 客户端、kill 容器并验证 remove/absence。
 普通执行与有界输出捕获的本地无网络 Docker canary 均返回 `CANCELLED`、不发布部分输出并回收两个后台进程及
-匿名存储。专用 rootless Admission 尚未运行；通过前保持 `local_tested`。
+匿名存储。commit `55769eb3c6fe6f276b0efcc1270c9b6dc915c77f` 的 rootless Phase 3 run
+`35553231582` 已通过，取消纵切提升为 `isolated_integration_tested`；CI run `35553231580` 在 Python
+3.12/3.13/3.14 全部通过。
+
+S1.2 最后一个关闭项已进入本地集成测试：四类 Profile 的 live Docker matrix 逐一验证 exact source/evidence
+只读槽、非 root、零 capability、NoNewPrivs、seccomp mode 2、network-none、只读根与清理；仅 Validation 的
+输出 tmpfs 允许执行，其余 Static/Report/Post-exploitation 均为 noexec。四个本地 canary 已通过，rootless
+Admission 尚待下一次 push；通过后即可关闭 S1.2。

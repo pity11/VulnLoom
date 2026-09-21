@@ -63,7 +63,13 @@ commit `d8dc12d614736decf32ffab35dcafb968639497b` 的 rootless Phase 3 run `3555
 后续取消纵切使用 run-bound `RunnerCancellation`，不接受跨 run 信号。预取消在任何 Engine/container 分配前
 结束；活动取消由 Docker CLI 的有界轮询观察，随后同时终止 attach 客户端和容器 cgroup，并继续执行强制删除与
 absence verification。有界输出捕获在取消时丢弃临时/部分输出。本地无网络 Docker 已验证普通和 capture 两条
-路径；rootless 证据仍待专用 Admission。
+路径；commit `55769eb3c6fe6f276b0efcc1270c9b6dc915c77f` 的 rootless Phase 3 run `35553231582`
+已通过两条取消 canary，取消纵切现为 `isolated_integration_tested`。
+
+S1.2 Profile matrix 将类型层的权限差异落实到真实容器：Static/Validation 只能看到只读 source，Report/
+Post-exploitation 只能看到只读 evidence；四类均为非 root、零 capability、NoNewPrivs、seccomp mode 2、
+network-none 和只读根。只有明确执行目标代码的 Validation 输出 tmpfs 可执行，其余输出区为 noexec。四个本地
+Docker canary 已通过，rootless 准入待下一次 Phase 3。
 
 ## 2. Sandbox Profile
 
