@@ -271,6 +271,20 @@ def test_record_count_limit_and_invalid_limits_fail_closed(tmp_path, now):
         AuthoritativeAuditStore(database, max_record_bytes=0)
 
 
+def test_caller_owned_audit_methods_require_an_active_transaction(tmp_path, now):
+    stream_id = canonical_digest({"engagement": "audit-outer-transaction"})
+    with AuthoritativeAuditStore(tmp_path / "audit.db") as store:
+        checkpoint = store.checkpoint(stream_id, now=now)
+        with pytest.raises(AuditIntegrityError, match="active outer transaction"):
+            store.append_in_transaction(_plan(now, stream_id, 1), now=now)
+        with pytest.raises(AuditIntegrityError, match="active transaction"):
+            store.verify_in_transaction(
+                stream_id,
+                trusted_checkpoint=checkpoint,
+                now=now,
+            )
+
+
 @pytest.mark.parametrize("mutation", ("delete", "insert", "modify", "reorder"))
 def test_local_deletion_insertion_modification_and_reordering_are_detected(
     tmp_path, now, mutation

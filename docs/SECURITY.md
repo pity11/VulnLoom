@@ -102,8 +102,17 @@ checkpoint 固定 sequence/head；checkpoint 超前判定为 rollback，相同�
 也不自动截断或重算；唯一恢复路径是从独立边界恢复完整副本，再用原 checkpoint 验证。
 
 查询只返回 `AuditRecordProjection`：包含必要的事件名、状态和控制面摘要，不包含 payload、输入摘要列表、
-Engagement、幂等材料、stdout/stderr 或 secret。该纵切为 `offline_tested` 的共享骨架，尚不声称所有历史业务账本
-已经事务接入；下一纵切将接入关键 Control Plane 状态服务，并验证“状态变化与审计记录同事务或共同失败”。
+Engagement、幂等材料、stdout/stderr 或 secret。
+
+S1.4 第二个 `offline_tested` 纵切增加 `EventStore.append_authoritative`：领域事件先脱敏，再与审计记录和 head 在
+同一个 `BEGIN IMMEDIATE` 中提交。调用方必须提供可信 checkpoint；追加和权威读取都会在事务内验证链，并逐条
+核对 Engagement 专用 stream 与领域事件的幂等摘要、aggregate 摘要和完整 transition 摘要。事件或审计任一侧
+缺失、领域 payload 被改写、完整双边回滚、checkpoint 分叉/超前、过期或 SQL 中断都拒绝且不留部分写入；不允许
+用后续 backfill 掩盖单边提交。离线矩阵和全量门禁为 1596 passed、39 skipped、85.54% coverage，443 份 schema、
+Ruff 和 diff check 通过。
+
+历史 `EventStore.append` 与其他独立业务账本尚未自动获得该保证；它们必须显式迁移到权威接口。checkpoint 当前仍
+由调用方在独立可信边界保管，外部签名、WORM 与透明日志继续延后。
 
 ## 2. Sandbox Profile
 

@@ -16,7 +16,14 @@ from .audit_chain import (
     AuditVerificationStatus,
     AuthoritativeAuditStore,
 )
-from .events import Event, EventStore, IdempotencyConflict
+from .events import (
+    CONTROL_PLANE_AUDIT_EVENT_TYPE,
+    AtomicAuditRecoveryRequired,
+    Event,
+    EventStore,
+    IdempotencyConflict,
+    control_plane_audit_stream_id,
+)
 
 __all__ = [
     "AUDIT_CHAIN_CONTRACT_DIGEST",
@@ -33,7 +40,10 @@ __all__ = [
     "AuditVerificationResult",
     "AuditVerificationStatus",
     "AuthoritativeAuditStore",
+    "CONTROL_PLANE_AUDIT_EVENT_TYPE",
+    "AtomicAuditRecoveryRequired",
     "Event",
     "EventStore",
     "IdempotencyConflict",
+    "control_plane_audit_stream_id",
 ]

@@ -241,5 +241,12 @@ S1.4 首个纵切已达到 `offline_tested`：共享权威审计合同和 SQLite
 Engagement。类型化外部 checkpoint 区分本地 corruption、完整 rollback 和有效替代 fork；验证失败后禁止追加和
 digest-only 投影，不会自动截断或重算，恢复必须来自通过同一 checkpoint 的外部完整副本。删除、插入、改写、
 重排、head 漂移、回滚、分叉、过期、事务失败、幂等、恶意记录膨胀和恢复路径已覆盖。全量门禁为 1586 passed、
-39 skipped、85.51% coverage，443 份 schema 通过。S1.4 仍是当前工作：下一纵切将关键 Control Plane 状态变化与审计追加收进同一事务边界，
-在完成该接入前不宣称所有历史业务账本已防篡改。
+39 skipped、85.51% coverage，443 份 schema 通过。
+
+S1.4 第二个纵切已达到 `offline_tested`：`EventStore.append_authoritative` 在单个 SQLite `BEGIN IMMEDIATE` 内共同
+提交脱敏领域事件、审计记录和 head，写入与权威读取均要求可信外部 checkpoint，并验证 Engagement 专用 stream
+中的每条 event/audit 在幂等、aggregate 和 transition 摘要上一一对应。单边缺失、领域 payload 改写、完整双边
+回滚、链损坏、跨 Engagement、过期和 SQL 中断均 fail-closed，不允许 backfill 伪装原子提交。全量门禁为
+1596 passed、39 skipped、85.54% coverage，443 份 schema、Ruff 和 diff check 通过。S1.4 仍是当前工作：下一步
+固定真实调用迁移清单与 checkpoint 保管 adapter；历史 `EventStore.append` 和其他独立账本在显式迁移前不纳入
+防篡改声明。

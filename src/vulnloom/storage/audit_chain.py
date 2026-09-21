@@ -238,6 +238,7 @@ class AuthoritativeAuditStore:
         self,
         path: Path,
         *,
+        connection: sqlite3.Connection | None = None,
         max_records_per_stream: int = DEFAULT_MAX_AUDIT_RECORDS_PER_STREAM,
         max_record_bytes: int = DEFAULT_MAX_AUDIT_RECORD_BYTES,
     ):
@@ -247,7 +248,8 @@ class AuthoritativeAuditStore:
         self.max_records_per_stream = max_records_per_stream
         self.max_record_bytes = max_record_bytes
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(path, isolation_level=None)
+        self._owns_connection = connection is None
+        self.connection = connection or sqlite3.connect(path, isolation_level=None)
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
         self._create_schema()
@@ -274,88 +276,22 @@ class AuthoritativeAuditStore:
             """
         )
 
-    def append(self, plan: AuditAppendPlan, *, now: datetime) -> AuditRecord:
+    def append(
+        self,
+        plan: AuditAppendPlan,
+        *,
+        now: datetime,
+        trusted_checkpoint: AuditCheckpoint | None = None,
+    ) -> AuditRecord:
         plan = AuditAppendPlan.model_validate(plan.model_dump(mode="python"))
+        if trusted_checkpoint is not None:
+            trusted_checkpoint = AuditCheckpoint.model_validate(
+                trusted_checkpoint.model_dump(mode="python")
+            )
         self.connection.execute("BEGIN IMMEDIATE")
         try:
-            verification = self._verify_locked(plan.stream_id, now=now)
-            if verification.status is not AuditVerificationStatus.VERIFIED:
-                raise AuditIntegrityError(
-                    f"audit chain refused append: {verification.failure_code}"
-                )
-            existing = self.connection.execute(
-                "SELECT plan_id, record_json FROM authoritative_audit_records "
-                "WHERE stream_id = ? AND idempotency_digest = ?",
-                (plan.stream_id, plan.idempotency_digest),
-            ).fetchone()
-            if existing is not None:
-                if existing["plan_id"] != plan.plan_id:
-                    raise AuditIdempotencyConflict(
-                        "audit idempotency key was reused for different content"
-                    )
-                record = AuditRecord.model_validate_json(existing["record_json"])
-                self.connection.execute("COMMIT")
-                return record
-            if now >= plan.deadline:
-                raise AuditAppendExpired("audit append deadline expired before mutation")
-            if verification.record_count:
-                previous_row = self.connection.execute(
-                    "SELECT record_json FROM authoritative_audit_records "
-                    "WHERE stream_id = ? AND sequence = ?",
-                    (plan.stream_id, verification.record_count),
-                ).fetchone()
-                if previous_row is None:
-                    raise AuditIntegrityError("audit predecessor became unavailable")
-                previous_record = AuditRecord.model_validate_json(previous_row[0])
-                if previous_record.bindings.engagement_id != plan.bindings.engagement_id:
-                    raise AuditIntegrityError(
-                        "audit stream cannot cross Engagement boundaries"
-                    )
-            sequence = verification.record_count + 1
-            values = {
-                "contract_digest": AUDIT_CHAIN_CONTRACT_DIGEST,
-                "stream_id": plan.stream_id,
-                "sequence": sequence,
-                "previous_digest": verification.head_digest,
-                "plan_id": plan.plan_id,
-                "event_type": plan.event_type,
-                "aggregate_id": plan.aggregate_id,
-                "transition_digest": plan.transition_digest,
-                "bindings": plan.bindings,
-                "outcome": plan.outcome,
-                "cleanup_verified": plan.cleanup_verified,
-                "occurred_at": plan.occurred_at,
-                "sealed_at": now,
-            }
-            digest_values = {
-                **values,
-                "bindings": plan.bindings.model_dump(mode="python"),
-            }
-            record = AuditRecord(
-                record_digest=canonical_digest(digest_values), **values
-            )
-            record_json = record.model_dump_json()
-            if len(record_json.encode("utf-8")) > self.max_record_bytes:
-                raise AuditIntegrityError("sealed audit record exceeds storage limit")
-            self.connection.execute(
-                "INSERT INTO authoritative_audit_records "
-                "(stream_id, sequence, record_digest, previous_digest, plan_id, "
-                "idempotency_digest, record_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    record.stream_id,
-                    record.sequence,
-                    record.record_digest,
-                    record.previous_digest,
-                    record.plan_id,
-                    plan.idempotency_digest,
-                    record_json,
-                ),
-            )
-            self.connection.execute(
-                "INSERT INTO authoritative_audit_heads (stream_id, sequence, head_digest) "
-                "VALUES (?, ?, ?) ON CONFLICT(stream_id) DO UPDATE SET "
-                "sequence = excluded.sequence, head_digest = excluded.head_digest",
-                (record.stream_id, record.sequence, record.record_digest),
+            record = self._append_locked(
+                plan, now=now, trusted_checkpoint=trusted_checkpoint
             )
             self.connection.execute("COMMIT")
             return record
@@ -363,6 +299,120 @@ class AuthoritativeAuditStore:
             if self.connection.in_transaction:
                 self.connection.execute("ROLLBACK")
             raise
+
+    def append_in_transaction(
+        self,
+        plan: AuditAppendPlan,
+        *,
+        now: datetime,
+        trusted_checkpoint: AuditCheckpoint | None = None,
+    ) -> AuditRecord:
+        """Append under a caller-owned transaction for an atomic state change."""
+
+        if not self.connection.in_transaction:
+            raise AuditIntegrityError("audit append requires an active outer transaction")
+        plan = AuditAppendPlan.model_validate(plan.model_dump(mode="python"))
+        if trusted_checkpoint is not None:
+            trusted_checkpoint = AuditCheckpoint.model_validate(
+                trusted_checkpoint.model_dump(mode="python")
+            )
+        return self._append_locked(
+            plan, now=now, trusted_checkpoint=trusted_checkpoint
+        )
+
+    def contains_idempotency(self, stream_id: str, idempotency_digest: str) -> bool:
+        return (
+            self.connection.execute(
+                "SELECT 1 FROM authoritative_audit_records "
+                "WHERE stream_id = ? AND idempotency_digest = ?",
+                (stream_id, idempotency_digest),
+            ).fetchone()
+            is not None
+        )
+
+    def _append_locked(
+        self,
+        plan: AuditAppendPlan,
+        *,
+        now: datetime,
+        trusted_checkpoint: AuditCheckpoint | None = None,
+    ) -> AuditRecord:
+        verification = self._verify_locked(
+            plan.stream_id, now=now, trusted_checkpoint=trusted_checkpoint
+        )
+        if verification.status is not AuditVerificationStatus.VERIFIED:
+            raise AuditIntegrityError(
+                f"audit chain refused append: {verification.failure_code}"
+            )
+        existing = self.connection.execute(
+            "SELECT plan_id, record_json FROM authoritative_audit_records "
+            "WHERE stream_id = ? AND idempotency_digest = ?",
+            (plan.stream_id, plan.idempotency_digest),
+        ).fetchone()
+        if existing is not None:
+            if existing["plan_id"] != plan.plan_id:
+                raise AuditIdempotencyConflict(
+                    "audit idempotency key was reused for different content"
+                )
+            return AuditRecord.model_validate_json(existing["record_json"])
+        if now >= plan.deadline:
+            raise AuditAppendExpired("audit append deadline expired before mutation")
+        if verification.record_count:
+            previous_row = self.connection.execute(
+                "SELECT record_json FROM authoritative_audit_records "
+                "WHERE stream_id = ? AND sequence = ?",
+                (plan.stream_id, verification.record_count),
+            ).fetchone()
+            if previous_row is None:
+                raise AuditIntegrityError("audit predecessor became unavailable")
+            previous_record = AuditRecord.model_validate_json(previous_row[0])
+            if previous_record.bindings.engagement_id != plan.bindings.engagement_id:
+                raise AuditIntegrityError("audit stream cannot cross Engagement boundaries")
+        sequence = verification.record_count + 1
+        values = {
+            "contract_digest": AUDIT_CHAIN_CONTRACT_DIGEST,
+            "stream_id": plan.stream_id,
+            "sequence": sequence,
+            "previous_digest": verification.head_digest,
+            "plan_id": plan.plan_id,
+            "event_type": plan.event_type,
+            "aggregate_id": plan.aggregate_id,
+            "transition_digest": plan.transition_digest,
+            "bindings": plan.bindings,
+            "outcome": plan.outcome,
+            "cleanup_verified": plan.cleanup_verified,
+            "occurred_at": plan.occurred_at,
+            "sealed_at": now,
+        }
+        digest_values = {
+            **values,
+            "bindings": plan.bindings.model_dump(mode="python"),
+        }
+        record = AuditRecord(record_digest=canonical_digest(digest_values), **values)
+        record_json = record.model_dump_json()
+        if len(record_json.encode("utf-8")) > self.max_record_bytes:
+            raise AuditIntegrityError("sealed audit record exceeds storage limit")
+        self.connection.execute(
+            "INSERT INTO authoritative_audit_records "
+            "(stream_id, sequence, record_digest, previous_digest, plan_id, "
+            "idempotency_digest, record_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                record.stream_id,
+                record.sequence,
+                record.record_digest,
+                record.previous_digest,
+                record.plan_id,
+                plan.idempotency_digest,
+                record_json,
+            ),
+        )
+        self.connection.execute(
+            "INSERT INTO authoritative_audit_heads (stream_id, sequence, head_digest) "
+            "VALUES (?, ?, ?) ON CONFLICT(stream_id) DO UPDATE SET "
+            "sequence = excluded.sequence, head_digest = excluded.head_digest",
+            (record.stream_id, record.sequence, record.record_digest),
+        )
+        return record
 
     def checkpoint(self, stream_id: str, *, now: datetime) -> AuditCheckpoint:
         verification = self.verify(stream_id, now=now)
@@ -401,6 +451,24 @@ class AuthoritativeAuditStore:
             if self.connection.in_transaction:
                 self.connection.execute("ROLLBACK")
             raise
+
+    def verify_in_transaction(
+        self,
+        stream_id: str,
+        *,
+        now: datetime,
+        trusted_checkpoint: AuditCheckpoint,
+    ) -> AuditVerificationResult:
+        """Verify under a caller-owned transaction before authoritative state use."""
+
+        if not self.connection.in_transaction:
+            raise AuditIntegrityError("audit verification requires an active transaction")
+        trusted_checkpoint = AuditCheckpoint.model_validate(
+            trusted_checkpoint.model_dump(mode="python")
+        )
+        return self._verify_locked(
+            stream_id, now=now, trusted_checkpoint=trusted_checkpoint
+        )
 
     def projections(
         self,
@@ -554,7 +622,8 @@ class AuthoritativeAuditStore:
         )
 
     def close(self) -> None:
-        self.connection.close()
+        if self._owns_connection:
+            self.connection.close()
 
     def __enter__(self) -> AuthoritativeAuditStore:
         return self

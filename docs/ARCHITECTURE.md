@@ -54,7 +54,7 @@ VulnLoom 采用可信控制面与不可信 Worker 分离的架构。LLM 输出�
 
 人工审批对象不是聊天文本，而是不可变 `ApprovalRequest`：包含请求动作、目标、预期副作用、证据摘要、过期时间和策略版本。批准只对该对象生效，不能泛化为后续动作。
 
-### Authoritative Audit Chain（S1.4 首个纵切）
+### Authoritative Audit Chain（S1.4）
 
 共享审计骨架使用 per-stream SQLite append-only hash chain。每条 `AuditRecord` 同时绑定前一记录摘要、固定合同、
 事件和状态迁移摘要，以及 Engagement、Scope/version、Policy、Sandbox Profile、Agent Context、Tool Registry、
@@ -67,8 +67,14 @@ fail-closed。
 stdout/stderr。当前恢复语义固定为停止写入与查询、从外部恢复完整副本、使用同一 checkpoint 重新验证；不得
 自动截断、重算或覆盖可疑记录。外部签名、WORM 与透明日志仍按计划延后。
 
-该纵切提供共享协议与存储骨架，尚未声称所有历史业务账本已迁移。后续 S1.4 工作只把关键 Control Plane 状态
-变更通过事务 adapter 接入，不允许应用层在状态已变更后把审计失败当作可忽略的观察性故障。
+第二个纵切把 `EventStore.append_authoritative` 接入同一个 SQLite `BEGIN IMMEDIATE`：脱敏领域事件、审计记录与
+审计 head 只能共同提交或共同回滚。写入和 `list_authoritative_for_engagement` 均要求调用方提供独立保存的可信
+checkpoint；在事务内先验证 hash-chain，再核对该 Engagement 的每个事件与专用审计 stream 在幂等摘要、聚合摘要
+和完整迁移摘要上一一对应。事件被删除或改写、审计单边缺失、完整数据库回滚、超时及任一 SQL 写入失败均
+fail-closed，禁止事后补写审计来伪装原子提交。
+
+该接入固定了新权威调用方的事务 adapter，尚未声称历史 `EventStore.append` 调用或其他独立业务账本已经迁移。
+后续只通过显式迁移逐个收窄旧入口，并为 checkpoint 增加部署边界明确的可信保管 adapter。
 
 ## 4. Worker 角色
 

@@ -1379,7 +1379,15 @@ checkpoint、未验证模型副本、事务中断和外部副本恢复。检测�
 恢复完整外部副本并通过原 checkpoint 后才能继续。投影 schema 不含 payload、secret、stdout/stderr、原始输入、
 Engagement 或幂等材料。校验会在解析前限制每流记录数和单条记录字节数，恶意膨胀同样 fail-closed。当前全量门禁为
 1586 passed、39 skipped、85.51% coverage，Ruff、443 份 schema 和 diff check 通过。
-下一纵切把关键 Control Plane 状态变化与审计追加放入同一事务边界；在此之前不宣称所有历史账本已防篡改。
+第二个 `offline_tested` 纵切已把 Control Plane 领域事件接入原子审计路径。`EventStore.append_authoritative` 使用同一
+SQLite `BEGIN IMMEDIATE` 共同提交脱敏事件、审计记录和 head，并要求可信外部 checkpoint；权威读取也必须验证
+checkpoint 和每条 event/audit 的幂等、aggregate、transition 摘要一一对应。事件/审计单边缺失、payload 改写、
+完整双边回滚、过期或 SQL 中断均拒绝，事务失败不留下部分事件或 head，且禁止事后 backfill。
+
+新增矩阵覆盖成功、精确幂等、拒绝、超时、事务清理、跨 Engagement、链损坏、领域事件删除/改写、单边缺失和
+完整回滚；全量门禁为 1596 passed、39 skipped、85.54% coverage，443 份 schema、Ruff 和 diff check 通过。
+历史 `EventStore.append` 和其他业务账本仍需逐个迁移，当前不宣称全仓权威状态均已防篡改；下一步固定真实迁移
+清单和 checkpoint 保管 adapter 后再关闭 S1.4。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
