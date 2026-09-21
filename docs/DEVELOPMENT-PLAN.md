@@ -194,7 +194,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **S1.2 执行隔离和资源压力**。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **S1.3 秘密泄漏与出口安全回归**。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -226,4 +226,5 @@ S1.2 第三个纵切已达到本地集成测试：新增绑定唯一 run id 的�
 S1.2 最后一个关闭项已进入本地集成测试：四类 Profile 的 live Docker matrix 逐一验证 exact source/evidence
 只读槽、非 root、零 capability、NoNewPrivs、seccomp mode 2、network-none、只读根与清理；仅 Validation 的
 输出 tmpfs 允许执行，其余 Static/Report/Post-exploitation 均为 noexec。四个本地 canary 已通过，rootless
-Admission 尚待下一次 push；通过后即可关闭 S1.2。
+Phase 3 run `35553910680` 已通过，生产批次为 8 passed、16 passed、5 passed/9 deselected；CI run
+`35553910683` 在 Python 3.12/3.13/3.14 全部通过。S1.2 至此关闭，下一项固定为 S1.3。

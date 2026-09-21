@@ -69,7 +69,9 @@ absence verification。有界输出捕获在取消时丢弃临时/部分输出�
 S1.2 Profile matrix 将类型层的权限差异落实到真实容器：Static/Validation 只能看到只读 source，Report/
 Post-exploitation 只能看到只读 evidence；四类均为非 root、零 capability、NoNewPrivs、seccomp mode 2、
 network-none 和只读根。只有明确执行目标代码的 Validation 输出 tmpfs 可执行，其余输出区为 noexec。四个本地
-Docker canary 已通过，rootless 准入待下一次 Phase 3。
+Docker canary 与 rootless Phase 3 run `35553910680` 均已通过，CI run `35553910683` 同时通过三版本回归。
+S1.2 的 seccomp、资源压力、超时、取消、进程组回收、残留对象清理和 Profile 差异已经形成真实隔离证据，
+S1.2 关闭。
 
 ## 2. Sandbox Profile
 

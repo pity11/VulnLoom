@@ -230,7 +230,7 @@ Both completed successfully on 2026-09-07 UTC.
 | S1.2 seccomp contract | Every Sandbox Profile binds the repository-owned contract; production pins Docker 29.7.2 builtin seccomp, rejects drift/unconfined overrides, and proves Worker mode 2 from `/proc/self/status` | PASS (`35550502151`) |
 | S1.2 resource pressure | Content-bound PID/FD/output/tmpfs/memory/timeout probes require exact terminal semantics, observed limits, complete cleanup, and container absence | PASS (`35551489391`) |
 | S1.2 active cancellation | Run-bound cancellation must reap normal and captured-output process groups, discard partial output, remove anonymous storage, and prove container absence | PASS (`35553231582`) |
-| S1.2 Profile matrix | Static, Validation, Report, and Post-exploitation must expose only their exact content slot and execution mode while retaining common hardening and cleanup | PENDING ROOTLESS RUN (four local Docker canaries passed) |
+| S1.2 Profile matrix | Static, Validation, Report, and Post-exploitation must expose only their exact content slot and execution mode while retaining common hardening and cleanup | PASS (`35553910680`) |
 | Full composition | Rootless Runner, pinned Broker, redacted Evidence, deterministic judge, state transition, and cleanup | PASS |
 | Analyzer execution | Versioned Checkov/Kubesec/Trivy resolved to exact image IDs, network-disabled source-only execution, bounded output, M6.3a import, and cleanup | PASS (`33323829710`) |
 | Trivy analyzer data | DB v2 is provisioned outside execution, sealed read-only and content-addressed, mounted read-only, reverified after cleanup, and used with the vuln scanner only | PASS (`33323829710`) |

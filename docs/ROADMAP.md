@@ -1351,6 +1351,10 @@ S1.2 最后的 Profile least-privilege matrix 已达到 `local_tested`：四类 
 共同 hardening、network-none 和清理，并证明只有 Validation 输出 tmpfs 可执行。rootless Phase 3 通过后关闭
 S1.2，随后进入 S1.3。
 
+commit `5986d40150420f9270b7b4044fec2208b96815b1` 的 rootless Phase 3 run `35553910680` 已通过 Profile
+matrix，生产批次为 8 passed、16 passed、5 passed/9 deselected；CI run `35553910683` 在 Python
+3.12/3.13/3.14 全部通过。S1.2 达到 `isolated_integration_tested` 并关闭；Shared Assurance 当前进入 S1.3。
+
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
 隔离测试必须显式 opt-in。当前开发顺序和两个方向的后续计划见 `docs/DEVELOPMENT-PLAN.md`。
