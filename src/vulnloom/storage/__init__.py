@@ -16,6 +16,11 @@ from .audit_chain import (
     AuditVerificationStatus,
     AuthoritativeAuditStore,
 )
+from .checkpoints import (
+    AuditCheckpointCustodyError,
+    CheckpointedEventStore,
+    FileAuditCheckpointStore,
+)
 from .events import (
     CONTROL_PLANE_AUDIT_EVENT_TYPE,
     AtomicAuditRecoveryRequired,
@@ -40,10 +45,13 @@ __all__ = [
     "AuditVerificationResult",
     "AuditVerificationStatus",
     "AuthoritativeAuditStore",
+    "AuditCheckpointCustodyError",
+    "CheckpointedEventStore",
     "CONTROL_PLANE_AUDIT_EVENT_TYPE",
     "AtomicAuditRecoveryRequired",
     "Event",
     "EventStore",
+    "FileAuditCheckpointStore",
     "IdempotencyConflict",
     "control_plane_audit_stream_id",
 ]

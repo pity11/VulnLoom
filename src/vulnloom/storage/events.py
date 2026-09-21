@@ -160,26 +160,6 @@ class EventStore:
         safe_event = event.model_copy(update={"payload": safe_payload})
         idempotency_digest = _event_idempotency_digest(safe_event)
         stream_id = control_plane_audit_stream_id(safe_event.engagement_id)
-        transition_digest = _event_transition_digest(
-            safe_event, idempotency_digest
-        )
-        audit_plan = AuditAppendPlan.create(
-            stream_id=stream_id,
-            event_type=CONTROL_PLANE_AUDIT_EVENT_TYPE,
-            aggregate_id=canonical_digest(
-                {
-                    "engagement_id": safe_event.engagement_id,
-                    "aggregate_id": safe_event.aggregate_id,
-                }
-            ),
-            transition_digest=transition_digest,
-            bindings=bindings,
-            outcome=AuditOutcome.COMMITTED,
-            cleanup_verified=True,
-            occurred_at=safe_event.occurred_at,
-            deadline=deadline,
-            idempotency_digest=idempotency_digest,
-        )
 
         self.connection.execute("BEGIN IMMEDIATE")
         try:
@@ -208,6 +188,12 @@ class EventStore:
             if existing_row is not None:
                 existing = self._from_row(existing_row)
                 self._assert_idempotent(existing, safe_event)
+                audit_plan = self._audit_plan(
+                    existing,
+                    bindings,
+                    deadline=existing.occurred_at
+                    + (deadline - safe_event.occurred_at),
+                )
                 record = self.audit.append_in_transaction(
                     audit_plan,
                     now=now,
@@ -216,6 +202,7 @@ class EventStore:
                 self.connection.execute("COMMIT")
                 return existing, record, False
 
+            audit_plan = self._audit_plan(safe_event, bindings, deadline=deadline)
             encoded = json.dumps(safe_payload, sort_keys=True, separators=(",", ":"))
             self.connection.execute(
                 """
@@ -327,11 +314,42 @@ class EventStore:
 
     @staticmethod
     def _assert_idempotent(existing: Event, requested: Event) -> None:
-        if existing != requested:
+        if (
+            existing.engagement_id != requested.engagement_id
+            or existing.event_type != requested.event_type
+            or existing.aggregate_id != requested.aggregate_id
+            or existing.payload != requested.payload
+        ):
             raise IdempotencyConflict(
                 f"idempotency key reused with different authoritative event: "
                 f"{requested.idempotency_key}"
             )
+
+    @staticmethod
+    def _audit_plan(
+        event: Event,
+        bindings: AuditStateBindings,
+        *,
+        deadline: datetime,
+    ) -> AuditAppendPlan:
+        idempotency_digest = _event_idempotency_digest(event)
+        return AuditAppendPlan.create(
+            stream_id=control_plane_audit_stream_id(event.engagement_id),
+            event_type=CONTROL_PLANE_AUDIT_EVENT_TYPE,
+            aggregate_id=canonical_digest(
+                {
+                    "engagement_id": event.engagement_id,
+                    "aggregate_id": event.aggregate_id,
+                }
+            ),
+            transition_digest=_event_transition_digest(event, idempotency_digest),
+            bindings=bindings,
+            outcome=AuditOutcome.COMMITTED,
+            cleanup_verified=True,
+            occurred_at=event.occurred_at,
+            deadline=deadline,
+            idempotency_digest=idempotency_digest,
+        )
 
     def list_for_engagement(self, engagement_id: UUID) -> tuple[Event, ...]:
         rows = self.connection.execute(
@@ -339,6 +357,22 @@ class EventStore:
             (str(engagement_id),),
         ).fetchall()
         return tuple(self._from_row(row) for row in rows)
+
+    def authoritative_state_is_empty(self, engagement_id: UUID) -> bool:
+        stream_id = control_plane_audit_stream_id(engagement_id)
+        event_count = self.connection.execute(
+            "SELECT COUNT(*) FROM domain_events WHERE engagement_id = ?",
+            (str(engagement_id),),
+        ).fetchone()[0]
+        audit_count = self.connection.execute(
+            "SELECT COUNT(*) FROM authoritative_audit_records WHERE stream_id = ?",
+            (stream_id,),
+        ).fetchone()[0]
+        head_count = self.connection.execute(
+            "SELECT COUNT(*) FROM authoritative_audit_heads WHERE stream_id = ?",
+            (stream_id,),
+        ).fetchone()[0]
+        return event_count == audit_count == head_count == 0
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> Event:

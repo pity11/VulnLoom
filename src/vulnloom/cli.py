@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -83,6 +83,7 @@ from vulnloom.critic import (
     PilotCriticIntakeService,
     PilotCriticIntakeStore,
 )
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
     ApprovalRequest,
     ArtifactKind,
@@ -132,7 +133,7 @@ from vulnloom.reporting import (
     diff_reports,
 )
 from vulnloom.runners import OfflineSandboxRunner
-from vulnloom.storage.events import Event, EventStore
+from vulnloom.storage import AuditStateBindings, CheckpointedEventStore, Event
 from vulnloom.validation import (
     AgentValidationIntakeCommand,
     AgentValidationIntakePlan,
@@ -157,8 +158,80 @@ _ADMITTED_M9_4_PROFILE_ID = "e26b65b236daf7c40631643fe973f1760d33e183748c2c8178f
 _ADMITTED_M9_4_RESULT_ID = "fd43cbf7d5833ee2244578d001215daddf28c2f6e51f61f60049e3378ea22c83"
 
 
-def _store(path: str) -> EventStore:
-    return EventStore(Path(path))
+def _store(args: argparse.Namespace) -> CheckpointedEventStore:
+    checkpoint_root = (
+        Path(args.audit_checkpoint_store)
+        if args.audit_checkpoint_store
+        else Path(args.db).parent / "audit-checkpoints"
+    )
+    return CheckpointedEventStore(Path(args.db), checkpoint_root)
+
+
+def _control_plane_bindings(
+    event: Event, *, scope: Scope | None = None
+) -> AuditStateBindings:
+    if scope is not None and scope.engagement_id != event.engagement_id:
+        raise ValueError("Control Plane event and Scope Engagement differ")
+    scope_digest = (
+        canonical_digest(scope.model_dump(mode="python"))
+        if scope is not None
+        else canonical_digest(
+            {
+                "component": "scope",
+                "state": "not_available_at_bootstrap",
+                "event_type": event.event_type,
+            }
+        )
+    )
+    input_digests = {
+        canonical_digest(
+            {
+                "event_type": event.event_type,
+                "aggregate_id": event.aggregate_id,
+                "payload": event.payload,
+            }
+        ),
+        scope_digest,
+    }
+    return AuditStateBindings(
+        engagement_id=event.engagement_id,
+        scope_id=scope.scope_id if scope is not None else UUID(int=0),
+        scope_version=scope.version if scope is not None else 1,
+        policy_digest=scope_digest,
+        sandbox_profile_digest=canonical_digest(
+            {"component": "sandbox", "state": "trusted_control_plane_host_v1"}
+        ),
+        context_digest=canonical_digest(
+            {
+                "component": "cli_context",
+                "revision": "s1.4-authoritative-events-v1",
+                "event_type": event.event_type,
+            }
+        ),
+        tool_registry_digest=canonical_digest(
+            {"component": "tool_registry", "state": "not_involved"}
+        ),
+        provider_revision_digest=canonical_digest(
+            {"component": "provider", "state": "not_involved"}
+        ),
+        input_digests=tuple(sorted(input_digests)),
+    )
+
+
+def _append_event(
+    args: argparse.Namespace,
+    event: Event,
+    *,
+    scope: Scope | None = None,
+):
+    now = utc_now()
+    with _store(args) as store:
+        return store.append(
+            event,
+            bindings=_control_plane_bindings(event, scope=scope),
+            deadline=event.occurred_at + timedelta(minutes=5),
+            now=now,
+        )
 
 
 def create_engagement(args: argparse.Namespace) -> int:
@@ -174,8 +247,7 @@ def create_engagement(args: argparse.Namespace) -> int:
         payload=engagement.model_dump(mode="json"),
         idempotency_key=args.idempotency_key or f"engagement:create:{engagement.engagement_id}",
     )
-    with _store(args.db) as store:
-        stored, created = store.append(event)
+    stored, _, created = _append_event(args, event)
     print(json.dumps({"created": created, "event": stored.model_dump(mode="json")}, indent=2))
     return 0
 
@@ -197,16 +269,15 @@ def approve_scope(args: argparse.Namespace) -> int:
         idempotency_key=args.idempotency_key
         or f"scope:approve:{approved.scope_id}:v{approved.version}",
     )
-    with _store(args.db) as store:
-        stored, created = store.append(event)
+    stored, _, created = _append_event(args, event, scope=approved)
     print(json.dumps({"created": created, "event": stored.model_dump(mode="json")}, indent=2))
     return 0
 
 
 def show_status(args: argparse.Namespace) -> int:
     engagement_id = UUID(args.engagement_id)
-    with _store(args.db) as store:
-        events = store.list_for_engagement(engagement_id)
+    with _store(args) as store:
+        events = store.list_for_engagement(engagement_id, now=utc_now())
     print(json.dumps([event.model_dump(mode="json") for event in events], indent=2))
     return 0
 
@@ -215,7 +286,9 @@ def _load_scope(path: str) -> Scope:
     return Scope.model_validate_json(Path(path).read_text(encoding="utf-8"))
 
 
-def _record_snapshot(args: argparse.Namespace, snapshot: TargetSnapshot) -> int:
+def _record_snapshot(
+    args: argparse.Namespace, snapshot: TargetSnapshot, *, scope: Scope
+) -> int:
     event = Event(
         engagement_id=snapshot.target.engagement_id,
         event_type="TargetIngested",
@@ -226,8 +299,7 @@ def _record_snapshot(args: argparse.Namespace, snapshot: TargetSnapshot) -> int:
             or f"target:ingest:{snapshot.target.target_id}:{snapshot.manifest.manifest_id}"
         ),
     )
-    with _store(args.db) as store:
-        stored, created = store.append(event)
+    stored, _, created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {"created": created, "event": stored.model_dump(mode="json")},
@@ -238,12 +310,13 @@ def _record_snapshot(args: argparse.Namespace, snapshot: TargetSnapshot) -> int:
 
 
 def ingest_archive(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
     snapshot = IngestionService(Path(args.store)).ingest_archive(
         Path(args.source),
-        scope=_load_scope(args.scope_file),
+        scope=scope,
         kind=ArtifactKind(args.kind),
     )
-    return _record_snapshot(args, snapshot)
+    return _record_snapshot(args, snapshot, scope=scope)
 
 
 def quarantine_artifact(args: argparse.Namespace) -> int:
@@ -262,29 +335,30 @@ def quarantine_artifact(args: argparse.Namespace) -> int:
             or f"artifact:quarantine:{artifact.engagement_id}:{artifact.artifact_id}"
         ),
     )
-    with _store(args.db) as store:
-        stored, created = store.append(event)
+    stored, _, created = _append_event(args, event)
     print(json.dumps({"created": created, "event": stored.model_dump(mode="json")}, indent=2))
     return 0
 
 
 def ingest_git(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
     snapshot = IngestionService(Path(args.store)).ingest_git(
         Path(args.source),
         repository_url=args.repository_url,
         commit=args.commit,
-        scope=_load_scope(args.scope_file),
+        scope=scope,
     )
-    return _record_snapshot(args, snapshot)
+    return _record_snapshot(args, snapshot, scope=scope)
 
 
 def register_image(args: argparse.Namespace) -> int:
+    scope = _load_scope(args.scope_file)
     snapshot = IngestionService(Path(args.store)).register_oci_image(
         args.image_ref,
         args.digest,
-        scope=_load_scope(args.scope_file),
+        scope=scope,
     )
-    return _record_snapshot(args, snapshot)
+    return _record_snapshot(args, snapshot, scope=scope)
 
 
 def source_map(args: argparse.Namespace) -> int:
@@ -312,8 +386,7 @@ def source_map(args: argparse.Namespace) -> int:
         payload=summary,
         idempotency_key=args.idempotency_key or f"source-map:{graph.graph_id}",
     )
-    with _store(args.db) as store:
-        stored, event_created = store.append(event)
+    stored, _, event_created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {
@@ -352,8 +425,7 @@ def generate_candidates(args: argparse.Namespace) -> int:
         idempotency_key=args.idempotency_key
         or f"candidate-generate:{candidate_set.candidate_set_id}",
     )
-    with _store(args.db) as store:
-        stored, event_created = store.append(event)
+    stored, _, event_created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {
@@ -627,8 +699,7 @@ def run_validation_offline(args: argparse.Namespace) -> int:
         payload=summary,
         idempotency_key=f"validation:completed:{outcome.plan_id}",
     )
-    with _store(args.db) as event_store:
-        stored, event_created = event_store.append(event)
+    stored, _, event_created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {
@@ -1272,8 +1343,7 @@ def review_report_offline(args: argparse.Namespace) -> int:
         payload=summary,
         idempotency_key=f"report:reviewed:{outcome.review.command_id}",
     )
-    with _store(args.db) as event_store:
-        stored, event_created = event_store.append(event)
+    stored, _, event_created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {"event_created": event_created, "review": summary, "event_id": str(stored.event_id)},
@@ -1316,8 +1386,7 @@ def export_report_local(args: argparse.Namespace) -> int:
         payload=summary,
         idempotency_key=f"report:exported:{outcome.plan_id}",
     )
-    with _store(args.db) as event_store:
-        stored, event_created = event_store.append(event)
+    stored, _, event_created = _append_event(args, event, scope=scope)
     print(
         json.dumps(
             {"event_created": event_created, "export": summary, "event_id": str(stored.event_id)},
@@ -1529,6 +1598,10 @@ def check_analyzer_execution_offline(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="vulnloom")
     parser.add_argument("--db", default=".vulnloom/events.db")
+    parser.add_argument(
+        "--audit-checkpoint-store",
+        help="trusted checkpoint directory (defaults beside --db)",
+    )
     parser.add_argument("--store", default=".vulnloom/targets")
     sub = parser.add_subparsers(required=True)
 

@@ -194,7 +194,8 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **S1.4 防篡改审计骨架**。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **A1 通用 Project Recipe Registry**。Shared Assurance S1 已关闭；只有出现新的用户优先级
+决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -247,6 +248,13 @@ S1.4 第二个纵切已达到 `offline_tested`：`EventStore.append_authoritativ
 提交脱敏领域事件、审计记录和 head，写入与权威读取均要求可信外部 checkpoint，并验证 Engagement 专用 stream
 中的每条 event/audit 在幂等、aggregate 和 transition 摘要上一一对应。单边缺失、领域 payload 改写、完整双边
 回滚、链损坏、跨 Engagement、过期和 SQL 中断均 fail-closed，不允许 backfill 伪装原子提交。全量门禁为
-1596 passed、39 skipped、85.54% coverage，443 份 schema、Ruff 和 diff check 通过。S1.4 仍是当前工作：下一步
-固定真实调用迁移清单与 checkpoint 保管 adapter；历史 `EventStore.append` 和其他独立账本在显式迁移前不纳入
-防篡改声明。
+1596 passed、39 skipped、85.54% coverage，443 份 schema、Ruff 和 diff check 通过。
+
+S1.4 最终纵切已达到 `offline_tested`：本地 checkpoint custody 强制 digest 路径、大小、普通文件和 owner-only
+权限，使用 per-stream lock、`fsync`、原子替换和单调 compare-and-swap；拒绝符号链接、宽松权限、回退、分叉与
+非空数据库的无 anchor backfill。checkpoint 推进失败可由同一幂等事件重试恢复。主 CLI 的 9 个真实事件写入口与
+`status` 已全部迁移到 `CheckpointedEventStore`，旧裸 `EventStore.append` 不再出现在生产 CLI 路径。默认 anchor
+只与数据库分文件，部署时可通过 `--audit-checkpoint-store` 放入独立受保护路径；远程签名、WORM、透明日志以及
+其他独立内容寻址账本的风险驱动迁移仍按计划延后。最终全量门禁为 1604 passed、39 skipped、85.51% coverage，
+443 份 schema、Ruff 和 diff check 通过；无公网、真实模型或真实攻击。S1.4 与 Shared Assurance S1 至此关闭，
+下一项固定为 A1 通用 Project Recipe Registry。

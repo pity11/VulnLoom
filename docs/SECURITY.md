@@ -111,8 +111,17 @@ S1.4 第二个 `offline_tested` 纵切增加 `EventStore.append_authoritative`�
 用后续 backfill 掩盖单边提交。离线矩阵和全量门禁为 1596 passed、39 skipped、85.54% coverage，443 份 schema、
 Ruff 和 diff check 通过。
 
-历史 `EventStore.append` 与其他独立业务账本尚未自动获得该保证；它们必须显式迁移到权威接口。checkpoint 当前仍
-由调用方在独立可信边界保管，外部签名、WORM 与透明日志继续延后。
+S1.4 最终纵切提供本地可信 checkpoint 保管：digest-only 文件名、16 KiB 上限、拒绝符号链接与宽松权限，使用
+owner-only 文件、per-stream lock、临时文件 `fsync`、原子替换和单调 compare-and-swap。写入后 checkpoint 推进
+失败不会回滚已提交状态；精确幂等重试会验证既有 event/audit 对并安全推进 anchor。非空数据库缺少 checkpoint
+时拒绝自动 backfill，必须从可信副本恢复或执行独立审计迁移。
+
+主 CLI 的全部 9 个事件写入点——Engagement、Scope、Artifact/Target、Source Graph、Candidate、Validation、
+Report review/export——以及 `status` 已迁移到 `CheckpointedEventStore`。旧 `EventStore.append` 只保留兼容和单元
+测试用途，不再由主 CLI 调用；其他内容寻址业务账本不在共享事件链声明内。默认 checkpoint 目录与数据库相邻，
+只能检测数据库侧回滚；部署时必须用 `--audit-checkpoint-store` 放到独立受保护路径。远程签名、WORM 与透明日志
+继续延后。本轮全量门禁为 1604 passed、39 skipped、85.51% coverage，443 份 schema、Ruff 和 diff check 通过。
+S1.4 与 Shared Assurance S1 至此达到 `offline_tested` 并关闭，未访问公网、未调用真实模型、未执行真实攻击。
 
 ## 2. Sandbox Profile
 

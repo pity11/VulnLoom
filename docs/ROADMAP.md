@@ -1303,7 +1303,7 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 
 详见 `docs/HYBRID-VALIDATION.md`。
 
-### Shared Assurance S1（当前重大里程碑）
+### Shared Assurance S1（已关闭）
 
 S1 是 Source Hunt、Authorized Red Team、Hybrid 和 Provider 路径共同依赖的安全资格，不增加公网扫描、目标
 扩展、攻击类别或 Submission 能力，也不占用长期路线中已保留给团队化部署的 R12 编号。
@@ -1386,8 +1386,16 @@ checkpoint 和每条 event/audit 的幂等、aggregate、transition 摘要一一
 
 新增矩阵覆盖成功、精确幂等、拒绝、超时、事务清理、跨 Engagement、链损坏、领域事件删除/改写、单边缺失和
 完整回滚；全量门禁为 1596 passed、39 skipped、85.54% coverage，443 份 schema、Ruff 和 diff check 通过。
-历史 `EventStore.append` 和其他业务账本仍需逐个迁移，当前不宣称全仓权威状态均已防篡改；下一步固定真实迁移
-清单和 checkpoint 保管 adapter 后再关闭 S1.4。
+S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`FileAuditCheckpointStore` 使用 digest 文件名、
+16 KiB 上限、owner-only 权限、per-stream lock、`fsync`、原子替换与单调 compare-and-swap；符号链接、宽松权限、
+回退、分叉、超大或畸形 checkpoint 均拒绝。checkpoint 推进失败可由精确幂等重试恢复；非空数据库若缺少 anchor
+则拒绝 backfill。`CheckpointedEventStore` 已覆盖主 CLI 全部 9 个事件写入点和 `status` 权威读取。
+
+本地默认 anchor 与数据库相邻，不声称抵御同时控制两者的攻击者；部署可通过 `--audit-checkpoint-store` 选择独立
+受保护路径，远程签名、WORM 与透明日志保持延后。其他业务 store 使用各自的内容寻址和状态机合同，不被误报为
+共享链成员。最终门禁为 1604 passed、39 skipped、85.51% coverage，443 份 schema、Ruff 和 diff check 通过；
+无公网访问、真实模型调用或真实攻击。S1.4 与 Shared Assurance S1 至此达到 `offline_tested` 并关闭，下一项回到
+核心能力线 A1 通用 Project Recipe Registry。
 
 完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless

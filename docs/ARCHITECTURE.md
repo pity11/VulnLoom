@@ -73,8 +73,14 @@ checkpoint；在事务内先验证 hash-chain，再核对该 Engagement 的每�
 和完整迁移摘要上一一对应。事件被删除或改写、审计单边缺失、完整数据库回滚、超时及任一 SQL 写入失败均
 fail-closed，禁止事后补写审计来伪装原子提交。
 
-该接入固定了新权威调用方的事务 adapter，尚未声称历史 `EventStore.append` 调用或其他独立业务账本已经迁移。
-后续只通过显式迁移逐个收窄旧入口，并为 checkpoint 增加部署边界明确的可信保管 adapter。
+最终纵切增加 `FileAuditCheckpointStore` 与 `CheckpointedEventStore`。checkpoint 文件限制为 digest 文件名、16 KiB、
+普通文件和 owner-only 权限，使用 per-stream 文件锁、临时文件、`fsync`、原子替换及单调 compare-and-swap；保管
+失败后数据库提交可用同一幂等事件安全重放并推进 checkpoint。没有 checkpoint 的非空数据库拒绝自动 backfill，
+避免把历史状态伪装成已原子审计。主 CLI 的 9 个领域事件写入点及 `status` 读取均已迁移到该 adapter。
+
+本地默认 checkpoint 目录位于事件数据库旁，仅提供独立文件/事务边界，不抵御同时控制数据库与该目录的攻击者；
+部署时可用 `--audit-checkpoint-store` 指向独立受保护路径。远程签名、WORM 和透明日志按 S1.4 范围明确延后。其他
+内容寻址业务账本没有被虚构为共享事件链成员，后续只在风险需要时逐项迁移。S1.4 至此达到 `offline_tested` 并关闭。
 
 ## 4. Worker 角色
 

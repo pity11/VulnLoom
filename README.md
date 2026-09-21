@@ -137,7 +137,8 @@ Unauthorized Internet-wide asset discovery, automatic submission, and unbrokered
 - Separate Candidate state machine and deterministic Candidate-to-Finding gate.
 - Scope Policy Engine and approvals bound to specific action digests.
 - Evidence redaction, content addressing, and integrity verification.
-- SQLite event log with idempotency conflict detection.
+- Checkpointed SQLite Control Plane event log with atomic tamper-evident audit records, rollback/fork detection, redacted
+  projections, and owner-only filesystem checkpoint custody; remote signing and WORM remain deployment-stage work.
 - Typed Control Plane/Worker protocol and an explicit Worker environment allowlist.
 - `engagement-create`, `scope-approve`, and `status` CLI commands.
 - An OpenAI-compatible model-provider configuration boundary; no network model call is made yet.

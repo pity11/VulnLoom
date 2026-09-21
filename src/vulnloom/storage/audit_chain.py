@@ -350,11 +350,21 @@ class AuthoritativeAuditStore:
             (plan.stream_id, plan.idempotency_digest),
         ).fetchone()
         if existing is not None:
-            if existing["plan_id"] != plan.plan_id:
+            record = AuditRecord.model_validate_json(existing["record_json"])
+            if existing["plan_id"] != plan.plan_id and not (
+                record.stream_id == plan.stream_id
+                and record.event_type == plan.event_type
+                and record.aggregate_id == plan.aggregate_id
+                and record.transition_digest == plan.transition_digest
+                and record.bindings == plan.bindings
+                and record.outcome == plan.outcome
+                and record.cleanup_verified == plan.cleanup_verified
+                and record.occurred_at == plan.occurred_at
+            ):
                 raise AuditIdempotencyConflict(
                     "audit idempotency key was reused for different content"
                 )
-            return AuditRecord.model_validate_json(existing["record_json"])
+            return record
         if now >= plan.deadline:
             raise AuditAppendExpired("audit append deadline expired before mutation")
         if verification.record_count:
