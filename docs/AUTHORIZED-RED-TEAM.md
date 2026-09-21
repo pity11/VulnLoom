@@ -333,3 +333,11 @@ Local R11.4 verification completed with 1514 tests passed, 30 integration tests 
 Ruff, 424 JSON Schema parses, and `git diff --check`. The opt-in private-process acceptance safely skipped on
 this host because no private non-loopback IPv4 was available; it was not counted as a new pass. See
 `docs/R11-ARCHITECTURE-HARDENING.md` for the reviewed control/data flows, failure matrix, and residual risks.
+
+## Next development sequence
+
+Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：先通过共享 S1 敌对 Worker 安全资格，
+再推进 Observation-driven bounded replanning、已封存路径上的 Web/API 只读观察、按漏洞类别版本化的
+Evidence Requirement、受控测试身份和隔离靶场 A3/A4 资格。任何新 Action 仍必须重新封存并经过 Scope、预算、
+Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态 Target 扩展、真实第三方账户、横向移动或
+持久化。

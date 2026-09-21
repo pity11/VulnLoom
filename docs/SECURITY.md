@@ -12,6 +12,34 @@ VulnLoom 假定以下内容都可能恶意：
 
 需要保护的资产包括宿主机、个人文件、模型密钥、披露平台账号、其他 Engagement 数据、原始 Evidence 和授权方隐私信息。
 
+威胁模型明确假设 Worker 可能因目标提供的源码、二进制、解析器输入、构建产物或工具链漏洞而取得沙盒内任意
+代码执行。Prompt、工具参数预检和模型服从都不能降低这个假设。安全资格必须从“Worker 已经被攻陷”出发，证明
+其仍无法获得宿主或 Provider 秘密、扩大网络范围、访问 Docker daemon、修改权威状态或跨任务持久化。
+
+### 1.1 Shared Assurance S1
+
+S1 将上述假设转为共享准入门禁：
+
+- 使用无真实攻击载荷的 canary fixture 验证环境、挂载、网络、daemon socket、进程和清理边界；
+- 使用假秘密验证 stdout/stderr、异常、Evidence、报告、CLI/API 和模型上下文不会泄漏；
+- 为不可信执行固定并复核版本化 seccomp 合同，覆盖资源耗尽和进程组回收；
+- 为权威审计建立 hash-chain 和回滚/分叉检测，同时保持查询输出脱敏；
+- 默认测试离线，真实容器和本机私网资格测试显式 opt-in，不访问公网或真实模型。
+
+S1 不引入 crawler、字典枚举、外部回连、真实凭据、持久化、横向移动或新的攻击目标。详细开发顺序和完成标准见
+`docs/DEVELOPMENT-PLAN.md`。
+
+S1.1 首个实现纵切已增加版本化、内容寻址的敌对 Worker probe 合同。资格结果必须同时绑定固定镜像、七类 probe、
+每次 run/task、Sandbox Profile、调用摘要和期望终态；缺项、重复、绑定漂移、过期、错误终态、容器仍存在或清理
+无法证明都会得到显式 `denied`，不能被记录为安全终态。资格 schema 不包含 stdout、stderr、环境、payload 或 secret
+字段。Docker 创建后复核也已从“只核对只读挂载”收紧为完整挂载集合相等，并拒绝设备、端口发布、额外 host
+映射和继承卷。
+
+普通测试使用纯离线 observation 覆盖成功、拒绝、超时、清理未知和防篡改路径。专用 rootless Admission 使用本地
+Alpine、假 Provider token、假 SSH agent、宿主 canary 和无攻击性的 shell 断言，组合验证秘密隔离、`network=none`、
+daemon socket/宿主资源不可见、权威输入只读、匿名 tmpfs 不跨任务、崩溃与超时后容器缺失。该测试继续由
+`VULNLOOM_ROOTLESS_QUALIFICATION=1` 显式启用，不连接公网、不调用模型，也不生成真实逃逸或外传载荷。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

@@ -92,3 +92,10 @@ remain later depth work and must not be inferred from the fixed Benchmark adapte
 No Source Hunt command accepts a Provider secret, full private endpoint, disclosure token, or raw
 Authorization response. Network integration and real model calls remain explicit, disabled-by-default
 activities outside this workflow.
+
+## Next development sequence
+
+Source Hunt 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：先通过共享 S1 敌对 Worker 安全资格，再推进
+通用 Project Recipe Registry、JavaScript/TypeScript 深度、受限 Harness 与更多运行时证据、Blind Holdout
+质量门禁，以及只读 Patch proposal 和双重复测。固定 native Benchmark 的通过结果不得外推为通用项目自动构建
+或广泛漏洞发现能力。

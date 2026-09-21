@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "HostileWorkerProbeKind": {
+      "enum": [
+        "secret_boundary",
+        "network_boundary",
+        "host_resource_boundary",
+        "authority_read_only",
+        "ephemeral_writable_layer",
+        "crash_cleanup",
+        "timeout_cleanup"
+      ],
+      "title": "HostileWorkerProbeKind",
+      "type": "string"
+    },
+    "HostileWorkerProbeObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/HostileWorkerProbeKind"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SandboxRunStatus"
+        },
+        "cleanup_verified": {
+          "title": "Cleanup Verified",
+          "type": "boolean"
+        },
+        "container_absent": {
+          "title": "Container Absent",
+          "type": "boolean"
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Error Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "run_id",
+        "task_id",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "status",
+        "cleanup_verified",
+        "container_absent"
+      ],
+      "title": "HostileWorkerProbeObservation",
+      "type": "object"
+    },
+    "HostileWorkerQualificationStatus": {
+      "enum": [
+        "admitted",
+        "denied"
+      ],
+      "title": "HostileWorkerQualificationStatus",
+      "type": "string"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/HostileWorkerQualificationStatus"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/HostileWorkerProbeObservation"
+      },
+      "maxItems": 7,
+      "title": "Observations",
+      "type": "array"
+    },
+    "denial_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Denial Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "plan_id",
+    "status",
+    "observations"
+  ],
+  "title": "HostileWorkerQualificationOutcome",
+  "type": "object"
+}

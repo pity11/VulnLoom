@@ -402,6 +402,10 @@ from vulnloom.review_assist.provider import (
     RoutedCodeReviewConfig,
 )
 from vulnloom.runners import (
+    HostileWorkerProbeExpectation,
+    HostileWorkerProbeObservation,
+    HostileWorkerQualificationOutcome,
+    HostileWorkerQualificationPlan,
     RunnerCheckpoint,
     SandboxOutput,
     SandboxProfile,
@@ -779,6 +783,10 @@ MODELS = (
     SandboxRunRequest,
     SandboxRunResult,
     SandboxOutput,
+    HostileWorkerProbeExpectation,
+    HostileWorkerProbeObservation,
+    HostileWorkerQualificationPlan,
+    HostileWorkerQualificationOutcome,
     ToolRegistration,
     HttpRequestPlan,
     BrokerCall,

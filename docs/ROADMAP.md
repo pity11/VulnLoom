@@ -1303,6 +1303,33 @@ R3/R5/R8/R9 没有普通 CLI 联网开关；真实 socket 验收分别必须显�
 
 详见 `docs/HYBRID-VALIDATION.md`。
 
+### Shared Assurance S1（下一重大里程碑）
+
+S1 是 Source Hunt、Authorized Red Team、Hybrid 和 Provider 路径共同依赖的安全资格，不增加公网扫描、目标
+扩展、攻击类别或 Submission 能力，也不占用长期路线中已保留给团队化部署的 R12 编号。
+
+- S1.1 在本地 canary fixture 中假设 Worker 已取得容器内任意代码执行，证明它仍无法读取真实或假 Provider/
+  平台秘密、访问公网/宿主网关/同级容器/Docker socket、修改只读输入和权威状态、跨任务持久化或跳过清理；
+- S1.2 为不可信执行固定版本化 seccomp 合同并在创建后复核，覆盖 PID/FD/输出/磁盘/内存耗尽、超时、取消、
+  进程组回收和残留对象；本阶段保留 gVisor/Kata adapter 空间但不强制迁移；
+- S1.3 用 canary secret 覆盖 Worker、Provider transport、异常、日志、Evidence、报告、CLI/API 与模型上下文，
+  保持凭据只存在于可信、短生命周期 adapter 边界；
+- S1.4 固定审计 hash-chain、版本摘要绑定、分叉/回滚检测和脱敏查询合同；外部签名与 WORM 后置。
+
+S1.1 首个完整实现纵切已落地：新增内容寻址的七类 hostile Worker probe/plan/observation/outcome 协议，绑定固定
+probe 合同、镜像、run/task、Profile、调用摘要和期望终态；缺失、重复、漂移、过期、错误终态、容器残留和
+cleanup unknown 均 fail-closed 为显式 denied。Docker post-create inspection 同时拒绝任何未封存挂载、可写 bind、
+device、端口发布、额外 host 映射和继承卷。rootless opt-in canary 把秘密、禁网、宿主资源、权威只读、跨任务
+持久化、崩溃清理和超时清理收敛为一份资格结果；仍只使用本地假秘密和非攻击性断言。
+
+本地离线门禁：1527 passed、31 skipped，覆盖率 85.41%，定向 Ruff 与 schema 生成通过。新增 rootless canary 已
+接入既有 Phase 3 Admission 工作流，但当前主机未执行该显式资格门禁，因此 S1.1 保持进行中，待 rootless Linux
+实测通过后关闭；未访问公网、未调用真实模型或执行真实攻击。
+
+完成标准：即使 Worker 在沙盒内被完全控制，也只能破坏自己的短生命周期执行环境，不能取得秘密、扩大网络
+范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
+隔离测试必须显式 opt-in。当前开发顺序和两个方向的后续计划见 `docs/DEVELOPMENT-PLAN.md`。
+
 ## 延后事项
 
 - 公网资产自主发现。

@@ -412,6 +412,59 @@ def test_post_create_hardening_refusal_still_removes_container(tmp_path, now):
     assert backend.removed and not backend.container_exists
 
 
+@pytest.mark.parametrize(
+    ("injection", "value"),
+    (
+        ("Devices", [{"PathOnHost": "/dev/null", "PathInContainer": "/dev/host"}]),
+        ("PortBindings", {"8080/tcp": [{"HostPort": "8080"}]}),
+        ("ExtraHosts", ["host.docker.internal:host-gateway"]),
+        ("VolumesFrom", ["other-engagement:ro"]),
+    ),
+)
+def test_post_create_verification_rejects_unsealed_host_resources(
+    tmp_path, now, injection, value
+):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    inspection["HostConfig"][injection] = value
+    backend = FakeDockerBackend(inspection)
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+    )
+
+    with pytest.raises(RunnerRejected, match="hardening"):
+        runner.execute(request, now=now)
+    assert backend.removed and not backend.container_exists
+
+
+def test_post_create_verification_rejects_an_extra_writable_bind_mount(tmp_path, now):
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    profile = static_profile(image_digest=IMAGE, snapshot_id=SNAPSHOT)
+    request = _request(now, profile)
+    inspection = _inspection(profile, source)
+    inspection["Config"]["Env"].append(f"VULNLOOM_TASK_ID={request.task.task_id}")
+    inspection["Mounts"].append(
+        {"Source": "/host/control-plane", "Destination": "/control-plane", "RW": True}
+    )
+    backend = FakeDockerBackend(inspection)
+    runner = DockerSandboxRunner(
+        backend,
+        RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source}),
+        (DockerTool(tool_id="source.read", argv_prefix=("/usr/bin/tool",)),),
+    )
+
+    with pytest.raises(RunnerRejected, match="unsealed content mount"):
+        runner.execute(request, now=now)
+    assert backend.removed and not backend.container_exists
+
+
 def test_docker_runner_refuses_target_only_network_before_create(tmp_path, now):
     source = tmp_path / "objects" / SNAPSHOT
     source.mkdir(parents=True)

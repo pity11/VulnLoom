@@ -538,6 +538,15 @@ class DockerSandboxRunner:
             host.get("Init") is True,
             host.get("LogConfig", {}).get("Type") == "none",
             host.get("RestartPolicy", {}).get("Name") == "no",
+            not config.get("ExposedPorts"),
+            not host.get("Binds"),
+            not host.get("Devices"),
+            not host.get("DeviceRequests"),
+            not host.get("VolumesFrom"),
+            not host.get("Links"),
+            not host.get("ExtraHosts"),
+            not host.get("PortBindings"),
+            host.get("PublishAllPorts") in {None, False},
         )
         if not all(checks):
             raise RunnerRejected("created Docker container failed hardening verification")
@@ -549,10 +558,12 @@ class DockerSandboxRunner:
         actual_mounts = {
             (mount.get("Destination"), mount.get("Source"))
             for mount in inspection.get("Mounts", [])
-            if mount.get("RW") is False
         }
-        if expected_mounts != actual_mounts:
-            raise RunnerRejected("created Docker container is missing a read-only content mount")
+        mounts_are_read_only = all(
+            mount.get("RW") is False for mount in inspection.get("Mounts", [])
+        )
+        if expected_mounts != actual_mounts or not mounts_are_read_only:
+            raise RunnerRejected("created Docker container has an unsealed content mount set")
 
     @staticmethod
     def _result(

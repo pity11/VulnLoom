@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "HostileWorkerProbeKind": {
+      "enum": [
+        "secret_boundary",
+        "network_boundary",
+        "host_resource_boundary",
+        "authority_read_only",
+        "ephemeral_writable_layer",
+        "crash_cleanup",
+        "timeout_cleanup"
+      ],
+      "title": "HostileWorkerProbeKind",
+      "type": "string"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/HostileWorkerProbeKind"
+    },
+    "probe_contract_digest": {
+      "default": "6aaa6c5b4757b02bad6601b628e2b8fbdb9ccf26be77deade32ae65f5acc9a45",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Probe Contract Digest",
+      "type": "string"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invocation Digest",
+      "type": "string"
+    },
+    "expected_status": {
+      "$ref": "#/$defs/SandboxRunStatus"
+    }
+  },
+  "required": [
+    "kind",
+    "run_id",
+    "task_id",
+    "sandbox_profile_digest",
+    "invocation_digest",
+    "expected_status"
+  ],
+  "title": "HostileWorkerProbeExpectation",
+  "type": "object"
+}

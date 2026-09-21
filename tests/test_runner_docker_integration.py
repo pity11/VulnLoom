@@ -25,12 +25,18 @@ from vulnloom.runners import (
     DockerEnginePolicy,
     DockerSandboxRunner,
     DockerTool,
+    HostileWorkerProbeExpectation,
+    HostileWorkerProbeKind,
+    HostileWorkerProbeObservation,
+    HostileWorkerQualificationPlan,
+    HostileWorkerQualificationStatus,
     NetworkGrant,
     RegisteredObjectStore,
     RunnerOutputStore,
     SandboxRunRequest,
     SandboxRunStatus,
     ToolInvocation,
+    qualify_hostile_worker,
     sandbox_profile_digest,
     static_profile,
     validation_profile,
@@ -320,6 +326,155 @@ done
     finally:
         backend.remove(peer_id)
         assert not backend.exists(peer_id)
+
+
+@pytest.mark.rootless_integration
+@pytest.mark.skipif(
+    os.environ.get("VULNLOOM_ROOTLESS_QUALIFICATION") != "1",
+    reason="set VULNLOOM_ROOTLESS_QUALIFICATION=1 on a rootless Linux daemon",
+)
+def test_rootless_hostile_worker_canary_qualification(tmp_path: Path, monkeypatch):
+    """S1.1 admission uses only local fake secrets and non-exploitative canaries."""
+
+    backend = DockerCliBackend()
+    image = backend.inspect_image("alpine:3.22")["Id"]
+    source = tmp_path / "objects" / SNAPSHOT
+    source.mkdir(parents=True)
+    (source / "immutable.txt").write_text("sealed\n")
+    source.chmod(0o755)
+    (source / "immutable.txt").chmod(0o644)
+    authority_canary = tmp_path / "control-plane-authority-canary"
+    authority_canary.write_text("FAKE_CONTROL_PLANE_SECRET\n")
+    monkeypatch.setenv("VULNLOOM_FAKE_PROVIDER_TOKEN", "FAKE_PROVIDER_TOKEN")
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(tmp_path / "fake-ssh-agent.sock"))
+    now = datetime.now(UTC)
+    profile = static_profile(image_digest=image, snapshot_id=SNAPSHOT)
+    store = RegisteredObjectStore(tmp_path / "objects", {SNAPSHOT: source})
+
+    observations_by_kind = {}
+    expectations_by_kind = {}
+
+    def execute(
+        script: str,
+        *,
+        kinds,
+        expected_status: SandboxRunStatus = SandboxRunStatus.COMPLETED,
+        wall_seconds: int = 20,
+    ):
+        current_profile = profile
+        if wall_seconds != profile.limits.wall_seconds:
+            limits = profile.limits.model_copy(
+                update={"wall_seconds": wall_seconds, "cpu_millis": wall_seconds * 1_000}
+            )
+            current_profile = profile.model_copy(update={"limits": limits})
+        request = _request(current_profile, now, wall_seconds=wall_seconds)
+        for kind in kinds:
+            expectations_by_kind[kind] = HostileWorkerProbeExpectation.from_request(
+                kind=kind,
+                request=request,
+                expected_status=expected_status,
+            )
+        runner = DockerSandboxRunner(
+            backend,
+            store,
+            (
+                DockerTool(
+                    tool_id="source.read",
+                    argv_prefix=("/bin/sh", "-c", script, "vulnloom-s1.1-canary"),
+                ),
+            ),
+        )
+        result = runner.execute(request, now=now)
+        assert runner.last_inspection is not None
+        return result, not backend.exists(runner.last_inspection["Id"])
+
+    boundary_script = f"""
+set -eu
+[ -z "${{VULNLOOM_FAKE_PROVIDER_TOKEN+x}}" ]
+[ -z "${{SSH_AUTH_SOCK+x}}" ]
+[ ! -e /var/run/docker.sock ]
+[ ! -e /run/host-services/docker.proxy.sock ]
+[ ! -e /root/.ssh ]
+[ ! -e /control-plane-authority-canary ]
+[ ! -e {authority_canary} ]
+! touch /s1-root-must-stay-read-only
+! printf tampered > /workspace/source/immutable.txt
+! touch /workspace/source/injected
+[ "$(wc -l < /proc/net/route)" = "1" ]
+touch /tmp/s1-persistence-canary
+touch /workspace/output/s1-persistence-canary
+sleep 300 &
+""".strip()
+    boundary_kinds = (
+        HostileWorkerProbeKind.SECRET_BOUNDARY,
+        HostileWorkerProbeKind.NETWORK_BOUNDARY,
+        HostileWorkerProbeKind.HOST_RESOURCE_BOUNDARY,
+        HostileWorkerProbeKind.AUTHORITY_READ_ONLY,
+    )
+    boundary, boundary_absent = execute(boundary_script, kinds=boundary_kinds)
+    assert boundary.status is SandboxRunStatus.COMPLETED
+    for kind in boundary_kinds:
+        observations_by_kind[kind] = HostileWorkerProbeObservation.from_result(
+            kind=kind, result=boundary, container_absent=boundary_absent
+        )
+
+    ephemeral, ephemeral_absent = execute(
+        "set -eu; [ ! -e /tmp/s1-persistence-canary ]; "
+        "[ ! -e /workspace/output/s1-persistence-canary ]",
+        kinds=(HostileWorkerProbeKind.EPHEMERAL_WRITABLE_LAYER,),
+    )
+    observations_by_kind[HostileWorkerProbeKind.EPHEMERAL_WRITABLE_LAYER] = (
+        HostileWorkerProbeObservation.from_result(
+            kind=HostileWorkerProbeKind.EPHEMERAL_WRITABLE_LAYER,
+            result=ephemeral,
+            container_absent=ephemeral_absent,
+        )
+    )
+
+    crashed, crash_absent = execute(
+        "kill -SEGV $$",
+        kinds=(HostileWorkerProbeKind.CRASH_CLEANUP,),
+        expected_status=SandboxRunStatus.FAILED,
+    )
+    assert crashed.status is SandboxRunStatus.FAILED
+    observations_by_kind[HostileWorkerProbeKind.CRASH_CLEANUP] = (
+        HostileWorkerProbeObservation.from_result(
+            kind=HostileWorkerProbeKind.CRASH_CLEANUP,
+            result=crashed,
+            container_absent=crash_absent,
+        )
+    )
+
+    timed_out, timeout_absent = execute(
+        "sleep 10",
+        kinds=(HostileWorkerProbeKind.TIMEOUT_CLEANUP,),
+        expected_status=SandboxRunStatus.TIMED_OUT,
+        wall_seconds=1,
+    )
+    assert timed_out.status is SandboxRunStatus.TIMED_OUT
+    observations_by_kind[HostileWorkerProbeKind.TIMEOUT_CLEANUP] = (
+        HostileWorkerProbeObservation.from_result(
+            kind=HostileWorkerProbeKind.TIMEOUT_CLEANUP,
+            result=timed_out,
+            container_absent=timeout_absent,
+        )
+    )
+
+    observations = tuple(observations_by_kind[kind] for kind in HostileWorkerProbeKind)
+    expectations = tuple(expectations_by_kind[kind] for kind in HostileWorkerProbeKind)
+    plan = HostileWorkerQualificationPlan.create(
+        image_digest=image,
+        created_at=now,
+        expires_at=now + timedelta(minutes=5),
+        probes=expectations,
+    )
+
+    outcome = qualify_hostile_worker(plan, observations, now=now)
+
+    assert outcome.status is HostileWorkerQualificationStatus.ADMITTED
+    assert authority_canary.read_text() == "FAKE_CONTROL_PLANE_SECRET\n"
+    assert (source / "immutable.txt").read_text() == "sealed\n"
+    assert not (source / "injected").exists()
 
 
 @pytest.mark.rootless_integration

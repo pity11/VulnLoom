@@ -2,9 +2,9 @@
 
 状态：`DRAFT_FOR_REVIEW`
 
-版本：`0.2`
+版本：`0.3`
 
-日期：`2026-09-08`
+日期：`2026-09-21`
 
 产品定位反方评审及修正理由见
 [`PRODUCT-POSITIONING-REVIEW.md`](./PRODUCT-POSITIONING-REVIEW.md)。
@@ -13,6 +13,9 @@
 
 本文定义 VulnLoom 的长期产品边界、架构分层、领域模型、工作流、安全边界、测试体系和分阶段路线。
 它用于设计评审、ADR 决策、里程碑拆解和验收，不代表当前代码已经具备文中全部能力。
+
+当前实施顺序、已完成基线、两条能力线的下一阶段和跨聊天交接，以
+[`DEVELOPMENT-PLAN.md`](./DEVELOPMENT-PLAN.md) 为准；本文继续作为长期产品和架构边界。
 
 现有 `ROADMAP.md` 继续记录已经完成的底座和白盒纵切历史；本文是后续产品方向与模块边界的主要依据。
 若两者对未来产品范围的描述冲突，以本文经评审后的版本为准。安全不变量始终以仓库根目录
@@ -1015,7 +1018,7 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 
 - DNS/TLS/HTTP typed tools；
 - URL规范化、重定向和DNS/Peer校验；
-- 指纹和有界Crawler；
+- 指纹和操作员封存的 Endpoint Seed Set；Crawler 仍需独立 Threat Model 与准入，本阶段不实现；
 - ReconRunner；
 - HTTP/TLS Evidence；
 - CLI自然语言任务入口；
@@ -1033,10 +1036,9 @@ UI 只调用与 CLI 相同的应用服务，不能绕过领域状态机。
 
 同时证明越界重定向、DNS漂移、过期Scope、超时、取消和容器清理均 fail-closed。
 
-实现状态（2026-09-10）：R0.1 已完成共享 Mode、URL Target、Rules of Engagement、Stop Conditions、
-事务 checkpoint、三次有界恢复、动作/失败预算、取消/过期/Kill Switch、脱敏 Observation 和 offline fake CLI。
-当前没有网络 adapter，不产生 DNS/HTTP 流量；IP/peer pin、redirect 复核、AttackSurfaceSnapshot、Evidence 和
-真实本地靶场清理验收仍属于本 R3 后续纵切。
+实现状态（2026-09-21）：共享 Red Team 路径已继续完成 R3-R11 的限定纵切，包括 pinned HTTP/TLS、
+AttackSurface、操作员封存 Endpoint Seed Set、预算化 Schedule、隔离攻击链与防御报告；精确状态和安全边界见
+`AUTHORIZED-RED-TEAM.md`。普通 CLI 仍无 live 网络开关，Crawler、字典枚举、动态 Target 扩展和公网扫描未启用。
 
 ### R4：浏览器、API 与 Agent 自主重规划
 
@@ -1203,6 +1205,17 @@ checkpoint/恢复、逐动作 exact Approval、状态变更的双重 Approval、
 目标状态与进程清理。确定性 Attack Path Report 进一步从权威成功链生成 Evidence 绑定的路径步骤、Detection
 Opportunity 和有限 Defensive Improvement，并通过事务 ledger 与内容寻址 JSON/Markdown 产物发布。外部回连、
 横向移动、持久化和真实凭据仍不可表达并由 RoE 禁止。R11 的限定交付与隔离验收现已关闭。
+
+### S1：敌对 Worker 与共享安全资格
+
+S1 是跨越 Source Hunt、Authorized Red Team、Hybrid 和 Provider 路径的共享安全门禁，不替代或重编号 R12。
+它安排在继续扩大自动规划、工具和漏洞类别之前，假设 Worker 已经取得沙盒内任意代码执行，并通过本地
+canary 与真实 rootless 隔离测试证明：Worker 仍无法取得秘密、访问未授权网络或 Docker socket、修改权威状态、
+跨任务持久化或掩盖清理失败。
+
+S1 同时固定版本化 seccomp 合同、资源耗尽与进程组回收测试、Provider/日志/Evidence/模型上下文的 canary
+泄漏回归，以及审计 hash-chain 的 schema 和恢复语义。gVisor/Kata/Firecracker 全面迁移、远程 WORM、语义 DLP
+平台和分布式服务身份不属于本阶段。详细顺序和完成标准见 [`DEVELOPMENT-PLAN.md`](./DEVELOPMENT-PLAN.md)。
 
 ### R12：团队化和分布式部署
 

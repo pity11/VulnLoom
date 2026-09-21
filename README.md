@@ -1,13 +1,13 @@
 # VulnLoom
 
-VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation includes a bounded, resumable local Source Hunt V1, shared Candidate-to-report gates, controlled validation building blocks, and an Authorized Red Team Flow/RoE control plane with an opt-in HTTP HEAD adapter restricted to an exactly admitted local fixture plus an offline deterministic Attack Surface reducer. General live Red Team Recon is not enabled.
+VulnLoom is an in-development, evidence-first autonomous vulnerability research and adversarial validation platform for software and systems that organizations own or are contracted to assess. Its two primary capability lines are Source Hunt and Authorized Red Team. The target product accepts source code, URLs, domains, IP addresses, networks, or combinations of them; plans bounded research tasks; validates Candidates in isolated environments; challenges them through an independent review step; and produces auditable reports. Pre-release acceptance and production-safe scheduled testing package these capabilities into operational workflows. The current implementation includes a bounded, resumable local Source Hunt V1 and fixed native Benchmark, shared Candidate-to-report gates, a closed Hybrid R10 evidence/retest/release-gate slice, and an Authorized Red Team R11 bounded attack-chain slice admitted only against an exact isolated private fixture. General public Recon, crawler, dictionary enumeration, arbitrary target expansion, lateral movement, and persistence are not enabled.
 
 The product supports autonomous testing only inside an explicit, approved Scope. It must not scan or exploit unauthorized public targets. Its four planned entry points are source vulnerability research, pre-release security acceptance, production-safe scheduled testing, and authorized red-team simulation. Source Hunt and Authorized Red Team are the primary capability lines; the other two entries are controlled delivery workflows. Scope, network boundaries, credential isolation, evidence requirements, and human approval for consequential effects are enforced in code.
 
 ## Current implementation scope
 
 - White-box analysis of Python Web and API projects.
-- Planned controlled dynamic validation in local Docker Compose test environments, followed by authorized live Web targets.
+- Controlled dynamic validation in exact local/private fixtures; broader authorized live Web target execution remains staged and disabled by default.
 - IDOR/BOLA, SSRF, path traversal, injection, insecure deserialization, authorization flaws, and sensitive data exposure.
 - Planned human-reviewable report drafts for vendors, EduSRC, CNVD/CNNVD, and similar disclosure channels.
 - No scanning of unauthorized public targets, automatic platform submission, or automatic CVE requests.
@@ -29,6 +29,7 @@ there remain planned until their explicit acceptance stage passes.
 
 - [CONTEXT.md](./CONTEXT.md): domain terminology and shared language.
 - [AGENTS.md](./AGENTS.md): mandatory engineering constraints for coding agents.
+- [docs/DEVELOPMENT-PLAN.md](./docs/DEVELOPMENT-PLAN.md): active development order, current baseline, two capability-line plans, shared S1 security qualification, deferred work, and cross-chat handoff checklist.
 - [docs/PRODUCT-ARCHITECTURE-ROADMAP.md](./docs/PRODUCT-ARCHITECTURE-ROADMAP.md): review draft for the four product entry points, modular engines, long-term architecture, migration, and phased acceptance plan.
 - [docs/PRODUCT-POSITIONING-REVIEW.md](./docs/PRODUCT-POSITIONING-REVIEW.md): adversarial self-review of product scope, priorities, autonomy claims, and failure conditions.
 - [docs/MODEL-PROVIDER-CONTROL-PLANE.md](./docs/MODEL-PROVIDER-CONTROL-PLANE.md): multi-provider setup, capability probing, role routing, Flow pinning, fallback, credential isolation, and Provider Center UX.
