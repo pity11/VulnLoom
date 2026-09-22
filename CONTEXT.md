@@ -104,6 +104,10 @@ _Avoid_: Vulnerability confirmation, Auto-promotion, Model verdict
 可信控制面从权威 Observation 和已脱敏 Evidence 生成有限 Evidence Assertion 的过程；它证明来源与结构事实，不替代独立 Validation 或 Critic。
 _Avoid_: Finding extraction, Self-validation, Exploit result
 
+**Independent Replay Validation**：
+对两个不同执行上下文产生的权威 Evidence Assertion Materialization 做同端点、同 Scope 的确定性一致性复核；它只生成 Validation Assertion，不执行请求或替代 Critic。
+_Avoid_: Automatic retest, Same-run replay, Vulnerability confirmation
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

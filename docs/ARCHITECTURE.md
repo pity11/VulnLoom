@@ -198,6 +198,19 @@ digest；服务在 prepare、execute 和 complete 时重读整条来源链。它
 其中 Observation、redaction-boundary 与 Cleanup 来源事实可被物化，但独立 replay 与 Critic 仍缺失，因此把该 batch
 直接送入 B3.1 Assessment 必然保持不确定，不能自证 Candidate 资格。
 
+### B3.3 independent sealed replay Validation
+
+B3.3 不发送第二次请求，而是消费两个已经独立完成的 B3.2 materialization。Plan 要求两份来源绑定同一个
+requirement、Scope/version 与精确 requested-URL digest，同时 materialization plan、Flow、Observation、Web
+Snapshot 和 Evidence ID 全部互异，并固定 baseline 早于 current。任一来源缺失、同执行复用、Evidence 不可读或
+绑定漂移都在 checkpoint 前 fail-closed。
+
+确定性 validator 只比较正文 SHA-256 与两份 sensitive-presence 结论。两者均 supported 且正文完全一致时，才输出
+`INDEPENDENT_REPLAY_MATCHED=SUPPORTED`；变化或证据不足只得到 `INCONCLUSIVE`，不会把变化误写成漏洞负例。同时
+输出新的双 Evidence redaction-boundary Assertion；两项 Validation Assertion 共用独立 context/producer，且不复用
+B3.2 的单来源 redaction Assertion。结果固定不授予请求、Candidate 或 Finding 权限；进入 B3.1 后仍需独立 Critic
+Evidence 才可能取得 Candidate 资格。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

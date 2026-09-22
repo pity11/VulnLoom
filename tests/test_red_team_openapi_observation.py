@@ -28,6 +28,13 @@ from vulnloom.red_team import (
     EvidenceAssessmentVerdict,
     EvidenceFactKind,
     EvidenceFactVerdict,
+    EvidenceReplayValidationLimits,
+    EvidenceReplayValidationRecoveryRequired,
+    EvidenceReplayValidationRejected,
+    EvidenceReplayValidationService,
+    EvidenceReplayValidationState,
+    EvidenceReplayValidationStore,
+    EvidenceReplayValidationTimedOut,
     GraphQlQueryFieldDiscovery,
     GraphQlSchemaObservationLimits,
     GraphQlSchemaObservationRecoveryRequired,
@@ -104,11 +111,20 @@ def _document():
     }
 
 
-def _runtime(tmp_path, approved_scope, now, *, document=None, raw_json=None):
+def _runtime(
+    tmp_path,
+    approved_scope,
+    now,
+    *,
+    document=None,
+    raw_json=None,
+    evidence_root=None,
+    transcript_marker=None,
+):
     red_store = RedTeamStore(tmp_path / "red-team.sqlite3")
     endpoint_store = EndpointReconStore(tmp_path / "endpoint-recon.sqlite3")
     observation_store = OpenApiObservationStore(tmp_path / "openapi.sqlite3")
-    evidence_store = EvidenceStore(tmp_path / "evidence")
+    evidence_store = EvidenceStore(evidence_root or tmp_path / "evidence")
     flow_service = RedTeamService(store=red_store)
     flow = flow_service.prepare(
         scope=approved_scope,
@@ -134,7 +150,9 @@ def _runtime(tmp_path, approved_scope, now, *, document=None, raw_json=None):
         "peer_ip: " + _IP + "\n"
         "status: 200\n"
         f"response_bytes: {len(body.encode())}\n"
-        "content-type: application/json\n\n"
+        "content-type: application/json\n"
+        + (f"fixture-run: {transcript_marker}\n" if transcript_marker else "")
+        + "\n"
         + body
     )
     evidence = evidence_store.capture_text(
@@ -636,9 +654,23 @@ def test_graphql_query_field_schema_cannot_grant_execution_or_disclose_arguments
         )
 
 
-def _materialization_runtime(tmp_path, approved_scope, now, body, *, monotonic=None):
+def _materialization_runtime(
+    tmp_path,
+    approved_scope,
+    now,
+    body,
+    *,
+    monotonic=None,
+    evidence_root=None,
+    transcript_marker=None,
+):
     _, red_store, endpoint_store, openapi_store, endpoint_plan, transport = _runtime(
-        tmp_path, approved_scope, now, raw_json=body
+        tmp_path,
+        approved_scope,
+        now,
+        raw_json=body,
+        evidence_root=evidence_root,
+        transcript_marker=transcript_marker,
     )
     store = EvidenceAssertionMaterializationStore(
         tmp_path / "assertion-materialization.sqlite3"
@@ -647,7 +679,7 @@ def _materialization_runtime(tmp_path, approved_scope, now, body, *, monotonic=N
         red_team_store=red_store,
         endpoint_recon_store=endpoint_store,
         materialization_store=store,
-        evidence_store=EvidenceStore(tmp_path / "evidence"),
+        evidence_store=EvidenceStore(evidence_root or tmp_path / "evidence"),
         **({"monotonic": monotonic} if monotonic is not None else {}),
     )
     return (
@@ -933,6 +965,322 @@ def test_materialization_schema_cannot_retain_raw_data_or_grant_authority(
             }
         )
     _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+
+class _MaterializationPairSource:
+    def __init__(self, pairs):
+        self.plans = {plan.plan_id: plan for plan, _ in pairs}
+        self.outcomes = {plan.plan_id: outcome for plan, outcome in pairs}
+
+    def plan(self, plan_id):
+        return self.plans[plan_id]
+
+    def outcome(self, plan_id):
+        return self.outcomes[plan_id]
+
+
+def _independent_materializations(
+    tmp_path,
+    approved_scope,
+    now,
+    *,
+    baseline_body,
+    current_body=None,
+):
+    evidence_root = tmp_path / "evidence"
+    pairs = []
+    handles = []
+    transports = []
+    for name, offset, body in (
+        ("baseline", 0, baseline_body),
+        ("current", 4, current_body or baseline_body),
+    ):
+        run_now = now + timedelta(seconds=offset)
+        (
+            service,
+            red_store,
+            endpoint_store,
+            openapi_store,
+            store,
+            endpoint_plan,
+            transport,
+        ) = _materialization_runtime(
+            tmp_path / name,
+            approved_scope,
+            run_now,
+            body,
+            evidence_root=evidence_root,
+            transcript_marker=name,
+        )
+        plan = _prepare_materialization(
+            service, endpoint_plan, approved_scope, run_now
+        )
+        outcome = service.execute(
+            plan,
+            scope=approved_scope,
+            now=run_now + timedelta(seconds=1),
+        )
+        pairs.append((plan, outcome))
+        handles.append((red_store, endpoint_store, openapi_store, store))
+        transports.append(transport)
+    return pairs, handles, transports, evidence_root
+
+
+def _prepare_replay(service, pairs, scope, now):
+    return service.prepare(
+        baseline_materialization_plan_id=pairs[0][0].plan_id,
+        current_materialization_plan_id=pairs[1][0].plan_id,
+        scope=scope,
+        limits=EvidenceReplayValidationLimits(),
+        now=now + timedelta(seconds=6),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b3.3:independent-replay",
+    )
+
+
+def _close_independent_materializations(handles):
+    for handle in handles:
+        _close_materialization(*handle)
+
+
+def test_independent_replay_materializes_validation_assertions_without_request(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps(
+        {"records": [{"email": "[REDACTED]", "display": "fixture-user"}]},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    pairs, handles, transports, evidence_root = _independent_materializations(
+        tmp_path,
+        approved_scope,
+        now,
+        baseline_body=body,
+    )
+    replay_store = EvidenceReplayValidationStore(tmp_path / "replay.sqlite3")
+    replay_service = EvidenceReplayValidationService(
+        materialization_source=_MaterializationPairSource(pairs),
+        store=replay_store,
+        evidence_store=EvidenceStore(evidence_root),
+    )
+    plan = _prepare_replay(replay_service, pairs, approved_scope, now)
+    outcome = replay_service.execute(
+        plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=6),
+    )
+
+    validation = outcome.validation
+    by_fact = {item.fact: item for item in validation.assertions}
+    assert validation.content_match is True
+    assert validation.replay_verdict is EvidenceFactVerdict.SUPPORTED
+    assert set(by_fact) == {
+        EvidenceFactKind.INDEPENDENT_REPLAY_MATCHED,
+        EvidenceFactKind.REDACTION_BOUNDARY_PROVEN,
+    }
+    assert all(
+        item.evidence_refs == plan.evidence_refs
+        and item.context_id == plan.plan_id
+        and item.producer_ref == "validator:sealed-get-replay-v1"
+        for item in validation.assertions
+    )
+    assert validation.request_execution_authorized is False
+    assert validation.candidate_proposal_eligible is False
+    assert validation.finding_authorized is False
+    assert [len(transport.calls) for transport in transports] == [1, 1]
+    assert replay_service.execute(
+        plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=7),
+    ) == outcome
+    assert replay_store.state(plan.plan_id) == (
+        EvidenceReplayValidationState.COMPLETED,
+        1,
+    )
+
+    baseline_assertions = tuple(
+        item
+        for item in pairs[0][1].materialization.assertions
+        if item.fact is not EvidenceFactKind.REDACTION_BOUNDARY_PROVEN
+    )
+    assessment_store = EvidenceAssessmentStore(tmp_path / "assessment.sqlite3")
+    assessment_service = EvidenceAssessmentService(
+        store=assessment_store,
+        evidence_store=EvidenceStore(evidence_root),
+    )
+    assessment_plan = assessment_service.prepare(
+        target_id=plan.target_id,
+        target_version=plan.target_version,
+        scope=approved_scope,
+        assertions=baseline_assertions + validation.assertions,
+        limits=EvidenceAssessmentLimits(),
+        now=now + timedelta(seconds=7),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b3.3:partial-assessment",
+    )
+    assessment = assessment_service.execute(
+        assessment_plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=8),
+    ).assessment
+    assert assessment.verdict is EvidenceAssessmentVerdict.INCONCLUSIVE
+    assert EvidenceFactKind.INDEPENDENT_REPLAY_MATCHED in assessment.satisfied_facts
+    assert EvidenceFactKind.REDACTION_BOUNDARY_PROVEN in assessment.satisfied_facts
+    assert EvidenceFactKind.ACCESS_CONTROL_ENFORCED in assessment.unresolved_facts
+    assert assessment.candidate_proposal_eligible is False
+    assessment_store.close()
+    replay_store.close()
+    _close_independent_materializations(handles)
+
+
+def test_independent_replay_mismatch_is_inconclusive(tmp_path, approved_scope, now):
+    baseline = json.dumps({"email": "[REDACTED]", "page": 1}, sort_keys=True)
+    current = json.dumps({"email": "[REDACTED]", "page": 2}, sort_keys=True)
+    pairs, handles, transports, evidence_root = _independent_materializations(
+        tmp_path,
+        approved_scope,
+        now,
+        baseline_body=baseline,
+        current_body=current,
+    )
+    store = EvidenceReplayValidationStore(tmp_path / "replay.sqlite3")
+    service = EvidenceReplayValidationService(
+        materialization_source=_MaterializationPairSource(pairs),
+        store=store,
+        evidence_store=EvidenceStore(evidence_root),
+    )
+    plan = _prepare_replay(service, pairs, approved_scope, now)
+    validation = service.execute(
+        plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=6),
+    ).validation
+    assert validation.content_match is False
+    assert validation.replay_verdict is EvidenceFactVerdict.INCONCLUSIVE
+    assert validation.candidate_proposal_eligible is False
+    assert [len(transport.calls) for transport in transports] == [1, 1]
+    store.close()
+    _close_independent_materializations(handles)
+
+
+def test_replay_rejects_same_execution_missing_evidence_and_binding_drift(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps({"email": "[REDACTED]"})
+    pairs, handles, _, evidence_root = _independent_materializations(
+        tmp_path,
+        approved_scope,
+        now,
+        baseline_body=body,
+    )
+    source = _MaterializationPairSource(pairs)
+    store = EvidenceReplayValidationStore(tmp_path / "replay.sqlite3")
+    service = EvidenceReplayValidationService(
+        materialization_source=source,
+        store=store,
+        evidence_store=EvidenceStore(evidence_root),
+    )
+    with pytest.raises(EvidenceReplayValidationRejected, match="independent"):
+        service.prepare(
+            baseline_materialization_plan_id=pairs[0][0].plan_id,
+            current_materialization_plan_id=pairs[0][0].plan_id,
+            scope=approved_scope,
+            limits=EvidenceReplayValidationLimits(),
+            now=now + timedelta(seconds=6),
+            deadline=now + timedelta(minutes=1),
+            idempotency_key="b3.3:same-run",
+        )
+
+    unavailable = EvidenceReplayValidationService(
+        materialization_source=source,
+        store=store,
+        evidence_store=EvidenceStore(tmp_path / "empty-evidence"),
+    )
+    with pytest.raises(EvidenceReplayValidationRejected, match="integrity"):
+        _prepare_replay(unavailable, pairs, approved_scope, now)
+
+    plan = _prepare_replay(service, pairs, approved_scope, now)
+    values = plan.model_dump(mode="python", exclude={"plan_id"})
+    values["limits"] = plan.limits
+    values["current_snapshot_id"] = "f" * 64
+    drifted = type(plan).create(**values)
+    with pytest.raises(EvidenceReplayValidationRejected, match="binding drifted"):
+        service.execute(
+            drifted,
+            scope=approved_scope,
+            now=now + timedelta(seconds=6),
+        )
+    assert store.state(drifted.plan_id) is None
+    store.close()
+    _close_independent_materializations(handles)
+
+
+def test_replay_timeout_started_recovery_and_schema_authority_boundary(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps({"email": "[REDACTED]"})
+    pairs, handles, _, evidence_root = _independent_materializations(
+        tmp_path,
+        approved_scope,
+        now,
+        baseline_body=body,
+    )
+    source = _MaterializationPairSource(pairs)
+    timeout_store = EvidenceReplayValidationStore(tmp_path / "timeout.sqlite3")
+    ticks = iter((0.0, 11.0))
+    timeout_service = EvidenceReplayValidationService(
+        materialization_source=source,
+        store=timeout_store,
+        evidence_store=EvidenceStore(evidence_root),
+        monotonic=lambda: next(ticks),
+    )
+    timeout_plan = _prepare_replay(timeout_service, pairs, approved_scope, now)
+    with pytest.raises(EvidenceReplayValidationTimedOut):
+        timeout_service.execute(
+            timeout_plan,
+            scope=approved_scope,
+            now=now + timedelta(seconds=6),
+        )
+    assert timeout_store.state(timeout_plan.plan_id) is None
+    timeout_store.close()
+
+    store = EvidenceReplayValidationStore(tmp_path / "recovery.sqlite3")
+    service = EvidenceReplayValidationService(
+        materialization_source=source,
+        store=store,
+        evidence_store=EvidenceStore(evidence_root),
+    )
+    plan = _prepare_replay(service, pairs, approved_scope, now)
+    store.claim(plan, now=now + timedelta(seconds=6))
+    with pytest.raises(EvidenceReplayValidationRecoveryRequired, match="unfinished"):
+        service.execute(
+            plan,
+            scope=approved_scope,
+            now=now + timedelta(seconds=6),
+        )
+    outcome = service.recover(
+        plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=7),
+    )
+    assert outcome.attempt == 2
+    assert outcome.cleanup_complete is True
+    assert store.state(plan.plan_id) == (EvidenceReplayValidationState.COMPLETED, 2)
+    with pytest.raises(ValidationError):
+        type(outcome.validation).model_validate(
+            outcome.validation.model_dump(mode="python")
+            | {
+                "request_execution_authorized": True,
+                "candidate_proposal_eligible": True,
+                "finding_authorized": True,
+                "raw_values": ["forbidden"],
+            }
+        )
+    encoded = outcome.validation.model_dump_json()
+    assert "[REDACTED]" not in encoded
+    assert "email" not in encoded
+    store.close()
+    _close_independent_materializations(handles)
 
 
 def _promotion_runtime(tmp_path, approved_scope, now, *, document=None):

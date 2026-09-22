@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "EvidenceAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/EvidenceRequirementStage"
+        },
+        "fact": {
+          "$ref": "#/$defs/EvidenceFactKind"
+        },
+        "verdict": {
+          "$ref": "#/$defs/EvidenceFactVerdict"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "producer_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9:._-]{0,127}$",
+          "title": "Producer Ref",
+          "type": "string"
+        },
+        "context_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Context Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "requirement_id",
+        "stage",
+        "fact",
+        "verdict",
+        "evidence_refs",
+        "producer_ref",
+        "context_id",
+        "observed_at"
+      ],
+      "title": "EvidenceAssertion",
+      "type": "object"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "EvidenceFactVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "EvidenceFactVerdict",
+      "type": "string"
+    },
+    "EvidenceReplayValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "validation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Validation Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "baseline_materialization_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Baseline Materialization Id",
+          "type": "string"
+        },
+        "current_materialization_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Current Materialization Id",
+          "type": "string"
+        },
+        "requested_url_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requested Url Digest",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "assertions": {
+          "items": {
+            "$ref": "#/$defs/EvidenceAssertion"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Assertions",
+          "type": "array"
+        },
+        "content_match": {
+          "title": "Content Match",
+          "type": "boolean"
+        },
+        "replay_verdict": {
+          "$ref": "#/$defs/EvidenceFactVerdict"
+        },
+        "ruleset_digest": {
+          "const": "3acc89b52fdc774b83cd49f48e872a7abd70a3acf3774dd6db4ec9f665173d89",
+          "title": "Ruleset Digest",
+          "type": "string"
+        },
+        "request_execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Request Execution Authorized",
+          "type": "boolean"
+        },
+        "candidate_proposal_eligible": {
+          "const": false,
+          "default": false,
+          "title": "Candidate Proposal Eligible",
+          "type": "boolean"
+        },
+        "finding_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Finding Authorized",
+          "type": "boolean"
+        },
+        "validated_at": {
+          "format": "date-time",
+          "title": "Validated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "validation_id",
+        "plan_id",
+        "requirement_id",
+        "baseline_materialization_id",
+        "current_materialization_id",
+        "requested_url_digest",
+        "evidence_refs",
+        "assertions",
+        "content_match",
+        "replay_verdict",
+        "ruleset_digest",
+        "validated_at"
+      ],
+      "title": "EvidenceReplayValidation",
+      "type": "object"
+    },
+    "EvidenceRequirementStage": {
+      "enum": [
+        "observation",
+        "validation",
+        "critic",
+        "cleanup"
+      ],
+      "title": "EvidenceRequirementStage",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "validation": {
+      "$ref": "#/$defs/EvidenceReplayValidation"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "validation",
+    "attempt"
+  ],
+  "title": "EvidenceReplayValidationOutcome",
+  "type": "object"
+}

@@ -201,6 +201,25 @@ from .replan_models import (
     RedTeamReplanToolView,
 )
 from .replan_service import RedTeamReplanningService, RedTeamReplanRejected
+from .replay_validation_models import (
+    REPLAY_VALIDATION_RULESET_DIGEST,
+    EvidenceReplayValidation,
+    EvidenceReplayValidationLimits,
+    EvidenceReplayValidationOutcome,
+    EvidenceReplayValidationPlan,
+    EvidenceReplayValidationState,
+)
+from .replay_validation_service import (
+    EvidenceMaterializationSource,
+    EvidenceReplayValidationRejected,
+    EvidenceReplayValidationService,
+    EvidenceReplayValidationTimedOut,
+)
+from .replay_validation_store import (
+    EvidenceReplayValidationRecoveryRequired,
+    EvidenceReplayValidationStore,
+    EvidenceReplayValidationStoreRejected,
+)
 from .schedule_models import (
     EndpointCheckSchedule,
     EndpointScheduleCheckpoint,
@@ -408,6 +427,19 @@ __all__ = [
     "EvidenceAssertionMaterializationStore",
     "EvidenceAssertionMaterializationStoreRejected",
     "EvidenceAssertionMaterializationTimedOut",
+    "EvidenceMaterializationSource",
+    "EvidenceReplayValidation",
+    "EvidenceReplayValidationLimits",
+    "EvidenceReplayValidationOutcome",
+    "EvidenceReplayValidationPlan",
+    "EvidenceReplayValidationRecoveryRequired",
+    "EvidenceReplayValidationRejected",
+    "EvidenceReplayValidationService",
+    "EvidenceReplayValidationState",
+    "EvidenceReplayValidationStore",
+    "EvidenceReplayValidationStoreRejected",
+    "EvidenceReplayValidationTimedOut",
+    "REPLAY_VALIDATION_RULESET_DIGEST",
     "AttackSurfaceServiceIdentity",
     "AttackSurfaceEndpoint",
     "AttackSurfaceInventory",

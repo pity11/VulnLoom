@@ -221,6 +221,18 @@ Evidence/body digest、Target、Scope/version 和固定 classifier digest；任�
 边界、只读与无残留来源事实，不能生成独立 replay 或 Critic Assertion。超时/拒绝无部分 batch，遗留 STARTED 仅
 允许最多三次显式恢复。
 
+### 1.10 B3.3 independent replay Validation confinement
+
+Replay validator 不持有网络、Runner、Broker、模型或攻击 adapter，只读取两个已完成的 B3.2
+materialization 和对应内容寻址 Evidence。两份来源必须同 Scope/version、同 requirement、同精确 URL digest，且
+materialization plan、Flow、Observation、Web Snapshot、Evidence 全部互异；同一次执行不能冒充独立 replay。
+Evidence 缺失、来源漂移、顺序错误和 Scope 失效均在 STARTED 前拒绝。
+
+比较只使用正文 digest 和三态 sensitive-presence，不把正文、字段名或样本值复制到 Validation。只有两份 supported
+敏感类别结果且 digest 完全一致才支持 replay；不一致或不足保持 inconclusive。schema 固定
+`request_execution_authorized=false`、`candidate_proposal_eligible=false`、`finding_authorized=false`，因此不能触发
+新请求或自行提升结果。超时/拒绝无部分 Assertion，遗留 STARTED 最多三次显式恢复。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

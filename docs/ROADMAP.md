@@ -1242,6 +1242,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   cleanup proof。全量门禁为 1664 passed、43 skipped、85.38% coverage，477 份 schema；无公网、真实模型、新请求
   或真实攻击。B3 保持进行中，下一纵切为 B3.3 independent sealed replay Validation Assertion。
 
+- B3.3 已达到 `offline_tested`。内容寻址 replay validator 只消费两份已完成的 B3.2 materialization，要求同
+  requirement、Scope/version 和精确 URL digest，同时 materialization plan、Flow、Observation、Web Snapshot 与
+  Evidence 全部互异。正文 digest 与 supported sensitive-presence 同时匹配才支持 replay；变化或不足保持
+  inconclusive。输出只有两项双 Evidence Validation Assertion，固定不授予请求、Candidate 或 Finding 权限；接入
+  B3.1 后因 Critic 缺失仍保持 inconclusive。ledger 覆盖同执行拒绝、Evidence/绑定漂移拒绝、幂等、超时无部分结果
+  与 STARTED 恢复。全量门禁为 1668 passed、43 skipped、85.40% coverage，481 份 schema；无公网、真实模型、新
+  请求或真实攻击。B3 保持进行中，下一纵切为 B3.4 independent Critic Assertion materialization。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

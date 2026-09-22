@@ -67,6 +67,7 @@ class EvidenceAssertionMaterializationPlan(DomainModel):
     source_checkpoint_id: Digest
     source_observation_id: Digest
     web_response_snapshot_id: Digest
+    requested_url_digest: Digest
     evidence_ref: Digest
     response_body_sha256: Digest
     target_id: UUID

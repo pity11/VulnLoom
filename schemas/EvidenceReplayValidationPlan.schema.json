@@ -1,34 +1,13 @@
 {
   "$defs": {
-    "EvidenceAssertionMaterializationLimits": {
+    "EvidenceReplayValidationLimits": {
       "additionalProperties": false,
       "properties": {
-        "max_document_bytes": {
-          "default": 65536,
-          "maximum": 65536,
-          "minimum": 1,
-          "title": "Max Document Bytes",
-          "type": "integer"
-        },
-        "max_nodes": {
-          "default": 10000,
-          "maximum": 20000,
-          "minimum": 1,
-          "title": "Max Nodes",
-          "type": "integer"
-        },
-        "max_depth": {
-          "default": 32,
-          "maximum": 64,
-          "minimum": 1,
-          "title": "Max Depth",
-          "type": "integer"
-        },
-        "max_object_keys": {
-          "default": 5000,
-          "maximum": 10000,
-          "minimum": 1,
-          "title": "Max Object Keys",
+        "max_evidence_refs": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 2,
+          "title": "Max Evidence Refs",
           "type": "integer"
         },
         "timeout_seconds": {
@@ -46,7 +25,7 @@
           "type": "integer"
         }
       },
-      "title": "EvidenceAssertionMaterializationLimits",
+      "title": "EvidenceReplayValidationLimits",
       "type": "object"
     }
   },
@@ -62,29 +41,54 @@
       "title": "Requirement Id",
       "type": "string"
     },
-    "endpoint_recon_plan_id": {
+    "baseline_materialization_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Endpoint Recon Plan Id",
+      "title": "Baseline Materialization Plan Id",
       "type": "string"
     },
-    "flow_plan_id": {
+    "baseline_materialization_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Flow Plan Id",
+      "title": "Baseline Materialization Id",
       "type": "string"
     },
-    "source_checkpoint_id": {
+    "baseline_flow_plan_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Source Checkpoint Id",
+      "title": "Baseline Flow Plan Id",
       "type": "string"
     },
-    "source_observation_id": {
+    "baseline_observation_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Source Observation Id",
+      "title": "Baseline Observation Id",
       "type": "string"
     },
-    "web_response_snapshot_id": {
+    "baseline_snapshot_id": {
       "pattern": "^[0-9a-f]{64}$",
-      "title": "Web Response Snapshot Id",
+      "title": "Baseline Snapshot Id",
+      "type": "string"
+    },
+    "current_materialization_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Materialization Plan Id",
+      "type": "string"
+    },
+    "current_materialization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Materialization Id",
+      "type": "string"
+    },
+    "current_flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Flow Plan Id",
+      "type": "string"
+    },
+    "current_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Observation Id",
+      "type": "string"
+    },
+    "current_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Snapshot Id",
       "type": "string"
     },
     "requested_url_digest": {
@@ -92,15 +96,15 @@
       "title": "Requested Url Digest",
       "type": "string"
     },
-    "evidence_ref": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Evidence Ref",
-      "type": "string"
-    },
-    "response_body_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Response Body Sha256",
-      "type": "string"
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Evidence Refs",
+      "type": "array"
     },
     "target_id": {
       "format": "uuid",
@@ -123,14 +127,14 @@
       "title": "Scope Version",
       "type": "integer"
     },
-    "classifier_digest": {
-      "const": "f6977e406a4bad5d857102f1afbb667c9234eda51a31d6d5b15c2fe48e8a20b5",
-      "default": "f6977e406a4bad5d857102f1afbb667c9234eda51a31d6d5b15c2fe48e8a20b5",
-      "title": "Classifier Digest",
+    "ruleset_digest": {
+      "const": "3acc89b52fdc774b83cd49f48e872a7abd70a3acf3774dd6db4ec9f665173d89",
+      "default": "3acc89b52fdc774b83cd49f48e872a7abd70a3acf3774dd6db4ec9f665173d89",
+      "title": "Ruleset Digest",
       "type": "string"
     },
     "limits": {
-      "$ref": "#/$defs/EvidenceAssertionMaterializationLimits"
+      "$ref": "#/$defs/EvidenceReplayValidationLimits"
     },
     "created_at": {
       "format": "date-time",
@@ -152,14 +156,18 @@
   "required": [
     "plan_id",
     "requirement_id",
-    "endpoint_recon_plan_id",
-    "flow_plan_id",
-    "source_checkpoint_id",
-    "source_observation_id",
-    "web_response_snapshot_id",
+    "baseline_materialization_plan_id",
+    "baseline_materialization_id",
+    "baseline_flow_plan_id",
+    "baseline_observation_id",
+    "baseline_snapshot_id",
+    "current_materialization_plan_id",
+    "current_materialization_id",
+    "current_flow_plan_id",
+    "current_observation_id",
+    "current_snapshot_id",
     "requested_url_digest",
-    "evidence_ref",
-    "response_body_sha256",
+    "evidence_refs",
     "target_id",
     "target_version",
     "scope_id",
@@ -169,6 +177,6 @@
     "deadline",
     "idempotency_key"
   ],
-  "title": "EvidenceAssertionMaterializationPlan",
+  "title": "EvidenceReplayValidationPlan",
   "type": "object"
 }

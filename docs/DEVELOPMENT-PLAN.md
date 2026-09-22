@@ -194,11 +194,10 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B3.3 independent sealed replay Validation Assertion 纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B3.4 independent Critic Assertion materialization 纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
-B3.1-B3.2 已达到 `offline_tested`。B3.3 只比较两份独立、权威的 sealed GET materialization，生成 B3.1 所需的
-replay Validation Assertion；不开放任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的
-用户优先级决定，才从其他里程碑开始。
+B3.1-B3.3 已达到 `offline_tested`。B3.4 将从与 Validation 分离的 Evidence/context 物化四项反证 Assertion；不开放
+任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -362,3 +361,14 @@ Candidate 或 Finding 权限。端到端回归证明该 batch 进入 B3.1 Assess
 inconclusive。独立 ledger 覆盖幂等、来源漂移、超时无部分结果、STARTED 恢复和 cleanup proof。本轮未访问公网、
 未调用真实模型、未执行新请求或攻击。全量门禁为 1664 passed、43 skipped、85.38% coverage；477 份 schema、
 Ruff、红队专项和 diff check 通过。B3 保持进行中，下一项为 B3.3 independent sealed replay Validation Assertion。
+
+进展记录（2026-09-22）：B3.3 达到 `offline_tested`。新增 `Independent Replay Validation` 领域术语与内容寻址
+Plan/Validation/Outcome；服务只比较两份已完成 B3.2 materialization，不持有 HTTP、模型或攻击 adapter。Plan 要求
+两份来源具有相同 Scope/version、requirement、精确 URL digest 和固定 classifier，同时 materialization plan、Flow、
+Observation、Web Snapshot 与 Evidence 全部不同且 baseline 早于 current；同执行、缺失 Evidence、来源漂移均在写
+STARTED 前拒绝。两个正文 digest 且敏感类别结论均一致支持时才产生 supported replay；内容变化或证据不足保持
+inconclusive，不伪造负例。输出两项同 context/producer、双 Evidence 引用的 Validation Assertion，并固定禁止请求、
+Candidate 与 Finding 权限。接入 B3.1 后独立 replay/redaction 已满足，但 Critic 四项仍缺失，因此仍为 inconclusive。
+ledger 覆盖幂等、超时无部分结果、STARTED 显式恢复与 cleanup proof。本轮未访问公网、未调用真实模型、未新增请求
+或执行真实攻击。全量门禁为 1668 passed、43 skipped、85.40% coverage；481 份 schema、Ruff、红队专项和 diff
+check 通过。B3 保持进行中，下一项为 B3.4 independent Critic Assertion materialization。

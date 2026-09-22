@@ -125,6 +125,7 @@ class EvidenceAssertionMaterializationService:
             source_checkpoint_id=source["checkpoint"].checkpoint_id,
             source_observation_id=source["observation"].observation_id,
             web_response_snapshot_id=web.snapshot_id,
+            requested_url_digest=source["endpoint_plan"].steps[0].target_url_digest,
             evidence_ref=web.evidence_refs[0],
             response_body_sha256=web.response_body_sha256,
             target_id=source["flow"].target.target_id,
@@ -357,6 +358,8 @@ class EvidenceAssertionMaterializationService:
             or source["checkpoint"].checkpoint_id != plan.source_checkpoint_id
             or source["observation"].observation_id != plan.source_observation_id
             or web.snapshot_id != plan.web_response_snapshot_id
+            or source["endpoint_plan"].steps[0].target_url_digest
+            != plan.requested_url_digest
             or web.evidence_refs != (plan.evidence_ref,)
             or web.response_body_sha256 != plan.response_body_sha256
             or source["flow"].target.target_id != plan.target_id
