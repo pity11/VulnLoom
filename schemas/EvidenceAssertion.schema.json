@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "EvidenceFactVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "EvidenceFactVerdict",
+      "type": "string"
+    },
+    "EvidenceRequirementStage": {
+      "enum": [
+        "observation",
+        "validation",
+        "critic",
+        "cleanup"
+      ],
+      "title": "EvidenceRequirementStage",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assertion_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assertion Id",
+      "type": "string"
+    },
+    "requirement_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Requirement Id",
+      "type": "string"
+    },
+    "stage": {
+      "$ref": "#/$defs/EvidenceRequirementStage"
+    },
+    "fact": {
+      "$ref": "#/$defs/EvidenceFactKind"
+    },
+    "verdict": {
+      "$ref": "#/$defs/EvidenceFactVerdict"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "producer_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9:._-]{0,127}$",
+      "title": "Producer Ref",
+      "type": "string"
+    },
+    "context_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Context Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "assertion_id",
+    "requirement_id",
+    "stage",
+    "fact",
+    "verdict",
+    "evidence_refs",
+    "producer_ref",
+    "context_id",
+    "observed_at"
+  ],
+  "title": "EvidenceAssertion",
+  "type": "object"
+}

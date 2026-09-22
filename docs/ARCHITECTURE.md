@@ -173,6 +173,19 @@ directive 内容、Mutation/Subscription field 都不会成为能力输入。输
 扩展权，独立 STARTED/COMPLETED ledger 提供幂等、三次恢复上限与 cleanup proof。B2.4 不执行 introspection、query
 或 POST，也不把 schema observation 自动晋升为 Endpoint Seed 或 Finding。
 
+### B3.1 versioned vulnerability Evidence Requirement
+
+B3.1 首先把“某类漏洞需要什么证据”从 scanner 文本或模型判断中移到可信 Control Plane。首个版本固定为
+`unauthenticated_sensitive_data_exposure` / CWE-200 / read-only，并把 11 个事实分为 Observation、Validation、
+Critic 和 Cleanup 四层。Assertion 只携带 fact、三态 verdict、Evidence ID、opaque producer 与 context digest，
+不携带响应正文、字段名、样本值、凭据或可执行步骤。
+
+确定性 Evidence Assessment 只读取内容寻址 Assertion 和已存在的脱敏 Evidence。全部正证据、独立 replay、redaction
+边界、四项反证排除和两项无状态残留证明均满足时，结论才是 `candidate_eligible`；任何正证据被反驳或反证成立时
+得到 `negative`，缺失或不确定得到 `inconclusive`。Validation 与 Critic 必须使用不同 producer、context 和 Evidence。
+结论固定 `finding_authorized=false`、`test_execution_authorized=false`，因此只给后续 Candidate proposal 提供资格，
+不会创建 Candidate、执行测试或绕过共享 Validation/Critic/Finding Gate。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

@@ -1,0 +1,303 @@
+{
+  "$defs": {
+    "EvidenceAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/EvidenceRequirementStage"
+        },
+        "fact": {
+          "$ref": "#/$defs/EvidenceFactKind"
+        },
+        "verdict": {
+          "$ref": "#/$defs/EvidenceFactVerdict"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "producer_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9:._-]{0,127}$",
+          "title": "Producer Ref",
+          "type": "string"
+        },
+        "context_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Context Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "requirement_id",
+        "stage",
+        "fact",
+        "verdict",
+        "evidence_refs",
+        "producer_ref",
+        "context_id",
+        "observed_at"
+      ],
+      "title": "EvidenceAssertion",
+      "type": "object"
+    },
+    "EvidenceAssessmentLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_assertions": {
+          "default": 11,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Max Assertions",
+          "type": "integer"
+        },
+        "max_evidence_refs": {
+          "default": 64,
+          "maximum": 256,
+          "minimum": 1,
+          "title": "Max Evidence Refs",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "EvidenceAssessmentLimits",
+      "type": "object"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "EvidenceFactVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "EvidenceFactVerdict",
+      "type": "string"
+    },
+    "EvidenceRequirementStage": {
+      "enum": [
+        "observation",
+        "validation",
+        "critic",
+        "cleanup"
+      ],
+      "title": "EvidenceRequirementStage",
+      "type": "string"
+    },
+    "VulnerabilityEvidenceRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "requirement_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Requirement Version",
+          "type": "integer"
+        },
+        "vulnerability_class": {
+          "const": "unauthenticated_sensitive_data_exposure",
+          "title": "Vulnerability Class",
+          "type": "string"
+        },
+        "cwe": {
+          "const": "CWE-200",
+          "default": "CWE-200",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "impact_class": {
+          "const": "read_only",
+          "default": "read_only",
+          "title": "Impact Class",
+          "type": "string"
+        },
+        "observation_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Observation Facts",
+          "type": "array"
+        },
+        "validation_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Validation Facts",
+          "type": "array"
+        },
+        "counterevidence_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Counterevidence Facts",
+          "type": "array"
+        },
+        "cleanup_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Cleanup Facts",
+          "type": "array"
+        },
+        "candidate_only": {
+          "const": true,
+          "default": true,
+          "title": "Candidate Only",
+          "type": "boolean"
+        },
+        "finding_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Finding Authorized",
+          "type": "boolean"
+        },
+        "test_execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Test Execution Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "vulnerability_class",
+        "observation_facts",
+        "validation_facts",
+        "counterevidence_facts",
+        "cleanup_facts"
+      ],
+      "title": "VulnerabilityEvidenceRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "requirement": {
+      "$ref": "#/$defs/VulnerabilityEvidenceRequirement"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "assertions": {
+      "items": {
+        "$ref": "#/$defs/EvidenceAssertion"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Assertions",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/EvidenceAssessmentLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "requirement",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "assertions",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "EvidenceAssessmentPlan",
+  "type": "object"
+}

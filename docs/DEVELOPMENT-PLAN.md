@@ -194,10 +194,10 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B3.1 首个低影响 Web/API Evidence Requirement 纵切**。A1 通用 Project Recipe
-Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭。
-B3.1 先定义版本化正例、反例、最小 Validation、Critic 与 Cleanup 证据合同，不开放任意请求脚本、自动攻击、
-状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B3.2 authoritative Evidence Assertion materialization 纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；B3.1
+已达到 `offline_tested`。B3.2 只从权威 sealed Observation 与脱敏 Evidence 生成 B3.1 合同所需的 Assertion，不开放
+任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -339,3 +339,14 @@ Query field 名与 named return type；参数、默认值、描述和 directive 
 proof；拒绝/超时不产生部分结果。本轮未访问公网、未调用真实模型、未发送 introspection/POST/query、未执行真实
 攻击。全量门禁为 1652 passed、43 skipped、85.37% coverage；467 份 schema、Ruff（`src/ tests/ scripts/`）、
 红队专项和 diff check 通过。下一项为 B3.1 首个低影响 Web/API Evidence Requirement。
+
+进展记录（2026-09-22）：B3.1 达到 `offline_tested`。新增 `Vulnerability Evidence Requirement` 与
+`Evidence Assessment` 领域术语；首个 v1 合同固定为未认证敏感数据暴露/CWE-200/read-only，以 11 个类型化事实覆盖
+sealed GET、未认证证明、敏感类别存在、独立 replay、redaction、access control/public-by-design/synthetic/version
+四项反证，以及 no-state-change/no-artifact Cleanup。Assertion 只含事实、三态结论、Evidence ID 和 opaque
+producer/context，不含响应正文、字段名、样本值、凭据或执行步骤。Validation 与 Critic 必须使用互异 producer、
+context 和 Evidence。确定性 reducer 输出 Candidate 资格、负例或不确定；缺项/不确定/Cleanup 未证明均不授予资格，
+所有结果固定禁止 Finding 和测试执行。独立 STARTED/COMPLETED ledger 覆盖幂等、身份冲突、最多三次恢复、超时与
+cleanup proof；Scope 漂移和 Evidence 缺失 fail-closed。本轮未访问公网、未调用真实模型、未执行请求或攻击。
+全量门禁为 1659 passed、43 skipped、85.39% coverage；473 份 schema、Ruff、红队专项和 diff check 通过。
+B3 保持进行中，下一项为 B3.2 authoritative Evidence Assertion materialization。

@@ -194,6 +194,19 @@ Subscription field 只计数后丢弃。Field Discovery 固定 `execution_author
 `operation_execution_authorized=false` 与 `target_expansion_authorized=false`，不能成为隐式 Action、Seed、Target 或
 Finding。完整解析后才写 STARTED checkpoint；超时和拒绝没有部分结果，遗留 STARTED 只能在三次上限内显式恢复。
 
+### 1.8 B3.1 vulnerability Evidence Requirement confinement
+
+首个漏洞类别合同只覆盖未认证敏感数据暴露的 read-only Evidence qualification，不包含 detector、payload、请求参数、
+凭据、字段名、样本值或网络 adapter。Requirement 的事实集合、版本、CWE 和权限位均内容寻址且固定；Assertion 必须
+引用 Evidence Store 中完整可读的脱敏对象。Validation 与 Critic 的 producer、context 和 Evidence 集合必须完全
+分离，不能用同一结果自证并自行排除反证。
+
+Assessment 只有 Candidate 资格、负例和不确定三种结果。缺少独立 replay、redaction proof、任一反证结论或
+no-state-change/no-artifact Cleanup proof 时均不能取得 Candidate 资格；access control、生成为公开内容、synthetic
+fixture 或环境/版本错配任一反证成立则记录负例。协议固定禁止 Finding 与测试执行权，不能触发请求或改变 Candidate
+状态。解析/校验在 STARTED 前完成；超时、Scope 漂移、Evidence 缺失和重复事实无部分结果，遗留 STARTED 最多恢复
+三次。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

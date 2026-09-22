@@ -1224,6 +1224,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   43 skipped、85.37% coverage，467 份 schema；无公网、真实模型、introspection/query/POST 或真实攻击。
   下一纵切为 B3.1 首个低影响 Web/API Evidence Requirement。
 
+- B3.1 已达到 `offline_tested`。首个版本化 Vulnerability Evidence Requirement 固定为未认证敏感数据暴露、
+  CWE-200、read-only，以 11 个类型化事实覆盖 Observation、独立 Validation、四项 Critic 反证与 Cleanup。
+  Assertion 仅保存 fact/verdict、Evidence ID 和 opaque producer/context；不保存正文、字段名、样本值、凭据或执行
+  步骤。Assessment 只输出 Candidate 资格、负例或不确定；Validation/Critic 必须 producer/context/Evidence 分离，
+  缺项、反证、Cleanup 未证明和 Evidence 缺失均 fail-closed。所有结果固定禁止 Finding 和测试执行，ledger 覆盖
+  幂等、身份冲突、STARTED 恢复、三次上限、超时和 cleanup proof。全量门禁为 1659 passed、43 skipped、85.39%
+  coverage，473 份 schema；无公网、真实模型、请求或真实攻击。B3 保持进行中，下一纵切为 B3.2 authoritative
+  Evidence Assertion materialization。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

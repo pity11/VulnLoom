@@ -78,6 +78,30 @@ from .drift_store import (
     AttackSurfaceDriftRecoveryRequired,
     AttackSurfaceDriftStore,
 )
+from .evidence_requirement_models import (
+    EvidenceAssertion,
+    EvidenceAssessment,
+    EvidenceAssessmentLimits,
+    EvidenceAssessmentOutcome,
+    EvidenceAssessmentPlan,
+    EvidenceAssessmentState,
+    EvidenceAssessmentVerdict,
+    EvidenceFactKind,
+    EvidenceFactVerdict,
+    EvidenceRequirementStage,
+    VulnerabilityClass,
+    VulnerabilityEvidenceRequirement,
+)
+from .evidence_requirement_service import (
+    EvidenceAssessmentRejected,
+    EvidenceAssessmentService,
+    EvidenceAssessmentTimedOut,
+)
+from .evidence_requirement_store import (
+    EvidenceAssessmentRecoveryRequired,
+    EvidenceAssessmentStore,
+    EvidenceAssessmentStoreRejected,
+)
 from .graphql_models import (
     GraphQlQueryFieldDiscovery,
     GraphQlSchemaObservation,
@@ -335,6 +359,22 @@ __all__ = [
     "EndpointSeed",
     "EndpointSeedIdempotencyConflict",
     "EndpointSeedSet",
+    "EvidenceAssertion",
+    "EvidenceAssessment",
+    "EvidenceAssessmentLimits",
+    "EvidenceAssessmentOutcome",
+    "EvidenceAssessmentPlan",
+    "EvidenceAssessmentRecoveryRequired",
+    "EvidenceAssessmentRejected",
+    "EvidenceAssessmentService",
+    "EvidenceAssessmentState",
+    "EvidenceAssessmentStore",
+    "EvidenceAssessmentStoreRejected",
+    "EvidenceAssessmentTimedOut",
+    "EvidenceAssessmentVerdict",
+    "EvidenceFactKind",
+    "EvidenceFactVerdict",
+    "EvidenceRequirementStage",
     "cancel_endpoint_recon",
     "consume_endpoint_recon_request",
     "expire_endpoint_recon",
@@ -426,5 +466,7 @@ __all__ = [
     "ServiceIdentitySnapshot",
     "ServiceTlsVersion",
     "WebResponseSnapshot",
+    "VulnerabilityClass",
+    "VulnerabilityEvidenceRequirement",
     "reserve_endpoint_recon",
 ]

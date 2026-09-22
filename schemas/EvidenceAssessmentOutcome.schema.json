@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "EvidenceAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Assessment Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/EvidenceAssessmentVerdict"
+        },
+        "satisfied_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Satisfied Facts",
+          "type": "array"
+        },
+        "counterevidence_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Counterevidence Facts",
+          "type": "array"
+        },
+        "unresolved_facts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFactKind"
+          },
+          "title": "Unresolved Facts",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "cleanup_requirement_satisfied": {
+          "title": "Cleanup Requirement Satisfied",
+          "type": "boolean"
+        },
+        "candidate_proposal_eligible": {
+          "title": "Candidate Proposal Eligible",
+          "type": "boolean"
+        },
+        "finding_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Finding Authorized",
+          "type": "boolean"
+        },
+        "test_execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Test Execution Authorized",
+          "type": "boolean"
+        },
+        "assessed_at": {
+          "format": "date-time",
+          "title": "Assessed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assessment_id",
+        "plan_id",
+        "requirement_id",
+        "verdict",
+        "satisfied_facts",
+        "counterevidence_facts",
+        "unresolved_facts",
+        "evidence_refs",
+        "cleanup_requirement_satisfied",
+        "candidate_proposal_eligible",
+        "assessed_at"
+      ],
+      "title": "EvidenceAssessment",
+      "type": "object"
+    },
+    "EvidenceAssessmentVerdict": {
+      "enum": [
+        "candidate_eligible",
+        "negative",
+        "inconclusive"
+      ],
+      "title": "EvidenceAssessmentVerdict",
+      "type": "string"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "assessment": {
+      "$ref": "#/$defs/EvidenceAssessment"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "assessment",
+    "attempt"
+  ],
+  "title": "EvidenceAssessmentOutcome",
+  "type": "object"
+}

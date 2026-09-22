@@ -92,6 +92,14 @@ _Avoid_: Auto-enrollment, Crawl expansion, Executable discovery
 从权威、已脱敏的 GraphQL SDL Evidence 生成的内容寻址 schema 摘要；它描述 query field，不代表已执行 introspection、operation 或漏洞验证。
 _Avoid_: Introspection run, Executable query, GraphQL Finding
 
+**Vulnerability Evidence Requirement**：
+某一漏洞类别的版本化判定合同，定义 Candidate 资格所需的正证据、独立复核、反证和清理证明；它不是扫描规则，也不授予测试或 Finding 权限。
+_Avoid_: Exploit recipe, Scanner signature, Finding template
+
+**Evidence Assessment**：
+把一组脱敏 Evidence Assertion 对照一个 Vulnerability Evidence Requirement 得到的内容寻址结论；结论只能是 Candidate 资格、负例或不确定，不能直接成为 Finding。
+_Avoid_: Vulnerability confirmation, Auto-promotion, Model verdict
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue
