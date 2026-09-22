@@ -194,10 +194,10 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B2.4 sealed GraphQL schema observation 首个纵切**。A1 通用 Project Recipe
-Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1-B2.3 已达到
-`offline_tested`。B2.4 先做无网络的封存 GraphQL schema reducer，不开放任意 query、POST、introspection 请求或
-自动 Target 扩展。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B3.1 首个低影响 Web/API Evidence Requirement 纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭。
+B3.1 先定义版本化正例、反例、最小 Validation、Critic 与 Cleanup 证据合同，不开放任意请求脚本、自动攻击、
+状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -329,3 +329,13 @@ Target、Scope/version、操作员和逐项 selection；模板参数必须由操
 证明 promoted path 可进入 HEAD 计划且没有新增网络调用。本轮未访问公网、未调用真实模型、未执行真实攻击。
 全量门禁为 1643 passed、43 skipped、85.50% coverage；462 份 schema、Ruff、红队专项和 diff check 通过。
 B2 保持进行中，下一项为 B2.4 sealed GraphQL schema observation。
+
+进展记录（2026-09-22）：B2.4 达到 `offline_tested`，B2 至此关闭。新增 `GraphQL Schema Observation` 领域术语与
+内容寻址 Plan/Observation/Outcome；服务只消费一条权威、成功且 cleanup-proven 的 sealed GET Evidence，不持有
+网络或模型 adapter。64 KiB 有界 SDL lexer/parser 对 token、type、Query field、嵌套与墙钟设置上限，拒绝 executable
+query/mutation/subscription/fragment、畸形定界符、重复定义、保留 field、来源漂移和无 Query root。输出仅包含
+Query field 名与 named return type；参数、默认值、描述和 directive 内容不披露，Mutation/Subscription 只计数后
+丢弃，所有执行与 Target 扩展权限固定为 false。独立 STARTED/COMPLETED ledger 覆盖幂等、三次有界恢复和 cleanup
+proof；拒绝/超时不产生部分结果。本轮未访问公网、未调用真实模型、未发送 introspection/POST/query、未执行真实
+攻击。全量门禁为 1652 passed、43 skipped、85.37% coverage；467 份 schema、Ruff（`src/ tests/ scripts/`）、
+红队专项和 diff check 通过。下一项为 B3.1 首个低影响 Web/API Evidence Requirement。

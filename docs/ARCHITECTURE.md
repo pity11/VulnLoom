@@ -161,6 +161,18 @@ Promotion ledger 与 Endpoint Seed 表位于同一 SQLite transaction boundary�
 只有 Outcome 与新 Seed Set 原子提交后才可被 Endpoint Recon 读取。Seed Set 仍只是计划输入，后续 Endpoint Plan
 会独立检查当前 checkpoint、Scope、动作预算和方法，Promotion 不直接触发 Broker 或网络。
 
+### B2.4 sealed GraphQL schema observation
+
+B2.4 是 Evidence Store 后的另一个确定性 reducer，复用 B2.2 的单一权威 sealed GET provenance 链，但不复用或取得
+HTTP adapter。内容寻址 Plan 精确绑定 Endpoint Plan/outcome、当前 Flow checkpoint、Observation、
+`WebResponseSnapshot`、Evidence、Target 与 Scope/version。应用服务每次执行和完成前都从权威 store 重读来源。
+
+有界 lexer/parser 只处理 GraphQL SDL，显式拒绝 executable document，并受 64 KiB、token、type、Query field、
+嵌套和墙钟预算约束。投影只包含 Query root、field 名与 named return type；arguments、default value、description、
+directive 内容、Mutation/Subscription field 都不会成为能力输入。输出类型固定无 operation execution 和 Target
+扩展权，独立 STARTED/COMPLETED ledger 提供幂等、三次恢复上限与 cleanup proof。B2.4 不执行 introspection、query
+或 POST，也不把 schema observation 自动晋升为 Endpoint Seed 或 Finding。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

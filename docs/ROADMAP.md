@@ -1215,6 +1215,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   全量门禁为 1643 passed、43 skipped、85.50% coverage，462 份 schema；无公网、真实模型或真实攻击。B2 保持
   进行中，下一纵切为 B2.4 sealed GraphQL schema observation。
 
+- B2.4 已达到 `offline_tested`，B2 至此关闭。确定性 GraphQL SDL reducer 只消费一条权威、成功且 cleanup-proven
+  的 sealed GET Evidence；不持有网络、模型或 operation 执行接口。Plan 绑定 Endpoint outcome、当前 checkpoint、
+  Observation、Web Snapshot、Evidence、Target 与 Scope/version。有界 parser 拒绝 executable document、结构/预算
+  超限、重复定义、保留 field、来源漂移与无 Query root；输出只保留 Query field 名和 named return type，参数、
+  默认值、描述与 directive 内容不披露，Mutation/Subscription 只计数后丢弃，执行和 Target 扩展权固定为 false。
+  ledger 覆盖幂等、STARTED 恢复、三次上限和 cleanup proof；拒绝/超时无部分结果。全量门禁为 1652 passed、
+  43 skipped、85.37% coverage，467 份 schema；无公网、真实模型、introspection/query/POST 或真实攻击。
+  下一纵切为 B3.1 首个低影响 Web/API Evidence Requirement。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

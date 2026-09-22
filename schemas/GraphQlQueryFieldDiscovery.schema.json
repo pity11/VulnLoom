@@ -1,0 +1,53 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "discovery_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Discovery Id",
+      "type": "string"
+    },
+    "field_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Field Name",
+      "type": "string"
+    },
+    "field_name_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Field Name Digest",
+      "type": "string"
+    },
+    "return_named_type": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Return Named Type",
+      "type": "string"
+    },
+    "return_type_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Return Type Digest",
+      "type": "string"
+    },
+    "execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authorized",
+      "type": "boolean"
+    },
+    "arguments_disclosed": {
+      "const": false,
+      "default": false,
+      "title": "Arguments Disclosed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "discovery_id",
+    "field_name",
+    "field_name_digest",
+    "return_named_type",
+    "return_type_digest"
+  ],
+  "title": "GraphQlQueryFieldDiscovery",
+  "type": "object"
+}

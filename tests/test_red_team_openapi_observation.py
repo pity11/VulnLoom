@@ -15,6 +15,14 @@ from vulnloom.red_team import (
     EndpointReconLimits,
     EndpointReconService,
     EndpointReconStore,
+    GraphQlQueryFieldDiscovery,
+    GraphQlSchemaObservationLimits,
+    GraphQlSchemaObservationRecoveryRequired,
+    GraphQlSchemaObservationRejected,
+    GraphQlSchemaObservationService,
+    GraphQlSchemaObservationState,
+    GraphQlSchemaObservationStore,
+    GraphQlSchemaObservationTimedOut,
     IsolatedLocalHttpReconAdapter,
     IsolatedLocalReconAdmission,
     OpenApiDiscoveryPromotionLimits,
@@ -390,6 +398,228 @@ def test_openapi_discovery_schema_cannot_grant_execution():
         OpenApiPathDiscovery.model_validate(
             discovery.model_dump(mode="python")
             | {"execution_authorized": True, "target_url": "https://outside.example/"}
+        )
+
+
+def _graphql_runtime(tmp_path, approved_scope, now, sdl, *, monotonic=None):
+    _, red_store, endpoint_store, openapi_store, endpoint_plan, transport = _runtime(
+        tmp_path, approved_scope, now, raw_json=sdl
+    )
+    store = GraphQlSchemaObservationStore(tmp_path / "graphql.sqlite3")
+    service = GraphQlSchemaObservationService(
+        red_team_store=red_store,
+        endpoint_recon_store=endpoint_store,
+        observation_store=store,
+        evidence_store=EvidenceStore(tmp_path / "evidence"),
+        **({"monotonic": monotonic} if monotonic is not None else {}),
+    )
+    return (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        transport,
+    )
+
+
+def _prepare_graphql(service, endpoint_plan, scope, now, *, limits=None):
+    return service.prepare(
+        endpoint_recon_plan_id=endpoint_plan.endpoint_recon_plan_id,
+        scope=scope,
+        limits=limits or GraphQlSchemaObservationLimits(),
+        now=now + timedelta(seconds=1),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b2:graphql:observe",
+    )
+
+
+def _close_graphql(red_store, endpoint_store, openapi_store, graphql_store):
+    red_store.close()
+    endpoint_store.close()
+    openapi_store.close()
+    graphql_store.close()
+
+
+def test_sealed_graphql_sdl_becomes_non_executable_query_field_summaries(
+    tmp_path, approved_scope, now
+):
+    sdl = '''
+        schema { query: RootQuery mutation: Mutation subscription: Subscription }
+        """Root query description must not be retained."""
+        type RootQuery {
+          viewer(id: ID!, secretDefault: String = "redact-me"): User!
+            @deprecated(reason: "do not retain")
+          health: String!
+        }
+        type Mutation { updateName(name: String!): User }
+        type Subscription { changed: User }
+        input Filter { active: Boolean }
+        type User { id: ID! name: String }
+        scalar DateTime
+    '''
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        transport,
+    ) = _graphql_runtime(tmp_path, approved_scope, now, sdl)
+    plan = _prepare_graphql(service, endpoint_plan, approved_scope, now)
+    outcome = service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=1)
+    )
+
+    observation = outcome.observation
+    fields = {item.field_name: item for item in observation.query_fields}
+    assert observation.query_root_type == "RootQuery"
+    assert fields["viewer"].return_named_type == "User"
+    assert fields["health"].return_named_type == "String"
+    assert observation.type_count == 6
+    assert observation.mutation_fields_ignored == 1
+    assert observation.subscription_fields_ignored == 1
+    assert observation.directive_uses_ignored == 1
+    assert observation.operation_execution_authorized is False
+    assert observation.target_expansion_authorized is False
+    assert all(not item.execution_authorized for item in observation.query_fields)
+    encoded = observation.model_dump_json()
+    assert "secretDefault" not in encoded
+    assert "redact-me" not in encoded
+    assert "deprecated" not in encoded
+    assert len(transport.calls) == 1
+    assert service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=2)
+    ) == outcome
+    assert store.state(plan.plan_id) == (GraphQlSchemaObservationState.COMPLETED, 1)
+    _close_graphql(red_store, endpoint_store, openapi_store, store)
+
+
+@pytest.mark.parametrize(
+    ("sdl", "message"),
+    [
+        ("query { viewer { id } }", "executable"),
+        ("type User { id: ID! }", "query root"),
+        ("type Query { viewer: User viewer: String }", "repeats an object field"),
+        ("type Query { viewer: [User! }", "unbalanced"),
+        ("extend type Query { health: String }", "undefined"),
+    ],
+)
+def test_graphql_sdl_rejects_executable_malformed_or_ambiguous_documents(
+    tmp_path, approved_scope, now, sdl, message
+):
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _graphql_runtime(tmp_path, approved_scope, now, sdl)
+    plan = _prepare_graphql(service, endpoint_plan, approved_scope, now)
+    with pytest.raises(GraphQlSchemaObservationRejected, match=message):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    assert store.state(plan.plan_id) is None
+    _close_graphql(red_store, endpoint_store, openapi_store, store)
+
+
+def test_graphql_sdl_budgets_and_timeout_leave_no_partial_result(
+    tmp_path, approved_scope, now
+):
+    sdl = "type Query { first: String second: String }"
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _graphql_runtime(tmp_path / "budget", approved_scope, now, sdl)
+    plan = _prepare_graphql(
+        service,
+        endpoint_plan,
+        approved_scope,
+        now,
+        limits=GraphQlSchemaObservationLimits(max_query_fields=1),
+    )
+    with pytest.raises(GraphQlSchemaObservationRejected, match="field budget"):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    assert store.state(plan.plan_id) is None
+    _close_graphql(red_store, endpoint_store, openapi_store, store)
+
+    ticks = iter((0.0, 11.0))
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _graphql_runtime(
+        tmp_path / "timeout", approved_scope, now, "type Query { ok: String }",
+        monotonic=lambda: next(ticks),
+    )
+    plan = _prepare_graphql(service, endpoint_plan, approved_scope, now)
+    with pytest.raises(GraphQlSchemaObservationTimedOut):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    assert store.state(plan.plan_id) is None
+    _close_graphql(red_store, endpoint_store, openapi_store, store)
+
+
+def test_graphql_plan_binding_and_started_recovery_are_fail_closed(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _graphql_runtime(
+        tmp_path, approved_scope, now, "type Query { viewer: User } type User { id: ID! }"
+    )
+    plan = _prepare_graphql(service, endpoint_plan, approved_scope, now)
+    values = plan.model_dump(mode="python", exclude={"plan_id"})
+    values["limits"] = plan.limits
+    values["source_checkpoint_id"] = "f" * 64
+    drifted = type(plan).create(**values)
+    with pytest.raises(GraphQlSchemaObservationRejected, match="binding drifted"):
+        service.execute(
+            drifted, scope=approved_scope, now=now + timedelta(seconds=1)
+        )
+    assert store.state(drifted.plan_id) is None
+
+    store.claim(plan, now=now + timedelta(seconds=1))
+    with pytest.raises(GraphQlSchemaObservationRecoveryRequired, match="unfinished"):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    outcome = service.recover(
+        plan, scope=approved_scope, now=now + timedelta(seconds=2)
+    )
+    assert outcome.attempt == 2
+    assert outcome.cleanup_complete is True
+    assert store.state(plan.plan_id) == (GraphQlSchemaObservationState.COMPLETED, 2)
+    _close_graphql(red_store, endpoint_store, openapi_store, store)
+
+
+def test_graphql_query_field_schema_cannot_grant_execution_or_disclose_arguments():
+    discovery = GraphQlQueryFieldDiscovery.create(
+        field_name="viewer", return_named_type="User"
+    )
+    with pytest.raises(ValidationError):
+        GraphQlQueryFieldDiscovery.model_validate(
+            discovery.model_dump(mode="python")
+            | {
+                "execution_authorized": True,
+                "arguments_disclosed": True,
+                "argument_names": ["id"],
+            }
         )
 
 

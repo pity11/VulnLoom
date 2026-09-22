@@ -181,6 +181,19 @@ path、外部 URL、重复选择和没有 GET/HEAD 的 operation 均 fail-closed
 原子写入 Seed Set 与 Outcome；超时或崩溃时不会暴露部分 Seed。新 Seed 不等于 Action，执行仍必须重新经过预算、
 Scope/Policy、Endpoint Plan 和 Broker。
 
+### 1.7 B2.4 sealed GraphQL SDL observation confinement
+
+GraphQL reducer 与 OpenAPI reducer 一样没有网络、resolver、模型或执行接口；它只读取一条权威、成功且
+cleanup-proven 的 sealed GET Evidence。Plan 内容寻址地绑定 Endpoint outcome、当前 Flow checkpoint、Observation、
+Web Snapshot、Scope/version 与响应正文摘要，任一来源漂移、过期或缺失都 fail-closed。解析器仅接受 64 KiB 内、
+token/type/field/嵌套/墙钟预算内的 SDL；可执行 query/mutation/subscription/fragment、畸形定界符、重复类型/字段、
+保留字段和无有效 Query root 均拒绝。它不会发送 introspection、POST 或 operation。
+
+输出只保留 Query field 名和命名返回类型的内容寻址摘要；参数、默认值、描述、directive 内容均不披露，Mutation 与
+Subscription field 只计数后丢弃。Field Discovery 固定 `execution_authorized=false`，Observation 固定
+`operation_execution_authorized=false` 与 `target_expansion_authorized=false`，不能成为隐式 Action、Seed、Target 或
+Finding。完整解析后才写 STARTED checkpoint；超时和拒绝没有部分结果，遗留 STARTED 只能在三次上限内显式恢复。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

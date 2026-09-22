@@ -78,6 +78,24 @@ from .drift_store import (
     AttackSurfaceDriftRecoveryRequired,
     AttackSurfaceDriftStore,
 )
+from .graphql_models import (
+    GraphQlQueryFieldDiscovery,
+    GraphQlSchemaObservation,
+    GraphQlSchemaObservationLimits,
+    GraphQlSchemaObservationOutcome,
+    GraphQlSchemaObservationPlan,
+    GraphQlSchemaObservationState,
+)
+from .graphql_service import (
+    GraphQlSchemaObservationRejected,
+    GraphQlSchemaObservationService,
+    GraphQlSchemaObservationTimedOut,
+)
+from .graphql_store import (
+    GraphQlSchemaObservationRecoveryRequired,
+    GraphQlSchemaObservationStore,
+    GraphQlSchemaObservationStoreRejected,
+)
 from .live_http import IsolatedLocalHttpReconAdapter, IsolatedLocalReconAdmission
 from .live_tls import IsolatedLocalTlsReconAdapter
 from .models import (
@@ -336,6 +354,18 @@ __all__ = [
     "AttackSurfaceReductionStore",
     "AttackSurfaceReductionTimedOut",
     "ImpactClass",
+    "GraphQlQueryFieldDiscovery",
+    "GraphQlSchemaObservation",
+    "GraphQlSchemaObservationLimits",
+    "GraphQlSchemaObservationOutcome",
+    "GraphQlSchemaObservationPlan",
+    "GraphQlSchemaObservationRecoveryRequired",
+    "GraphQlSchemaObservationRejected",
+    "GraphQlSchemaObservationService",
+    "GraphQlSchemaObservationState",
+    "GraphQlSchemaObservationStore",
+    "GraphQlSchemaObservationStoreRejected",
+    "GraphQlSchemaObservationTimedOut",
     "IsolatedLocalHttpReconAdapter",
     "IsolatedLocalReconAdmission",
     "IsolatedLocalTlsReconAdapter",

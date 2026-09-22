@@ -88,6 +88,10 @@ _Avoid_: Crawl frontier, Wordlist, Discovered URLs
 操作员把已封存 OpenAPI Observation 中明确选中的 path discovery 具体化并重新封存为 Endpoint Seed Set 的决定；它只赋予 seed 资格，不授予请求执行权或 Target 扩展权。
 _Avoid_: Auto-enrollment, Crawl expansion, Executable discovery
 
+**GraphQL Schema Observation**：
+从权威、已脱敏的 GraphQL SDL Evidence 生成的内容寻址 schema 摘要；它描述 query field，不代表已执行 introspection、operation 或漏洞验证。
+_Avoid_: Introspection run, Executable query, GraphQL Finding
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

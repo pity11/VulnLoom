@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_document_bytes": {
+      "default": 65536,
+      "maximum": 65536,
+      "minimum": 1,
+      "title": "Max Document Bytes",
+      "type": "integer"
+    },
+    "max_tokens": {
+      "default": 20000,
+      "maximum": 100000,
+      "minimum": 1,
+      "title": "Max Tokens",
+      "type": "integer"
+    },
+    "max_types": {
+      "default": 512,
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Max Types",
+      "type": "integer"
+    },
+    "max_query_fields": {
+      "default": 1024,
+      "maximum": 10000,
+      "minimum": 1,
+      "title": "Max Query Fields",
+      "type": "integer"
+    },
+    "max_depth": {
+      "default": 32,
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Max Depth",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 10.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "GraphQlSchemaObservationLimits",
+  "type": "object"
+}

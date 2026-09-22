@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "GraphQlQueryFieldDiscovery": {
+      "additionalProperties": false,
+      "properties": {
+        "discovery_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Discovery Id",
+          "type": "string"
+        },
+        "field_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Field Name",
+          "type": "string"
+        },
+        "field_name_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Field Name Digest",
+          "type": "string"
+        },
+        "return_named_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Return Named Type",
+          "type": "string"
+        },
+        "return_type_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Return Type Digest",
+          "type": "string"
+        },
+        "execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Execution Authorized",
+          "type": "boolean"
+        },
+        "arguments_disclosed": {
+          "const": false,
+          "default": false,
+          "title": "Arguments Disclosed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "discovery_id",
+        "field_name",
+        "field_name_digest",
+        "return_named_type",
+        "return_type_digest"
+      ],
+      "title": "GraphQlQueryFieldDiscovery",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "endpoint_recon_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Endpoint Recon Plan Id",
+      "type": "string"
+    },
+    "source_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Observation Id",
+      "type": "string"
+    },
+    "web_response_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Web Response Snapshot Id",
+      "type": "string"
+    },
+    "evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "response_body_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Response Body Sha256",
+      "type": "string"
+    },
+    "query_root_type": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Query Root Type",
+      "type": "string"
+    },
+    "query_fields": {
+      "items": {
+        "$ref": "#/$defs/GraphQlQueryFieldDiscovery"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Query Fields",
+      "type": "array"
+    },
+    "type_count": {
+      "maximum": 2000,
+      "minimum": 1,
+      "title": "Type Count",
+      "type": "integer"
+    },
+    "mutation_fields_ignored": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Mutation Fields Ignored",
+      "type": "integer"
+    },
+    "subscription_fields_ignored": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Subscription Fields Ignored",
+      "type": "integer"
+    },
+    "directive_uses_ignored": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Directive Uses Ignored",
+      "type": "integer"
+    },
+    "operation_execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Operation Execution Authorized",
+      "type": "boolean"
+    },
+    "target_expansion_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Target Expansion Authorized",
+      "type": "boolean"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "plan_id",
+    "endpoint_recon_plan_id",
+    "source_observation_id",
+    "web_response_snapshot_id",
+    "evidence_ref",
+    "response_body_sha256",
+    "query_root_type",
+    "query_fields",
+    "type_count",
+    "mutation_fields_ignored",
+    "subscription_fields_ignored",
+    "directive_uses_ignored",
+    "observed_at"
+  ],
+  "title": "GraphQlSchemaObservation",
+  "type": "object"
+}
