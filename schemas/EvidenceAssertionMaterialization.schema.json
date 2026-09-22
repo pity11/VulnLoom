@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "EvidenceAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "requirement_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "stage": {
+          "$ref": "#/$defs/EvidenceRequirementStage"
+        },
+        "fact": {
+          "$ref": "#/$defs/EvidenceFactKind"
+        },
+        "verdict": {
+          "$ref": "#/$defs/EvidenceFactVerdict"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "producer_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9:._-]{0,127}$",
+          "title": "Producer Ref",
+          "type": "string"
+        },
+        "context_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Context Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "requirement_id",
+        "stage",
+        "fact",
+        "verdict",
+        "evidence_refs",
+        "producer_ref",
+        "context_id",
+        "observed_at"
+      ],
+      "title": "EvidenceAssertion",
+      "type": "object"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "EvidenceFactVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "EvidenceFactVerdict",
+      "type": "string"
+    },
+    "EvidenceRequirementStage": {
+      "enum": [
+        "observation",
+        "validation",
+        "critic",
+        "cleanup"
+      ],
+      "title": "EvidenceRequirementStage",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "materialization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Materialization Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "requirement_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Requirement Id",
+      "type": "string"
+    },
+    "source_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Observation Id",
+      "type": "string"
+    },
+    "web_response_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Web Response Snapshot Id",
+      "type": "string"
+    },
+    "evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "response_body_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Response Body Sha256",
+      "type": "string"
+    },
+    "classifier_digest": {
+      "const": "f6977e406a4bad5d857102f1afbb667c9234eda51a31d6d5b15c2fe48e8a20b5",
+      "title": "Classifier Digest",
+      "type": "string"
+    },
+    "assertions": {
+      "items": {
+        "$ref": "#/$defs/EvidenceAssertion"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Assertions",
+      "type": "array"
+    },
+    "inspected_node_count": {
+      "maximum": 20000,
+      "minimum": 1,
+      "title": "Inspected Node Count",
+      "type": "integer"
+    },
+    "matched_field_count": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Matched Field Count",
+      "type": "integer"
+    },
+    "sensitive_data_presence": {
+      "$ref": "#/$defs/EvidenceFactVerdict"
+    },
+    "raw_values_retained": {
+      "const": false,
+      "default": false,
+      "title": "Raw Values Retained",
+      "type": "boolean"
+    },
+    "field_names_retained": {
+      "const": false,
+      "default": false,
+      "title": "Field Names Retained",
+      "type": "boolean"
+    },
+    "request_execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Request Execution Authorized",
+      "type": "boolean"
+    },
+    "candidate_proposal_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Proposal Eligible",
+      "type": "boolean"
+    },
+    "finding_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Finding Authorized",
+      "type": "boolean"
+    },
+    "materialized_at": {
+      "format": "date-time",
+      "title": "Materialized At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "materialization_id",
+    "plan_id",
+    "requirement_id",
+    "source_observation_id",
+    "web_response_snapshot_id",
+    "evidence_ref",
+    "response_body_sha256",
+    "classifier_digest",
+    "assertions",
+    "inspected_node_count",
+    "matched_field_count",
+    "sensitive_data_presence",
+    "materialized_at"
+  ],
+  "title": "EvidenceAssertionMaterialization",
+  "type": "object"
+}

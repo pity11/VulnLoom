@@ -15,6 +15,19 @@ from vulnloom.red_team import (
     EndpointReconLimits,
     EndpointReconService,
     EndpointReconStore,
+    EvidenceAssertionMaterializationLimits,
+    EvidenceAssertionMaterializationRecoveryRequired,
+    EvidenceAssertionMaterializationRejected,
+    EvidenceAssertionMaterializationService,
+    EvidenceAssertionMaterializationState,
+    EvidenceAssertionMaterializationStore,
+    EvidenceAssertionMaterializationTimedOut,
+    EvidenceAssessmentLimits,
+    EvidenceAssessmentService,
+    EvidenceAssessmentStore,
+    EvidenceAssessmentVerdict,
+    EvidenceFactKind,
+    EvidenceFactVerdict,
     GraphQlQueryFieldDiscovery,
     GraphQlSchemaObservationLimits,
     GraphQlSchemaObservationRecoveryRequired,
@@ -621,6 +634,305 @@ def test_graphql_query_field_schema_cannot_grant_execution_or_disclose_arguments
                 "argument_names": ["id"],
             }
         )
+
+
+def _materialization_runtime(tmp_path, approved_scope, now, body, *, monotonic=None):
+    _, red_store, endpoint_store, openapi_store, endpoint_plan, transport = _runtime(
+        tmp_path, approved_scope, now, raw_json=body
+    )
+    store = EvidenceAssertionMaterializationStore(
+        tmp_path / "assertion-materialization.sqlite3"
+    )
+    service = EvidenceAssertionMaterializationService(
+        red_team_store=red_store,
+        endpoint_recon_store=endpoint_store,
+        materialization_store=store,
+        evidence_store=EvidenceStore(tmp_path / "evidence"),
+        **({"monotonic": monotonic} if monotonic is not None else {}),
+    )
+    return (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        transport,
+    )
+
+
+def _prepare_materialization(service, endpoint_plan, scope, now, *, limits=None):
+    return service.prepare(
+        endpoint_recon_plan_id=endpoint_plan.endpoint_recon_plan_id,
+        scope=scope,
+        limits=limits or EvidenceAssertionMaterializationLimits(),
+        now=now + timedelta(seconds=1),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b3.2:materialize",
+    )
+
+
+def _close_materialization(red_store, endpoint_store, openapi_store, store):
+    red_store.close()
+    endpoint_store.close()
+    openapi_store.close()
+    store.close()
+
+
+def test_sealed_redacted_get_materializes_bounded_assertions_only(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps(
+        {"records": [{"email": "[REDACTED]", "display": "fixture-user"}]},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        transport,
+    ) = _materialization_runtime(tmp_path, approved_scope, now, body)
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    outcome = service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=1)
+    )
+
+    materialization = outcome.materialization
+    by_fact = {item.fact: item for item in materialization.assertions}
+    assert len(by_fact) == 6
+    assert (
+        by_fact[EvidenceFactKind.SENSITIVE_DATA_CLASS_PRESENT].verdict
+        is EvidenceFactVerdict.SUPPORTED
+    )
+    assert materialization.matched_field_count == 1
+    assert materialization.raw_values_retained is False
+    assert materialization.field_names_retained is False
+    assert materialization.request_execution_authorized is False
+    assert materialization.candidate_proposal_eligible is False
+    assert materialization.finding_authorized is False
+    encoded = materialization.model_dump_json()
+    assert "fixture-user" not in encoded
+    assert "email" not in encoded
+    assert len(transport.calls) == 1
+    assert service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=2)
+    ) == outcome
+    assert store.state(plan.plan_id) == (
+        EvidenceAssertionMaterializationState.COMPLETED,
+        1,
+    )
+
+    assessment_store = EvidenceAssessmentStore(tmp_path / "assessment.sqlite3")
+    assessment_service = EvidenceAssessmentService(
+        store=assessment_store,
+        evidence_store=EvidenceStore(tmp_path / "evidence"),
+    )
+    assessment_plan = assessment_service.prepare(
+        target_id=plan.target_id,
+        target_version=plan.target_version,
+        scope=approved_scope,
+        assertions=materialization.assertions,
+        limits=EvidenceAssessmentLimits(),
+        now=now + timedelta(seconds=2),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b3.2:partial-assessment",
+    )
+    assessment = assessment_service.execute(
+        assessment_plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=3),
+    ).assessment
+    assert assessment.verdict is EvidenceAssessmentVerdict.INCONCLUSIVE
+    assert assessment.cleanup_requirement_satisfied is True
+    assert assessment.candidate_proposal_eligible is False
+    assert EvidenceFactKind.INDEPENDENT_REPLAY_MATCHED in assessment.unresolved_facts
+    assert EvidenceFactKind.ACCESS_CONTROL_ENFORCED in assessment.unresolved_facts
+    assessment_store.close()
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+
+def test_absence_is_inconclusive_and_unredacted_sensitive_value_is_rejected(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps({"status": "ok"}, sort_keys=True, separators=(",", ":"))
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _materialization_runtime(tmp_path / "absent", approved_scope, now, body)
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    materialization = service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=1)
+    ).materialization
+    assert (
+        materialization.sensitive_data_presence
+        is EvidenceFactVerdict.INCONCLUSIVE
+    )
+    assert materialization.matched_field_count == 0
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+    body = json.dumps(
+        {"email": "synthetic-unredacted-value"},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _materialization_runtime(tmp_path / "unsafe", approved_scope, now, body)
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    with pytest.raises(EvidenceAssertionMaterializationRejected, match="not redacted"):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    assert store.state(plan.plan_id) is None
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+
+def test_materializer_rejects_malformed_or_over_budget_json(
+    tmp_path, approved_scope, now
+):
+    cases = (
+        ('{"email":"[REDACTED]","email":"[REDACTED]"}', None, "duplicate"),
+        (
+            json.dumps({"outer": {"email": "[REDACTED]"}}),
+            EvidenceAssertionMaterializationLimits(max_depth=2),
+            "structure budget",
+        ),
+    )
+    for index, (body, limits, message) in enumerate(cases):
+        (
+            service,
+            red_store,
+            endpoint_store,
+            openapi_store,
+            store,
+            endpoint_plan,
+            _,
+        ) = _materialization_runtime(
+            tmp_path / str(index), approved_scope, now, body
+        )
+        plan = _prepare_materialization(
+            service,
+            endpoint_plan,
+            approved_scope,
+            now,
+            limits=limits,
+        )
+        with pytest.raises(EvidenceAssertionMaterializationRejected, match=message):
+            service.execute(
+                plan, scope=approved_scope, now=now + timedelta(seconds=1)
+            )
+        assert store.state(plan.plan_id) is None
+        _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+
+def test_materializer_timeout_binding_and_started_recovery(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps({"email": "[REDACTED]"})
+    ticks = iter((0.0, 11.0))
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _materialization_runtime(
+        tmp_path / "timeout",
+        approved_scope,
+        now,
+        body,
+        monotonic=lambda: next(ticks),
+    )
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    with pytest.raises(EvidenceAssertionMaterializationTimedOut):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    assert store.state(plan.plan_id) is None
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _materialization_runtime(
+        tmp_path / "recovery", approved_scope, now, body
+    )
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    values = plan.model_dump(mode="python", exclude={"plan_id"})
+    values["limits"] = plan.limits
+    values["source_checkpoint_id"] = "f" * 64
+    drifted = type(plan).create(**values)
+    with pytest.raises(EvidenceAssertionMaterializationRejected, match="binding drifted"):
+        service.execute(
+            drifted, scope=approved_scope, now=now + timedelta(seconds=1)
+        )
+    assert store.state(drifted.plan_id) is None
+
+    store.claim(plan, now=now + timedelta(seconds=1))
+    with pytest.raises(
+        EvidenceAssertionMaterializationRecoveryRequired, match="unfinished"
+    ):
+        service.execute(plan, scope=approved_scope, now=now + timedelta(seconds=1))
+    outcome = service.recover(
+        plan, scope=approved_scope, now=now + timedelta(seconds=2)
+    )
+    assert outcome.attempt == 2
+    assert outcome.cleanup_complete is True
+    assert store.state(plan.plan_id) == (
+        EvidenceAssertionMaterializationState.COMPLETED,
+        2,
+    )
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
+
+
+def test_materialization_schema_cannot_retain_raw_data_or_grant_authority(
+    tmp_path, approved_scope, now
+):
+    body = json.dumps({"email": "[REDACTED]"})
+    (
+        service,
+        red_store,
+        endpoint_store,
+        openapi_store,
+        store,
+        endpoint_plan,
+        _,
+    ) = _materialization_runtime(tmp_path, approved_scope, now, body)
+    plan = _prepare_materialization(service, endpoint_plan, approved_scope, now)
+    materialization = service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=1)
+    ).materialization
+    with pytest.raises(ValidationError):
+        type(materialization).model_validate(
+            materialization.model_dump(mode="python")
+            | {
+                "raw_values_retained": True,
+                "field_names_retained": True,
+                "request_execution_authorized": True,
+                "candidate_proposal_eligible": True,
+                "finding_authorized": True,
+                "raw_values": ["forbidden"],
+            }
+        )
+    _close_materialization(red_store, endpoint_store, openapi_store, store)
 
 
 def _promotion_runtime(tmp_path, approved_scope, now, *, document=None):

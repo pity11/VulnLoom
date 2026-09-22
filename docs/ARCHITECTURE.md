@@ -186,6 +186,18 @@ Critic 和 Cleanup 四层。Assertion 只携带 fact、三态 verdict、Evidence
 结论固定 `finding_authorized=false`、`test_execution_authorized=false`，因此只给后续 Candidate proposal 提供资格，
 不会创建 Candidate、执行测试或绕过共享 Validation/Critic/Finding Gate。
 
+### B3.2 authoritative Evidence Assertion materialization
+
+B3.2 把一条权威 B2.1 sealed GET 降维成 B3.1 可消费的有限 Assertion batch。Plan 精确绑定 Endpoint Plan/outcome、
+当前 Flow checkpoint、Observation、`WebResponseSnapshot`、Evidence、正文摘要、Target、Scope/version 与固定分类器
+digest；服务在 prepare、execute 和 complete 时重读整条来源链。它没有 HTTP adapter，因此不会重放或新增请求。
+
+固定 JSON 分类器受 64 KiB、节点、深度、object-key 和墙钟预算约束，只认可固定敏感字段下已经变成
+`[REDACTED]` 的值。未命中得到 `INCONCLUSIVE`，不会被当作无敏感数据的负证据；敏感外观字段携带非空未脱敏值、
+重复 key、正文摘要漂移或结构超限均 fail-closed。投影只保留计数、digest 和六项 Assertion，不保留字段名或值。
+其中 Observation、redaction-boundary 与 Cleanup 来源事实可被物化，但独立 replay 与 Critic 仍缺失，因此把该 batch
+直接送入 B3.1 Assessment 必然保持不确定，不能自证 Candidate 资格。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

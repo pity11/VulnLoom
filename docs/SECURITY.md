@@ -207,6 +207,20 @@ fixture 或环境/版本错配任一反证成立则记录负例。协议固定�
 状态。解析/校验在 STARTED 前完成；超时、Scope 漂移、Evidence 缺失和重复事实无部分结果，遗留 STARTED 最多恢复
 三次。
 
+### 1.9 B3.2 authoritative Assertion materialization confinement
+
+Assertion materializer 没有网络、模型、请求或 Candidate/Finding 写接口，只能消费一条成功、无凭据、禁重定向且
+cleanup-proven 的权威 sealed GET。Plan 封存 Endpoint outcome、最新 checkpoint、Observation、Web Snapshot、
+Evidence/body digest、Target、Scope/version 和固定 classifier digest；任一来源、Scope、Evidence 或正文漂移均在
+写 STARTED 前拒绝。
+
+分类器只处理预算内 JSON，并且只有固定敏感字段的值已经是精确 `[REDACTED]` 时才产生 supported presence；字段
+缺失保持 inconclusive，非空未脱敏值直接拒绝且绝不进入异常文本或输出。Materialization schema 固定
+`raw_values_retained=false`、`field_names_retained=false`、`request_execution_authorized=false`、
+`candidate_proposal_eligible=false` 和 `finding_authorized=false`。它最多证明 sealed GET、无认证请求、redaction
+边界、只读与无残留来源事实，不能生成独立 replay 或 Critic Assertion。超时/拒绝无部分 batch，遗留 STARTED 仅
+允许最多三次显式恢复。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

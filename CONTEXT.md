@@ -100,6 +100,10 @@ _Avoid_: Exploit recipe, Scanner signature, Finding template
 把一组脱敏 Evidence Assertion 对照一个 Vulnerability Evidence Requirement 得到的内容寻址结论；结论只能是 Candidate 资格、负例或不确定，不能直接成为 Finding。
 _Avoid_: Vulnerability confirmation, Auto-promotion, Model verdict
 
+**Evidence Assertion Materialization**：
+可信控制面从权威 Observation 和已脱敏 Evidence 生成有限 Evidence Assertion 的过程；它证明来源与结构事实，不替代独立 Validation 或 Critic。
+_Avoid_: Finding extraction, Self-validation, Exploit result
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

@@ -1233,6 +1233,15 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   coverage，473 份 schema；无公网、真实模型、请求或真实攻击。B3 保持进行中，下一纵切为 B3.2 authoritative
   Evidence Assertion materialization。
 
+- B3.2 已达到 `offline_tested`。内容寻址 materializer 只消费一条权威、成功、无凭据、禁重定向且
+  cleanup-proven 的 sealed GET，Plan 绑定 Endpoint outcome、最新 checkpoint、Observation、Web Snapshot、Evidence、
+  body digest、Target、Scope/version 和固定 classifier。预算化 JSON reducer 只承认已变为 `[REDACTED]` 的固定敏感
+  字段值；未命中保持 inconclusive，未脱敏值、重复 key、结构超限和来源漂移 fail-closed。输出只有计数、digest 与
+  六项 Observation/redaction/Cleanup Assertion，固定不保留字段/值、不授予请求、Candidate 或 Finding 权限；送入
+  B3.1 后仍因独立 replay 和 Critic 缺失而保持 inconclusive。ledger 覆盖幂等、超时无部分结果、STARTED 恢复和
+  cleanup proof。全量门禁为 1664 passed、43 skipped、85.38% coverage，477 份 schema；无公网、真实模型、新请求
+  或真实攻击。B3 保持进行中，下一纵切为 B3.3 independent sealed replay Validation Assertion。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

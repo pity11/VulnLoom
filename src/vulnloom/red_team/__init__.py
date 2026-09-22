@@ -1,5 +1,23 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .assertion_materialization_models import (
+    SENSITIVE_ASSERTION_CLASSIFIER_DIGEST,
+    EvidenceAssertionMaterialization,
+    EvidenceAssertionMaterializationLimits,
+    EvidenceAssertionMaterializationOutcome,
+    EvidenceAssertionMaterializationPlan,
+    EvidenceAssertionMaterializationState,
+)
+from .assertion_materialization_service import (
+    EvidenceAssertionMaterializationRejected,
+    EvidenceAssertionMaterializationService,
+    EvidenceAssertionMaterializationTimedOut,
+)
+from .assertion_materialization_store import (
+    EvidenceAssertionMaterializationRecoveryRequired,
+    EvidenceAssertionMaterializationStore,
+    EvidenceAssertionMaterializationStoreRejected,
+)
 from .attack_live import (
     AttackActionHttpBinding,
     IsolatedAttackChainAdmission,
@@ -379,6 +397,17 @@ __all__ = [
     "consume_endpoint_recon_request",
     "expire_endpoint_recon",
     "AttackSurfaceSnapshot",
+    "EvidenceAssertionMaterialization",
+    "EvidenceAssertionMaterializationLimits",
+    "EvidenceAssertionMaterializationOutcome",
+    "EvidenceAssertionMaterializationPlan",
+    "EvidenceAssertionMaterializationRecoveryRequired",
+    "EvidenceAssertionMaterializationRejected",
+    "EvidenceAssertionMaterializationService",
+    "EvidenceAssertionMaterializationState",
+    "EvidenceAssertionMaterializationStore",
+    "EvidenceAssertionMaterializationStoreRejected",
+    "EvidenceAssertionMaterializationTimedOut",
     "AttackSurfaceServiceIdentity",
     "AttackSurfaceEndpoint",
     "AttackSurfaceInventory",
@@ -465,6 +494,7 @@ __all__ = [
     "RulesOfEngagement",
     "ServiceIdentitySnapshot",
     "ServiceTlsVersion",
+    "SENSITIVE_ASSERTION_CLASSIFIER_DIGEST",
     "WebResponseSnapshot",
     "VulnerabilityClass",
     "VulnerabilityEvidenceRequirement",

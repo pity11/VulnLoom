@@ -408,7 +408,9 @@ Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准�
 路径 GET，B2.2 已把已封存 OpenAPI 文档降为无执行权的摘要发现，B2.3 已完成显式人工选择与原子 Seed promotion，
 B2.4 已把 sealed GraphQL SDL 降为无执行权、无参数披露的 Query field 摘要。B2 至此达到 `offline_tested` 并关闭；
 B3.1 已为未认证敏感数据暴露固定首个版本化 Evidence Requirement，并以确定性 Assessment 区分 Candidate 资格、
-负例和不确定，仍不创建 Candidate 或 Finding。下一步 B3.2 从权威 sealed Observation 物化该合同所需的脱敏
-Assertion，不直接开放任意 query、POST 或状态变更测试。之后才推进受控测试身份和隔离靶场 A3/A4 资格。任何新
+负例和不确定，仍不创建 Candidate 或 Finding。B3.2 已从权威 sealed GET 物化脱敏 Observation/redaction/Cleanup
+Assertion，并证明单批来源不能自证独立 replay 或 Critic。下一步 B3.3 只比较两份独立 sealed GET 来源并物化
+replay Validation Assertion，不直接开放任意 query、POST 或状态变更测试。之后才推进受控测试身份和隔离靶场
+A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 Target 扩展、真实第三方账户、横向移动或持久化。

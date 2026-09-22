@@ -194,10 +194,11 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B3.2 authoritative Evidence Assertion materialization 纵切**。A1 通用 Project Recipe
-Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；B3.1
-已达到 `offline_tested`。B3.2 只从权威 sealed Observation 与脱敏 Evidence 生成 B3.1 合同所需的 Assertion，不开放
-任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B3.3 independent sealed replay Validation Assertion 纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
+B3.1-B3.2 已达到 `offline_tested`。B3.3 只比较两份独立、权威的 sealed GET materialization，生成 B3.1 所需的
+replay Validation Assertion；不开放任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的
+用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -350,3 +351,14 @@ context 和 Evidence。确定性 reducer 输出 Candidate 资格、负例或不�
 cleanup proof；Scope 漂移和 Evidence 缺失 fail-closed。本轮未访问公网、未调用真实模型、未执行请求或攻击。
 全量门禁为 1659 passed、43 skipped、85.39% coverage；473 份 schema、Ruff、红队专项和 diff check 通过。
 B3 保持进行中，下一项为 B3.2 authoritative Evidence Assertion materialization。
+
+进展记录（2026-09-22）：B3.2 达到 `offline_tested`。新增 `Evidence Assertion Materialization` 领域术语与内容
+寻址 Plan/Materialization/Outcome；服务从权威 Endpoint Plan/outcome、最新 Flow checkpoint、Observation、
+Web Snapshot 和 Evidence 重建单一成功、无凭据、禁重定向、cleanup-proven 的 GET 来源，不持有网络 adapter。
+固定 classifier 仅解析 64 KiB 内的 JSON，限制节点、深度、object key 和墙钟；只有固定敏感字段的值已经精确脱敏
+为 `[REDACTED]` 才支持 sensitive-presence，未命中保持 inconclusive，非空未脱敏值、重复 key、摘要漂移与结构超限
+均拒绝。输出只含计数、digest 和六项 Observation/redaction/Cleanup Assertion，固定不保留字段名/值、不授予请求、
+Candidate 或 Finding 权限。端到端回归证明该 batch 进入 B3.1 Assessment 后仍因缺少独立 replay 与 Critic 而保持
+inconclusive。独立 ledger 覆盖幂等、来源漂移、超时无部分结果、STARTED 恢复和 cleanup proof。本轮未访问公网、
+未调用真实模型、未执行新请求或攻击。全量门禁为 1664 passed、43 skipped、85.38% coverage；477 份 schema、
+Ruff、红队专项和 diff check 通过。B3 保持进行中，下一项为 B3.3 independent sealed replay Validation Assertion。
