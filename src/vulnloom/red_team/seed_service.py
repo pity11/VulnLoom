@@ -118,6 +118,35 @@ class EndpointReconService:
         expires_at: datetime,
         idempotency_key: str,
     ) -> EndpointSeedSet:
+        seed_set = self.build_seed_set(
+            flow_plan=flow_plan,
+            checkpoint=checkpoint,
+            scope=scope,
+            operator_ref=operator_ref,
+            paths=paths,
+            now=now,
+            expires_at=expires_at,
+            idempotency_key=idempotency_key,
+        )
+        try:
+            return self.recon_store.seal(seed_set)
+        except EndpointSeedIdempotencyConflict as exc:
+            raise EndpointReconRejected(str(exc)) from exc
+
+    def build_seed_set(
+        self,
+        *,
+        flow_plan: RedTeamFlowPlan,
+        checkpoint: RedTeamCheckpoint,
+        scope: Scope,
+        operator_ref: str,
+        paths: tuple[str, ...],
+        now: datetime,
+        expires_at: datetime,
+        idempotency_key: str,
+    ) -> EndpointSeedSet:
+        """Validate and construct a Seed Set without publishing it."""
+
         self._running(flow_plan, checkpoint, scope, now)
         if len(paths) != len(set(paths)):
             raise EndpointReconRejected("Endpoint Seed Set contains duplicate paths")
@@ -143,10 +172,7 @@ class EndpointReconService:
             expires_at=expires_at,
             idempotency_key=idempotency_key,
         )
-        try:
-            return self.recon_store.seal(seed_set)
-        except EndpointSeedIdempotencyConflict as exc:
-            raise EndpointReconRejected(str(exc)) from exc
+        return seed_set
 
     def prepare(
         self,

@@ -150,6 +150,17 @@ class OpenApiObservationStore:
             )
         return OpenApiDocumentObservationOutcome.model_validate_json(row["outcome_json"])
 
+    def plan(self, plan_id: str) -> OpenApiDocumentObservationPlan:
+        row = self.connection.execute(
+            "SELECT plan_json FROM red_team_openapi_observations WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise OpenApiObservationRecoveryRequired(
+                "OpenAPI observation plan is unavailable"
+            )
+        return OpenApiDocumentObservationPlan.model_validate_json(row["plan_json"])
+
     def _by_identity(self, plan: OpenApiDocumentObservationPlan) -> sqlite3.Row:
         row = self.connection.execute(
             "SELECT * FROM red_team_openapi_observations "

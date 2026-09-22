@@ -84,6 +84,10 @@ _Avoid_: Finding, Vulnerability, Model assessment
 由操作员封存、绑定精确 Flow checkpoint 和 Scope 版本的有限规范路径集合；它不是 crawler、字典或资产发现输入。
 _Avoid_: Crawl frontier, Wordlist, Discovered URLs
 
+**OpenAPI Discovery Promotion**：
+操作员把已封存 OpenAPI Observation 中明确选中的 path discovery 具体化并重新封存为 Endpoint Seed Set 的决定；它只赋予 seed 资格，不授予请求执行权或 Target 扩展权。
+_Avoid_: Auto-enrollment, Crawl expansion, Executable discovery
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

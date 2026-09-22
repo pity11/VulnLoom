@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "selection_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selection Id",
+      "type": "string"
+    },
+    "discovery_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Discovery Id",
+      "type": "string"
+    },
+    "concrete_path": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Concrete Path",
+      "type": "string"
+    },
+    "concrete_path_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Concrete Path Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "selection_id",
+    "discovery_id",
+    "concrete_path",
+    "concrete_path_digest"
+  ],
+  "title": "OpenApiDiscoverySelection",
+  "type": "object"
+}

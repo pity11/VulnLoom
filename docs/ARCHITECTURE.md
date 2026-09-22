@@ -151,6 +151,16 @@ path、operation、server 和时间预算 fail-closed。
 Path Discovery 固定无执行权且不能声明 URL/Target。单独的 STARTED/COMPLETED ledger 提供幂等与有界恢复；后续若
 要形成 Endpoint Seed，必须经过独立的人工 review/promotion 边界，不能由 reducer 自动完成。
 
+### B2.3 reviewed discovery promotion
+
+B2.3 的 Promotion Plan 把 completed OpenAPI Observation、当前 Flow checkpoint、Scope/version、operator 和逐项
+concrete selection 封存为一个内容寻址决定。Control Plane 从权威 store 重读来源，要求 discovery 至少声明
+GET/HEAD，逐段验证 concrete path 与 template，并再次通过既有 Endpoint Seed canonicalization 和 Policy。
+
+Promotion ledger 与 Endpoint Seed 表位于同一 SQLite transaction boundary。STARTED checkpoint 本身不产生 Seed；
+只有 Outcome 与新 Seed Set 原子提交后才可被 Endpoint Recon 读取。Seed Set 仍只是计划输入，后续 Endpoint Plan
+会独立检查当前 checkpoint、Scope、动作预算和方法，Promotion 不直接触发 Broker 或网络。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

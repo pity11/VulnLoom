@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "OpenApiDiscoveryPromotionLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_selections": {
+          "default": 100,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Selections",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "OpenApiDiscoveryPromotionLimits",
+      "type": "object"
+    },
+    "OpenApiDiscoverySelection": {
+      "additionalProperties": false,
+      "properties": {
+        "selection_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Selection Id",
+          "type": "string"
+        },
+        "discovery_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Discovery Id",
+          "type": "string"
+        },
+        "concrete_path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Concrete Path",
+          "type": "string"
+        },
+        "concrete_path_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Concrete Path Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selection_id",
+        "discovery_id",
+        "concrete_path",
+        "concrete_path_digest"
+      ],
+      "title": "OpenApiDiscoverySelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "openapi_observation_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Openapi Observation Plan Id",
+      "type": "string"
+    },
+    "openapi_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Openapi Observation Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "operator_ref": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Operator Ref",
+      "type": "string"
+    },
+    "selections": {
+      "items": {
+        "$ref": "#/$defs/OpenApiDiscoverySelection"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Selections",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/OpenApiDiscoveryPromotionLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "seed_set_expires_at": {
+      "format": "date-time",
+      "title": "Seed Set Expires At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "promotion_plan_id",
+    "openapi_observation_plan_id",
+    "openapi_observation_id",
+    "flow_plan_id",
+    "source_checkpoint_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "operator_ref",
+    "selections",
+    "limits",
+    "created_at",
+    "deadline",
+    "seed_set_expires_at",
+    "idempotency_key"
+  ],
+  "title": "OpenApiDiscoveryPromotionPlan",
+  "type": "object"
+}

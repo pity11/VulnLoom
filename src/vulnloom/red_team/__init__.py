@@ -108,6 +108,23 @@ from .openapi_models import (
     OpenApiObservationState,
     OpenApiPathDiscovery,
 )
+from .openapi_promotion_models import (
+    OpenApiDiscoveryPromotionLimits,
+    OpenApiDiscoveryPromotionOutcome,
+    OpenApiDiscoveryPromotionPlan,
+    OpenApiDiscoveryPromotionState,
+    OpenApiDiscoverySelection,
+)
+from .openapi_promotion_service import (
+    OpenApiDiscoveryPromotionRejected,
+    OpenApiDiscoveryPromotionService,
+    OpenApiDiscoveryPromotionTimedOut,
+)
+from .openapi_promotion_store import (
+    OpenApiDiscoveryPromotionRecoveryRequired,
+    OpenApiDiscoveryPromotionStore,
+    OpenApiDiscoveryPromotionStoreRejected,
+)
 from .openapi_service import (
     OpenApiObservationRejected,
     OpenApiObservationService,
@@ -331,6 +348,17 @@ __all__ = [
     "OpenApiDocumentObservation",
     "OpenApiDocumentObservationOutcome",
     "OpenApiDocumentObservationPlan",
+    "OpenApiDiscoveryPromotionLimits",
+    "OpenApiDiscoveryPromotionOutcome",
+    "OpenApiDiscoveryPromotionPlan",
+    "OpenApiDiscoveryPromotionRecoveryRequired",
+    "OpenApiDiscoveryPromotionRejected",
+    "OpenApiDiscoveryPromotionService",
+    "OpenApiDiscoveryPromotionState",
+    "OpenApiDiscoveryPromotionStore",
+    "OpenApiDiscoveryPromotionStoreRejected",
+    "OpenApiDiscoveryPromotionTimedOut",
+    "OpenApiDiscoverySelection",
     "OpenApiHttpMethod",
     "OpenApiObservationLimits",
     "OpenApiObservationRecoveryRequired",

@@ -389,11 +389,24 @@ adapter 或 Target 扩展接口，因此不会访问或信任文档声明的外�
 STARTED 恢复和完成态内容一致性。离线测试覆盖成功、拒绝、结构预算、超时、恢复、schema 注入与无部分结果。
 B2.2 达到 `offline_tested`，不等同于生产支持，也没有新增 live CLI 开关。
 
+## B2.3 reviewed OpenAPI discovery promotion
+
+B2.3 把“发现”与“加入 Seed Set”之间建模为独立人工审核边界。`OpenApiDiscoveryPromotionPlan` 绑定 completed
+OpenAPI Observation、当前 Flow checkpoint、Target、Scope/version、操作员身份和显式 selection。每个 selection
+引用权威 discovery ID；参数化 path template 必须由操作员给出一个 canonical concrete path，并逐段匹配。未选项、
+未知 ID、模板错配、重复路径、外部 URL 和没有 GET/HEAD 的 discovery 均不能晋升。
+
+Promotion ledger 与 `endpoint_seed_sets` 使用同一 SQLite connection。claim 只写 STARTED，不发布 Seed；完成事务
+同时写入新的 `EndpointSeedSet` 和内容寻址 Outcome，因此崩溃或超时不会留下“promotion 未完成但 Seed 已可用”的
+中间状态。遗留 STARTED 需显式恢复且最多三次；完成态幂等重放必须得到相同 Seed Set。晋升后的 Seed 仍不含执行权，
+后续请求必须重新经过 Endpoint Plan、动作预算、Scope/Policy 和既有 Broker 边界。离线纵切已证明具体化路径可进入
+HEAD 计划，但没有执行请求，也没有新增 live CLI。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
-路径 GET，B2.2 已把已封存 OpenAPI 文档降为无执行权的摘要发现。下一步是显式人工选择并重新封存 discovery 的
-promotion gate；未选择项不得进入 Seed Set。之后才推进 GraphQL 观察、按漏洞类别版本化 Evidence Requirement、
-受控测试身份和隔离靶场 A3/A4 资格。任何新
+路径 GET，B2.2 已把已封存 OpenAPI 文档降为无执行权的摘要发现，B2.3 已完成显式人工选择与原子 Seed promotion。
+下一步是无网络的 sealed GraphQL schema observation；不开放任意 query 或 POST。之后才推进按漏洞类别版本化
+Evidence Requirement、受控测试身份和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 Target 扩展、真实第三方账户、横向移动或持久化。

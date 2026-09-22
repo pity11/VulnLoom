@@ -1207,6 +1207,14 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   STARTED 恢复和 cleanup proof。全量门禁为 1637 passed、43 skipped、85.47% coverage，458 份 schema；无公网、
   真实模型或真实攻击。B2 保持进行中，下一纵切为 B2.3 reviewed OpenAPI discovery promotion gate。
 
+- B2.3 已达到 `offline_tested`。`OpenAPI Discovery Promotion` 把 completed Observation、当前 Flow checkpoint、
+  Scope/version、operator 与显式 concrete selection 封存为内容寻址 Plan。只有具有 GET/HEAD 的权威 discovery
+  可被逐项具体化；未选/未知项、模板错配、外部 URL、重复路径和状态变更-only operation 均拒绝。Promotion
+  STARTED ledger 与 Endpoint Seed publication 共享 SQLite transaction，Outcome 与新 Seed Set 原子提交；超时
+  没有部分 Seed，恢复最多三次，重放不重复发布。离线纵切继续生成 promoted HEAD Plan 而没有执行网络请求。
+  全量门禁为 1643 passed、43 skipped、85.50% coverage，462 份 schema；无公网、真实模型或真实攻击。B2 保持
+  进行中，下一纵切为 B2.4 sealed GraphQL schema observation。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

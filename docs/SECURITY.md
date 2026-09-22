@@ -172,6 +172,15 @@ Plan 绑定 Endpoint outcome、Flow checkpoint、Observation、Web Snapshot、Sc
 固定 `execution_authorized=false`，Observation 固定 `target_expansion_authorized=false`，因此解析结果不能成为隐式
 Target、Seed 或 Action。STARTED checkpoint 只在完整解析成功后写入，超时/拒绝不留下部分权限或部分结果。
 
+### 1.6 B2.3 reviewed discovery promotion confinement
+
+OpenAPI discovery 只有经操作员逐项选择并将 path template 具体化后，才可成为 Endpoint Seed。Promotion Plan 绑定
+权威 completed Observation、当前 checkpoint、Target 与 Scope/version；未知/未选 discovery、模板错配、非规范
+path、外部 URL、重复选择和没有 GET/HEAD 的 operation 均 fail-closed。文档 `servers` 和 `$ref` 不在协议中，
+无法成为 authority。Promotion 的 STARTED ledger 与 Seed publication 共用 Endpoint Recon SQLite 边界，完成事务
+原子写入 Seed Set 与 Outcome；超时或崩溃时不会暴露部分 Seed。新 Seed 不等于 Action，执行仍必须重新经过预算、
+Scope/Policy、Endpoint Plan 和 Broker。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

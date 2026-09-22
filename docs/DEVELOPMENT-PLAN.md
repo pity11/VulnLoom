@@ -2,7 +2,7 @@
 
 状态：`ACTIVE`
 
-更新日期：`2026-09-21`
+更新日期：`2026-09-22`
 
 ## 1. 文档作用与权威顺序
 
@@ -194,10 +194,10 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B2.3 reviewed OpenAPI discovery promotion gate 首个纵切**。A1 通用 Project Recipe
-Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1、B2.2 已达到
-`offline_tested`。B2.3 只能把操作员明确选中的 discovery 重新封存为新的 Endpoint Seed Set，不得自动执行、
-隐式扩展 Target 或继承文档中的 server authority。只有出现新的用户优先级决定，才从其他里程碑开始。
+当前下一项工作固定为 **B2.4 sealed GraphQL schema observation 首个纵切**。A1 通用 Project Recipe
+Registry、B1 Observation-driven bounded replanning 与 Shared Assurance S1 已关闭；B2.1-B2.3 已达到
+`offline_tested`。B2.4 先做无网络的封存 GraphQL schema reducer，不开放任意 query、POST、introspection 请求或
+自动 Target 扩展。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -319,3 +319,13 @@ JSON，拒绝重复 key、非规范 path、未知结构、超深/超量文档和
 结果语义由事务 ledger 约束。本轮未访问公网、未调用真实模型、未执行真实攻击，也未新增 live CLI 开关。
 全量门禁为 1637 passed、43 skipped、85.47% coverage；458 份 schema、Ruff 和专项红队回归通过。B2 保持进行中，
 下一项为 B2.3 reviewed discovery promotion gate。
+
+进展记录（2026-09-22）：B2.3 达到 `offline_tested`。新增领域术语 `OpenAPI Discovery Promotion`，明确它只授予
+seed 资格而非请求执行权。内容寻址 Promotion Plan 绑定 completed OpenAPI Observation、当前 Flow checkpoint、
+Target、Scope/version、操作员和逐项 selection；模板参数必须由操作员具体化为 canonical exact path，未选路径、
+未知 discovery、模板错配和只含状态变更 method 的 discovery 均拒绝。Promotion ledger 与 `endpoint_seed_sets`
+共享同一 SQLite 事务：STARTED 阶段不发布 Seed，完成时 Seed Set 与 Outcome 原子写入；超时留下可恢复 checkpoint
+但没有部分可用 Seed，恢复最多三次，完成态重放不重复发布。新 Seed Set 仍需另行生成有预算 Endpoint Plan，测试
+证明 promoted path 可进入 HEAD 计划且没有新增网络调用。本轮未访问公网、未调用真实模型、未执行真实攻击。
+全量门禁为 1643 passed、43 skipped、85.50% coverage；462 份 schema、Ruff、红队专项和 diff check 通过。
+B2 保持进行中，下一项为 B2.4 sealed GraphQL schema observation。

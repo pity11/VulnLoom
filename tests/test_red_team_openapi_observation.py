@@ -17,6 +17,14 @@ from vulnloom.red_team import (
     EndpointReconStore,
     IsolatedLocalHttpReconAdapter,
     IsolatedLocalReconAdmission,
+    OpenApiDiscoveryPromotionLimits,
+    OpenApiDiscoveryPromotionRecoveryRequired,
+    OpenApiDiscoveryPromotionRejected,
+    OpenApiDiscoveryPromotionService,
+    OpenApiDiscoveryPromotionState,
+    OpenApiDiscoveryPromotionStore,
+    OpenApiDiscoveryPromotionStoreRejected,
+    OpenApiDiscoveryPromotionTimedOut,
     OpenApiObservationLimits,
     OpenApiObservationRecoveryRequired,
     OpenApiObservationRejected,
@@ -86,7 +94,7 @@ def _runtime(tmp_path, approved_scope, now, *, document=None, raw_json=None):
         target_url="https://app.example.test/",
         visibility=Visibility.BLACK_BOX,
         allowed_test_classes=("read_only",),
-        max_actions=2,
+        max_actions=4,
         max_consecutive_failures=2,
         emergency_contact_ref="contact:openapi-owner",
         now=now,
@@ -383,3 +391,367 @@ def test_openapi_discovery_schema_cannot_grant_execution():
             discovery.model_dump(mode="python")
             | {"execution_authorized": True, "target_url": "https://outside.example/"}
         )
+
+
+def _promotion_runtime(tmp_path, approved_scope, now, *, document=None):
+    (
+        observation_service,
+        red_store,
+        endpoint_store,
+        observation_store,
+        endpoint_plan,
+        transport,
+    ) = _runtime(tmp_path, approved_scope, now, document=document)
+    observation_plan = _prepare(
+        observation_service, endpoint_plan, approved_scope, now
+    )
+    observation_outcome = observation_service.execute(
+        observation_plan,
+        scope=approved_scope,
+        now=now + timedelta(seconds=1),
+    )
+    endpoint_service = EndpointReconService(
+        red_team_store=red_store,
+        recon_store=endpoint_store,
+        evidence_store=EvidenceStore(tmp_path / "evidence"),
+    )
+    promotion_store = OpenApiDiscoveryPromotionStore(endpoint_store)
+    promotion_service = OpenApiDiscoveryPromotionService(
+        red_team_store=red_store,
+        endpoint_recon_service=endpoint_service,
+        observation_store=observation_store,
+        promotion_store=promotion_store,
+    )
+    return (
+        promotion_service,
+        endpoint_service,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        transport,
+    )
+
+
+def _prepare_promotion(
+    service,
+    observation_plan,
+    observation_outcome,
+    scope,
+    now,
+    *,
+    path_template="/users/{user_id}",
+    concrete_path="/users/42",
+    limits=None,
+):
+    discoveries = {
+        item.path_template: item
+        for item in observation_outcome.observation.paths
+    }
+    discovery = discoveries[path_template]
+    return service.prepare(
+        openapi_observation_plan_id=observation_plan.plan_id,
+        scope=scope,
+        operator_ref="operator:openapi-reviewer",
+        selections=((discovery.discovery_id, concrete_path),),
+        limits=limits or OpenApiDiscoveryPromotionLimits(),
+        now=now + timedelta(seconds=2),
+        deadline=now + timedelta(minutes=1),
+        seed_set_expires_at=now + timedelta(minutes=2),
+        idempotency_key="b2:openapi:promotion",
+    )
+
+
+def test_reviewed_discovery_promotion_atomically_publishes_exact_seed(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        endpoint_service,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        transport,
+    ) = _promotion_runtime(tmp_path, approved_scope, now)
+    plan = _prepare_promotion(
+        service,
+        observation_plan,
+        observation_outcome,
+        approved_scope,
+        now,
+    )
+    outcome = service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=2)
+    )
+
+    seed_set = endpoint_store.seed_set(outcome.seed_set_id)
+    assert tuple(seed.path for seed in seed_set.seeds) == ("/users/42",)
+    assert seed_set.source_checkpoint_id == plan.source_checkpoint_id
+    assert seed_set.operator_ref == "operator:openapi-reviewer"
+    assert promotion_store.state(plan.promotion_plan_id) == (
+        OpenApiDiscoveryPromotionState.COMPLETED,
+        1,
+    )
+    assert outcome.cleanup_complete is True
+    assert service.execute(
+        plan, scope=approved_scope, now=now + timedelta(seconds=3)
+    ) == outcome
+    prepared = endpoint_service.prepare(
+        seed_set_id=seed_set.seed_set_id,
+        scope=approved_scope,
+        test_class="read_only",
+        limits=EndpointReconLimits(max_steps=1, max_requests=1),
+        method="HEAD",
+        now=now + timedelta(seconds=3),
+        deadline=now + timedelta(minutes=1),
+        idempotency_key="b2:openapi:promoted-head",
+    )
+    assert prepared.steps[0].target_url == "https://app.example.test/users/42"
+    assert len(transport.calls) == 1
+    _close(red_store, endpoint_store, observation_store)
+
+
+def test_discovery_promotion_rejects_implicit_or_unreviewed_expansion(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        _,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        _,
+    ) = _promotion_runtime(tmp_path, approved_scope, now)
+    discovery = next(
+        item
+        for item in observation_outcome.observation.paths
+        if item.path_template == "/users/{user_id}"
+    )
+    common = dict(
+        openapi_observation_plan_id=observation_plan.plan_id,
+        scope=approved_scope,
+        operator_ref="operator:openapi-reviewer",
+        limits=OpenApiDiscoveryPromotionLimits(),
+        now=now + timedelta(seconds=2),
+        deadline=now + timedelta(minutes=1),
+        seed_set_expires_at=now + timedelta(minutes=2),
+        idempotency_key="b2:openapi:rejected-promotion",
+    )
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="explicit selection"):
+        service.prepare(selections=(), **common)
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="not authoritative"):
+        service.prepare(
+            selections=(("f" * 64, "/users/42"),),
+            **common,
+        )
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="does not match"):
+        service.prepare(
+            selections=((discovery.discovery_id, "/admin/42"),),
+            **common,
+        )
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="does not match"):
+        service.prepare(
+            selections=((discovery.discovery_id, "/users/{user_id}"),),
+            **common,
+        )
+    assert promotion_store.state("f" * 64) is None
+    assert endpoint_store.connection.execute(
+        "SELECT COUNT(*) FROM endpoint_seed_sets"
+    ).fetchone()[0] == 1
+    _close(red_store, endpoint_store, observation_store)
+
+
+def test_discovery_promotion_rejects_non_read_only_document_operation(
+    tmp_path, approved_scope, now
+):
+    document = {
+        "openapi": "3.1.0",
+        "paths": {"/mutate": {"post": {"responses": {"204": {}}}}},
+    }
+    (
+        service,
+        _,
+        red_store,
+        endpoint_store,
+        observation_store,
+        _,
+        observation_plan,
+        observation_outcome,
+        _,
+    ) = _promotion_runtime(tmp_path, approved_scope, now, document=document)
+    discovery = observation_outcome.observation.paths[0]
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="no read-only"):
+        service.prepare(
+            openapi_observation_plan_id=observation_plan.plan_id,
+            scope=approved_scope,
+            operator_ref="operator:openapi-reviewer",
+            selections=((discovery.discovery_id, "/mutate"),),
+            limits=OpenApiDiscoveryPromotionLimits(),
+            now=now + timedelta(seconds=2),
+            deadline=now + timedelta(minutes=1),
+            seed_set_expires_at=now + timedelta(minutes=2),
+            idempotency_key="b2:openapi:post-only",
+        )
+    _close(red_store, endpoint_store, observation_store)
+
+
+def test_discovery_promotion_timeout_is_recoverable_without_partial_seed(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        _,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        _,
+    ) = _promotion_runtime(tmp_path, approved_scope, now)
+    plan = _prepare_promotion(
+        service,
+        observation_plan,
+        observation_outcome,
+        approved_scope,
+        now,
+    )
+    ticks = iter((0.0, 0.0, 11.0))
+    service.monotonic = lambda: next(ticks)
+    with pytest.raises(OpenApiDiscoveryPromotionTimedOut):
+        service.execute(
+            plan, scope=approved_scope, now=now + timedelta(seconds=2)
+        )
+    assert promotion_store.state(plan.promotion_plan_id) == (
+        OpenApiDiscoveryPromotionState.STARTED,
+        1,
+    )
+    assert endpoint_store.connection.execute(
+        "SELECT COUNT(*) FROM endpoint_seed_sets"
+    ).fetchone()[0] == 1
+    service.monotonic = lambda: 0.0
+    with pytest.raises(OpenApiDiscoveryPromotionRecoveryRequired, match="unfinished"):
+        service.execute(
+            plan, scope=approved_scope, now=now + timedelta(seconds=3)
+        )
+
+    outcome = service.recover(
+        plan, scope=approved_scope, now=now + timedelta(seconds=3)
+    )
+    assert outcome.attempt == 2
+    assert endpoint_store.seed_set(outcome.seed_set_id).seeds[0].path == "/users/42"
+    assert endpoint_store.connection.execute(
+        "SELECT COUNT(*) FROM endpoint_seed_sets"
+    ).fetchone()[0] == 2
+    _close(red_store, endpoint_store, observation_store)
+
+
+def test_discovery_promotion_retries_and_idempotency_are_bounded(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        _,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        _,
+    ) = _promotion_runtime(tmp_path, approved_scope, now)
+    plan = _prepare_promotion(
+        service,
+        observation_plan,
+        observation_outcome,
+        approved_scope,
+        now,
+    )
+    assert promotion_store.claim(
+        plan, now=now + timedelta(seconds=2)
+    ).attempt == 1
+    assert promotion_store.recover(
+        plan, now=now + timedelta(seconds=3)
+    ).attempt == 2
+    assert promotion_store.recover(
+        plan, now=now + timedelta(seconds=4)
+    ).attempt == 3
+    with pytest.raises(OpenApiDiscoveryPromotionRecoveryRequired, match="exhausted"):
+        promotion_store.recover(plan, now=now + timedelta(seconds=5))
+
+    health_plan = _prepare_promotion(
+        service,
+        observation_plan,
+        observation_outcome,
+        approved_scope,
+        now,
+        path_template="/health",
+        concrete_path="/health",
+    )
+    health_values = health_plan.model_dump(
+        mode="python", exclude={"promotion_plan_id"}
+    )
+    health_values["limits"] = health_plan.limits
+    health_values["selections"] = health_plan.selections
+    health_values["idempotency_key"] = plan.idempotency_key
+    conflicting = type(plan).create(**health_values)
+    with pytest.raises(OpenApiDiscoveryPromotionStoreRejected, match="different content"):
+        promotion_store.claim(
+            conflicting, now=now + timedelta(seconds=5)
+        )
+    with pytest.raises(OpenApiDiscoveryPromotionRecoveryRequired, match="unavailable"):
+        promotion_store.outcome(plan.promotion_plan_id)
+    assert endpoint_store.connection.execute(
+        "SELECT COUNT(*) FROM endpoint_seed_sets"
+    ).fetchone()[0] == 1
+    _close(red_store, endpoint_store, observation_store)
+
+
+def test_discovery_promotion_plan_cannot_replace_checkpoint_or_add_authority(
+    tmp_path, approved_scope, now
+):
+    (
+        service,
+        _,
+        red_store,
+        endpoint_store,
+        observation_store,
+        promotion_store,
+        observation_plan,
+        observation_outcome,
+        _,
+    ) = _promotion_runtime(tmp_path, approved_scope, now)
+    plan = _prepare_promotion(
+        service,
+        observation_plan,
+        observation_outcome,
+        approved_scope,
+        now,
+    )
+    values = plan.model_dump(mode="python", exclude={"promotion_plan_id"})
+    values["limits"] = plan.limits
+    values["selections"] = plan.selections
+    values["source_checkpoint_id"] = "f" * 64
+    drifted = type(plan).create(**values)
+    with pytest.raises(OpenApiDiscoveryPromotionRejected, match="binding drifted"):
+        service.execute(
+            drifted, scope=approved_scope, now=now + timedelta(seconds=2)
+        )
+    with pytest.raises(ValidationError):
+        type(plan).model_validate(
+            plan.model_dump(mode="python")
+            | {
+                "target_url": "https://outside.example/",
+                "execution_authorized": True,
+            }
+        )
+    assert promotion_store.state(drifted.promotion_plan_id) is None
+    _close(red_store, endpoint_store, observation_store)

@@ -1,0 +1,63 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "promotion_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Plan Id",
+      "type": "string"
+    },
+    "openapi_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Openapi Observation Id",
+      "type": "string"
+    },
+    "seed_set_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Seed Set Id",
+      "type": "string"
+    },
+    "selection_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 1000,
+      "minItems": 1,
+      "title": "Selection Ids",
+      "type": "array"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "promotion_plan_id",
+    "openapi_observation_id",
+    "seed_set_id",
+    "selection_ids",
+    "attempt",
+    "completed_at"
+  ],
+  "title": "OpenApiDiscoveryPromotionOutcome",
+  "type": "object"
+}
