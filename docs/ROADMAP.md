@@ -1250,6 +1250,13 @@ cleanup_verified=true，已校验输入 10 / 输出 4 tokens，授权已撤销�
   与 STARTED 恢复。全量门禁为 1668 passed、43 skipped、85.40% coverage，481 份 schema；无公网、真实模型、新
   请求或真实攻击。B3 保持进行中，下一纵切为 B3.4 independent Critic Assertion materialization。
 
+- B3.4 已达到 `offline_tested`，B3 首个漏洞类别纵切关闭。内容寻址 `CriticEvidenceReview` 恰好覆盖四类反证，
+  Critic producer/context/Evidence 与已完成 B3.3 Validation 全部分离；物化器只投影三态结论，不执行审查、模型或
+  目标请求。完整 B3 Assertion 链可使 B3.1 得到 Candidate 资格，但 B3.4 自身固定禁止审查执行、请求、Candidate
+  创建与 Finding；supported 反证保持 negative，inconclusive 继续阻断资格。ledger 覆盖缺项、Evidence 复用/缺失、
+  来源漂移、幂等、超时无部分结果和 STARTED 恢复。全量门禁为 1672 passed、43 skipped、85.40% coverage，487 份
+  schema；无公网、真实模型、新请求或真实攻击。下一纵切为 B4.1 opaque test-identity admission contract。
+
 详细操作与边界见 `docs/SOURCE-HUNT.md`。
 
 ### Authorized Red Team R0.1–R11.4（R11 已关闭并完成架构加固）

@@ -194,10 +194,11 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B3.4 independent Critic Assertion materialization 纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B4.1 opaque test-identity admission contract 纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
-B3.1-B3.3 已达到 `offline_tested`。B3.4 将从与 Validation 分离的 Evidence/context 物化四项反证 Assertion；不开放
-任意请求脚本、自动攻击、状态变更测试或自动 Finding promotion。只有出现新的用户优先级决定，才从其他里程碑开始。
+B3.1-B3.4 已达到 `offline_tested`，B3 首个漏洞类别纵切关闭。B4.1 先固定控制方测试身份的 opaque reference、用途、
+Target/Scope 和过期边界；不接入真实凭据、登录、状态变更测试或第三方账户。只有出现新的用户优先级决定，才从其他
+里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -372,3 +373,14 @@ Candidate 与 Finding 权限。接入 B3.1 后独立 replay/redaction 已满足�
 ledger 覆盖幂等、超时无部分结果、STARTED 显式恢复与 cleanup proof。本轮未访问公网、未调用真实模型、未新增请求
 或执行真实攻击。全量门禁为 1668 passed、43 skipped、85.40% coverage；481 份 schema、Ruff、红队专项和 diff
 check 通过。B3 保持进行中，下一项为 B3.4 independent Critic Assertion materialization。
+
+进展记录（2026-09-23）：B3.4 达到 `offline_tested`，B3 首个漏洞类别纵切关闭。新增 `Critic Assertion
+Materialization` 领域术语，以及内容寻址的四角度 `CriticEvidenceReview`、Plan/Materialization/Outcome。服务只消费
+已完成 B3.3 Validation 和一份完整的类型化反证审查；Critic producer、context 与 Evidence 必须同 Validation 全部分离，
+review 必须晚于 Validation，Scope、Target/version、requirement 和全部 Evidence 在 prepare/execute/complete 重验。
+四项结论的 supported/refuted/inconclusive 原样物化，不执行审查、模型调用或测试。完整 B3.2+B3.3+B3.4 Assertion
+链可让 B3.1 reducer 得到 `candidate_eligible`，但物化结果自身固定禁止 Candidate 创建、Finding、请求和审查执行；
+反证成立仍得到 negative，不确定仍保持 inconclusive。独立 ledger 覆盖幂等、缺项/证据复用/缺失/漂移拒绝、超时无
+部分结果、STARTED 恢复和 cleanup proof。本轮未访问公网、未调用真实模型、未新增请求或执行真实攻击。全量门禁为
+1672 passed、43 skipped、85.40% coverage；487 份 schema、Ruff、红队专项和 diff check 通过。B3 关闭，下一项为
+B4.1 opaque test-identity admission contract。

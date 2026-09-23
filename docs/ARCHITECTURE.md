@@ -211,6 +211,19 @@ Snapshot 和 Evidence ID 全部互异，并固定 baseline 早于 current。任�
 B3.2 的单来源 redaction Assertion。结果固定不授予请求、Candidate 或 Finding 权限；进入 B3.1 后仍需独立 Critic
 Evidence 才可能取得 Candidate 资格。
 
+### B3.4 independent Critic Assertion materialization
+
+B3.4 把反证判断与 Assertion 投影拆开。输入 `CriticEvidenceReview` 必须恰好覆盖 access-control、public-by-design、
+synthetic/placeholder 和 environment/version mismatch 四项事实；每项使用三态 verdict 和内容寻址 Evidence，不包含
+自由文本结论、请求参数或执行步骤。Review 本身内容寻址，并绑定 requirement、Target/version、Scope/version、独立
+review context 与固定 Critic producer。
+
+Plan 重新打开已完成 B3.3 Validation，强制 Critic 的 producer、context 和全部 Evidence 与 Validation 分离，并要求
+Review 时间晚于 Validation。物化器不执行 Critic、模型或目标请求，只把四项结论确定性投影为 Critic Assertion。
+完整正例链可使 B3.1 Assessment 达到 `candidate_eligible`，但 B3.4 schema 自身固定禁止审查执行、请求、Candidate
+proposal 和 Finding；supported 反证仍产生 negative，inconclusive 仍阻断资格。因此 B3 在 Evidence qualification
+边界关闭，后续 B4 必须另行建立测试身份、Session 与 Approval 边界。
+
 ### Critic Worker
 
 与 Validator 使用独立上下文，优先寻找安全检查、不可达路径、环境特例、版本偏差和重复根因。它没有新增攻击面的任务权限。

@@ -410,8 +410,9 @@ B2.4 已把 sealed GraphQL SDL 降为无执行权、无参数披露的 Query fie
 B3.1 已为未认证敏感数据暴露固定首个版本化 Evidence Requirement，并以确定性 Assessment 区分 Candidate 资格、
 负例和不确定，仍不创建 Candidate 或 Finding。B3.2 已从权威 sealed GET 物化脱敏 Observation/redaction/Cleanup
 Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已只读比较两份独立 sealed GET materialization，
-物化 replay/redaction Validation Assertion；匹配链进入 B3.1 后仍因 Critic 缺失保持 inconclusive。下一步 B3.4
-物化与 Validation 分离的四项 Critic 反证 Assertion，不直接开放任意 query、POST 或状态变更测试。之后才推进受控测试身份和隔离靶场
-A3/A4 资格。任何新
+物化 replay/redaction Validation Assertion。B3.4 已消费与 Validation 分离的完整类型化审查，物化四项 Critic
+Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
+下一步 B4.1 固定控制方测试身份的 opaque admission contract，不接入真实凭据、任意 query/POST、状态变更或第三方
+账户；之后再推进 Session/Approval 和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 Target 扩展、真实第三方账户、横向移动或持久化。

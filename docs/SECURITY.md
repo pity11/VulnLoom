@@ -233,6 +233,18 @@ Evidence 缺失、来源漂移、顺序错误和 Scope 失效均在 STARTED 前�
 `request_execution_authorized=false`、`candidate_proposal_eligible=false`、`finding_authorized=false`，因此不能触发
 新请求或自行提升结果。超时/拒绝无部分 Assertion，遗留 STARTED 最多三次显式恢复。
 
+### 1.11 B3.4 independent Critic Assertion materialization confinement
+
+Critic materializer 没有网络、Runner、Broker、模型、凭据或 Candidate/Finding 写接口。它只接受一份完整、内容寻址
+且恰好覆盖四类反证的 `CriticEvidenceReview`，以及一个已完成 B3.3 Validation。Review 与 Validation 的 producer、
+context 和 Evidence 集合必须完全分离；requirement、Target/version、Scope/version、时间顺序和 Evidence 完整性在
+prepare、execute 与 complete 重验。
+
+服务不会自行作出反证判断，只原样物化 supported/refuted/inconclusive。schema 固定 `review_executed=false`、
+`request_execution_authorized=false`、`candidate_proposal_eligible=false` 和 `finding_authorized=false`；即使随后 B3.1
+Assessment 给出 Candidate 资格，也没有创建或提升状态的权限。缺项、Evidence 复用/缺失、绑定漂移、Scope 失效和
+超时均 fail-closed，无部分 Assertion；遗留 STARTED 最多三次显式恢复。
+
 ## 2. Sandbox Profile
 
 ### Static Profile

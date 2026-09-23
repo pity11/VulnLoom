@@ -76,6 +76,28 @@ from .attack_store import (
     AttackChainStore,
     AttackChainStoreRejected,
 )
+from .critic_materialization_models import (
+    CRITIC_ASSERTION_RULESET_DIGEST,
+    CRITIC_FACTS,
+    CriticAssertionMaterialization,
+    CriticAssertionMaterializationLimits,
+    CriticAssertionMaterializationOutcome,
+    CriticAssertionMaterializationPlan,
+    CriticAssertionMaterializationState,
+    CriticEvidenceConclusion,
+    CriticEvidenceReview,
+)
+from .critic_materialization_service import (
+    CriticAssertionMaterializationRejected,
+    CriticAssertionMaterializationService,
+    CriticAssertionMaterializationTimedOut,
+    EvidenceReplayValidationSource,
+)
+from .critic_materialization_store import (
+    CriticAssertionMaterializationRecoveryRequired,
+    CriticAssertionMaterializationStore,
+    CriticAssertionMaterializationStoreRejected,
+)
 from .drift_models import (
     AttackSurfaceChange,
     AttackSurfaceChangeKind,
@@ -397,6 +419,22 @@ __all__ = [
     "EndpointSeedIdempotencyConflict",
     "EndpointSeedSet",
     "EvidenceAssertion",
+    "CRITIC_ASSERTION_RULESET_DIGEST",
+    "CRITIC_FACTS",
+    "CriticAssertionMaterialization",
+    "CriticAssertionMaterializationLimits",
+    "CriticAssertionMaterializationOutcome",
+    "CriticAssertionMaterializationPlan",
+    "CriticAssertionMaterializationRecoveryRequired",
+    "CriticAssertionMaterializationRejected",
+    "CriticAssertionMaterializationService",
+    "CriticAssertionMaterializationState",
+    "CriticAssertionMaterializationStore",
+    "CriticAssertionMaterializationStoreRejected",
+    "CriticAssertionMaterializationTimedOut",
+    "CriticEvidenceConclusion",
+    "CriticEvidenceReview",
+    "EvidenceReplayValidationSource",
     "EvidenceAssessment",
     "EvidenceAssessmentLimits",
     "EvidenceAssessmentOutcome",
