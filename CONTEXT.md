@@ -36,6 +36,18 @@ _Avoid_: Credential, Token, Secret record
 绑定一个 Test Identity、Target、角色、用途、Action digest 和单次 Credential Lease 的短生命周期执行边界；Session receipt 只证明隔离、使用次数和清理，不保存认证材料，也不自行授权网络、登录或状态变化。
 _Avoid_: Login state, Cookie jar, Browser profile
 
+**Local Authentication Observation**：
+受控 Test Identity 在明确的本地隔离环境中完成认证并对一个精确动作得到允许或拒绝结果的无秘密事实；它不是生产目标登录证明，也不包含认证响应或 Session 材料。
+_Avoid_: Login result, Auth response, Session token
+
+**Session Logout Proof**：
+证明一次 Isolated Test Session 已释放、材料已清零且不可再次使用的不可变事实；它证明清理，不证明目标端全局会话状态。
+_Avoid_: Logout response, Cookie deletion, Account state
+
+**Role Differential Observation**：
+两个不同受控 Test Identity 在同一隔离环境中对同一精确动作所得访问决定的类型化比较；差异本身只是 Signal，不自动构成 Candidate、Finding 或漏洞结论。
+_Avoid_: Privilege escalation, Authorization vulnerability, Finding
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

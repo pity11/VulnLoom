@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "RoleAccessDecision": {
+      "enum": [
+        "allowed",
+        "denied"
+      ],
+      "title": "RoleAccessDecision",
+      "type": "string"
+    },
+    "RoleDifferentialVerdict": {
+      "enum": [
+        "same",
+        "different"
+      ],
+      "title": "RoleDifferentialVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "action_intent_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Intent Digest",
+      "type": "string"
+    },
+    "baseline_authentication_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Authentication Observation Id",
+      "type": "string"
+    },
+    "baseline_role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Baseline Role Ref",
+      "type": "string"
+    },
+    "baseline_decision": {
+      "$ref": "#/$defs/RoleAccessDecision"
+    },
+    "comparison_authentication_observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Comparison Authentication Observation Id",
+      "type": "string"
+    },
+    "comparison_role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Comparison Role Ref",
+      "type": "string"
+    },
+    "comparison_decision": {
+      "$ref": "#/$defs/RoleAccessDecision"
+    },
+    "verdict": {
+      "$ref": "#/$defs/RoleDifferentialVerdict"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "candidate_created": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Created",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "vulnerability_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Vulnerability Claimed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "observation_id",
+    "plan_id",
+    "action_intent_digest",
+    "baseline_authentication_observation_id",
+    "baseline_role_ref",
+    "baseline_decision",
+    "comparison_authentication_observation_id",
+    "comparison_role_ref",
+    "comparison_decision",
+    "verdict",
+    "observed_at"
+  ],
+  "title": "RoleDifferentialObservation",
+  "type": "object"
+}

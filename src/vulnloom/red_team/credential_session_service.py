@@ -17,6 +17,7 @@ from .credential_session_models import (
     CredentialSessionOutcome,
     CredentialSessionPlan,
     IsolatedSessionReceipt,
+    credential_authorization_context_digest,
 )
 from .credential_session_store import CredentialSessionStore
 from .models import AuthorizedWebTarget
@@ -102,6 +103,7 @@ class CredentialSessionService:
                 purpose=purpose,
                 role_ref=role_ref,
                 action_digest=action.digest(),
+                action_intent_digest=action.intent_digest(),
                 action_name=action.action,
                 mutates_state=action.mutates_state,
                 required_approvals=admission.required_approvals,
@@ -188,7 +190,7 @@ class CredentialSessionService:
                 raise CredentialSessionRejected("credential Lease binding drifted")
             deadline.check()
             credential = lease.view(now=now)
-            handle = self.session_adapter.open(plan, credential=credential)
+            handle = self.session_adapter.open(plan, credential=credential, now=now)
             deadline.check()
             expected_binding = canonical_digest(
                 {"plan_id": plan.plan_id, "use": 1, "offline": True}
@@ -216,6 +218,7 @@ class CredentialSessionService:
             role_ref=plan.role_ref,
             opened_at=now,
             closed_at=now,
+            authentication_performed=handle.authentication_performed,
         )
         outcome = CredentialSessionOutcome.create(
             plan_id=plan.plan_id,
@@ -251,6 +254,7 @@ class CredentialSessionService:
             or plan.target_digest != canonical_digest(target.model_dump(mode="python"))
             or action.engagement_id != scope.engagement_id
             or plan.action_digest != action.digest()
+            or plan.action_intent_digest != action.intent_digest()
             or plan.action_name != action.action
             or plan.mutates_state != action.mutates_state
         ):
@@ -258,8 +262,15 @@ class CredentialSessionService:
 
     @staticmethod
     def _action(action, *, admission, purpose, role_ref):
+        expected_context = credential_authorization_context_digest(
+            admission_id=admission.admission_id,
+            identity_ref=admission.identity_ref,
+            purpose=purpose,
+            role_ref=role_ref,
+        )
         if (
             action.target_id != admission.target_id
+            or action.authorization_context_digest != expected_context
             or not action.uses_real_credentials
             or purpose not in admission.purposes
             or role_ref not in admission.role_refs

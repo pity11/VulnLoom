@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import ApprovalAction, ApprovalRequest, ApprovalStatus, Scope
 from vulnloom.policy.engine import ActionRequest, DecisionEffect, PolicyEngine
 
@@ -28,6 +29,15 @@ def test_allows_exact_scoped_network_target(approved_scope, now):
 def test_policy_digest_survives_scope_boundary_reparse(approved_scope):
     reparsed = Scope.model_validate(approved_scope.model_dump(mode="python"))
     assert PolicyEngine(reparsed).policy_digest == PolicyEngine(approved_scope).policy_digest
+
+
+def test_absent_authorization_context_preserves_legacy_action_digest(approved_scope, now):
+    request = _request(approved_scope, now)
+    legacy_payload = request.model_dump(
+        mode="python", exclude={"requested_at", "authorization_context_digest"}
+    )
+    assert request.digest() == canonical_digest(legacy_payload)
+    assert request.intent_digest() == request.digest()
 
 
 def test_fails_closed_for_unknown_host(approved_scope, now):

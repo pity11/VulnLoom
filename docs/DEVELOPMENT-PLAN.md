@@ -197,13 +197,14 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B4.3 本地隔离认证动作与角色差异观察纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B4.4 本地业务流程不变量与可回滚状态变更纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
 B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；没有接入真实登录、状态变更测试
-或第三方账户。B4.3 先在本地隔离 fixture 中固定认证动作、登出清理与角色差异 Observation，仍不访问公网或使用
-真实账户。只有出现新的用户优先级决定，才从其他
+或第三方账户。B4.3 已在本地 fixture 中固定认证动作、登出清理与角色差异 Observation，没有访问公网或使用真实
+账户。B4.4 先固定本地业务流程不变量、状态变更双 Approval 和可验证回滚，仍不接入真实目标。只有出现新的用户
+优先级决定，才从其他
 里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
@@ -434,3 +435,20 @@ receipt 只保存 digest、时间、单次使用与 cleanup proof。专项回归
 身份撤销、Scope/Target/Action/role 漂移、adapter 中断、恢复、超时、清理、无秘密持久化与 schema 权限升级拒绝。
 本轮没有真实 Vault、真实凭据或第三方账户、登录、网络、模型调用、状态变化或攻击。下一项为 B4.3。
 最终全量门禁为 1703 passed、43 skipped、85.48% coverage；510 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-23）：B4.3 达到 `offline_tested` 并关闭。新增 `Local Authentication Observation`、
+`Session Logout Proof` 与 `Role Differential Observation` 术语和内容寻址协议。本地 fixture adapter 只接受
+read-only role-observation purpose 与 `fixture:` 材料；不创建 socket、不保存认证响应，在 Session close 后证明
+released、zeroed 和 post-logout reuse rejected。B4.2 Session receipt 如实记录 fixture authentication 已执行，同时
+继续证明没有网络或目标状态变化。
+
+Action Approval 新增 authorization-context digest，把 Admission、identity、purpose 和 role 封入精确摘要；另存
+去除该上下文的 Action intent digest，用于比较两个不同角色的同一动作。Credential Session ledger 新增 admission
+唯一消费索引，换 Plan 或幂等键不能获取第二个 Session。Role Differential 只接受两个不同受控身份/角色、同一
+Scope/Target/fixture/Action intent、已完成 cleanup 的 Session，输出仅为 same/different，固定禁止 Candidate、
+Finding 和 vulnerability claim。
+
+独立 ledger 覆盖原子发布、幂等、STARTED、三次恢复上限、超时和无部分结果；专项回归覆盖 allow/deny 差异、相同
+决定、身份撤销、重复 Session、缺失认证执行、fixture/source 漂移、超时恢复、恢复耗尽、无秘密持久化和 schema
+权限升级拒绝。本轮没有真实账户、真实 Target 登录、网络、状态变化、模型调用或攻击。下一项为 B4.4。
+最终全量门禁为 1715 passed、43 skipped、85.52% coverage；519 份 schema、Ruff 和 diff check 通过。

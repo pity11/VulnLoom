@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "proof_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Proof Id",
+      "type": "string"
+    },
+    "session_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Plan Id",
+      "type": "string"
+    },
+    "session_binding": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Binding",
+      "type": "string"
+    },
+    "logged_out_at": {
+      "format": "date-time",
+      "title": "Logged Out At",
+      "type": "string"
+    },
+    "session_released": {
+      "const": true,
+      "default": true,
+      "title": "Session Released",
+      "type": "boolean"
+    },
+    "session_zeroed": {
+      "const": true,
+      "default": true,
+      "title": "Session Zeroed",
+      "type": "boolean"
+    },
+    "post_logout_reuse_rejected": {
+      "const": true,
+      "default": true,
+      "title": "Post Logout Reuse Rejected",
+      "type": "boolean"
+    },
+    "credential_material_present": {
+      "const": false,
+      "default": false,
+      "title": "Credential Material Present",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "proof_id",
+    "session_plan_id",
+    "session_binding",
+    "logged_out_at"
+  ],
+  "title": "SessionLogoutProof",
+  "type": "object"
+}

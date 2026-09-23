@@ -547,6 +547,9 @@ Scope、逐动作 Approval、可追溯且单调的父账本和未过期清理窗
   有效期，不保存用户名、密码、Cookie、Token 或 Vault 路径。`Test Identity Admission` 仍固定不授予 credential
   access、authentication、Session 或状态变更；后续使用至少重新要求 `USE_REAL_CREDENTIALS` Approval，状态变化
   还必须同时要求 `MUTATE_TARGET_STATE` Approval。身份撤销会让已完成 Admission 的权威读取立即 fail-closed。
+- Credential Session 的 Action Approval 摘要必须同时绑定 Admission、identity、purpose 和 role；同一 Admission 在
+  ledger 中只能消费一次。离线认证只发布无秘密 Observation 和 Logout Proof，后者必须证明 Session released、
+  zeroed 且不可复用。角色差异只是 Signal，不能绕过 Evidence Requirement、Validation 和 Critic 形成 Finding。
 - 日志和 Evidence 写入前统一清理 Header、Cookie、Token、私钥和 PII。
 - secret scanner 只是补充门禁，不能替代凭据不下发的架构。
 

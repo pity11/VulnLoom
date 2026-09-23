@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "RoleAccessDecision": {
+      "enum": [
+        "allowed",
+        "denied"
+      ],
+      "title": "RoleAccessDecision",
+      "type": "string"
+    },
+    "RoleFixtureDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "role_ref": {
+          "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+          "title": "Role Ref",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/RoleAccessDecision"
+        }
+      },
+      "required": [
+        "role_ref",
+        "decision"
+      ],
+      "title": "RoleFixtureDecision",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fixture_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/RoleFixtureDecision"
+      },
+      "maxItems": 16,
+      "minItems": 2,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "environment": {
+      "const": "local_offline_fixture",
+      "default": "local_offline_fixture",
+      "title": "Environment",
+      "type": "string"
+    },
+    "network_enabled": {
+      "const": false,
+      "default": false,
+      "title": "Network Enabled",
+      "type": "boolean"
+    },
+    "target_state_mutable": {
+      "const": false,
+      "default": false,
+      "title": "Target State Mutable",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "decisions"
+  ],
+  "title": "OfflineRoleFixture",
+  "type": "object"
+}

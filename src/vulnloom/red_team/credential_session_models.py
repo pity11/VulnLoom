@@ -15,6 +15,23 @@ from .models import Digest
 from .test_identity_models import RoleReference, TestIdentityPurpose
 
 
+def credential_authorization_context_digest(
+    *,
+    admission_id: str,
+    identity_ref: str,
+    purpose: TestIdentityPurpose,
+    role_ref: str,
+) -> str:
+    return canonical_digest(
+        {
+            "admission_id": admission_id,
+            "identity_ref": identity_ref,
+            "purpose": purpose,
+            "role_ref": role_ref,
+        }
+    )
+
+
 class CredentialSessionState(StrEnum):
     STARTED = "started"
     COMPLETED = "completed"
@@ -42,6 +59,7 @@ class CredentialSessionPlan(DomainModel):
     purpose: TestIdentityPurpose
     role_ref: RoleReference
     action_digest: Digest
+    action_intent_digest: Digest
     action_name: str = Field(min_length=1, max_length=200)
     mutates_state: bool
     required_approvals: Annotated[tuple[ApprovalAction, ...], Field(min_length=1, max_length=2)]
@@ -126,7 +144,7 @@ class IsolatedSessionReceipt(DomainModel):
     released: Literal[True] = True
     zeroed: Literal[True] = True
     network_performed: Literal[False] = False
-    authentication_performed: Literal[False] = False
+    authentication_performed: bool = False
     state_changed: Literal[False] = False
 
     @model_validator(mode="after")
@@ -137,7 +155,6 @@ class IsolatedSessionReceipt(DomainModel):
             or not self.released
             or not self.zeroed
             or self.network_performed
-            or self.authentication_performed
             or self.state_changed
             or self.session_id
             != canonical_digest(self.model_dump(mode="python", exclude={"session_id"}))

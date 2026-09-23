@@ -28,6 +28,9 @@ from vulnloom.red_team.credential_session_models import (
 from vulnloom.red_team.credential_session_models import (
     CredentialSessionState as SessionState,
 )
+from vulnloom.red_team.credential_session_models import (
+    credential_authorization_context_digest,
+)
 from vulnloom.red_team.credential_session_service import (
     CredentialSessionRejected as SessionRejected,
 )
@@ -42,6 +45,9 @@ from vulnloom.red_team.credential_session_store import (
 )
 from vulnloom.red_team.credential_session_store import (
     CredentialSessionStore as SessionStore,
+)
+from vulnloom.red_team.credential_session_store import (
+    CredentialSessionStoreRejected as SessionStoreRejected,
 )
 from vulnloom.red_team.models import AuthorizedWebTarget
 from vulnloom.red_team.test_identity_models import (
@@ -115,7 +121,7 @@ def _identity(scope, target, now, *, selected_purpose):
     return service, plan
 
 
-def _action(scope, target, now, *, mutate=False):
+def _action(scope, target, now, *, admission, purpose, role, mutate=False):
     return ActionRequest(
         engagement_id=scope.engagement_id,
         target_id=target.target_id,
@@ -125,6 +131,12 @@ def _action(scope, target, now, *, mutate=False):
         test_class="read_only" if not mutate else "state_change",
         mutates_state=mutate,
         uses_real_credentials=True,
+        authorization_context_digest=credential_authorization_context_digest(
+            admission_id=admission.admission_id,
+            identity_ref=admission.identity_ref,
+            purpose=purpose,
+            role_ref=role,
+        ),
     )
 
 
@@ -162,8 +174,17 @@ def _runtime(approved_scope, now, *, mutate=False, monotonic=None, interrupt=Fal
     if monotonic is not None:
         kwargs["monotonic"] = monotonic
     service = SessionService(**kwargs)
-    action = _action(scope, target, now, mutate=mutate)
     role = ROLE_EDITOR if mutate else ROLE_READER
+    admission = identity_service.store.admission(admission_plan.plan_id)
+    action = _action(
+        scope,
+        target,
+        now,
+        admission=admission,
+        purpose=purpose,
+        role=role,
+        mutate=mutate,
+    )
     plan = service.prepare(
         admission_plan_id=admission_plan.plan_id,
         scope=scope,
@@ -274,7 +295,54 @@ def test_action_target_role_and_state_change_bindings_fail_closed(approved_scope
             deadline=now + timedelta(seconds=10),
             idempotency_key="bad-state",
         )
+    with pytest.raises(SessionRejected, match="not admitted"):
+        service.prepare(
+            admission_plan_id=plan.admission_plan_id,
+            scope=scope,
+            target=target,
+            purpose=plan.purpose,
+            role_ref=plan.role_ref,
+            action=action.model_copy(update={"authorization_context_digest": None}),
+            limits=SessionLimits(),
+            now=now,
+            deadline=now + timedelta(seconds=10),
+            idempotency_key="missing-auth-context",
+        )
     assert vault.acquisitions == 0
+
+
+def test_one_admission_cannot_fund_a_second_session(approved_scope, now):
+    scope, target, _, service, vault, _, action, plan, approvals = _runtime(approved_scope, now)
+    service.execute(
+        plan,
+        scope=scope,
+        target=target,
+        action=action,
+        approvals=approvals,
+        now=now + timedelta(seconds=1),
+    )
+    second = service.prepare(
+        admission_plan_id=plan.admission_plan_id,
+        scope=scope,
+        target=target,
+        purpose=plan.purpose,
+        role_ref=plan.role_ref,
+        action=action,
+        limits=SessionLimits(),
+        now=now,
+        deadline=now + timedelta(seconds=20),
+        idempotency_key="second-session",
+    )
+    with pytest.raises(SessionStoreRejected, match="reused"):
+        service.execute(
+            second,
+            scope=scope,
+            target=target,
+            action=action,
+            approvals=approvals,
+            now=now + timedelta(seconds=2),
+        )
+    assert vault.acquisitions == 1
 
 
 def test_state_change_requires_two_exact_approvals_but_performs_no_change(approved_scope, now):

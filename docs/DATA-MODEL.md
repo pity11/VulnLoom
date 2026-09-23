@@ -982,6 +982,18 @@ Session、状态变化与第三方账号权限全部固定为 false。`TestIdent
 credential material、没有创建 Session 且完成清理。Registry 的 digest-only Revocation 只收窄权限；消费者必须经
 权威 active lookup 重新验证 Record、Scope、Target 和有效期，不能把历史 Admission JSON 当成 bearer capability。
 
+### CredentialSession 与 RoleDifferentialObservation
+
+`CredentialSessionPlan` 在 Test Identity Admission 之外重新绑定 credential reference、单一用途/角色、Scope/Target、
+短期 lease、exact Action digest 和去身份化的 Action intent digest。Action 的 authorization-context digest 包含
+Admission、identity、purpose 与 role，因此 Approval 不能跨身份或角色复用；ledger 以 Admission 建立唯一消费约束。
+Lease 和 Session material 不可序列化，持久化 receipt 只记录摘要、时间、单次使用和 cleanup 状态。
+
+`LocalAuthenticationObservation` 只描述本地 fixture 对一个 Action intent 的认证接受与 allow/deny 决定；
+`SessionLogoutProof` 证明 Session released、zeroed 且 post-logout reuse rejected。`RoleDifferentialObservation` 比较
+两个不同 Test Identity/role 在同一 fixture 与 Action intent 下的决定，只输出 same/different，不能创建 Candidate、
+Finding 或漏洞声明。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

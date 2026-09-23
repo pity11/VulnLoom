@@ -466,6 +466,29 @@ Session 和双重清理均成立才原子发布 Outcome；中断或超时保留 
 Vault、真实账户、登录请求、网络访问、状态变更、模型调用或攻击；后续真实认证流程必须作为新的隔离纵切重新
 获得授权与运行期证明。
 
+## B4.3 local authentication、logout proof 与 role differential
+
+B4.3 只在纯内存 `local_offline_fixture` 中执行受控认证动作，不访问真实 Target。每个角色必须使用不同的
+Test Identity、不同 Admission 和各自的单次 Credential Lease；B4.2 的 Action Approval 绑定进一步加入
+authorization-context digest，把 Admission、identity、purpose 和 role 封入 Action digest。Session ledger 对
+Admission 建立唯一消费约束，不能通过更换 Plan 或幂等键重复取得 Session。
+
+`OfflineRoleAuthenticationAdapter` 只接受与 credential ref 的内存 proof 匹配的 `fixture:` 材料和 read-only
+role-observation purpose。它在一个短生命周期
+内存 handle 中记录 fixture 的 allow/deny 决定，不创建 socket、不保存认证响应，并在 B4.2 finally 路径完成登出与
+材料清零。只有 handle 已释放、已清零且 post-logout reuse 明确被拒绝时，才能生成 `SessionLogoutProof` 和无秘密的
+`LocalAuthenticationObservation`；B4.2 receipt 会如实记录本地 fixture authentication 已执行，但仍固定证明没有
+网络请求和目标状态变化。
+
+`RoleDifferentialService` 只比较两个已完成且 cleanup complete 的 Session，它要求两个不同身份/角色绑定同一 Scope、
+Target、fixture 和剥离 authorization context 后的 exact Action intent。结果只有 `same` 或 `different`，不推断哪一
+角色“应当”拥有权限，也不自动宣称越权。Observation schema 固定禁止 Candidate、Finding 和 vulnerability claim；
+后续若要形成漏洞假设，仍必须经过独立 Evidence Requirement、Validation 和 Critic 流程。
+
+角色比较使用独立 STARTED/COMPLETED ledger，支持幂等、最多三次显式恢复和无部分发布。身份撤销、Scope/Target、
+fixture、Action、身份/角色、Session Outcome、认证 Observation 或 logout proof 漂移都会 fail-closed。本阶段没有
+真实账户、真实 Target 登录、HTTP/浏览器请求、外部网络、状态变化、模型调用或攻击。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -477,7 +500,8 @@ Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已
 物化 replay/redaction Validation Assertion。B3.4 已消费与 Validation 分离的完整类型化审查，物化四项 Critic
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
 B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract；B4.2 已完成
-离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期。下一步仍不直接接入真实目标登录，
-而是推进受控认证动作与角色差异观察的本地隔离 fixture 纵切；之后再推进业务流程和隔离靶场 A3/A4 资格。任何新
+离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
+清理与角色差异 Observation。下一步推进本地业务流程不变量与可回滚状态变更纵切，之后再推进隔离靶场 A3/A4
+资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

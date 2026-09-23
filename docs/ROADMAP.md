@@ -1550,6 +1550,24 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   状态变更或攻击。
 - 全量门禁：1703 passed、43 skipped、85.48% coverage；510 份 schema、Ruff 和 diff check 通过。
 
+## B4.3 本地认证与角色差异观察（已完成，offline_tested）
+
+- 新增 `Local Authentication Observation`、`Session Logout Proof` 与 `Role Differential Observation` 领域术语；
+  本地认证事实不等同真实 Target 登录，角色差异只形成 Signal，不自动创建 Candidate、Finding 或漏洞结论。
+- B4.2 Action Approval 新增 authorization-context digest，精确绑定 Admission、identity、purpose 和 role；同时保存
+  去除该上下文的 Action intent digest，使两个不同角色可以安全比较同一底层动作。
+- Credential Session ledger 对 `admission_id` 建立唯一索引，真正强制一个 Admission 只消费一次；换 Plan、幂等键
+  或角色都不能复用。Vault 返回 credential ref/TTL 漂移继续在使用前拒绝并清零。
+- `OfflineRoleAuthenticationAdapter` 只接受 read-only purpose 与 credential-ref proof 匹配的 `fixture:` 材料；无
+  socket、无真实认证响应、无
+  目标状态变化。完成后 handle 必须 released、zeroed 且 post-logout reuse rejected，才发布 Authentication
+  Observation 与 Logout Proof。
+- `RoleDifferentialPlan` 绑定两个不同身份/角色的已完成 Session、同一 Scope/Target/fixture/Action intent 和完整
+  cleanup proof；确定性结果只有 same/different，schema 固定禁止 promotion 与 vulnerability claim。
+- 独立 SQLite STARTED/COMPLETED ledger 覆盖原子发布、幂等、三次恢复上限、超时、撤销、来源/fixture 漂移和无
+  部分结果。本阶段没有真实账户、真实 Target 登录、网络、状态变化、模型调用或攻击。
+- 全量门禁：1715 passed、43 skipped、85.52% coverage；519 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

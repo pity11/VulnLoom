@@ -47,10 +47,16 @@ class CredentialLease:
 
 
 class IsolatedSessionHandle:
-    __slots__ = ("_material", "_released", "session_binding")
+    __slots__ = (
+        "_material",
+        "_released",
+        "authentication_performed",
+        "session_binding",
+    )
 
     def __init__(self, *, session_binding: str):
         self.session_binding = session_binding
+        self.authentication_performed = False
         self._material = bytearray(b"fixture-isolated-session")
         self._released = False
 
@@ -78,6 +84,7 @@ class IsolatedSessionAdapter(Protocol):
         plan: CredentialSessionPlan,
         *,
         credential: memoryview,
+        now: datetime,
     ) -> IsolatedSessionHandle: ...
 
 
@@ -115,6 +122,7 @@ class OfflineIsolatedSessionAdapter:
         plan: CredentialSessionPlan,
         *,
         credential: memoryview,
+        now: datetime,
     ) -> IsolatedSessionHandle:
         if bytes(credential[:8]) != b"fixture:":
             raise CredentialSessionAdapterRejected("non-fixture credential rejected")

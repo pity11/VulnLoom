@@ -7,10 +7,11 @@ resolved IPs and re-evaluate every redirect at connection time.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Annotated
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import AwareDatetime
+from pydantic import AwareDatetime, Field
 
 from vulnloom.domain.digests import canonical_digest
 from vulnloom.domain.models import (
@@ -42,9 +43,19 @@ class ActionRequest(DomainModel):
     external_callback: bool = False
     submits_report: bool = False
     runs_untrusted_build: bool = False
+    authorization_context_digest: Annotated[str | None, Field(pattern=r"^[0-9a-f]{64}$")] = None
 
     def digest(self) -> str:
         payload = self.model_dump(mode="python", exclude={"requested_at"})
+        if self.authorization_context_digest is None:
+            payload.pop("authorization_context_digest")
+        return canonical_digest(payload)
+
+    def intent_digest(self) -> str:
+        payload = self.model_dump(
+            mode="python",
+            exclude={"requested_at", "authorization_context_digest"},
+        )
         return canonical_digest(payload)
 
 

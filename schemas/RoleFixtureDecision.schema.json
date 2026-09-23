@@ -1,0 +1,29 @@
+{
+  "$defs": {
+    "RoleAccessDecision": {
+      "enum": [
+        "allowed",
+        "denied"
+      ],
+      "title": "RoleAccessDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Role Ref",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/RoleAccessDecision"
+    }
+  },
+  "required": [
+    "role_ref",
+    "decision"
+  ],
+  "title": "RoleFixtureDecision",
+  "type": "object"
+}

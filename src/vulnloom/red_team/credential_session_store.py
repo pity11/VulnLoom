@@ -44,6 +44,12 @@ class CredentialSessionStore:
                 outcome_json TEXT
             )"""
         )
+        self.connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "red_team_credential_sessions_one_admission "
+            "ON red_team_credential_sessions "
+            "(json_extract(plan_json,'$.admission_id'))"
+        )
         self.connection.commit()
 
     def claim(self, plan: CredentialSessionPlan, *, now: datetime) -> CredentialSessionClaim:
@@ -125,8 +131,10 @@ class CredentialSessionStore:
 
     def _row(self, plan: CredentialSessionPlan) -> sqlite3.Row:
         row = self.connection.execute(
-            "SELECT * FROM red_team_credential_sessions WHERE plan_id=? OR idempotency_key=?",
-            (plan.plan_id, plan.idempotency_key),
+            "SELECT * FROM red_team_credential_sessions "
+            "WHERE plan_id=? OR idempotency_key=? "
+            "OR json_extract(plan_json,'$.admission_id')=?",
+            (plan.plan_id, plan.idempotency_key, plan.admission_id),
         ).fetchone()
         if row is None:
             raise CredentialSessionRecoveryRequired("Credential Session checkpoint is unavailable")
@@ -138,3 +146,21 @@ class CredentialSessionStore:
             raise CredentialSessionStoreRejected(
                 "Credential Session identity was reused for different content"
             )
+
+    def plan(self, plan_id: str) -> CredentialSessionPlan:
+        row = self.connection.execute(
+            "SELECT plan_json FROM red_team_credential_sessions WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise CredentialSessionStoreRejected("Credential Session Plan is unavailable")
+        return CredentialSessionPlan.model_validate_json(row["plan_json"])
+
+    def outcome(self, plan_id: str) -> CredentialSessionOutcome:
+        row = self.connection.execute(
+            "SELECT state,outcome_json FROM red_team_credential_sessions WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None or row["state"] != CredentialSessionState.COMPLETED.value:
+            raise CredentialSessionStoreRejected("completed Credential Session is unavailable")
+        return CredentialSessionOutcome.model_validate_json(row["outcome_json"])

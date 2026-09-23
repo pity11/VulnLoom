@@ -78,7 +78,6 @@
       "type": "boolean"
     },
     "authentication_performed": {
-      "const": false,
       "default": false,
       "title": "Authentication Performed",
       "type": "boolean"

@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "RoleAccessDecision": {
+      "enum": [
+        "allowed",
+        "denied"
+      ],
+      "title": "RoleAccessDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "fixture_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "session_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Plan Id",
+      "type": "string"
+    },
+    "identity_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Identity Ref",
+      "type": "string"
+    },
+    "role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Role Ref",
+      "type": "string"
+    },
+    "action_intent_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Intent Digest",
+      "type": "string"
+    },
+    "access_decision": {
+      "$ref": "#/$defs/RoleAccessDecision"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "authentication_accepted": {
+      "const": true,
+      "default": true,
+      "title": "Authentication Accepted",
+      "type": "boolean"
+    },
+    "network_performed": {
+      "const": false,
+      "default": false,
+      "title": "Network Performed",
+      "type": "boolean"
+    },
+    "raw_response_present": {
+      "const": false,
+      "default": false,
+      "title": "Raw Response Present",
+      "type": "boolean"
+    },
+    "credential_material_present": {
+      "const": false,
+      "default": false,
+      "title": "Credential Material Present",
+      "type": "boolean"
+    },
+    "session_material_present": {
+      "const": false,
+      "default": false,
+      "title": "Session Material Present",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "observation_id",
+    "fixture_id",
+    "session_plan_id",
+    "identity_ref",
+    "role_ref",
+    "action_intent_digest",
+    "access_decision",
+    "observed_at"
+  ],
+  "title": "LocalAuthenticationObservation",
+  "type": "object"
+}
