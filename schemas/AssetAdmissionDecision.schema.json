@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "AssetAdmissionVerdict": {
+      "enum": [
+        "admitted",
+        "approval_required",
+        "rejected"
+      ],
+      "title": "AssetAdmissionVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "decision_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "authorization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "asset_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/AssetAdmissionVerdict"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_]{2,63}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "attribution_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Attribution Ids",
+      "type": "array"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "active_testing_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Active Testing Authorized",
+      "type": "boolean"
+    },
+    "finding_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Finding Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "decision_id",
+    "authorization_id",
+    "asset_id",
+    "verdict",
+    "reason_code",
+    "attribution_ids",
+    "decided_at"
+  ],
+  "title": "AssetAdmissionDecision",
+  "type": "object"
+}

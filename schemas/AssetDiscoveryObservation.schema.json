@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "AssetAttributionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "attribution_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Attribution Id",
+          "type": "string"
+        },
+        "asset_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AssetAttributionKind"
+        },
+        "verdict": {
+          "$ref": "#/$defs/AttributionVerdict"
+        },
+        "evidence_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evidence Ref",
+          "type": "string"
+        },
+        "subject_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Subject Digest",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribution_id",
+        "asset_id",
+        "kind",
+        "verdict",
+        "evidence_ref",
+        "subject_digest",
+        "observed_at"
+      ],
+      "title": "AssetAttributionEvidence",
+      "type": "object"
+    },
+    "AssetAttributionKind": {
+      "enum": [
+        "authorized_root_domain",
+        "icp_registration_match",
+        "operator_inventory_match",
+        "certificate_name_match",
+        "official_link",
+        "product_fingerprint",
+        "cross_legal_entity",
+        "explicit_exclusion"
+      ],
+      "title": "AssetAttributionKind",
+      "type": "string"
+    },
+    "AssetDiscoverySource": {
+      "enum": [
+        "fofa",
+        "quake",
+        "shodan",
+        "passive_dns",
+        "certificate_transparency",
+        "icp_registry",
+        "operator_import"
+      ],
+      "title": "AssetDiscoverySource",
+      "type": "string"
+    },
+    "AssetLocatorKind": {
+      "enum": [
+        "hostname",
+        "ip_address"
+      ],
+      "title": "AssetLocatorKind",
+      "type": "string"
+    },
+    "AttributionVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "AttributionVerdict",
+      "type": "string"
+    },
+    "DiscoveredAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "query_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetDiscoverySource"
+        },
+        "locator_kind": {
+          "$ref": "#/$defs/AssetLocatorKind"
+        },
+        "locator": {
+          "title": "Locator",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "scheme": {
+          "enum": [
+            "http",
+            "https"
+          ],
+          "title": "Scheme",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "source_record_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9:._-]{0,255}$",
+          "title": "Source Record Ref",
+          "type": "string"
+        },
+        "source_evidence_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Evidence Digest",
+          "type": "string"
+        },
+        "active_observation": {
+          "const": false,
+          "default": false,
+          "title": "Active Observation",
+          "type": "boolean"
+        },
+        "test_execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Test Execution Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "asset_id",
+        "plan_id",
+        "query_id",
+        "source",
+        "locator_kind",
+        "locator",
+        "port",
+        "scheme",
+        "observed_at",
+        "source_record_ref",
+        "source_evidence_digest"
+      ],
+      "title": "DiscoveredAsset",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "asset": {
+      "$ref": "#/$defs/DiscoveredAsset"
+    },
+    "attribution": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AssetAttributionEvidence"
+      },
+      "maxItems": 32,
+      "title": "Attribution",
+      "type": "array"
+    }
+  },
+  "required": [
+    "asset"
+  ],
+  "title": "AssetDiscoveryObservation",
+  "type": "object"
+}

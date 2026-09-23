@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "AssetAttributionKind": {
+      "enum": [
+        "authorized_root_domain",
+        "icp_registration_match",
+        "operator_inventory_match",
+        "certificate_name_match",
+        "official_link",
+        "product_fingerprint",
+        "cross_legal_entity",
+        "explicit_exclusion"
+      ],
+      "title": "AssetAttributionKind",
+      "type": "string"
+    },
+    "AttributionVerdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "AttributionVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attribution_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Attribution Id",
+      "type": "string"
+    },
+    "asset_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/AssetAttributionKind"
+    },
+    "verdict": {
+      "$ref": "#/$defs/AttributionVerdict"
+    },
+    "evidence_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Ref",
+      "type": "string"
+    },
+    "subject_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Subject Digest",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "attribution_id",
+    "asset_id",
+    "kind",
+    "verdict",
+    "evidence_ref",
+    "subject_digest",
+    "observed_at"
+  ],
+  "title": "AssetAttributionEvidence",
+  "type": "object"
+}

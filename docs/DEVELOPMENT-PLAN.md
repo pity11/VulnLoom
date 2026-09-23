@@ -2,7 +2,7 @@
 
 状态：`ACTIVE`
 
-更新日期：`2026-09-22`
+更新日期：`2026-09-23`
 
 ## 1. 文档作用与权威顺序
 
@@ -132,13 +132,15 @@ Critic→Finding/Unresolved Candidate，并在 Blind Holdout 中不降低既定 
 S1 之后按以下顺序推进：
 
 1. **B1 Observation-driven bounded replanning**：Agent 可在既有 Scope 和有限工具视图内提出下一步，但每个新
-   Action 必须重新封存、预算、策略判定和必要 Approval；不得动态扩展 Target；
+   Action 必须重新封存、预算、策略判定和必要 Approval；不得由 Agent 文本或 Observation 直接扩展 Target；
 2. **B2 Web/API 只读面深化**：针对已明确列出的路径增加类型化 HTTP、OpenAPI/GraphQL 等观察 adapter；仍不加入
    crawler、字典枚举、CIDR/端口扫描或任意请求脚本；
 3. **B3 漏洞类别纵切**：按版本化 Evidence Requirement 逐类实现正例、负例、最小 Validation、Critic 和 Cleanup，
    优先低影响 Web/API 类别；Scanner 命中只能形成 Signal/Candidate；
-4. **B4 测试身份与业务流程**：只使用控制方测试身份和 opaque reference；登录、角色和状态变化分别经过 Vault、
-   Session 隔离与 Approval，不测试真实第三方账户；
+4. **B4 授权派生资产与测试身份**：B4.0 先以 FOFA/Quake/Shodan/被动 DNS/证书透明度/ICP 等受约束来源发现
+   `DiscoveredAsset`，只有确定性归属和授权策略接受后才发布无主动测试权的 `AuthorizedAsset`；B4.1 起只使用
+   控制方测试身份和 opaque reference，登录、角色和状态变化分别经过 Vault、Session 隔离与 Approval，不测试
+   真实第三方账户；
 5. **B5 Lab A3/A4 资格**：只在隔离靶场评估更长攻击图、恢复、Refiner 和 Coverage Ledger；达到 A4 前不得对外称为
    自主红队 Campaign。
 
@@ -155,8 +157,9 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
 ### D：生产环境定期巡检
 
 当前已有精确 Endpoint Seed Set、预算化 Schedule、差异和恢复合同。下一阶段只接入已通过 B 线准入的
-`production_safe` 动作，默认只读、低速、固定窗口和熔断。新发现资产只能记录为 `DiscoveredAsset`，不能自动
-升级为可执行目标。
+`production_safe` 动作，默认只读、低速、固定窗口和熔断。新发现资产先记录为 `DiscoveredAsset`；只有命中当前
+任务的确定性授权派生规则，才能发布为仍无主动测试权的 `AuthorizedAsset`。模糊归属、跨独立法人和供应链资产
+分别进入审批或拒绝，不能由模型或指纹相似度直接升级为可执行目标。
 
 ## 8. 共享控制面后续
 
@@ -169,7 +172,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
 
 ## 9. 明确延后
 
-- 公网资产自主发现、Crawler、字典枚举和未封存路径探索；
+- 面向未授权公网的资产发现、Crawler、字典枚举和未封存路径探索；授权实体范围内的被动测绘发现按 B4.0 管理；
 - 通用任意 Shell、Worker 直接网络和 Worker 持有 Provider/平台 token；
 - 自动披露平台提交、自动申请 CVE；
 - 真实第三方账号攻击、撞库、钓鱼、社工、横向移动、持久化和真实数据外传；
@@ -196,7 +199,8 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
 
 当前下一项工作固定为 **B4.1 opaque test-identity admission contract 纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
-B3.1-B3.4 已达到 `offline_tested`，B3 首个漏洞类别纵切关闭。B4.1 先固定控制方测试身份的 opaque reference、用途、
+B3.1-B3.4 与 B4.0 已达到 `offline_tested`。B4.0 只完成授权派生的离线发现和准入合同，尚无真实测绘平台 adapter、
+公网查询或主动探测。B4.1 先固定控制方测试身份的 opaque reference、用途、
 Target/Scope 和过期边界；不接入真实凭据、登录、状态变更测试或第三方账户。只有出现新的用户优先级决定，才从其他
 里程碑开始。
 
@@ -384,3 +388,19 @@ review 必须晚于 Validation，Scope、Target/version、requirement 和全部 
 部分结果、STARTED 恢复和 cleanup proof。本轮未访问公网、未调用真实模型、未新增请求或执行真实攻击。全量门禁为
 1672 passed、43 skipped、85.40% coverage；487 份 schema、Ruff、红队专项和 diff check 通过。B3 关闭，下一项为
 B4.1 opaque test-identity admission contract。
+
+进展记录（2026-09-23）：B4.0 达到 `offline_tested` 并关闭。新增内容寻址的 `AssetDiscoveryAuthorization`、typed
+selector/query Plan、`DiscoveredAsset`、归属 Evidence、三态 Admission Decision、`AuthorizedAsset` 和 Outcome。
+授权模式区分 exact assignment、entity bound、platform category 与 supply-chain-with-approval；查询只接受由当前
+Scope 和权威材料摘要派生的 domain、exact host 或 ICP selector，不接受自由 FOFA DSL。FOFA、Quake、Shodan、
+被动 DNS、证书透明度、ICP registry 和 operator import 被建模为可信 Control Plane Adapter 来源，Plan、Worker
+和模型协议均没有平台 token 字段。
+
+确定性 reducer 允许原 Scope 的精确 scheme/host/port、授权根域加匹配归属证据、授权 ICP 或操作员资产清单自动
+准入；纯证书、官方链接或产品指纹不足以证明归属，只进入 `approval_required`。每个完成的来源查询保存独立、已
+校验且不含 raw response 的 checkpoint，多来源恢复不会重复查询已经完成的来源。明确排除后缀、跨独立法人和 exact
+assignment 外资产拒绝，供应链关联资产固定待报备。完成事务只原子发布 admitted `AuthorizedAsset`；它只授予后续
+Target materialization 资格，仍固定 `active_testing_authorized=false` 和 `finding_authorized=false`。离线 fake
+覆盖成功、拒绝、待审批、预算、Scope/selector 漂移、查询注入、端口扩权、中断、三次恢复、超时、cleanup/凭据
+边界与无部分发布。本轮没有访问公网、调用真实测绘 API、使用真实 token、调用模型或执行攻击。下一项为 B4.1。
+最终全量门禁为 1685 passed、43 skipped、85.43% coverage；498 份 schema、Ruff 和 diff check 通过。

@@ -402,6 +402,26 @@ Promotion ledger 与 `endpoint_seed_sets` 使用同一 SQLite connection。claim
 后续请求必须重新经过 Endpoint Plan、动作预算、Scope/Policy 和既有 Broker 边界。离线纵切已证明具体化路径可进入
 HEAD 计划，但没有执行请求，也没有新增 live CLI。
 
+## B4.0 authorization-derived passive asset discovery
+
+B4.0 修正了“固定 Target”与教育行业实体范围授权之间的产品边界。系统可以从 FOFA、Quake、Shodan、被动 DNS、
+证书透明度、ICP registry 或控制方清单发现候选资产，但查询必须由可信控制面从当前批准 Scope 和独立封存的
+`AssetDiscoveryAuthorization` 生成。协议只允许 typed domain、exact-host 或 ICP selector，不包含任意测绘 DSL；
+平台 token 不出现在 Plan、Worker、模型上下文、普通日志或结果对象中。本阶段只有离线 fake adapter，没有真实
+平台客户端或公网开关。
+
+授权模式分为 `exact_assignment`、`entity_bound`、`platform_category` 和 `supply_chain_with_approval`。每条来源记录
+先成为无执行权的 `DiscoveredAsset`，并绑定查询、来源、观察时间和 digest-only 来源证据。准入 reducer 综合根域、
+ICP、控制方清单、证书/官方链接/产品指纹以及跨法人或明确排除证据：精确 Scope endpoint 和强实体归属可自动
+admit，弱线索或供应链关系进入 `approval_required`，明确越界则拒绝。Logo、标题、产品指纹或高危端口不构成漏洞
+证据，也不能单独证明资产归属。
+
+SQLite ledger 为每个已完成来源查询保存无 raw response 的 checkpoint，并在 STARTED/COMPLETED 状态间原子发布
+admitted `AuthorizedAsset`；恢复不会重复请求已完成来源。中断、超时、预算超限、Scope 或
+selector 漂移、adapter session/credential cleanup 未证明时都不发布部分资产。`AuthorizedAsset` 仅表示可以进入
+后续 Target materialization，固定不授予主动请求、扫描、Candidate 或 Finding 权限。任何实际 HTTP/TLS/端口确认
+仍需进入既有 Target、Policy、预算、Approval 和 Tool Broker 链。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -412,7 +432,8 @@ B3.1 已为未认证敏感数据暴露固定首个版本化 Evidence Requirement
 Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已只读比较两份独立 sealed GET materialization，
 物化 replay/redaction Validation Assertion。B3.4 已消费与 Validation 分离的完整类型化审查，物化四项 Critic
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
-下一步 B4.1 固定控制方测试身份的 opaque admission contract，不接入真实凭据、任意 query/POST、状态变更或第三方
+B4.0 已完成授权派生资产发现与三态准入的离线合同；下一步 B4.1 固定控制方测试身份的 opaque admission contract，
+不接入真实凭据、任意 query/POST、状态变更或第三方
 账户；之后再推进 Session/Approval 和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
-Target 扩展、真实第三方账户、横向移动或持久化。
+的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

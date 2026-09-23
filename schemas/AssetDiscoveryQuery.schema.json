@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "AssetDiscoverySelectorKind": {
+      "enum": [
+        "domain",
+        "icp_registration",
+        "exact_host"
+      ],
+      "title": "AssetDiscoverySelectorKind",
+      "type": "string"
+    },
+    "AssetDiscoverySource": {
+      "enum": [
+        "fofa",
+        "quake",
+        "shodan",
+        "passive_dns",
+        "certificate_transparency",
+        "icp_registry",
+        "operator_import"
+      ],
+      "title": "AssetDiscoverySource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "query_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Query Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/AssetDiscoverySource"
+    },
+    "selector_kind": {
+      "$ref": "#/$defs/AssetDiscoverySelectorKind"
+    },
+    "selector": {
+      "maxLength": 253,
+      "minLength": 1,
+      "title": "Selector",
+      "type": "string"
+    },
+    "selector_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selector Digest",
+      "type": "string"
+    },
+    "result_limit": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Result Limit",
+      "type": "integer"
+    },
+    "raw_query_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Raw Query Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "query_id",
+    "source",
+    "selector_kind",
+    "selector",
+    "selector_digest",
+    "result_limit"
+  ],
+  "title": "AssetDiscoveryQuery",
+  "type": "object"
+}

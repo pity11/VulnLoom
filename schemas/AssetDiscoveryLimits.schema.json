@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_queries": {
+      "default": 16,
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Max Queries",
+      "type": "integer"
+    },
+    "max_records": {
+      "default": 500,
+      "maximum": 5000,
+      "minimum": 1,
+      "title": "Max Records",
+      "type": "integer"
+    },
+    "max_evidence_per_asset": {
+      "default": 16,
+      "maximum": 32,
+      "minimum": 1,
+      "title": "Max Evidence Per Asset",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 10.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "AssetDiscoveryLimits",
+  "type": "object"
+}

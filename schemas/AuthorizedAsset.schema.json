@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "AssetDiscoverySource": {
+      "enum": [
+        "fofa",
+        "quake",
+        "shodan",
+        "passive_dns",
+        "certificate_transparency",
+        "icp_registry",
+        "operator_import"
+      ],
+      "title": "AssetDiscoverySource",
+      "type": "string"
+    },
+    "AssetLocatorKind": {
+      "enum": [
+        "hostname",
+        "ip_address"
+      ],
+      "title": "AssetLocatorKind",
+      "type": "string"
+    },
+    "DiscoveredAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "query_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetDiscoverySource"
+        },
+        "locator_kind": {
+          "$ref": "#/$defs/AssetLocatorKind"
+        },
+        "locator": {
+          "title": "Locator",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "scheme": {
+          "enum": [
+            "http",
+            "https"
+          ],
+          "title": "Scheme",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "source_record_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9:._-]{0,255}$",
+          "title": "Source Record Ref",
+          "type": "string"
+        },
+        "source_evidence_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Evidence Digest",
+          "type": "string"
+        },
+        "active_observation": {
+          "const": false,
+          "default": false,
+          "title": "Active Observation",
+          "type": "boolean"
+        },
+        "test_execution_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Test Execution Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "asset_id",
+        "plan_id",
+        "query_id",
+        "source",
+        "locator_kind",
+        "locator",
+        "port",
+        "scheme",
+        "observed_at",
+        "source_record_ref",
+        "source_evidence_digest"
+      ],
+      "title": "DiscoveredAsset",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorized_asset_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorized Asset Id",
+      "type": "string"
+    },
+    "authorization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "decision_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "asset": {
+      "$ref": "#/$defs/DiscoveredAsset"
+    },
+    "admitted_at": {
+      "format": "date-time",
+      "title": "Admitted At",
+      "type": "string"
+    },
+    "target_materialization_authorized": {
+      "const": true,
+      "default": true,
+      "title": "Target Materialization Authorized",
+      "type": "boolean"
+    },
+    "active_testing_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Active Testing Authorized",
+      "type": "boolean"
+    },
+    "finding_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Finding Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "authorized_asset_id",
+    "authorization_id",
+    "decision_id",
+    "asset",
+    "admitted_at"
+  ],
+  "title": "AuthorizedAsset",
+  "type": "object"
+}

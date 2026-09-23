@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "AssetAuthorizationMode": {
+      "enum": [
+        "exact_assignment",
+        "entity_bound",
+        "platform_category",
+        "supply_chain_with_approval"
+      ],
+      "title": "AssetAuthorizationMode",
+      "type": "string"
+    },
+    "AssetDiscoverySource": {
+      "enum": [
+        "fofa",
+        "quake",
+        "shodan",
+        "passive_dns",
+        "certificate_transparency",
+        "icp_registry",
+        "operator_import"
+      ],
+      "title": "AssetDiscoverySource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorization_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "authorization_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Authorization Version",
+      "type": "integer"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "authority_reference_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authority Reference Digest",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/AssetAuthorizationMode"
+    },
+    "exact_hosts": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Exact Hosts",
+      "type": "array"
+    },
+    "exact_endpoints": {
+      "default": [],
+      "items": {
+        "pattern": "^https?://[a-z0-9.-]{3,253}:[1-9][0-9]{0,4}$",
+        "type": "string"
+      },
+      "title": "Exact Endpoints",
+      "type": "array"
+    },
+    "root_domains": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Root Domains",
+      "type": "array"
+    },
+    "icp_registration_digests": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Icp Registration Digests",
+      "type": "array"
+    },
+    "excluded_domain_suffixes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Excluded Domain Suffixes",
+      "type": "array"
+    },
+    "allowed_sources": {
+      "items": {
+        "$ref": "#/$defs/AssetDiscoverySource"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Allowed Sources",
+      "type": "array"
+    },
+    "valid_from": {
+      "format": "date-time",
+      "title": "Valid From",
+      "type": "string"
+    },
+    "valid_until": {
+      "format": "date-time",
+      "title": "Valid Until",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_id",
+    "scope_id",
+    "scope_version",
+    "authority_reference_digest",
+    "mode",
+    "allowed_sources",
+    "valid_from",
+    "valid_until",
+    "created_at"
+  ],
+  "title": "AssetDiscoveryAuthorization",
+  "type": "object"
+}

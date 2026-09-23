@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "AssetAdmissionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "authorization_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Authorization Id",
+          "type": "string"
+        },
+        "asset_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/AssetAdmissionVerdict"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_]{2,63}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "attribution_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Attribution Ids",
+          "type": "array"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "active_testing_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Active Testing Authorized",
+          "type": "boolean"
+        },
+        "finding_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Finding Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "decision_id",
+        "authorization_id",
+        "asset_id",
+        "verdict",
+        "reason_code",
+        "attribution_ids",
+        "decided_at"
+      ],
+      "title": "AssetAdmissionDecision",
+      "type": "object"
+    },
+    "AssetAdmissionVerdict": {
+      "enum": [
+        "admitted",
+        "approval_required",
+        "rejected"
+      ],
+      "title": "AssetAdmissionVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "observation_count": {
+      "maximum": 5000,
+      "minimum": 0,
+      "title": "Observation Count",
+      "type": "integer"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/AssetAdmissionDecision"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "authorized_asset_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Authorized Asset Ids",
+      "type": "array"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "plan_id",
+    "observation_count",
+    "decisions",
+    "authorized_asset_ids",
+    "attempt",
+    "completed_at"
+  ],
+  "title": "AssetDiscoveryOutcome",
+  "type": "object"
+}

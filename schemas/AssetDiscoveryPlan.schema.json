@@ -1,0 +1,307 @@
+{
+  "$defs": {
+    "AssetAuthorizationMode": {
+      "enum": [
+        "exact_assignment",
+        "entity_bound",
+        "platform_category",
+        "supply_chain_with_approval"
+      ],
+      "title": "AssetAuthorizationMode",
+      "type": "string"
+    },
+    "AssetDiscoveryAuthorization": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Authorization Id",
+          "type": "string"
+        },
+        "authorization_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Authorization Version",
+          "type": "integer"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "authority_reference_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Authority Reference Digest",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/AssetAuthorizationMode"
+        },
+        "exact_hosts": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Exact Hosts",
+          "type": "array"
+        },
+        "exact_endpoints": {
+          "default": [],
+          "items": {
+            "pattern": "^https?://[a-z0-9.-]{3,253}:[1-9][0-9]{0,4}$",
+            "type": "string"
+          },
+          "title": "Exact Endpoints",
+          "type": "array"
+        },
+        "root_domains": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Domains",
+          "type": "array"
+        },
+        "icp_registration_digests": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Icp Registration Digests",
+          "type": "array"
+        },
+        "excluded_domain_suffixes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded Domain Suffixes",
+          "type": "array"
+        },
+        "allowed_sources": {
+          "items": {
+            "$ref": "#/$defs/AssetDiscoverySource"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Allowed Sources",
+          "type": "array"
+        },
+        "valid_from": {
+          "format": "date-time",
+          "title": "Valid From",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "date-time",
+          "title": "Valid Until",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorization_id",
+        "scope_id",
+        "scope_version",
+        "authority_reference_digest",
+        "mode",
+        "allowed_sources",
+        "valid_from",
+        "valid_until",
+        "created_at"
+      ],
+      "title": "AssetDiscoveryAuthorization",
+      "type": "object"
+    },
+    "AssetDiscoveryLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_queries": {
+          "default": 16,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Queries",
+          "type": "integer"
+        },
+        "max_records": {
+          "default": 500,
+          "maximum": 5000,
+          "minimum": 1,
+          "title": "Max Records",
+          "type": "integer"
+        },
+        "max_evidence_per_asset": {
+          "default": 16,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Max Evidence Per Asset",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "AssetDiscoveryLimits",
+      "type": "object"
+    },
+    "AssetDiscoveryQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "query_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Query Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/AssetDiscoverySource"
+        },
+        "selector_kind": {
+          "$ref": "#/$defs/AssetDiscoverySelectorKind"
+        },
+        "selector": {
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Selector",
+          "type": "string"
+        },
+        "selector_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Selector Digest",
+          "type": "string"
+        },
+        "result_limit": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Result Limit",
+          "type": "integer"
+        },
+        "raw_query_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Raw Query Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "query_id",
+        "source",
+        "selector_kind",
+        "selector",
+        "selector_digest",
+        "result_limit"
+      ],
+      "title": "AssetDiscoveryQuery",
+      "type": "object"
+    },
+    "AssetDiscoverySelectorKind": {
+      "enum": [
+        "domain",
+        "icp_registration",
+        "exact_host"
+      ],
+      "title": "AssetDiscoverySelectorKind",
+      "type": "string"
+    },
+    "AssetDiscoverySource": {
+      "enum": [
+        "fofa",
+        "quake",
+        "shodan",
+        "passive_dns",
+        "certificate_transparency",
+        "icp_registry",
+        "operator_import"
+      ],
+      "title": "AssetDiscoverySource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "authorization": {
+      "$ref": "#/$defs/AssetDiscoveryAuthorization"
+    },
+    "queries": {
+      "items": {
+        "$ref": "#/$defs/AssetDiscoveryQuery"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Queries",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/AssetDiscoveryLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "adapter_credential_ref": {
+      "default": null,
+      "title": "Adapter Credential Ref",
+      "type": "null"
+    },
+    "worker_execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Worker Execution Authorized",
+      "type": "boolean"
+    },
+    "active_scanning_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Active Scanning Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "authorization",
+    "queries",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AssetDiscoveryPlan",
+  "type": "object"
+}

@@ -1493,9 +1493,29 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
 范围、修改权威状态、跨任务持久化或把 cleanup unknown 伪装为安全终态。默认测试完全离线；真实 rootless
 隔离测试必须显式 opt-in。当前开发顺序和两个方向的后续计划见 `docs/DEVELOPMENT-PLAN.md`。
 
+## B4.0 授权派生资产发现与准入（已完成，offline_tested）
+
+- 新增四种 `AssetAuthorizationMode`，将精确任务、实体范围、平台类别和需报备的供应链授权显式区分；授权对象绑定
+  当前 Scope/version、authority reference digest、有效期、精确 endpoint、根域、ICP digest、排除后缀和允许来源。
+- 新增无自由 DSL 的 typed discovery query。FOFA/Quake/Shodan/被动 DNS/证书透明度/ICP/operator import 只能接收
+  与封存授权匹配的 domain、exact host 或 ICP selector；Plan 不含 adapter credential，且固定禁止 Worker 执行和
+  active scanning。
+- 新增 `DiscoveredAsset → AssetAdmissionDecision → AuthorizedAsset` 状态边界。精确 endpoint、授权根域强证据、
+  授权 ICP 和操作员清单可 admit；弱指纹/证书/官方链接待审批；跨法人、排除项和 exact-assignment 越界拒绝；
+  供应链关联固定待报备。
+- SQLite STARTED/COMPLETED ledger 对每个完成来源保存无 raw response 的 query checkpoint，并原子发布 admitted
+  资产；恢复与幂等重放不重复调用已完成 Adapter；中断后最多三次恢复，
+  超时、预算超限、Scope/selector/provenance 漂移、raw response 保留或 credential/session cleanup 未证明均不发布
+  部分资产。
+- `AuthorizedAsset` 仅允许进入后续 Target materialization，固定禁止主动测试与 Finding；FOFA 风险分数、端口、
+  标题、Logo 或产品指纹绝不直接形成 Candidate/Finding。
+- 离线 fake 回归覆盖成功、拒绝、待审批、查询注入、精确端口扩权、预算、漂移、cleanup、中断、超时、恢复耗尽、
+  原子发布和 schema 权限升级拒绝。本阶段未访问公网、未查询真实平台、未使用真实 token、未调用模型或执行攻击。
+- 全量门禁：1685 passed、43 skipped、85.43% coverage；498 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
-- 公网资产自主发现。
+- 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。
 - 自动化漏洞平台提交。
 - 自动申请 CVE。
 - 通用任意 Shell。
