@@ -1,0 +1,105 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "lease_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Lease Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "identity_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Identity Ref",
+      "type": "string"
+    },
+    "role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Role Ref",
+      "type": "string"
+    },
+    "opened_at": {
+      "format": "date-time",
+      "title": "Opened At",
+      "type": "string"
+    },
+    "closed_at": {
+      "format": "date-time",
+      "title": "Closed At",
+      "type": "string"
+    },
+    "max_uses": {
+      "const": 1,
+      "default": 1,
+      "title": "Max Uses",
+      "type": "integer"
+    },
+    "uses": {
+      "const": 1,
+      "default": 1,
+      "title": "Uses",
+      "type": "integer"
+    },
+    "isolated": {
+      "const": true,
+      "default": true,
+      "title": "Isolated",
+      "type": "boolean"
+    },
+    "released": {
+      "const": true,
+      "default": true,
+      "title": "Released",
+      "type": "boolean"
+    },
+    "zeroed": {
+      "const": true,
+      "default": true,
+      "title": "Zeroed",
+      "type": "boolean"
+    },
+    "network_performed": {
+      "const": false,
+      "default": false,
+      "title": "Network Performed",
+      "type": "boolean"
+    },
+    "authentication_performed": {
+      "const": false,
+      "default": false,
+      "title": "Authentication Performed",
+      "type": "boolean"
+    },
+    "state_changed": {
+      "const": false,
+      "default": false,
+      "title": "State Changed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "session_id",
+    "plan_id",
+    "lease_id",
+    "target_id",
+    "identity_ref",
+    "role_ref",
+    "opened_at",
+    "closed_at"
+  ],
+  "title": "IsolatedSessionReceipt",
+  "type": "object"
+}

@@ -1530,6 +1530,26 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   状态变更。下一项 B4.2 才固定 lease、Approval binding 和隔离 Session 生命周期。
 - 全量门禁：1694 passed、43 skipped、85.45% coverage；505 份 schema、Ruff 和 diff check 通过。
 
+## B4.2 短期凭据租约与隔离 Session（已完成，offline_tested）
+
+- 根领域词汇表新增 `Credential Lease` 与 `Isolated Test Session`；二者都不是可持久化或可转交给 Worker/模型的
+  bearer credential，也不继承 B4.1 Admission 之外的权限。
+- `CredentialSessionPlan` 内容寻址绑定 active Admission、Record、identity/credential ref、Scope/version、精确
+  Target、单一用途/角色、Action digest、必要 Approval、短期 TTL、deadline、单次使用和幂等键；schema 固定禁止
+  网络执行、第三方账户与秘密材料。
+- 既有 Policy Engine 在 Vault acquire 前以当前时间重放 exact Action；Approval 必须同时匹配 Engagement、Target、
+  policy version、Action digest、granted 状态和有效期。状态变化用途要求 `USE_REAL_CREDENTIALS` 与
+  `MUTATE_TARGET_STATE` 两份同摘要 Approval，read-only 用途禁止 mutation。
+- 离线 Vault 只接受 `fixture:` 材料，秘密进入不可序列化 bytearray Lease；离线 Session adapter 无 socket、无认证、
+  无状态变化。成功、中断与超时路径均清零 Lease/Session material，receipt 只保存 digest、时间、单次使用与 cleanup
+  proof。
+- 独立 SQLite STARTED/COMPLETED ledger 提供原子发布、幂等与最多三次显式恢复；撤销/过期身份、Scope/Target/
+  Action/role 漂移、错误或过期 Approval、adapter 拒绝、超时均不发布部分 Outcome。
+- 离线测试覆盖成功、精确 Approval 拒绝、双 Approval、身份撤销、绑定漂移、adapter 中断、恢复、超时、清理、
+  secret-free persistence 与 schema 权限升级拒绝。本阶段没有真实 Vault、真实账户、登录请求、网络、模型调用、
+  状态变更或攻击。
+- 全量门禁：1703 passed、43 skipped、85.48% coverage；510 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

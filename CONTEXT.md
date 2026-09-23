@@ -28,6 +28,14 @@ _Avoid_: Password, Token, Vault path
 将一个 Test Identity 限定到精确 Scope 版本、Target、用途、角色和时间窗的不可变准入决定；它不授予凭据读取、登录、Session 或状态变更权限。
 _Avoid_: Login permission, Session, Credential grant
 
+**Credential Lease**：
+可信 Control Plane 在 Test Identity Admission 与精确 Action Approval 均有效后，从 Vault 取得的一次性短期秘密租约；租约不可序列化、不可交给 Worker 或模型，结束、拒绝和超时路径都必须清零。
+_Avoid_: Credential, Token, Secret record
+
+**Isolated Test Session**：
+绑定一个 Test Identity、Target、角色、用途、Action digest 和单次 Credential Lease 的短生命周期执行边界；Session receipt 只证明隔离、使用次数和清理，不保存认证材料，也不自行授权网络、登录或状态变化。
+_Avoid_: Login state, Cookie jar, Browser profile
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

@@ -197,12 +197,13 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B4.2 Vault credential lease、Approval binding 与隔离 Session contract 纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B4.3 本地隔离认证动作与角色差异观察纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
-B4.2 先实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；不接入真实登录、状态变更测试或
-第三方账户。只有出现新的用户优先级决定，才从其他
+B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；没有接入真实登录、状态变更测试
+或第三方账户。B4.3 先在本地隔离 fixture 中固定认证动作、登出清理与角色差异 Observation，仍不访问公网或使用
+真实账户。只有出现新的用户优先级决定，才从其他
 里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
@@ -419,3 +420,17 @@ SQLite Registry/ledger 覆盖内容冲突、原子发布、幂等、STARTED、�
 覆盖成功、Scope/Target/用途/角色拒绝、第三方账号与权限升级 schema 拒绝、撤销、过期、漂移、超时、恢复和存储
 冲突。本轮没有 Vault adapter、真实凭据、登录请求、网络、模型调用或状态变更。下一项为 B4.2。
 最终全量门禁为 1694 passed、43 skipped、85.45% coverage；505 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-23）：B4.2 达到 `offline_tested` 并关闭。新增 `Credential Lease` 与 `Isolated Test Session`
+领域术语，以及内容寻址、无秘密的 Session Plan/Lease Receipt/Session Receipt/Outcome。Plan 精确绑定 active B4.1
+Admission、Record、Test Identity、Credential Reference、Scope/version、Target、单一用途/角色、Action digest、
+Approval 集合、短期 TTL、deadline 与单次使用；固定禁止网络执行、第三方账户和秘密字段。
+
+执行在 Vault acquire 前使用既有 Policy Engine 以当前时间重放 exact Action；Approval 必须匹配 Engagement、Target、
+policy version、Action digest、granted 状态和有效期，state-change 同时需要 `USE_REAL_CREDENTIALS` 与
+`MUTATE_TARGET_STATE`。离线 Vault 只接受 `fixture:` 材料，Lease 与 Session handle 均为不可序列化 bytearray，
+成功、拒绝和超时路径都在 finally 中清零。SQLite ledger 覆盖 STARTED/COMPLETED、幂等、恢复上限和无部分发布；
+receipt 只保存 digest、时间、单次使用与 cleanup proof。专项回归覆盖成功、Approval 缺失/错误/过期、双 Approval、
+身份撤销、Scope/Target/Action/role 漂移、adapter 中断、恢复、超时、清理、无秘密持久化与 schema 权限升级拒绝。
+本轮没有真实 Vault、真实凭据或第三方账户、登录、网络、模型调用、状态变化或攻击。下一项为 B4.3。
+最终全量门禁为 1703 passed、43 skipped、85.48% coverage；510 份 schema、Ruff 和 diff check 通过。

@@ -442,6 +442,30 @@ Target 和 Admission 有效期，因此撤销身份会立即使历史 Admission 
 没有获取 credential material、没有持久化秘密、没有创建 Session 且 cleanup complete。本阶段无 Vault adapter、
 真实凭据、登录请求、网络访问或状态变更。
 
+## B4.2 Vault credential lease、Approval binding 与隔离 Session
+
+B4.2 将 `Credential Lease` 与 `Isolated Test Session` 固定为独立于 B4.1 Admission 的两个领域边界。Admission
+仍然不是 bearer capability；Session Plan 必须重新绑定 active Admission、Record、Test Identity、Credential
+Reference、Scope/version、精确 Target、单一用途和角色，以及排除 `requested_at` 后稳定的 exact Action digest。
+Action 必须声明 credential use，read-only 用途禁止 state mutation，state-change 用途则必须显式声明 mutation；
+external callback、Submission 和 untrusted build 一律在本纵切拒绝。
+
+执行前由既有 `PolicyEngine` 以当前时间重放 Action，`USE_REAL_CREDENTIALS` Approval 必须同时匹配 Engagement、
+Target、Scope policy version、Action digest、granted 状态和有效期；state-change 还需第二份同摘要的
+`MUTATE_TARGET_STATE` Approval。任何 Approval 缺失、过期、摘要或 Target 漂移都发生在 Vault acquire 前，因此
+不会触达秘密材料。执行前后还会重读 active Test Identity Admission，使撤销和过期立即生效。
+
+当前 `OfflineCredentialVault` 只接受 `fixture:` 材料，Lease 是不可序列化的私有 bytearray；
+`OfflineIsolatedSessionAdapter` 不创建 socket、不发起认证、不改变状态，只消费一次只读 view 并生成同 Plan
+内容绑定的瞬时 Session handle。成功、adapter 拒绝和超时路径都在 `finally` 中清零 Lease 与 Session material；
+持久化 receipt 只有 digest、时间、单次使用和 cleanup proof，不含用户名、密码、Cookie、Token、Vault path、
+认证响应或 Session material。
+
+独立 SQLite ledger 使用 STARTED/COMPLETED checkpoint、幂等重放和最多三次显式恢复。只有审批、绑定、单次
+Session 和双重清理均成立才原子发布 Outcome；中断或超时保留 STARTED 且不发布部分 receipt。本阶段没有真实
+Vault、真实账户、登录请求、网络访问、状态变更、模型调用或攻击；后续真实认证流程必须作为新的隔离纵切重新
+获得授权与运行期证明。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -452,8 +476,8 @@ B3.1 已为未认证敏感数据暴露固定首个版本化 Evidence Requirement
 Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已只读比较两份独立 sealed GET materialization，
 物化 replay/redaction Validation Assertion。B3.4 已消费与 Validation 分离的完整类型化审查，物化四项 Critic
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
-B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract。下一步 B4.2
-固定 Vault credential lease、Approval 绑定与隔离 Session 合同，仍先使用离线 fake，不接入真实目标登录或第三方
-账户；之后再推进业务流程和隔离靶场 A3/A4 资格。任何新
+B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract；B4.2 已完成
+离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期。下一步仍不直接接入真实目标登录，
+而是推进受控认证动作与角色差异观察的本地隔离 fixture 纵切；之后再推进业务流程和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。
