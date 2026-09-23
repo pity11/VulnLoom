@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "ApprovalAction": {
+      "enum": [
+        "run_validation",
+        "run_critic",
+        "run_untrusted_build",
+        "mutate_target_state",
+        "use_real_credentials",
+        "external_callback",
+        "submit_report",
+        "review_report",
+        "export_report",
+        "execute_red_team_action"
+      ],
+      "title": "ApprovalAction",
+      "type": "string"
+    },
+    "TestIdentityPurpose": {
+      "enum": [
+        "authentication",
+        "read_only_role_observation",
+        "state_change_validation"
+      ],
+      "title": "TestIdentityPurpose",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "identity_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Identity Ref",
+      "type": "string"
+    },
+    "credential_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Ref",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Digest",
+      "type": "string"
+    },
+    "purposes": {
+      "items": {
+        "$ref": "#/$defs/TestIdentityPurpose"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Purposes",
+      "type": "array"
+    },
+    "role_refs": {
+      "items": {
+        "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Role Refs",
+      "type": "array"
+    },
+    "required_approvals": {
+      "items": {
+        "$ref": "#/$defs/ApprovalAction"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Required Approvals",
+      "type": "array"
+    },
+    "admitted_at": {
+      "format": "date-time",
+      "title": "Admitted At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "max_session_uses": {
+      "const": 1,
+      "default": 1,
+      "title": "Max Session Uses",
+      "type": "integer"
+    },
+    "credential_access_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Credential Access Authorized",
+      "type": "boolean"
+    },
+    "authentication_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Authentication Authorized",
+      "type": "boolean"
+    },
+    "session_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Session Authorized",
+      "type": "boolean"
+    },
+    "state_change_authorized": {
+      "const": false,
+      "default": false,
+      "title": "State Change Authorized",
+      "type": "boolean"
+    },
+    "third_party_account_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Third Party Account Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "admission_id",
+    "plan_id",
+    "record_id",
+    "identity_ref",
+    "credential_ref",
+    "scope_id",
+    "scope_version",
+    "target_id",
+    "target_digest",
+    "purposes",
+    "role_refs",
+    "required_approvals",
+    "admitted_at",
+    "expires_at"
+  ],
+  "title": "TestIdentityAdmission",
+  "type": "object"
+}

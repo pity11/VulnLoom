@@ -361,6 +361,29 @@ from .surface_store import (
     AttackSurfaceReductionRecoveryRequired,
     AttackSurfaceReductionStore,
 )
+from .test_identity_models import (
+    TestIdentityAdmission,
+    TestIdentityAdmissionLimits,
+    TestIdentityAdmissionOutcome,
+    TestIdentityAdmissionPlan,
+    TestIdentityAdmissionState,
+    TestIdentityPurpose,
+    TestIdentityRecord,
+    TestIdentityRecordState,
+    TestIdentityReference,
+    TestIdentityRevocation,
+)
+from .test_identity_service import (
+    TestIdentityAdmissionRejected,
+    TestIdentityAdmissionService,
+    TestIdentityAdmissionTimedOut,
+)
+from .test_identity_store import (
+    TestIdentityAdmissionClaim,
+    TestIdentityRecoveryRequired,
+    TestIdentityStore,
+    TestIdentityStoreRejected,
+)
 
 __all__ = [
     "AssetAdmissionDecision",
@@ -635,4 +658,21 @@ __all__ = [
     "VulnerabilityClass",
     "VulnerabilityEvidenceRequirement",
     "reserve_endpoint_recon",
+    "TestIdentityAdmission",
+    "TestIdentityAdmissionClaim",
+    "TestIdentityAdmissionLimits",
+    "TestIdentityAdmissionOutcome",
+    "TestIdentityAdmissionPlan",
+    "TestIdentityAdmissionRejected",
+    "TestIdentityAdmissionService",
+    "TestIdentityAdmissionState",
+    "TestIdentityAdmissionTimedOut",
+    "TestIdentityPurpose",
+    "TestIdentityRecord",
+    "TestIdentityRecordState",
+    "TestIdentityRecoveryRequired",
+    "TestIdentityReference",
+    "TestIdentityRevocation",
+    "TestIdentityStore",
+    "TestIdentityStoreRejected",
 ]

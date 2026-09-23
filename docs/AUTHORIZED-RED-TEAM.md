@@ -422,6 +422,26 @@ selector 漂移、adapter session/credential cleanup 未证明时都不发布部
 后续 Target materialization，固定不授予主动请求、扫描、Candidate 或 Finding 权限。任何实际 HTTP/TLS/端口确认
 仍需进入既有 Target、Policy、预算、Approval 和 Tool Broker 链。
 
+## B4.1 opaque Test Identity Admission
+
+B4.1 把 `Test Identity`、`Credential Reference` 和 `Test Identity Admission` 固定为三个不同领域概念。Test
+Identity 是控制方或目标授权方专门提供的测试主体；Credential Reference 只是可信 Vault/Broker 可解析的内容寻址
+locator；Admission 只声明该主体可用于精确 Scope/version、Target、用途、opaque role 和时间窗。用户名、密码、
+Cookie、Token、Vault path 与任何 credential bytes 都不属于这些 Pydantic、SQLite、schema、日志或模型对象。
+
+可信 Control Plane 注册 `TestIdentityRecord` 时必须证明 identity ref 已列入 Scope、Target scheme/host/port 精确
+命中网络范围、用途映射到允许 test class、有效期完全落在 Scope 内，并绑定 custody proof digest 和 issuer ref。
+首版用途为 authentication、read-only role observation 和 state-change validation；第三方真实账户在 schema 中固定
+为 false。Admission 只允许单次未来 Session 使用，始终固定禁止 credential access、authentication、Session 和
+state change。所有用途都声明后续需要 `USE_REAL_CREDENTIALS` Approval，state-change 还必须同时要求
+`MUTATE_TARGET_STATE` Approval，但 B4.1 本身不消费 Approval 或执行这些动作。
+
+Registry 支持只收窄权限的 digest-only revocation。权威 `active_admission` 每次重新读取 active Record、Scope、
+Target 和 Admission 有效期，因此撤销身份会立即使历史 Admission 不可用。SQLite Admission ledger 提供原子发布、
+幂等重放、STARTED checkpoint 和最多三次显式恢复；超时、漂移或恢复耗尽不发布部分 Admission。Outcome 明确证明
+没有获取 credential material、没有持久化秘密、没有创建 Session 且 cleanup complete。本阶段无 Vault adapter、
+真实凭据、登录请求、网络访问或状态变更。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -432,8 +452,8 @@ B3.1 已为未认证敏感数据暴露固定首个版本化 Evidence Requirement
 Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已只读比较两份独立 sealed GET materialization，
 物化 replay/redaction Validation Assertion。B3.4 已消费与 Validation 分离的完整类型化审查，物化四项 Critic
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
-B4.0 已完成授权派生资产发现与三态准入的离线合同；下一步 B4.1 固定控制方测试身份的 opaque admission contract，
-不接入真实凭据、任意 query/POST、状态变更或第三方
-账户；之后再推进 Session/Approval 和隔离靶场 A3/A4 资格。任何新
+B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract。下一步 B4.2
+固定 Vault credential lease、Approval 绑定与隔离 Session 合同，仍先使用离线 fake，不接入真实目标登录或第三方
+账户；之后再推进业务流程和隔离靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

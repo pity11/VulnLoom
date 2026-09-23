@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "description": "Opaque identity and credential locators; neither field is secret material.",
+  "properties": {
+    "identity_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Identity Ref",
+      "type": "string"
+    },
+    "credential_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Credential Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "identity_ref",
+    "credential_ref"
+  ],
+  "title": "TestIdentityReference",
+  "type": "object"
+}

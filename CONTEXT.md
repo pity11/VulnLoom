@@ -16,6 +16,18 @@ _Avoid_: Target list, Prompt instruction
 Scope 中一个可独立标识和版本化的被测对象，例如仓库提交、容器镜像或测试服务。
 _Avoid_: Host, Victim
 
+**Test Identity**：
+由控制方或目标授权方专门提供、仅用于当前授权测试的主体；它不是第三方真实用户，也不包含用户名、密码、Cookie 或 Token。
+_Avoid_: Account, User, Credential
+
+**Credential Reference**：
+Control Plane 用于让可信 Vault/Broker 边界定位 Test Identity 秘密材料的内容寻址 opaque 引用；它不是秘密本身，也不向 Worker 或模型提供解析能力。
+_Avoid_: Password, Token, Vault path
+
+**Test Identity Admission**：
+将一个 Test Identity 限定到精确 Scope 版本、Target、用途、角色和时间窗的不可变准入决定；它不授予凭据读取、登录、Session 或状态变更权限。
+_Avoid_: Login permission, Session, Credential grant
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

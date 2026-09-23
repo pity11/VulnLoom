@@ -969,6 +969,19 @@ codec v6 更正上述三个性能指标为有限 int/float（明确排除 bool�
 探测证据、数据类别不允许、Fallback 跨 Provider 未授权、尝试预算不足或摘要绑定不一致时均拒绝生成快照。
 现有 CUC 执行合同暂不依赖这些新对象，后续通过旁路 adapter 完成差分验收后接入。
 
+### TestIdentityRecord、TestIdentityAdmission 与 TestIdentityRevocation
+
+`TestIdentityReference` 只含两个互异的 SHA-256 opaque ID：identity ref 用于 Scope 准入，credential ref 只供未来
+可信 Vault/Broker 解析。`TestIdentityRecord` 内容寻址绑定 custody proof、issuer、Scope/version、精确 Red Team
+Target 摘要、有限用途、opaque role ref 和完全包含于 Scope 的有效期，并固定
+`account_class=controlled_test_identity`、`third_party_account=false`、`secret_material_absent=true`。
+
+`TestIdentityAdmissionPlan` 只能选择 Record 已允许的用途和角色，并绑定精确 Scope/Target、deadline、Admission
+过期时间与单次 Session 上限。`TestIdentityAdmission` 只输出未来必须取得的 Approval；credential access、登录、
+Session、状态变化与第三方账号权限全部固定为 false。`TestIdentityAdmissionOutcome` 证明本纵切没有读取或持久化
+credential material、没有创建 Session 且完成清理。Registry 的 digest-only Revocation 只收窄权限；消费者必须经
+权威 active lookup 重新验证 Record、Scope、Target 和有效期，不能把历史 Admission JSON 当成 bearer capability。
+
 ## 3. 领域事件
 
 - `ScopeApproved`

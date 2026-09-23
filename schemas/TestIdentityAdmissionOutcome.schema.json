@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "credential_material_acquired": {
+      "const": false,
+      "default": false,
+      "title": "Credential Material Acquired",
+      "type": "boolean"
+    },
+    "secret_material_persisted": {
+      "const": false,
+      "default": false,
+      "title": "Secret Material Persisted",
+      "type": "boolean"
+    },
+    "session_created": {
+      "const": false,
+      "default": false,
+      "title": "Session Created",
+      "type": "boolean"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "plan_id",
+    "admission_id",
+    "attempt",
+    "completed_at"
+  ],
+  "title": "TestIdentityAdmissionOutcome",
+  "type": "object"
+}

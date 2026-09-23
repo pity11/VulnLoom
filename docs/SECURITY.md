@@ -543,6 +543,10 @@ Scope、逐动作 Approval、可追溯且单调的父账本和未过期清理窗
 - 模型密钥只存在于 Control Plane 的 Model Adapter。
 - 平台 token 只存在于未来的 Submission Adapter。
 - 测试身份通过 Broker 中的 opaque credential reference 使用，Agent 看不到原始值。
+- `Test Identity Record` 只保存 identity/credential reference、custody proof 摘要、Scope/Target、用途、角色和
+  有效期，不保存用户名、密码、Cookie、Token 或 Vault 路径。`Test Identity Admission` 仍固定不授予 credential
+  access、authentication、Session 或状态变更；后续使用至少重新要求 `USE_REAL_CREDENTIALS` Approval，状态变化
+  还必须同时要求 `MUTATE_TARGET_STATE` Approval。身份撤销会让已完成 Admission 的权威读取立即 fail-closed。
 - 日志和 Evidence 写入前统一清理 Header、Cookie、Token、私钥和 PII。
 - secret scanner 只是补充门禁，不能替代凭据不下发的架构。
 

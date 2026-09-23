@@ -197,11 +197,12 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B4.1 opaque test-identity admission contract 纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B4.2 Vault credential lease、Approval binding 与隔离 Session contract 纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
-B3.1-B3.4 与 B4.0 已达到 `offline_tested`。B4.0 只完成授权派生的离线发现和准入合同，尚无真实测绘平台 adapter、
-公网查询或主动探测。B4.1 先固定控制方测试身份的 opaque reference、用途、
-Target/Scope 和过期边界；不接入真实凭据、登录、状态变更测试或第三方账户。只有出现新的用户优先级决定，才从其他
+B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
+只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
+B4.2 先实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；不接入真实登录、状态变更测试或
+第三方账户。只有出现新的用户优先级决定，才从其他
 里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
@@ -404,3 +405,17 @@ Target materialization 资格，仍固定 `active_testing_authorized=false` 和 
 覆盖成功、拒绝、待审批、预算、Scope/selector 漂移、查询注入、端口扩权、中断、三次恢复、超时、cleanup/凭据
 边界与无部分发布。本轮没有访问公网、调用真实测绘 API、使用真实 token、调用模型或执行攻击。下一项为 B4.1。
 最终全量门禁为 1685 passed、43 skipped、85.43% coverage；498 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-23）：B4.1 达到 `offline_tested` 并关闭。领域词汇表明确区分 `Test Identity`、
+`Credential Reference` 与 `Test Identity Admission`。新增内容寻址、无秘密的 Record/Plan/Admission/Outcome/
+Revocation：Record 绑定 custody proof、issuer、Scope/version、精确 Target、用途、opaque role 和有效期，且
+`controlled_test_identity`、非第三方账号与无秘密材料由 schema 强制。Admission 只声明未来单次 Session 的资格，
+credential access、authentication、Session、state change 和 third-party account 权限全部固定为 false；所有用途
+声明后续需要 `USE_REAL_CREDENTIALS` Approval，state-change 额外需要 `MUTATE_TARGET_STATE` Approval。
+
+SQLite Registry/ledger 覆盖内容冲突、原子发布、幂等、STARTED、三次恢复、超时和无部分 Admission；digest-only
+撤销只收窄权限，`active_admission` 会重读 active Record、Scope、Target 和有效期，使已完成 Admission 在撤销后
+立即失效。Outcome 证明未获取 credential material、未持久化秘密、未创建 Session 且 cleanup complete。离线回归
+覆盖成功、Scope/Target/用途/角色拒绝、第三方账号与权限升级 schema 拒绝、撤销、过期、漂移、超时、恢复和存储
+冲突。本轮没有 Vault adapter、真实凭据、登录请求、网络、模型调用或状态变更。下一项为 B4.2。
+最终全量门禁为 1694 passed、43 skipped、85.45% coverage；505 份 schema、Ruff 和 diff check 通过。

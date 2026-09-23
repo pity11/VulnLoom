@@ -1513,6 +1513,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   原子发布和 schema 权限升级拒绝。本阶段未访问公网、未查询真实平台、未使用真实 token、未调用模型或执行攻击。
 - 全量门禁：1685 passed、43 skipped、85.43% coverage；498 份 schema、Ruff 和 diff check 通过。
 
+## B4.1 opaque 测试身份准入（已完成，offline_tested）
+
+- 根领域词汇表固定 `Test Identity`、`Credential Reference`、`Test Identity Admission`，避免把授权测试主体、
+  Vault locator 和执行权限混为“账号”。
+- `TestIdentityRecord` 只保存 digest-only identity/credential ref、custody proof、issuer、Scope/version、Target
+  digest、用途、opaque role 与有效期；schema 固定 controlled test identity、非第三方账户且无秘密材料。
+- `TestIdentityAdmission` 只授予后续单次 Session 的准入资格，不是 bearer capability；credential access、登录、
+  Session、状态变化和第三方账号权限均为 false。所有用途声明未来需要 `USE_REAL_CREDENTIALS` Approval，状态变化
+  另需 `MUTATE_TARGET_STATE` Approval。
+- Registry revocation 只收窄权限；active lookup 每次重新校验 Record、Scope、精确 Target 和有效期，已完成 Admission
+  在身份撤销后立即不可用。
+- SQLite STARTED/COMPLETED ledger 原子发布 Admission，覆盖幂等、三次显式恢复、超时和无部分结果；Outcome 固定
+  证明未获取/持久化 credential material、未创建 Session 且 cleanup complete。
+- 本阶段只有离线合同和测试，不含 Vault adapter、凭据 lease、真实用户名/密码/Cookie/Token、登录请求、网络或
+  状态变更。下一项 B4.2 才固定 lease、Approval binding 和隔离 Session 生命周期。
+- 全量门禁：1694 passed、43 skipped、85.45% coverage；505 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "TestIdentityPurpose": {
+      "enum": [
+        "authentication",
+        "read_only_role_observation",
+        "state_change_validation"
+      ],
+      "title": "TestIdentityPurpose",
+      "type": "string"
+    },
+    "TestIdentityReference": {
+      "additionalProperties": false,
+      "description": "Opaque identity and credential locators; neither field is secret material.",
+      "properties": {
+        "identity_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Identity Ref",
+          "type": "string"
+        },
+        "credential_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Credential Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity_ref",
+        "credential_ref"
+      ],
+      "title": "TestIdentityReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "record_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Record Version",
+      "type": "integer"
+    },
+    "reference": {
+      "$ref": "#/$defs/TestIdentityReference"
+    },
+    "custody_proof_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Custody Proof Digest",
+      "type": "string"
+    },
+    "issuer_ref": {
+      "pattern": "^operator:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Issuer Ref",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Digest",
+      "type": "string"
+    },
+    "allowed_purposes": {
+      "items": {
+        "$ref": "#/$defs/TestIdentityPurpose"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Allowed Purposes",
+      "type": "array"
+    },
+    "role_refs": {
+      "items": {
+        "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Role Refs",
+      "type": "array"
+    },
+    "valid_from": {
+      "format": "date-time",
+      "title": "Valid From",
+      "type": "string"
+    },
+    "valid_until": {
+      "format": "date-time",
+      "title": "Valid Until",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "account_class": {
+      "const": "controlled_test_identity",
+      "default": "controlled_test_identity",
+      "title": "Account Class",
+      "type": "string"
+    },
+    "third_party_account": {
+      "const": false,
+      "default": false,
+      "title": "Third Party Account",
+      "type": "boolean"
+    },
+    "secret_material_absent": {
+      "const": true,
+      "default": true,
+      "title": "Secret Material Absent",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "record_id",
+    "reference",
+    "custody_proof_digest",
+    "issuer_ref",
+    "scope_id",
+    "scope_version",
+    "target_id",
+    "target_digest",
+    "allowed_purposes",
+    "role_refs",
+    "valid_from",
+    "valid_until",
+    "issued_at"
+  ],
+  "title": "TestIdentityRecord",
+  "type": "object"
+}
