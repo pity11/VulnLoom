@@ -83,9 +83,14 @@
       "type": "boolean"
     },
     "state_changed": {
-      "const": false,
       "default": false,
       "title": "State Changed",
+      "type": "boolean"
+    },
+    "state_restored": {
+      "const": true,
+      "default": true,
+      "title": "State Restored",
       "type": "boolean"
     }
   },

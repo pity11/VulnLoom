@@ -1568,6 +1568,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   部分结果。本阶段没有真实账户、真实 Target 登录、网络、状态变化、模型调用或攻击。
 - 全量门禁：1715 passed、43 skipped、85.52% coverage；519 份 schema、Ruff 和 diff check 通过。
 
+## B4.4 本地业务不变量与补偿状态变更（已完成，offline_tested）
+
+- 根领域词汇表新增 `Business Flow Invariant`、`Controlled State Mutation` 与 `State Restoration Proof`；不变量
+  违反只形成 Signal，不能自动晋升 Candidate、Finding 或漏洞结论。
+- 内容寻址的本地 publication fixture 固定 draft→published 单一动作、publisher role 集合和是否强制角色策略；
+  adapter 只接受 state-change purpose、精确 action 与 credential-ref proof 匹配的 `fixture:` 材料，无 socket、无
+  真实 Target 或任意写能力。
+- 状态变化复用 B4.2 exact Action binding，必须同时持有 `USE_REAL_CREDENTIALS` 与
+  `MUTATE_TARGET_STATE` Approval；任一缺失均在 Vault acquire 前 fail-closed。
+- Session close 以补偿动作恢复变更前 semantic digest，修订号保持 before→mutated→restored 严格单调；receipt
+  如实记录 state changed/restored。恢复证明、Session release/zeroing 与 Lease zeroing 任一不成立都不发布 Outcome。
+- 通用 cleanup 改为嵌套释放，恢复证明阶段中断仍继续清零 Lease；独立 materialization ledger 覆盖幂等、超时、
+  STARTED/COMPLETED、三次恢复上限、身份撤销、来源漂移和无部分结果。
+- 本阶段仅证明纯内存合成 fixture 合同，不构成 Docker/OS 隔离、真实账号登录、HTTP/浏览器状态变化、生产回滚、
+  模型调用或真实攻击。下一项为隔离靶场 A3/A4 资格纵切。
+- 全量门禁：1725 passed、43 skipped、85.54% coverage；527 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

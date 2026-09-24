@@ -52,11 +52,15 @@ class IsolatedSessionHandle:
         "_released",
         "authentication_performed",
         "session_binding",
+        "state_changed",
+        "state_restored",
     )
 
     def __init__(self, *, session_binding: str):
         self.session_binding = session_binding
         self.authentication_performed = False
+        self.state_changed = False
+        self.state_restored = True
         self._material = bytearray(b"fixture-isolated-session")
         self._released = False
 

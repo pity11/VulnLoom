@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "BusinessInvariantVerdict": {
+      "enum": [
+        "upheld",
+        "violated"
+      ],
+      "title": "BusinessInvariantVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "session_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Session Plan Id",
+      "type": "string"
+    },
+    "fixture_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "resource_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Ref",
+      "type": "string"
+    },
+    "actor_identity_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Actor Identity Ref",
+      "type": "string"
+    },
+    "actor_role_ref": {
+      "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+      "title": "Actor Role Ref",
+      "type": "string"
+    },
+    "action_intent_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Intent Digest",
+      "type": "string"
+    },
+    "before_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Before Snapshot Id",
+      "type": "string"
+    },
+    "mutated_snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Mutated Snapshot Id",
+      "type": "string"
+    },
+    "expected_authorized": {
+      "title": "Expected Authorized",
+      "type": "boolean"
+    },
+    "mutation_applied": {
+      "const": true,
+      "default": true,
+      "title": "Mutation Applied",
+      "type": "boolean"
+    },
+    "verdict": {
+      "$ref": "#/$defs/BusinessInvariantVerdict"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "candidate_created": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Created",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "vulnerability_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Vulnerability Claimed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "observation_id",
+    "session_plan_id",
+    "fixture_id",
+    "resource_ref",
+    "actor_identity_ref",
+    "actor_role_ref",
+    "action_intent_digest",
+    "before_snapshot_id",
+    "mutated_snapshot_id",
+    "expected_authorized",
+    "verdict",
+    "observed_at"
+  ],
+  "title": "BusinessMutationObservation",
+  "type": "object"
+}

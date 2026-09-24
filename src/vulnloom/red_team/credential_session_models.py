@@ -145,7 +145,8 @@ class IsolatedSessionReceipt(DomainModel):
     zeroed: Literal[True] = True
     network_performed: Literal[False] = False
     authentication_performed: bool = False
-    state_changed: Literal[False] = False
+    state_changed: bool = False
+    state_restored: Literal[True] = True
 
     @model_validator(mode="after")
     def sealed(self) -> Self:
@@ -155,7 +156,7 @@ class IsolatedSessionReceipt(DomainModel):
             or not self.released
             or not self.zeroed
             or self.network_performed
-            or self.state_changed
+            or not self.state_restored
             or self.session_id
             != canonical_digest(self.model_dump(mode="python", exclude={"session_id"}))
         ):

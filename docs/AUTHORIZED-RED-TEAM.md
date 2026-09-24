@@ -489,6 +489,23 @@ Target、fixture 和剥离 authorization context 后的 exact Action intent。�
 fixture、Action、身份/角色、Session Outcome、认证 Observation 或 logout proof 漂移都会 fail-closed。本阶段没有
 真实账户、真实 Target 登录、HTTP/浏览器请求、外部网络、状态变化、模型调用或攻击。
 
+## B4.4 local business invariant 与 compensated state mutation
+
+B4.4 在纯内存 `local_offline_fixture` 中固定第一条业务流程不变量：只有 publisher role 应能把一个 draft 变为
+published。`OfflinePublicationFlowAdapter` 只接受与 credential ref proof 匹配的 `fixture:` 材料、
+state-change purpose 和精确 `fixture_publish_draft` action；不创建 socket、不接触真实 Target，也不接受任意写动作。
+
+执行继续由 B4.2 Session 控制，exact Action 必须同时具备 `USE_REAL_CREDENTIALS` 与
+`MUTATE_TARGET_STATE` Approval。Adapter 在内存权威状态上实际执行 draft→published，记录变更前/后内容寻址快照，
+并在 Session close 中以补偿动作恢复 draft。`StateRestorationProof` 要求恢复前后 semantic digest 相同、修订号在
+before→mutated→restored 间严格单调；只有状态确实变化、恢复已验证、Session/Lease 均释放清零时才能物化 Outcome。
+
+通用 Session cleanup 使用嵌套释放：恢复证明阶段即使抛错也必须继续清零 Credential Lease，保持 STARTED checkpoint
+且不发布完成 receipt。未授权角色若被安全 fixture 拒绝则不发生变更；故意未强制策略的 fixture 只产生
+`violated` Signal，schema 固定禁止 Candidate、Finding 和 vulnerability claim。独立 materialization ledger 支持
+幂等、超时、最多三次显式恢复和无部分发布。当前证明只覆盖进程内合成 fixture，不构成 Docker/OS 隔离、真实账号、
+真实 HTTP/浏览器状态变化或生产回滚证明。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -501,7 +518,7 @@ Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
 B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract；B4.2 已完成
 离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
-清理与角色差异 Observation。下一步推进本地业务流程不变量与可回滚状态变更纵切，之后再推进隔离靶场 A3/A4
-资格。任何新
+清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复。下一步推进隔离
+靶场 A3/A4 资格。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

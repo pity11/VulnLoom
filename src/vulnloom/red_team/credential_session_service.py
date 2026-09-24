@@ -198,10 +198,19 @@ class CredentialSessionService:
             if handle.session_binding != expected_binding:
                 raise CredentialSessionRejected("isolated Session binding drifted")
         finally:
-            if handle is not None:
-                handle.close()
-            if lease is not None:
-                lease.close()
+            cleanup_error = None
+            try:
+                if handle is not None:
+                    handle.close()
+            except Exception as exc:  # cleanup must not strand the credential Lease
+                cleanup_error = exc
+            finally:
+                if lease is not None:
+                    lease.close()
+            if cleanup_error is not None:
+                raise CredentialSessionRejected(
+                    "isolated Session cleanup failed closed"
+                ) from cleanup_error
         if lease is None or handle is None or not lease.zeroed or not handle.zeroed:
             raise CredentialSessionRejected("Credential Session cleanup was not proven")
         lease_receipt = CredentialLeaseReceipt.create(
@@ -219,6 +228,8 @@ class CredentialSessionService:
             opened_at=now,
             closed_at=now,
             authentication_performed=handle.authentication_performed,
+            state_changed=getattr(handle, "state_changed", False),
+            state_restored=getattr(handle, "state_restored", True),
         )
         outcome = CredentialSessionOutcome.create(
             plan_id=plan.plan_id,

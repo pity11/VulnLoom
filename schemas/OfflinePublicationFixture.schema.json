@@ -1,0 +1,61 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "fixture_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "resource_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Ref",
+      "type": "string"
+    },
+    "publisher_roles": {
+      "items": {
+        "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Publisher Roles",
+      "type": "array"
+    },
+    "enforces_role_policy": {
+      "title": "Enforces Role Policy",
+      "type": "boolean"
+    },
+    "initial_state": {
+      "const": "draft",
+      "default": "draft",
+      "title": "Initial State",
+      "type": "string"
+    },
+    "environment": {
+      "const": "local_offline_fixture",
+      "default": "local_offline_fixture",
+      "title": "Environment",
+      "type": "string"
+    },
+    "network_enabled": {
+      "const": false,
+      "default": false,
+      "title": "Network Enabled",
+      "type": "boolean"
+    },
+    "external_state_present": {
+      "const": false,
+      "default": false,
+      "title": "External State Present",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "fixture_id",
+    "resource_ref",
+    "publisher_roles",
+    "enforces_role_policy"
+  ],
+  "title": "OfflinePublicationFixture",
+  "type": "object"
+}

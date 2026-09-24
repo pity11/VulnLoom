@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "PublicationState": {
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "title": "PublicationState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "fixture_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fixture Id",
+      "type": "string"
+    },
+    "resource_ref": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Ref",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/PublicationState"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "semantic_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Semantic Digest",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "fixture_id",
+    "resource_ref",
+    "state",
+    "revision",
+    "semantic_digest",
+    "observed_at"
+  ],
+  "title": "BusinessStateSnapshot",
+  "type": "object"
+}

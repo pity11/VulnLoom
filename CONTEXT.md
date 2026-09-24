@@ -48,6 +48,18 @@ _Avoid_: Logout response, Cookie deletion, Account state
 两个不同受控 Test Identity 在同一隔离环境中对同一精确动作所得访问决定的类型化比较；差异本身只是 Signal，不自动构成 Candidate、Finding 或漏洞结论。
 _Avoid_: Privilege escalation, Authorization vulnerability, Finding
 
+**Business Flow Invariant**：
+对一个版本化业务流程在变更前、变更后和恢复后状态关系的类型化约束；违反约束只形成 Signal，不自动构成 Candidate、Finding 或漏洞结论。
+_Avoid_: Vulnerability rule, Agent judgment, Finding
+
+**Controlled State Mutation**：
+由精确 Scope、Target、Test Identity、Action digest 和双 Approval 共同约束的一次性测试状态转换；它必须绑定恢复义务，不能扩展为任意目标写操作。
+_Avoid_: Write access, Exploit, Unbounded workflow action
+
+**State Restoration Proof**：
+证明一次 Controlled State Mutation 已通过补偿动作恢复到变更前语义状态、同时保持修订序列单调递增的不可变事实；它不证明生产目标或外部系统已回滚。
+_Avoid_: Transaction rollback, Cleanup attempt, Production recovery
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

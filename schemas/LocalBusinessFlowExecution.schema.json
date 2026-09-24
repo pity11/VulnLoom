@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "BusinessInvariantVerdict": {
+      "enum": [
+        "upheld",
+        "violated"
+      ],
+      "title": "BusinessInvariantVerdict",
+      "type": "string"
+    },
+    "BusinessMutationObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "session_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Session Plan Id",
+          "type": "string"
+        },
+        "fixture_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fixture Id",
+          "type": "string"
+        },
+        "resource_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Resource Ref",
+          "type": "string"
+        },
+        "actor_identity_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Actor Identity Ref",
+          "type": "string"
+        },
+        "actor_role_ref": {
+          "pattern": "^role:[a-zA-Z0-9._-]{1,200}$",
+          "title": "Actor Role Ref",
+          "type": "string"
+        },
+        "action_intent_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Intent Digest",
+          "type": "string"
+        },
+        "before_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Before Snapshot Id",
+          "type": "string"
+        },
+        "mutated_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Mutated Snapshot Id",
+          "type": "string"
+        },
+        "expected_authorized": {
+          "title": "Expected Authorized",
+          "type": "boolean"
+        },
+        "mutation_applied": {
+          "const": true,
+          "default": true,
+          "title": "Mutation Applied",
+          "type": "boolean"
+        },
+        "verdict": {
+          "$ref": "#/$defs/BusinessInvariantVerdict"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "candidate_created": {
+          "const": false,
+          "default": false,
+          "title": "Candidate Created",
+          "type": "boolean"
+        },
+        "finding_created": {
+          "const": false,
+          "default": false,
+          "title": "Finding Created",
+          "type": "boolean"
+        },
+        "vulnerability_claimed": {
+          "const": false,
+          "default": false,
+          "title": "Vulnerability Claimed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "observation_id",
+        "session_plan_id",
+        "fixture_id",
+        "resource_ref",
+        "actor_identity_ref",
+        "actor_role_ref",
+        "action_intent_digest",
+        "before_snapshot_id",
+        "mutated_snapshot_id",
+        "expected_authorized",
+        "verdict",
+        "observed_at"
+      ],
+      "title": "BusinessMutationObservation",
+      "type": "object"
+    },
+    "BusinessStateSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "fixture_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fixture Id",
+          "type": "string"
+        },
+        "resource_ref": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Resource Ref",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/PublicationState"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "semantic_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Semantic Digest",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "fixture_id",
+        "resource_ref",
+        "state",
+        "revision",
+        "semantic_digest",
+        "observed_at"
+      ],
+      "title": "BusinessStateSnapshot",
+      "type": "object"
+    },
+    "PublicationState": {
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "title": "PublicationState",
+      "type": "string"
+    },
+    "StateRestorationProof": {
+      "additionalProperties": false,
+      "properties": {
+        "proof_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Proof Id",
+          "type": "string"
+        },
+        "session_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Session Plan Id",
+          "type": "string"
+        },
+        "before_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Before Snapshot Id",
+          "type": "string"
+        },
+        "mutated_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Mutated Snapshot Id",
+          "type": "string"
+        },
+        "restored_snapshot_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Restored Snapshot Id",
+          "type": "string"
+        },
+        "before_semantic_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Before Semantic Digest",
+          "type": "string"
+        },
+        "restored_semantic_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Restored Semantic Digest",
+          "type": "string"
+        },
+        "before_revision": {
+          "minimum": 1,
+          "title": "Before Revision",
+          "type": "integer"
+        },
+        "mutated_revision": {
+          "minimum": 2,
+          "title": "Mutated Revision",
+          "type": "integer"
+        },
+        "restored_revision": {
+          "minimum": 3,
+          "title": "Restored Revision",
+          "type": "integer"
+        },
+        "restored_at": {
+          "format": "date-time",
+          "title": "Restored At",
+          "type": "string"
+        },
+        "restoration_verified": {
+          "const": true,
+          "default": true,
+          "title": "Restoration Verified",
+          "type": "boolean"
+        },
+        "network_performed": {
+          "const": false,
+          "default": false,
+          "title": "Network Performed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "proof_id",
+        "session_plan_id",
+        "before_snapshot_id",
+        "mutated_snapshot_id",
+        "restored_snapshot_id",
+        "before_semantic_digest",
+        "restored_semantic_digest",
+        "before_revision",
+        "mutated_revision",
+        "restored_revision",
+        "restored_at"
+      ],
+      "title": "StateRestorationProof",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "execution_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "before": {
+      "$ref": "#/$defs/BusinessStateSnapshot"
+    },
+    "mutated": {
+      "$ref": "#/$defs/BusinessStateSnapshot"
+    },
+    "restored": {
+      "$ref": "#/$defs/BusinessStateSnapshot"
+    },
+    "observation": {
+      "$ref": "#/$defs/BusinessMutationObservation"
+    },
+    "restoration": {
+      "$ref": "#/$defs/StateRestorationProof"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "execution_id",
+    "before",
+    "mutated",
+    "restored",
+    "observation",
+    "restoration"
+  ],
+  "title": "LocalBusinessFlowExecution",
+  "type": "object"
+}

@@ -30,11 +30,15 @@ class OfflineAuthenticatedSessionHandle:
         "_released",
         "authentication_performed",
         "session_binding",
+        "state_changed",
+        "state_restored",
     )
 
     def __init__(self, *, session_binding: str, access_allowed: bool):
         self.session_binding = session_binding
         self.authentication_performed = True
+        self.state_changed = False
+        self.state_restored = True
         self._access_allowed = access_allowed
         self._material = bytearray(b"fixture-authenticated-session")
         self._released = False

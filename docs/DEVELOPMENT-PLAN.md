@@ -197,13 +197,14 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B4.4 本地业务流程不变量与可回滚状态变更纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **隔离靶场 A3/A4 资格纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
 B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；没有接入真实登录、状态变更测试
 或第三方账户。B4.3 已在本地 fixture 中固定认证动作、登出清理与角色差异 Observation，没有访问公网或使用真实
-账户。B4.4 先固定本地业务流程不变量、状态变更双 Approval 和可验证回滚，仍不接入真实目标。只有出现新的用户
+账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。下一步先把
+这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。只有出现新的用户
 优先级决定，才从其他
 里程碑开始。
 
@@ -452,3 +453,21 @@ Finding 和 vulnerability claim。
 决定、身份撤销、重复 Session、缺失认证执行、fixture/source 漂移、超时恢复、恢复耗尽、无秘密持久化和 schema
 权限升级拒绝。本轮没有真实账户、真实 Target 登录、网络、状态变化、模型调用或攻击。下一项为 B4.4。
 最终全量门禁为 1715 passed、43 skipped、85.52% coverage；519 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-24）：B4.4 达到 `offline_tested` 并关闭。新增 `Business Flow Invariant`、
+`Controlled State Mutation` 与 `State Restoration Proof` 领域术语，以及内容寻址的本地 publication fixture、
+状态快照、变更 Observation、恢复 Proof、materialization Plan/Outcome。状态变化 Session 继续复用 B4.2 的 exact
+Action 与 `USE_REAL_CREDENTIALS`、`MUTATE_TARGET_STATE` 双 Approval，任一 Approval 缺失都在 Vault acquire 前
+拒绝。
+
+纯内存 adapter 只接受 credential-ref proof 匹配的 `fixture:` 材料和精确 `fixture_publish_draft` action；它实际
+执行 draft→published，再在 Session close 中执行补偿恢复。Proof 要求恢复前后 semantic digest 相等且修订号严格
+单调；B4.2 receipt 如实记录 state changed/restored。通用 cleanup 改为嵌套释放，即使恢复证明阶段中断也继续清零
+Credential Lease，并保持 STARTED 而不误报完成。违反角色不变量只形成 Signal，schema 固定禁止 Candidate、Finding
+和 vulnerability claim。
+
+独立 ledger 覆盖幂等、STARTED/COMPLETED、三次恢复上限、超时和无部分发布；专项回归覆盖授权变更、未强制角色
+策略、策略拒绝、双 Approval 缺失、错误 fixture credential、变更后超时补偿、恢复证明中断、身份撤销、恢复耗尽和
+schema 权限升级拒绝。本轮没有真实账户、真实 Target、HTTP/浏览器请求、外部网络、模型调用或真实攻击，也不构成
+Docker/OS 隔离证明。下一项为隔离靶场 A3/A4 资格纵切。
+最终全量门禁为 1725 passed、43 skipped、85.54% coverage；527 份 schema、Ruff 和 diff check 通过。
