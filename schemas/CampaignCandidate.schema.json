@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "VulnerabilityClass": {
+      "enum": [
+        "unauthenticated_sensitive_data_exposure"
+      ],
+      "title": "VulnerabilityClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "vulnerability_class": {
+      "$ref": "#/$defs/VulnerabilityClass"
+    },
+    "cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Cwe",
+      "type": "string"
+    },
+    "hypothesis_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hypothesis Digest",
+      "type": "string"
+    },
+    "duplicate_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Fingerprint",
+      "type": "string"
+    },
+    "orchestration_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Plan Id",
+      "type": "string"
+    },
+    "closure_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Closure Id",
+      "type": "string"
+    },
+    "assessment_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assessment Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "state": {
+      "const": "proposed",
+      "default": "proposed",
+      "title": "State",
+      "type": "string"
+    },
+    "validation_required": {
+      "const": true,
+      "default": true,
+      "title": "Validation Required",
+      "type": "boolean"
+    },
+    "independent_critic_required": {
+      "const": true,
+      "default": true,
+      "title": "Independent Critic Required",
+      "type": "boolean"
+    },
+    "prior_campaign_evidence_is_validation_run": {
+      "const": false,
+      "default": false,
+      "title": "Prior Campaign Evidence Is Validation Run",
+      "type": "boolean"
+    },
+    "finding_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Finding Authorized",
+      "type": "boolean"
+    },
+    "submission_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Submission Authorized",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidate_digest",
+    "candidate_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "vulnerability_class",
+    "cwe",
+    "hypothesis_digest",
+    "duplicate_fingerprint",
+    "orchestration_plan_id",
+    "closure_id",
+    "assessment_id",
+    "evidence_refs",
+    "created_at"
+  ],
+  "title": "CampaignCandidate",
+  "type": "object"
+}

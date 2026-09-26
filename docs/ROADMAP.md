@@ -1673,6 +1673,22 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   coverage；555 份 schema、Ruff 和 diff check 通过；既有 B5.4 实际 Docker canary 在当前提交上复跑 1 passed，
   全部容器均已清理。
 
+## B5.6 Campaign Candidate 人工 Intake（已完成，offline_tested）
+
+- 新增 `Campaign Candidate` 与 `Campaign Candidate Intake`。Web/API Candidate 不再借用 Source Candidate 的
+  entry/sink/location 字段制造虚假源码 provenance；两类 Candidate 保持明确边界。
+- Intake Plan 内容寻址绑定 B5.5 Orchestration Plan/Outcome、unresolved Evidence Closure、B3 Evidence
+  Assessment、固定 Target/version、Scope/version、Evidence 引用、漏洞类别、CWE、假设摘要和重复指纹。
+- 新增 `CREATE_CAMPAIGN_CANDIDATE` Approval。只有精确 Target、Plan digest、Policy version、有效期和声明副作用
+  全部匹配的人工 Approval 才能创建 Candidate；拒绝、错绑或过期 Approval 不产生任何权威记录。
+- 创建结果固定为 `PROPOSED`，要求新的 Candidate-bound Validation 与独立 Critic；Campaign 前置 Evidence 不得
+  冒充 ValidationRun，且 Candidate/Outcome schema 均不授予 Finding 或 Submission 权限。
+- SQLite ledger 原子发布并覆盖幂等、三次恢复上限、重复 closure/Candidate/fingerprint、超时、中断、Scope 撤销、
+  cleanup unknown 与来源漂移。失败路径无法读取部分 Candidate。
+- 本阶段仅为 Control Plane 领域写入，不新增隔离或执行能力；没有公网、真实模型、真实账户、真实攻击或自动提交。
+  全量门禁为 1766 passed、45 skipped、85.50% coverage；559 份 schema、Ruff 和 diff check 通过。
+- 下一项为 B5.7 Campaign Candidate Validation Intake 与状态机绑定。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

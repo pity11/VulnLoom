@@ -212,6 +212,14 @@ _Avoid_: Vulnerability confirmation, Finding promotion, Model verdict
 Evidence 已满足 Candidate 提议资格、但尚未创建 Candidate 且未经过 Candidate 生命周期与 Finding 晋升门禁的 Campaign 终态。
 _Avoid_: Candidate, Finding, Confirmed vulnerability
 
+**Campaign Candidate**：
+由人工批准的 Campaign Candidate Intake 从一个 unresolved Campaign Evidence Closure 原子创建的 Web/API Candidate；它以 `PROPOSED` 进入独立 Validation 与 Critic 生命周期，不伪造源码位置，也不继承 Finding 权限。
+_Avoid_: Source Candidate, Evidence closure, Confirmed vulnerability
+
+**Campaign Candidate Intake**：
+把一个精确 unresolved Campaign Evidence Closure 封存为 Candidate 创建计划并交由人工 Approval 决定的门禁；拒绝、超时或中断不得留下部分 Candidate。
+_Avoid_: Automatic promotion, Finding intake, Agent decision
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

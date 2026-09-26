@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "CampaignCandidateIntakeLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "CampaignCandidateIntakeLimits",
+      "type": "object"
+    },
+    "VulnerabilityClass": {
+      "enum": [
+        "unauthenticated_sensitive_data_exposure"
+      ],
+      "title": "VulnerabilityClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intake Plan Id",
+      "type": "string"
+    },
+    "orchestration_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Plan Id",
+      "type": "string"
+    },
+    "orchestration_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Plan Digest",
+      "type": "string"
+    },
+    "orchestration_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Outcome Digest",
+      "type": "string"
+    },
+    "closure_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Closure Id",
+      "type": "string"
+    },
+    "assessment_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assessment Plan Id",
+      "type": "string"
+    },
+    "assessment_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assessment Plan Digest",
+      "type": "string"
+    },
+    "assessment_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assessment Id",
+      "type": "string"
+    },
+    "assessment_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assessment Outcome Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "vulnerability_class": {
+      "$ref": "#/$defs/VulnerabilityClass"
+    },
+    "cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Cwe",
+      "type": "string"
+    },
+    "hypothesis_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hypothesis Digest",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "duplicate_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Duplicate Fingerprint",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/CampaignCandidateIntakeLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "human_approval_required": {
+      "const": true,
+      "default": true,
+      "title": "Human Approval Required",
+      "type": "boolean"
+    },
+    "validation_execution_requested": {
+      "const": false,
+      "default": false,
+      "title": "Validation Execution Requested",
+      "type": "boolean"
+    },
+    "finding_creation_requested": {
+      "const": false,
+      "default": false,
+      "title": "Finding Creation Requested",
+      "type": "boolean"
+    },
+    "submission_requested": {
+      "const": false,
+      "default": false,
+      "title": "Submission Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "intake_plan_id",
+    "orchestration_plan_id",
+    "orchestration_plan_digest",
+    "orchestration_outcome_digest",
+    "closure_id",
+    "assessment_plan_id",
+    "assessment_plan_digest",
+    "assessment_id",
+    "assessment_outcome_digest",
+    "candidate_id",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "vulnerability_class",
+    "cwe",
+    "hypothesis_digest",
+    "evidence_refs",
+    "duplicate_fingerprint",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "CampaignCandidateIntakePlan",
+  "type": "object"
+}

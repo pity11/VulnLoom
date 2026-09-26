@@ -562,3 +562,23 @@ Evidence Assessment 如实关闭为 `unresolved_candidate`，固定 `candidate_c
 
 全量离线门禁为 1760 passed、45 skipped、85.59% coverage；555 份 schema、Ruff 和 diff check 通过；既有
 B5.4 实际 Docker canary 在当前提交上复跑 1 passed，全部容器均已清理。
+
+进展记录（2026-09-26）：B5.6 达到 `offline_tested`。现有共享 `Candidate` 包含源码 entry/sink/location，不能用于
+Web/API Campaign 而伪造代码位置；因此新增 `Campaign Candidate` 与 `Campaign Candidate Intake` 领域边界，
+保持它与 Source Candidate 的 provenance 明确分离。内容寻址 Intake Plan 逐项绑定 B5.5 Orchestration
+Plan/Outcome、unresolved Evidence Closure、B3 Evidence Assessment、固定 Target/version、Scope/version、Evidence
+引用、漏洞类别、CWE、假设摘要和重复指纹。
+
+新增 `CREATE_CAMPAIGN_CANDIDATE` Approval Action。只有当前 Scope 下、精确 Target、精确 Intake Plan digest、
+明确副作用且未过期的人工 Approval 才能原子物化 Campaign Candidate。新 Candidate 固定为 `PROPOSED`，要求新的
+Candidate-bound Validation 与独立 Critic；B5.5 的前置 Campaign Evidence 明确不能冒充 ValidationRun，也不能授予
+Finding 或 Submission 权限。相同 closure、Candidate ID 或 Target/version/vulnerability-class/CWE 重复指纹均只
+允许一个权威 Candidate。
+
+独立 SQLite ledger 覆盖 STARTED/COMPLETED、精确幂等、最多三次恢复、冲突拒绝和完成后读取；拒绝/错误 Approval、
+Scope 撤销、cleanup unknown、来源漂移、超时与中断均不留下部分 Candidate。schema 固定排除源码位置伪造、原始
+Target、凭据、模型 token、Docker socket、响应和载荷，并拒绝直接声明 promoted/Finding。本阶段只有 Control Plane
+领域写入，不新增 Runner、网络或隔离声明，也未调用模型、真实账户或攻击 adapter。下一项为 B5.7 Campaign
+Candidate Validation Intake 与状态机绑定。
+
+全量离线门禁为 1766 passed、45 skipped、85.50% coverage；559 份 schema、Ruff 和 diff check 通过。

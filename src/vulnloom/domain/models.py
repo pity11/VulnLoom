@@ -123,6 +123,7 @@ class ApprovalAction(StrEnum):
     EXPORT_REPORT = "export_report"
     EXECUTE_RED_TEAM_ACTION = "execute_red_team_action"
     ADVANCE_CAMPAIGN_PHASE = "advance_campaign_phase"
+    CREATE_CAMPAIGN_CANDIDATE = "create_campaign_candidate"
 
 
 class EvidenceKind(StrEnum):

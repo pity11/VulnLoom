@@ -188,6 +188,26 @@ from .business_flow_store import (
     BusinessInvariantStore,
     BusinessInvariantStoreRejected,
 )
+from .campaign_candidate_models import (
+    CampaignCandidate,
+    CampaignCandidateIntakeLimits,
+    CampaignCandidateIntakeOutcome,
+    CampaignCandidateIntakePlan,
+    CampaignCandidateIntakeState,
+)
+from .campaign_candidate_service import (
+    CampaignCandidateEvidenceSource,
+    CampaignCandidateIntakeRejected,
+    CampaignCandidateIntakeService,
+    CampaignCandidateIntakeTimedOut,
+    CampaignOrchestrationOutcomeSource,
+)
+from .campaign_candidate_store import (
+    CampaignCandidateIntakeClaim,
+    CampaignCandidateIntakeRecoveryRequired,
+    CampaignCandidateIntakeStore,
+    CampaignCandidateIntakeStoreRejected,
+)
 from .campaign_models import (
     CampaignBudget,
     CampaignFlowQualificationBinding,
@@ -628,6 +648,19 @@ __all__ = [
     "AdaptiveRuntimeRecoveryRequired",
     "AdaptiveRuntimeStoreRejected",
     "CampaignBudget",
+    "CampaignCandidate",
+    "CampaignCandidateEvidenceSource",
+    "CampaignCandidateIntakeClaim",
+    "CampaignCandidateIntakeLimits",
+    "CampaignCandidateIntakeOutcome",
+    "CampaignCandidateIntakePlan",
+    "CampaignCandidateIntakeRecoveryRequired",
+    "CampaignCandidateIntakeRejected",
+    "CampaignCandidateIntakeService",
+    "CampaignCandidateIntakeState",
+    "CampaignCandidateIntakeStore",
+    "CampaignCandidateIntakeStoreRejected",
+    "CampaignCandidateIntakeTimedOut",
     "CampaignEvidenceAssessmentSource",
     "CampaignEvidenceClosure",
     "CampaignEvidenceClosureDisposition",
@@ -646,6 +679,7 @@ __all__ = [
     "CampaignOrchestrationStore",
     "CampaignOrchestrationStoreRejected",
     "CampaignOrchestrationTimedOut",
+    "CampaignOrchestrationOutcomeSource",
     "CampaignPhase",
     "CampaignPhaseCheckpoint",
     "CampaignPhaseKind",

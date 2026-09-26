@@ -601,6 +601,8 @@ B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方�
 结构资格；B5.4 已用实际无网络容器证明精确阶段准入、预算停止、超时回收与清理。B5.5 已在可信 Control Plane
 中完成六阶段可恢复编排，并把完整 B3 Evidence Assessment 安全关闭为明确的 unresolved Candidate 终态；B5.4
 资格 Approval 不能重用为 B5.5 阶段 Approval，阶段 Approval 也不能替代 Action Approval。闭环不创建 Candidate
-或 Finding。任何新
+或 Finding。B5.6 进一步要求精确人工 `CREATE_CAMPAIGN_CANDIDATE` Approval，才把 unresolved Closure 原子物化
+为独立的 `PROPOSED` Campaign Candidate；它必须重新经过 Candidate-bound Validation 与 Critic，Campaign 前置
+Evidence 不能冒充 ValidationRun，也不能绕过 Finding Gate。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

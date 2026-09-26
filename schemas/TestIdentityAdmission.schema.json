@@ -12,7 +12,8 @@
         "review_report",
         "export_report",
         "execute_red_team_action",
-        "advance_campaign_phase"
+        "advance_campaign_phase",
+        "create_campaign_candidate"
       ],
       "title": "ApprovalAction",
       "type": "string"
