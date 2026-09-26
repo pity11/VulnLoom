@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.2 隔离靶场 A3 运行资格纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.3 A4 Goal-driven Campaign 资格协议纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -205,8 +205,9 @@ B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Sessio
 或第三方账户。B4.3 已在本地 fixture 中固定认证动作、登出清理与角色差异 Observation，没有访问公网或使用真实
 账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。下一步先把
 这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。B5.1 已固定权威两轮 Replan Trace、
-Execution Receipt、Coverage Ledger 与离线 A3 资格，但尚未证明真实容器/进程/网络隔离；B5.2 继续补齐该运行
-资格。只有出现新的用户
+Execution Receipt、Coverage Ledger 与离线 A3 资格；B5.2 已用实际 Docker 成功/超时探针完成 Flow 专属的
+运行隔离扇入，并显式区分本地 Docker 与 rootless production assurance。下一步固定 A4 的目标、预算、阶段、停止
+条件和恢复协议，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
 优先级决定，才从其他
 里程碑开始。
 
@@ -489,3 +490,21 @@ A3 资格与实际覆盖投影，固定禁止 A4 Campaign 声明、执行授权�
 本轮没有真实容器、私网靶场、网络、模型调用或攻击，因此仍不构成 `isolated_integration_tested` 或 A4 资格。
 下一项为 B5.2 隔离靶场 A3 运行资格。
 最终全量门禁为 1732 passed、43 skipped、85.55% coverage；533 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.2 达到 `isolated_integration_tested`。新增 `Runtime Isolation Evidence` 与
+`Adaptive Runtime Qualification` 领域边界，以及内容寻址 Runtime Plan、双探针 Observation 和 Outcome。Plan
+扇入 B5.1 A3 Outcome/Coverage Ledger、当前 Scope、精确 Post-exploitation Profile/image 和 S1 Hostile Worker、
+Resource Pressure、seccomp admitted 合同；只读挂载 Coverage Ledger，固定 network-none、零模型预算和禁止目标
+代码执行。
+
+真实 Docker canary 使用本机既有 `alpine:3.22`，分别验证正常边界与一秒 timeout-cleanup。可信 adapter 从实际
+container inspection/Engine info 复核非 root、零 capability、NoNewPrivs、只读根、seccomp、cgroup/resource
+limits、显式环境白名单、只读 evidence mount、无 Docker socket、network-none、cleanup complete 和容器不存在。
+两个容器均已确认删除；没有拉取镜像、访问网络、调用模型、接触凭据或执行攻击。
+
+本机 Docker Desktop 证据明确标记为 `local_docker`，不误报为生产 rootless 准入；Phase 3 workflow 已纳入同一
+B5.2 测试，只有版本化 rootless Engine 通过才会产生 `rootless_production` assurance。独立 ledger 覆盖幂等、
+STARTED/COMPLETED、超时、显式恢复和三次上限；离线拒绝覆盖 Scope/S1 准入漂移、缺失/重复/伪造探针与 schema
+A4/执行权限升级。下一项为 B5.3 A4 Goal-driven Campaign 资格协议。
+最终全量离线门禁为 1739 passed、44 skipped、85.57% coverage；537 份 schema、Ruff 和 diff check 通过；
+显式本地 Docker B5.2 canary 另为 1 passed。

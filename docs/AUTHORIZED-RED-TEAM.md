@@ -527,6 +527,24 @@ test class、Observation 和 cleanup，不宣称未覆盖面安全，不创建 C
 独立 ledger 支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复。本纵切只达到 `offline_tested`，未运行真实
 容器、私网靶场、模型或攻击；实际隔离 A3 准入和 A4 Campaign 资格仍是后续工作。
 
+## B5.2 isolated A3 runtime qualification
+
+B5.2 不把全局 Runner 测试自动解释为任意 Flow 的隔离证明。`AdaptiveRuntimeQualificationPlan` 精确绑定一份
+B5.1 Outcome/Coverage Ledger、当前 Scope/version、Post-exploitation Sandbox Profile 与镜像，以及 S1 Hostile
+Worker、Resource Pressure 和版本化 seccomp 的 admitted 合同。Profile 只能挂载该 Coverage Ledger 的只读对象，
+网络固定为 none、模型预算为零且不能执行目标代码。
+
+该 Flow 还必须完成两项实际容器探针：正常边界探针和 timeout-cleanup 探针。可信 Docker evidence adapter 从实际
+request/result、容器 inspection 和 Engine info 投影内容寻址 Observation，逐项复核非 root、零 capability、
+NoNewPrivs、只读根、seccomp、cgroup/resource limits、显式 Worker 环境、只读 evidence mount、无 Docker socket、
+network-none、完整 cleanup 和容器不存在。缺失、重复、配置漂移、模拟 Observation、超时语义错误或清理未知均
+fail-closed。
+
+资格结果只表示该 B5.1 Flow 达到 `A3_ADAPTIVE_FLOW` 的隔离靶场运行资格，不携带执行权、不创建 Candidate/Finding，
+也不升级 A4。`local_docker` 与 `rootless_production` 是不同 assurance level：本地 Docker Desktop canary 可证明真实
+容器边界但不能形成生产 Runner 准入；只有版本化 rootless Engine 同时通过时，Outcome 才能把
+`production_runner_admitted` 置为 true。独立 ledger 支持幂等、STARTED/COMPLETED、超时与最多三次显式恢复。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -539,7 +557,7 @@ Assertion，并证明单批来源不能自证独立 replay 或 Critic。B3.3 已
 Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 Finding。B3 至此达到 `offline_tested` 并关闭。
 B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract；B4.2 已完成
 离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
-清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复。下一步推进隔离
-靶场 A3/A4 资格。任何新
+清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复；B5.1/B5.2
+已完成离线 A3 事实链与实际隔离容器运行资格。下一步进入 A4 Goal-driven Campaign 资格协议。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

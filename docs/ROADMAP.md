@@ -1602,6 +1602,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   A4 Goal-driven Campaign 资格。
 - 全量门禁：1732 passed、43 skipped、85.55% coverage；533 份 schema、Ruff 和 diff check 通过。
 
+## B5.2 隔离靶场 A3 运行资格（已完成，isolated_integration_tested）
+
+- 新增 `Runtime Isolation Evidence` 与 `Adaptive Runtime Qualification`；隔离证据必须来自实际容器 request/result、
+  inspection 与 Engine info，模拟结果、配置声明和提示词不能形成资格。
+- Runtime Plan 精确绑定 B5.1 Outcome/Coverage Ledger、Scope/version、Post-exploitation Profile/image，以及 S1
+  Hostile Worker、Resource Pressure 与 seccomp admitted 合同；Worker 只读看到 Coverage Ledger 对象，网络关闭、
+  模型预算为零且不能执行目标代码。
+- 双探针要求正常边界与 timeout-cleanup 均通过，复核非 root、零 capability、NoNewPrivs、只读根、seccomp、
+  cgroup/resource limits、显式环境、只读 mount、Docker socket 不可见、cleanup 和容器 absence。
+- 本地 `alpine:3.22` Docker canary 已实际运行并删除两个容器，没有拉取镜像、网络、模型、凭据或攻击；
+  Docker Desktop 只产生 `local_docker` assurance，不冒充 `rootless_production`。
+- Phase 3 rootless workflow 已加入同一纵切；只有版本化 rootless Engine 通过时 Outcome 才能声明 production Runner
+  admitted。资格本身仍无执行权、A4、Candidate 或 Finding 权限。
+- 全量离线门禁：1739 passed、44 skipped、85.57% coverage；537 份 schema、Ruff 和 diff check 通过；显式本地
+  Docker B5.2 canary 另为 1 passed。
+- 下一项为 B5.3 A4 Goal-driven Campaign 资格协议。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

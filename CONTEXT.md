@@ -76,6 +76,14 @@ _Avoid_: Security score, Scan completeness, Action budget
 Control Plane 对一条权威 Adaptive Flow Trace 是否达到 A3 多轮自适应要求所作的限域资格决定；它不是 A4 Campaign 资格，也不是执行权限。
 _Avoid_: Autonomy grant, Campaign admission, Model capability claim
 
+**Runtime Isolation Evidence**：
+可信控制面从实际短生命周期容器取得的内容寻址事实，证明精确镜像、Sandbox Profile、调用、硬化边界、终态和资源清理；模拟结果、配置声明和提示词不能成为该证据。
+_Avoid_: Sandbox configuration, Unit-test fixture, Isolation claim
+
+**Adaptive Runtime Qualification**：
+把既有 Adaptive Flow Qualification、共享隔离准入合同与该流程专属 Runtime Isolation Evidence 扇入后形成的 A3 运行资格；它不授予动作执行权，也不构成 A4 Campaign 资格或生产环境准入。
+_Avoid_: Runtime permission, Production admission, Campaign qualification
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

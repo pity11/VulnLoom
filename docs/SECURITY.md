@@ -73,6 +73,11 @@ Docker canary 与 rootless Phase 3 run `35553910680` 均已通过，CI run `3555
 S1.2 的 seccomp、资源压力、超时、取消、进程组回收、残留对象清理和 Profile 差异已经形成真实隔离证据，
 S1.2 关闭。
 
+B5.2 将上述共享隔离合同与单个 B5.1 Adaptive Flow 做精确扇入。该 Flow 必须额外运行 network-none 的正常边界与
+timeout-cleanup 两个实际 Post-exploitation 容器探针；Observation 仅保存绑定摘要和布尔边界事实，不保存原始
+inspection、环境值或输出。本地 Docker Desktop 与版本化 rootless production assurance 分开建模，因此本地
+canary 不能把 `production_runner_admitted` 置为 true。
+
 S1.3 已将秘密泄漏回归收敛为内容寻址的八表面资格合同：Worker output、Provider transport、exception chain、
 event log、Evidence、Report、CLI/API 和 model context 缺一不可。计划与 observation 只保存表面、测试产物摘要、
 布尔安全结论和有界错误码，schema 无法承载 canary、stdout、stderr、payload 或 environment；缺失、重复、摘要

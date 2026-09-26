@@ -1,0 +1,212 @@
+{
+  "$defs": {
+    "AdaptiveRuntimeProbeKind": {
+      "enum": [
+        "boundary",
+        "timeout_cleanup"
+      ],
+      "title": "AdaptiveRuntimeProbeKind",
+      "type": "string"
+    },
+    "AdaptiveRuntimeQualificationLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "AdaptiveRuntimeQualificationLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "adaptive_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adaptive Plan Id",
+      "type": "string"
+    },
+    "adaptive_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adaptive Outcome Id",
+      "type": "string"
+    },
+    "adaptive_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adaptive Outcome Digest",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "coverage_ledger_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Coverage Ledger Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "hostile_worker_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Plan Id",
+      "type": "string"
+    },
+    "hostile_worker_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Outcome Id",
+      "type": "string"
+    },
+    "hostile_worker_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Outcome Digest",
+      "type": "string"
+    },
+    "hostile_worker_contract_digest": {
+      "const": "6aaa6c5b4757b02bad6601b628e2b8fbdb9ccf26be77deade32ae65f5acc9a45",
+      "default": "6aaa6c5b4757b02bad6601b628e2b8fbdb9ccf26be77deade32ae65f5acc9a45",
+      "title": "Hostile Worker Contract Digest",
+      "type": "string"
+    },
+    "resource_pressure_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Plan Id",
+      "type": "string"
+    },
+    "resource_pressure_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Outcome Id",
+      "type": "string"
+    },
+    "resource_pressure_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Outcome Digest",
+      "type": "string"
+    },
+    "resource_pressure_contract_digest": {
+      "const": "57f8cd4c85b7998e1f1816ab5843089a9a8e29e034e8a33b0bdf74b9254f9147",
+      "default": "57f8cd4c85b7998e1f1816ab5843089a9a8e29e034e8a33b0bdf74b9254f9147",
+      "title": "Resource Pressure Contract Digest",
+      "type": "string"
+    },
+    "seccomp_contract_digest": {
+      "const": "76f4a50d2de81ec675ea08d610db0ec72724590b96a28695f4bea6ec08f933dd",
+      "default": "76f4a50d2de81ec675ea08d610db0ec72724590b96a28695f4bea6ec08f933dd",
+      "title": "Seccomp Contract Digest",
+      "type": "string"
+    },
+    "runtime_probe_contract_digest": {
+      "const": "26cc4c317a90cb6c2dba84777a4a668d70eb389ef517de1602724085d99e3420",
+      "default": "26cc4c317a90cb6c2dba84777a4a668d70eb389ef517de1602724085d99e3420",
+      "title": "Runtime Probe Contract Digest",
+      "type": "string"
+    },
+    "required_probes": {
+      "default": [
+        "boundary",
+        "timeout_cleanup"
+      ],
+      "items": {
+        "$ref": "#/$defs/AdaptiveRuntimeProbeKind"
+      },
+      "title": "Required Probes",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/AdaptiveRuntimeQualificationLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "requested_autonomy": {
+      "const": "a3_adaptive_flow",
+      "default": "a3_adaptive_flow",
+      "title": "Requested Autonomy",
+      "type": "string"
+    },
+    "execution_authority_requested": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authority Requested",
+      "type": "boolean"
+    },
+    "campaign_qualification_requested": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Qualification Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "adaptive_plan_id",
+    "adaptive_outcome_id",
+    "adaptive_outcome_digest",
+    "flow_plan_id",
+    "coverage_ledger_id",
+    "scope_id",
+    "scope_version",
+    "image_digest",
+    "sandbox_profile_digest",
+    "hostile_worker_plan_id",
+    "hostile_worker_outcome_id",
+    "hostile_worker_outcome_digest",
+    "resource_pressure_plan_id",
+    "resource_pressure_outcome_id",
+    "resource_pressure_outcome_digest",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "AdaptiveRuntimeQualificationPlan",
+  "type": "object"
+}
