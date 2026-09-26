@@ -108,5 +108,6 @@ jobs:
           pytest \
             tests/test_runner_docker_integration.py \
             tests/test_red_team_adaptive_runtime_qualification.py \
+            tests/test_red_team_campaign_runtime_qualification.py \
             tests/test_validation_composition_integration.py
           pytest -m docker_integration tests/test_analyzer_docker_execution.py

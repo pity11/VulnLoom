@@ -84,6 +84,13 @@ B5.3 把至少两条已完成的 B5.2 Flow 资格扇入一份有限 A4 Campaign 
 启动 Campaign、不授予执行/扩域/凭据/Submission 权限，也不能创建 Candidate 或 Finding。只有后续独立的隔离
 Runtime 纵切实际证明阶段调度、停止、恢复和清理后，才可以声明 A4 Runtime 资格。
 
+B5.4 用独立 `ADVANCE_CAMPAIGN_PHASE` Approval 约束六个封存阶段转换；它不能替代阶段内 Action 所需的精确
+Approval。每个 phase、budget-stop 和 timeout-cleanup 证据都来自实际 network-none 短生命周期容器，并由可信
+adapter 复核完整硬化边界、只读 B5.3 qualification mount、零模型预算、evidence-read-only 工具、无输出发布与
+容器 absence。budget-stop 必须以专用终态停止且不能进入额外阶段，timeout 必须丢弃部分工作并完成强制回收。
+Runtime Outcome 仍不启动 Campaign、不授予动作/扩域/凭据/Submission 权限；本地 Docker assurance 不能升级为
+rootless production admission。
+
 S1.3 已将秘密泄漏回归收敛为内容寻址的八表面资格合同：Worker output、Provider transport、exception chain、
 event log、Evidence、Report、CLI/API 和 model context 缺一不可。计划与 observation 只保存表面、测试产物摘要、
 布尔安全结论和有界错误码，schema 无法承载 canary、stdout、stderr、payload 或 environment；缺失、重复、摘要

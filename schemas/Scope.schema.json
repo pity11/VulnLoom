@@ -11,7 +11,8 @@
         "submit_report",
         "review_report",
         "export_report",
-        "execute_red_team_action"
+        "execute_red_team_action",
+        "advance_campaign_phase"
       ],
       "title": "ApprovalAction",
       "type": "string"

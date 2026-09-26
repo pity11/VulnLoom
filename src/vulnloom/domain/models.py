@@ -122,6 +122,7 @@ class ApprovalAction(StrEnum):
     REVIEW_REPORT = "review_report"
     EXPORT_REPORT = "export_report"
     EXECUTE_RED_TEAM_ACTION = "execute_red_team_action"
+    ADVANCE_CAMPAIGN_PHASE = "advance_campaign_phase"
 
 
 class EvidenceKind(StrEnum):

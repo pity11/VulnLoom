@@ -1636,6 +1636,26 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
 - 本纵切只达到 `offline_tested`，不构成 A4 Runtime 或生产 Campaign 准入。下一项为 B5.4 隔离 A4 Campaign
   Runtime 资格纵切。
 
+## B5.4 隔离 A4 Campaign Runtime 资格（已完成，isolated_integration_tested）
+
+- 新增 `Campaign Phase Admission` 与 `Campaign Runtime Qualification` 领域边界，以及独立
+  `ADVANCE_CAMPAIGN_PHASE` Approval；阶段批准只允许精确 phase 进入资格探针，不授予阶段内 Action 权限。
+- Runtime Plan 绑定 B5.3 Plan/Outcome、固定目标集、六阶段图、Scope/version、专用 Post-exploitation
+  Profile/image 和 S1 Hostile Worker/Resource Pressure/seccomp admitted 合同；Worker 只读看到 qualification
+  object，网络关闭、模型预算为零且只有 evidence-read 工具。
+- 六个 phase Observation 必须与 Plan 顺序、前置关系和各自 Approval 精确一致，时间严格递增；缺失、乱序、过期
+  Approval、Scope 撤销、来源或目标集合漂移均在 checkpoint 前 fail-closed。
+- 实际本地 Docker canary 运行并删除六个 phase 容器、一个 exit-42 budget-stop 容器和一个一秒 timeout-cleanup
+  容器；逐个复核非 root、零 capability、NoNewPrivs、只读根、seccomp、资源限制、显式环境、只读 mount、无
+  Docker socket、network-none、cleanup complete 与 container absence。没有拉取镜像、网络、模型、凭据或攻击。
+- Outcome 取 B5.3 与全部探针的最低 assurance，固定不启动 Campaign、不授予动作/扩域/凭据/Submission 权限，
+  也不创建 Candidate/Finding；本地 Docker 不能冒充 rootless production admission。
+- 独立 ledger 覆盖幂等、STARTED/COMPLETED、超时、最多三次显式恢复和内容冲突；Phase 3 rootless workflow 已
+  纳入同一 B5.4 canary。
+- 全量离线门禁：1754 passed、45 skipped、85.62% coverage；550 份 schema、Ruff 和 diff check 通过；显式本地
+  Docker B5.4 canary 另为 1 passed。
+- 下一项为 B5.5 隔离 A4 Campaign 编排与 Evidence 闭环。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

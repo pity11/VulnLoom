@@ -562,6 +562,28 @@ Outcome 仅证明这些有限结构满足 A4 资格合同，并继承输入中�
 支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复；计划与持久化 schema 不携带原始 URL、主机名、命令、
 载荷、秘密或 Docker socket。本纵切为 `offline_tested`，不构成 A4 Runtime、生产 Campaign 准入或真实目标测试。
 
+## B5.4 isolated A4 Campaign runtime qualification
+
+B5.4 为阶段转换新增独立 `ADVANCE_CAMPAIGN_PHASE` Approval Action。每份 `Campaign Phase Admission` 只能绑定
+一个已封存 phase id，必须在该阶段实际隔离探针开始前由操作员批准，且不能替代任何阶段内
+`EXECUTE_RED_TEAM_ACTION`、状态变化、凭据、外部回连或 Submission Approval。六个阶段缺失、乱序、批准过期、
+Scope 撤销或 provenance 漂移均在资格 checkpoint 前拒绝。
+
+`CampaignRuntimeQualificationPlan` 精确绑定 B5.3 Plan/Outcome 摘要、固定目标集、Phase Graph、当前 Scope、专用
+Post-exploitation Profile/image，以及 S1 Hostile Worker、Resource Pressure 和 seccomp admitted 合同。Profile
+只读挂载 B5.3 qualification object，网络关闭、模型预算为零，唯一允许工具为 evidence read；不得执行目标动作、
+发布输出或修改目标集合。
+
+运行证据由实际短生命周期容器产生：六个 phase canary 分别绑定 phase/ordinal/Approval，budget-stop canary 以
+专用 exit 42 证明达到预算边界后不进入额外阶段，timeout-cleanup canary 证明一秒超时后强制回收。可信 adapter
+复核非 root、零 capability、NoNewPrivs、只读根、seccomp、cgroup/resource limits、显式环境、只读 evidence
+mount、Docker socket 不可见、network-none、cleanup complete 与 container absence。
+
+Outcome 只表示该 B5.3 Campaign 结构通过 A4 隔离运行边界资格，仍固定 `campaign_started=false` 且无任何动作、
+扩域、凭据、Submission、Candidate 或 Finding 权限。最终 assurance 取 B5.3 输入与全部实际探针中的最低值；
+本地 Docker Desktop 只能产生 `local_docker`，版本化 rootless Phase 3 通过后才能声明 production runtime admitted。
+独立 ledger 支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -576,6 +598,7 @@ B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方�
 离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
 清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复；B5.1/B5.2
 已完成离线 A3 事实链与实际隔离容器运行资格；B5.3 已完成 A4 的有限目标、固定目标集、阶段 DAG、预算与停止条件
-结构资格。下一步进入 B5.4 隔离 A4 Campaign Runtime 资格，仍不得把资格事实解释为可直接执行的 Campaign。任何新
+结构资格；B5.4 已用实际无网络容器证明精确阶段准入、预算停止、超时回收与清理。下一步进入 B5.5 隔离 A4
+Campaign 编排与 Evidence 闭环；B5.4 资格事实仍不能被解释为可直接执行的 Campaign。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

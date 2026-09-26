@@ -1,0 +1,241 @@
+{
+  "$defs": {
+    "CampaignRuntimeStopProbeKind": {
+      "enum": [
+        "budget_stop",
+        "timeout_cleanup"
+      ],
+      "title": "CampaignRuntimeStopProbeKind",
+      "type": "string"
+    },
+    "RuntimeAssuranceLevel": {
+      "enum": [
+        "local_docker",
+        "rootless_production"
+      ],
+      "title": "RuntimeAssuranceLevel",
+      "type": "string"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "runtime_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Plan Id",
+      "type": "string"
+    },
+    "campaign_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Plan Id",
+      "type": "string"
+    },
+    "campaign_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Outcome Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/CampaignRuntimeStopProbeKind"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "task_id": {
+      "format": "uuid",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "invocation_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invocation Digest",
+      "type": "string"
+    },
+    "runner_result_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runner Result Digest",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/SandboxRunStatus"
+    },
+    "error_codes": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "worker_exit_code": {
+      "anyOf": [
+        {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Worker Exit Code"
+    },
+    "assurance_level": {
+      "$ref": "#/$defs/RuntimeAssuranceLevel"
+    },
+    "stop_enforced": {
+      "const": true,
+      "default": true,
+      "title": "Stop Enforced",
+      "type": "boolean"
+    },
+    "no_extra_phase_started": {
+      "const": true,
+      "default": true,
+      "title": "No Extra Phase Started",
+      "type": "boolean"
+    },
+    "target_set_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Target Set Unchanged",
+      "type": "boolean"
+    },
+    "no_action_executed": {
+      "const": true,
+      "default": true,
+      "title": "No Action Executed",
+      "type": "boolean"
+    },
+    "actual_container_observed": {
+      "const": true,
+      "default": true,
+      "title": "Actual Container Observed",
+      "type": "boolean"
+    },
+    "network_disabled": {
+      "const": true,
+      "default": true,
+      "title": "Network Disabled",
+      "type": "boolean"
+    },
+    "non_root": {
+      "const": true,
+      "default": true,
+      "title": "Non Root",
+      "type": "boolean"
+    },
+    "read_only_root": {
+      "const": true,
+      "default": true,
+      "title": "Read Only Root",
+      "type": "boolean"
+    },
+    "capabilities_dropped": {
+      "const": true,
+      "default": true,
+      "title": "Capabilities Dropped",
+      "type": "boolean"
+    },
+    "no_new_privileges": {
+      "const": true,
+      "default": true,
+      "title": "No New Privileges",
+      "type": "boolean"
+    },
+    "seccomp_enforced": {
+      "const": true,
+      "default": true,
+      "title": "Seccomp Enforced",
+      "type": "boolean"
+    },
+    "resource_limits_enforced": {
+      "const": true,
+      "default": true,
+      "title": "Resource Limits Enforced",
+      "type": "boolean"
+    },
+    "environment_allowlisted": {
+      "const": true,
+      "default": true,
+      "title": "Environment Allowlisted",
+      "type": "boolean"
+    },
+    "content_mount_read_only": {
+      "const": true,
+      "default": true,
+      "title": "Content Mount Read Only",
+      "type": "boolean"
+    },
+    "docker_socket_absent": {
+      "const": true,
+      "default": true,
+      "title": "Docker Socket Absent",
+      "type": "boolean"
+    },
+    "cleanup_verified": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Verified",
+      "type": "boolean"
+    },
+    "container_absent": {
+      "const": true,
+      "default": true,
+      "title": "Container Absent",
+      "type": "boolean"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "observation_id",
+    "runtime_plan_id",
+    "campaign_plan_id",
+    "campaign_outcome_id",
+    "kind",
+    "run_id",
+    "task_id",
+    "image_digest",
+    "sandbox_profile_digest",
+    "invocation_digest",
+    "runner_result_digest",
+    "status",
+    "assurance_level",
+    "observed_at"
+  ],
+  "title": "CampaignStopRuntimeObservation",
+  "type": "object"
+}

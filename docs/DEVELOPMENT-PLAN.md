@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.4 隔离 A4 Campaign Runtime 资格纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.5 隔离 A4 Campaign 编排与 Evidence 闭环**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -208,7 +208,8 @@ B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Sessio
 Execution Receipt、Coverage Ledger 与离线 A3 资格；B5.2 已用实际 Docker 成功/超时探针完成 Flow 专属的
 运行隔离扇入，并显式区分本地 Docker 与 rootless production assurance。B5.3 已固定 A4 的目标、目标集合、阶段
 DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执行权。下一步用隔离 Runtime 证明阶段调度、停止、
-恢复与清理，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
+恢复与清理。B5.4 已用实际无网络容器证明六阶段精确批准、预算停止、超时回收和完整清理，但仍不执行 Campaign
+动作。下一步在隔离 fixture 中把已准入阶段编排到 Evidence 闭环，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
 优先级决定，才从其他
 里程碑开始。
 
@@ -524,3 +525,20 @@ Submission、Candidate 或 Finding 权限。资格服务没有 Runner、Broker�
 归一化、单/重复 Flow、Scope 撤销、来源漂移、阶段图/预算/权限升级拒绝、最低 assurance、恢复耗尽和敏感字段
 排除。本轮没有容器、网络、模型调用或攻击，只达到结构资格；下一项为 B5.4 隔离 A4 Campaign Runtime 资格。
 最终全量离线门禁为 1747 passed、44 skipped、85.62% coverage；545 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.4 达到 `isolated_integration_tested`。新增 `Campaign Phase Admission` 与
+`Campaign Runtime Qualification` 领域边界、`ADVANCE_CAMPAIGN_PHASE` Approval Action，以及内容寻址 Runtime
+Plan、六份 Phase Observation、budget-stop/timeout-cleanup Observation 和 Outcome。Plan 精确绑定 B5.3
+Plan/Outcome、固定目标集、Phase Graph、Scope/version、专用 Profile/image 与 S1 隔离资格。
+
+六个 phase 必须按 DAG 顺序和严格时间顺序分别持有精确人工批准；批准不能替代阶段内 Action Approval。资格服务
+复核 Scope、B5.3 provenance、共享隔离合同、实际容器事实、预算停止、超时回收和 cleanup，并以独立 SQLite
+ledger 提供幂等、STARTED/COMPLETED、超时和三次恢复上限。Outcome 固定不启动 Campaign，不授予动作、扩域、
+凭据、Submission、Candidate 或 Finding 权限。
+
+本机已缓存 `alpine:3.22` 的显式 Docker canary 实际运行六个 phase、一个 exit-42 budget-stop 和一个一秒
+timeout-cleanup 容器；全部 network-none、只读 qualification mount、零模型预算、无 Docker socket且已确认删除。
+本机仅产生 `local_docker` assurance；Phase 3 rootless workflow 已纳入同一测试，只有版本化 rootless Engine
+通过才可产生 production Campaign runtime admission。下一项为 B5.5 隔离 A4 Campaign 编排与 Evidence 闭环。
+最终全量离线门禁为 1754 passed、45 skipped、85.62% coverage；550 份 schema、Ruff 和 diff check 通过；
+显式本地 Docker B5.4 canary 另为 1 passed。

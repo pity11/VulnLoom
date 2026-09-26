@@ -96,6 +96,14 @@ _Avoid_: Agent plan, Dynamic queue, Execution trace
 Control Plane 对多个已完成 A3 Runtime Qualification、Campaign Goal、目标集合、阶段图和停止条件所作的 A4 结构资格决定；它不启动 Campaign，也不授予任何动作、网络、凭据或 Submission 权限。
 _Avoid_: Campaign run, Autonomous execution, Blanket approval
 
+**Campaign Phase Admission**：
+操作员对封存 Campaign 中一个精确阶段转换作出的一次性、内容绑定决定；它只允许该阶段进入隔离资格运行，不授予阶段内动作、网络、凭据或目标扩展权限。
+_Avoid_: Campaign approval, Action approval, Execution token
+
+**Campaign Runtime Qualification**：
+Control Plane 依据实际隔离阶段运行、预算停止、超时回收与完整清理事实，对一份既有 Goal-driven Campaign Qualification 作出的 A4 运行边界资格；它仍不启动真实 Campaign 或授予攻击执行权。
+_Avoid_: Campaign execution, Production authorization, Autonomous attack
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

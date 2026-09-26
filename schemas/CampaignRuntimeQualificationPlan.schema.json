@@ -1,0 +1,253 @@
+{
+  "$defs": {
+    "CampaignRuntimeQualificationLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "CampaignRuntimeQualificationLimits",
+      "type": "object"
+    },
+    "CampaignRuntimeStopProbeKind": {
+      "enum": [
+        "budget_stop",
+        "timeout_cleanup"
+      ],
+      "title": "CampaignRuntimeStopProbeKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "runtime_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Plan Id",
+      "type": "string"
+    },
+    "campaign_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Plan Id",
+      "type": "string"
+    },
+    "campaign_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Plan Digest",
+      "type": "string"
+    },
+    "campaign_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Outcome Id",
+      "type": "string"
+    },
+    "campaign_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Outcome Digest",
+      "type": "string"
+    },
+    "goal_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "target_set_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Set Digest",
+      "type": "string"
+    },
+    "phase_graph_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Phase Graph Digest",
+      "type": "string"
+    },
+    "required_phase_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Required Phase Ids",
+      "type": "array"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Image Digest",
+      "type": "string"
+    },
+    "sandbox_profile_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sandbox Profile Digest",
+      "type": "string"
+    },
+    "hostile_worker_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Plan Id",
+      "type": "string"
+    },
+    "hostile_worker_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Outcome Id",
+      "type": "string"
+    },
+    "hostile_worker_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hostile Worker Outcome Digest",
+      "type": "string"
+    },
+    "hostile_worker_contract_digest": {
+      "const": "6aaa6c5b4757b02bad6601b628e2b8fbdb9ccf26be77deade32ae65f5acc9a45",
+      "default": "6aaa6c5b4757b02bad6601b628e2b8fbdb9ccf26be77deade32ae65f5acc9a45",
+      "title": "Hostile Worker Contract Digest",
+      "type": "string"
+    },
+    "resource_pressure_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Plan Id",
+      "type": "string"
+    },
+    "resource_pressure_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Outcome Id",
+      "type": "string"
+    },
+    "resource_pressure_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resource Pressure Outcome Digest",
+      "type": "string"
+    },
+    "resource_pressure_contract_digest": {
+      "const": "57f8cd4c85b7998e1f1816ab5843089a9a8e29e034e8a33b0bdf74b9254f9147",
+      "default": "57f8cd4c85b7998e1f1816ab5843089a9a8e29e034e8a33b0bdf74b9254f9147",
+      "title": "Resource Pressure Contract Digest",
+      "type": "string"
+    },
+    "seccomp_contract_digest": {
+      "const": "76f4a50d2de81ec675ea08d610db0ec72724590b96a28695f4bea6ec08f933dd",
+      "default": "76f4a50d2de81ec675ea08d610db0ec72724590b96a28695f4bea6ec08f933dd",
+      "title": "Seccomp Contract Digest",
+      "type": "string"
+    },
+    "runtime_probe_contract_digest": {
+      "const": "ab6a9ebae5d424a0a36d16b7152e3a4a45729c05934ef3a3d2962a4803c8912e",
+      "default": "ab6a9ebae5d424a0a36d16b7152e3a4a45729c05934ef3a3d2962a4803c8912e",
+      "title": "Runtime Probe Contract Digest",
+      "type": "string"
+    },
+    "required_stop_probes": {
+      "default": [
+        "budget_stop",
+        "timeout_cleanup"
+      ],
+      "items": {
+        "$ref": "#/$defs/CampaignRuntimeStopProbeKind"
+      },
+      "title": "Required Stop Probes",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/CampaignRuntimeQualificationLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "requested_autonomy": {
+      "const": "a4_goal_driven_campaign",
+      "default": "a4_goal_driven_campaign",
+      "title": "Requested Autonomy",
+      "type": "string"
+    },
+    "campaign_execution_requested": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Execution Requested",
+      "type": "boolean"
+    },
+    "action_execution_requested": {
+      "const": false,
+      "default": false,
+      "title": "Action Execution Requested",
+      "type": "boolean"
+    },
+    "dynamic_target_expansion_requested": {
+      "const": false,
+      "default": false,
+      "title": "Dynamic Target Expansion Requested",
+      "type": "boolean"
+    },
+    "credential_access_requested": {
+      "const": false,
+      "default": false,
+      "title": "Credential Access Requested",
+      "type": "boolean"
+    },
+    "submission_requested": {
+      "const": false,
+      "default": false,
+      "title": "Submission Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "runtime_plan_id",
+    "campaign_plan_id",
+    "campaign_plan_digest",
+    "campaign_outcome_id",
+    "campaign_outcome_digest",
+    "goal_id",
+    "scope_id",
+    "scope_version",
+    "target_set_digest",
+    "phase_graph_digest",
+    "required_phase_ids",
+    "image_digest",
+    "sandbox_profile_digest",
+    "hostile_worker_plan_id",
+    "hostile_worker_outcome_id",
+    "hostile_worker_outcome_digest",
+    "resource_pressure_plan_id",
+    "resource_pressure_outcome_id",
+    "resource_pressure_outcome_digest",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "CampaignRuntimeQualificationPlan",
+  "type": "object"
+}
