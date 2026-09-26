@@ -2,6 +2,8 @@
 
 from vulnloom.domain.models import CandidateState, ValidationResult
 
+from .campaign_candidate_critic_models import CampaignCandidateCriticLifecycleState
+
 
 class CampaignCandidateTransitionRejected(ValueError):
     pass
@@ -35,3 +37,13 @@ def complete_campaign_candidate_validation(
         if result is ValidationResult.REPRODUCED
         else CandidateState.INCONCLUSIVE
     )
+
+
+def admit_campaign_candidate_critic(
+    current: CandidateState,
+) -> CampaignCandidateCriticLifecycleState:
+    if current is not CandidateState.VALIDATED:
+        raise CampaignCandidateTransitionRejected(
+            "Campaign Candidate Critic can only be queued from validated"
+        )
+    return CampaignCandidateCriticLifecycleState.PENDING

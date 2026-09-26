@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "CounterevidenceAngle": {
+      "enum": [
+        "security_control",
+        "reachability",
+        "environment_parity",
+        "version_binding"
+      ],
+      "title": "CounterevidenceAngle",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "critic_intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Intake Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "candidate_state": {
+      "const": "validated",
+      "default": "validated",
+      "title": "Candidate State",
+      "type": "string"
+    },
+    "critic_state": {
+      "const": "pending",
+      "default": "pending",
+      "title": "Critic State",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "validation_run_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Run Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "validation_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Digest",
+      "type": "string"
+    },
+    "review_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Context Digest",
+      "type": "string"
+    },
+    "required_counterevidence_angles": {
+      "items": {
+        "$ref": "#/$defs/CounterevidenceAngle"
+      },
+      "title": "Required Counterevidence Angles",
+      "type": "array"
+    },
+    "validation_evidence_accepted_as_counterevidence": {
+      "const": false,
+      "default": false,
+      "title": "Validation Evidence Accepted As Counterevidence",
+      "type": "boolean"
+    },
+    "critic_started": {
+      "const": false,
+      "default": false,
+      "title": "Critic Started",
+      "type": "boolean"
+    },
+    "critic_completed": {
+      "const": false,
+      "default": false,
+      "title": "Critic Completed",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "critic_intake_plan_id",
+    "candidate_id",
+    "candidate_digest",
+    "approval_id",
+    "approval_digest",
+    "validation_run_id",
+    "validation_run_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "validation_context_digest",
+    "review_context_digest",
+    "required_counterevidence_angles",
+    "recorded_at"
+  ],
+  "title": "CampaignCandidateCriticIntakeCheckpoint",
+  "type": "object"
+}

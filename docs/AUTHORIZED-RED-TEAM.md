@@ -607,6 +607,9 @@ Evidence 不能冒充 ValidationRun，也不能绕过 Finding Gate。新的 Vali
 `QUEUE_CAMPAIGN_CANDIDATE_VALIDATION` Approval 进入 `VALIDATION_PENDING`；排队许可与 `RUN_VALIDATION`
 执行许可不可互换。B5.8 只在精确 `RUN_VALIDATION` Approval 下运行两次独立无网络 Validation，可信 Control Plane
 校验五类 Candidate-bound fresh Evidence 后才记录 `VALIDATED`；Worker 输出不能自证结论，且 Critic/Finding 仍未
-完成。任何新 Action 仍必须重新封存并经过 Scope、
+完成。B5.9 再要求独立 `QUEUE_CAMPAIGN_CANDIDATE_CRITIC` Approval，绑定精确 ValidationRun、EvidenceBundle、
+fresh facts、完整反证角度及与验证生产者分离的 review context；它只记录 `PENDING` Critic，不能复用
+`RUN_CRITIC`、不能把 Validation Evidence 当作 counterevidence，也不产生 CriticReview 或 Finding。任何新 Action
+仍必须重新封存并经过 Scope、
 预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

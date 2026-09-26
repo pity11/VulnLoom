@@ -236,6 +236,14 @@ _Avoid_: Validation intake, Worker verdict, Finding promotion
 由当前 Campaign Candidate 的独立 Validation Execution 新产生、绑定同一 validation context 且不与 Campaign 前置 Evidence 重合的脱敏事实集合；旧 Evidence、单次输出或 Worker 声明都不能替代它。
 _Avoid_: Campaign evidence, Reused evidence, Worker claim
 
+**Campaign Candidate Critic Intake**：
+将一个已完成独立复现且仍为 `VALIDATED` 的 Campaign Candidate，经精确人工 Approval 准入独立 Critic 待审队列的门禁；它不执行审查、不产生 CriticReview，也不创建 Finding。
+_Avoid_: Critic execution, Review verdict, Finding promotion
+
+**Independent Review Context**：
+与 Candidate validation context 和验证生产者相分离的内容寻址审查上下文；它绑定精确 ValidationRun、EvidenceBundle、fresh facts 与完整反证角度，但本身不构成反证或审查结论。
+_Avoid_: Validation context reuse, Counterevidence, Critic verdict
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

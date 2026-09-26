@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.9 Campaign Candidate Critic Intake 与独立反证门禁**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.10 隔离 Campaign Candidate Critic 执行与反证绑定**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -212,8 +212,9 @@ DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执�
 动作。B5.5 已关闭隔离编排与 Evidence 闭环，B5.6 已用精确人工 Approval 将 unresolved Closure 原子物化为独立
 `PROPOSED` Campaign Candidate；B5.7 已以独立排队 Approval 和权威 Lifecycle Checkpoint 将其推进至
 `VALIDATION_PENDING`。B5.8 已在精确 `RUN_VALIDATION` Approval 下完成两次独立无网络执行，生成 Candidate-bound
-fresh Evidence、ValidationRun 与 `VALIDATED` checkpoint；Critic 和 Finding 仍未执行。下一步实现 B5.9 独立
-Critic Intake，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从其他里程碑开始。
+fresh Evidence、ValidationRun 与 `VALIDATED` checkpoint。B5.9 已用独立排队 Approval、review context 和 producer
+分离约束把它准入 `PENDING` Critic；Critic 执行、CriticReview 和 Finding 仍未发生。下一步实现 B5.10 隔离
+Critic 执行与反证绑定，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -629,3 +630,21 @@ Candidate Critic Intake 与独立反证门禁。
 
 全量离线门禁为 1780 passed、46 skipped、85.75% coverage；569 份 schema、Ruff 和 diff check 通过；显式本机
 Docker B5.8 canary 另为 1 passed，两个容器均已清理。
+
+进展记录（2026-09-26）：B5.9 达到 `offline_tested`。新增 `Campaign Candidate Critic Intake` 与
+`Independent Review Context` 领域边界，以及只允许排队的 `QUEUE_CAMPAIGN_CANDIDATE_CRITIC` Approval Action。
+Plan 内容寻址绑定 B5.8 Execution Plan/Outcome、`VALIDATED` checkpoint、Candidate/Target/Scope/version、复现的
+ValidationRun、EvidenceBundle、五份 fresh fact、validation context、独立 review context、验证与审查 producer
+digest，以及四类完整 counterevidence angle。
+
+排队 Approval 与后续真正执行所需的 `RUN_CRITIC` 明确分离且不可互换。可信 Control Plane 要求 review producer
+不同于 validation producer，并拒绝把 fresh Validation Evidence 冒充 counterevidence。成功路径只原子记录 Candidate
+仍为 `VALIDATED`、Critic lifecycle 为 `PENDING` 的 checkpoint；Outcome 固定 `critic_started=false`、
+`critic_review_created=false`、`finding_created=false`、`submission_authorized=false`。
+
+独立 SQLite ledger 覆盖幂等、Candidate/ValidationRun 唯一消费、STARTED/COMPLETED、三次恢复上限、超时、中断、
+Scope/source 漂移、错误 Approval、同一 producer 和权限升级拒绝。失败路径不发布待审 checkpoint。本阶段没有
+Runner、Broker、Docker、网络、模型、真实账户、真实攻击或自动提交，也不新增隔离声明。下一项为 B5.10 隔离
+Campaign Candidate Critic 执行与独立 counterevidence 绑定。
+
+全量离线门禁为 1785 passed、46 skipped、85.78% coverage；573 份 schema、变更文件 Ruff 和 diff check 通过。

@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "timeout_seconds": {
+      "default": 10.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    }
+  },
+  "title": "CampaignCandidateCriticIntakeLimits",
+  "type": "object"
+}

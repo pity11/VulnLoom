@@ -14,7 +14,8 @@
         "execute_red_team_action",
         "advance_campaign_phase",
         "create_campaign_candidate",
-        "queue_campaign_candidate_validation"
+        "queue_campaign_candidate_validation",
+        "queue_campaign_candidate_critic"
       ],
       "title": "ApprovalAction",
       "type": "string"

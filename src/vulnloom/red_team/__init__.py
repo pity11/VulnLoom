@@ -188,6 +188,27 @@ from .business_flow_store import (
     BusinessInvariantStore,
     BusinessInvariantStoreRejected,
 )
+from .campaign_candidate_critic_models import (
+    REQUIRED_CAMPAIGN_CRITIC_ANGLES,
+    CampaignCandidateCriticIntakeCheckpoint,
+    CampaignCandidateCriticIntakeLimits,
+    CampaignCandidateCriticIntakeOutcome,
+    CampaignCandidateCriticIntakePlan,
+    CampaignCandidateCriticIntakeState,
+    CampaignCandidateCriticLifecycleState,
+)
+from .campaign_candidate_critic_service import (
+    CampaignCandidateCriticIntakeRejected,
+    CampaignCandidateCriticIntakeService,
+    CampaignCandidateCriticIntakeTimedOut,
+    CampaignCandidateValidationExecutionSource,
+)
+from .campaign_candidate_critic_store import (
+    CampaignCandidateCriticIntakeClaim,
+    CampaignCandidateCriticIntakeRecoveryRequired,
+    CampaignCandidateCriticIntakeStore,
+    CampaignCandidateCriticIntakeStoreRejected,
+)
 from .campaign_candidate_execution_models import (
     CAMPAIGN_CANDIDATE_VALIDATION_OUTPUT_CONTRACT,
     CampaignCandidateFreshEvidenceFact,
@@ -228,6 +249,7 @@ from .campaign_candidate_service import (
 )
 from .campaign_candidate_state_machine import (
     CampaignCandidateTransitionRejected,
+    admit_campaign_candidate_critic,
     admit_campaign_candidate_validation,
     complete_campaign_candidate_validation,
     start_campaign_candidate_validation,
@@ -699,6 +721,19 @@ __all__ = [
     "AdaptiveRuntimeStoreRejected",
     "CampaignBudget",
     "CampaignCandidate",
+    "CampaignCandidateCriticIntakeCheckpoint",
+    "CampaignCandidateCriticIntakeClaim",
+    "CampaignCandidateCriticIntakeLimits",
+    "CampaignCandidateCriticIntakeOutcome",
+    "CampaignCandidateCriticIntakePlan",
+    "CampaignCandidateCriticIntakeRecoveryRequired",
+    "CampaignCandidateCriticIntakeRejected",
+    "CampaignCandidateCriticIntakeService",
+    "CampaignCandidateCriticIntakeState",
+    "CampaignCandidateCriticIntakeStore",
+    "CampaignCandidateCriticIntakeStoreRejected",
+    "CampaignCandidateCriticIntakeTimedOut",
+    "CampaignCandidateCriticLifecycleState",
     "CampaignCandidateEvidenceSource",
     "CampaignCandidateIntakeClaim",
     "CampaignCandidateIntakeLimits",
@@ -741,9 +776,12 @@ __all__ = [
     "CampaignCandidateValidationIntakeStoreRejected",
     "CampaignCandidateValidationIntakeTimedOut",
     "CampaignCandidateValidationIntakeSource",
+    "CampaignCandidateValidationExecutionSource",
     "CampaignCandidateValidationOutputReader",
     "CampaignCandidateValidationWorkerOutput",
+    "REQUIRED_CAMPAIGN_CRITIC_ANGLES",
     "REQUIRED_FRESH_CAMPAIGN_VALIDATION_FACTS",
+    "admit_campaign_candidate_critic",
     "admit_campaign_candidate_validation",
     "complete_campaign_candidate_validation",
     "start_campaign_candidate_validation",

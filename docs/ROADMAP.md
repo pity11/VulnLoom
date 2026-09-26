@@ -1724,6 +1724,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   Docker canary 另为 1 passed。
 - 下一项为 B5.9 Campaign Candidate Critic Intake 与独立反证门禁。
 
+## B5.9 Campaign Candidate Critic Intake 与独立反证门禁（已完成，offline_tested）
+
+- 新增 `Campaign Candidate Critic Intake` 与 `Independent Review Context`。Plan 精确绑定 B5.8 Execution
+  Plan/Outcome、`VALIDATED` checkpoint、Candidate/Target/Scope、复现的 ValidationRun、EvidenceBundle、五份 fresh
+  fact 和四类完整 counterevidence angle。
+- 新增 `QUEUE_CAMPAIGN_CANDIDATE_CRITIC` Approval；它只允许进入待审队列，不能替代真正执行所需的
+  `RUN_CRITIC`，两类许可不可互换。
+- review producer 必须与 validation producer 分离，review context 也必须与 validation context 分离；B5.8 fresh
+  Validation Evidence 明确不能充当反证。
+- 成功路径只产生 Candidate 仍为 `VALIDATED`、Critic 为 `PENDING` 的原子 checkpoint；不启动 Critic、不产生
+  CriticReview、不创建 Finding，也不授权 Submission。
+- SQLite ledger 覆盖幂等、唯一消费、三次恢复上限、超时、中断、Scope/source 漂移、错绑 Approval、同 producer
+  和 schema 权限升级拒绝。失败路径不发布待审 checkpoint。
+- 本阶段没有 Runner、Broker、Docker、网络、模型、真实账户、真实攻击或自动提交。
+- 全量离线门禁为 1785 passed、46 skipped、85.78% coverage；573 份 schema、变更文件 Ruff 和 diff check 通过。
+- 下一项为 B5.10 隔离 Campaign Candidate Critic 执行与独立 counterevidence 绑定。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

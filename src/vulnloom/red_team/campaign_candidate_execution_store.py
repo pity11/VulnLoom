@@ -148,6 +148,26 @@ class CampaignCandidateValidationExecutionStore:
             row["outcome_json"]
         ).checkpoint
 
+    def plan(self, plan_id: str) -> CampaignCandidateValidationExecutionPlan:
+        row = self.connection.execute(
+            "SELECT plan_json FROM red_team_campaign_candidate_validation_executions "
+            "WHERE execution_plan_id=? AND state='completed'",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(plan_id)
+        return CampaignCandidateValidationExecutionPlan.model_validate_json(row["plan_json"])
+
+    def outcome(self, plan_id: str) -> CampaignCandidateValidationExecutionOutcome:
+        row = self.connection.execute(
+            "SELECT outcome_json FROM red_team_campaign_candidate_validation_executions "
+            "WHERE execution_plan_id=? AND state='completed'",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(plan_id)
+        return CampaignCandidateValidationExecutionOutcome.model_validate_json(row["outcome_json"])
+
     def state(self, plan_id: str) -> tuple[CampaignCandidateValidationExecutionState, int] | None:
         row = self.connection.execute(
             "SELECT state,attempt FROM red_team_campaign_candidate_validation_executions "
