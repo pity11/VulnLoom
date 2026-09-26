@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "AdaptiveCoverageLedger": {
+      "additionalProperties": false,
+      "properties": {
+        "ledger_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Ledger Id",
+          "type": "string"
+        },
+        "flow_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Flow Plan Id",
+          "type": "string"
+        },
+        "final_checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Final Checkpoint Id",
+          "type": "string"
+        },
+        "rounds": {
+          "items": {
+            "$ref": "#/$defs/AdaptiveRoundCoverage"
+          },
+          "maxItems": 32,
+          "minItems": 2,
+          "title": "Rounds",
+          "type": "array"
+        },
+        "covered_action_kinds": {
+          "items": {
+            "$ref": "#/$defs/RedTeamActionKind"
+          },
+          "minItems": 1,
+          "title": "Covered Action Kinds",
+          "type": "array"
+        },
+        "covered_test_classes": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Covered Test Classes",
+          "type": "array"
+        },
+        "source_observation_count": {
+          "minimum": 1,
+          "title": "Source Observation Count",
+          "type": "integer"
+        },
+        "produced_observation_count": {
+          "minimum": 2,
+          "title": "Produced Observation Count",
+          "type": "integer"
+        },
+        "bounded_target_count": {
+          "const": 1,
+          "default": 1,
+          "title": "Bounded Target Count",
+          "type": "integer"
+        },
+        "cleanup_complete": {
+          "const": true,
+          "default": true,
+          "title": "Cleanup Complete",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ledger_id",
+        "flow_plan_id",
+        "final_checkpoint_id",
+        "rounds",
+        "covered_action_kinds",
+        "covered_test_classes",
+        "source_observation_count",
+        "produced_observation_count"
+      ],
+      "title": "AdaptiveCoverageLedger",
+      "type": "object"
+    },
+    "AdaptiveRoundCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Coverage Id",
+          "type": "string"
+        },
+        "ordinal": {
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "execution_receipt_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Receipt Id",
+          "type": "string"
+        },
+        "admission_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Admission Id",
+          "type": "string"
+        },
+        "source_checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Checkpoint Id",
+          "type": "string"
+        },
+        "result_checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Result Checkpoint Id",
+          "type": "string"
+        },
+        "source_observation_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Observation Ids",
+          "type": "array"
+        },
+        "produced_observation_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Produced Observation Id",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_kind": {
+          "$ref": "#/$defs/RedTeamActionKind"
+        },
+        "test_class": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Test Class",
+          "type": "string"
+        },
+        "outcome": {
+          "const": "succeeded",
+          "default": "succeeded",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "exact_approval_proven": {
+          "const": true,
+          "default": true,
+          "title": "Exact Approval Proven",
+          "type": "boolean"
+        },
+        "cleanup_proven": {
+          "const": true,
+          "default": true,
+          "title": "Cleanup Proven",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "coverage_id",
+        "ordinal",
+        "execution_receipt_id",
+        "admission_id",
+        "source_checkpoint_id",
+        "result_checkpoint_id",
+        "source_observation_ids",
+        "produced_observation_id",
+        "action_id",
+        "action_kind",
+        "test_class"
+      ],
+      "title": "AdaptiveRoundCoverage",
+      "type": "object"
+    },
+    "RedTeamActionKind": {
+      "enum": [
+        "dns_lookup",
+        "tls_inspect",
+        "http_head",
+        "http_get"
+      ],
+      "title": "RedTeamActionKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "coverage_ledger": {
+      "$ref": "#/$defs/AdaptiveCoverageLedger"
+    },
+    "qualified_autonomy": {
+      "const": "a3_adaptive_flow",
+      "default": "a3_adaptive_flow",
+      "title": "Qualified Autonomy",
+      "type": "string"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "qualified": {
+      "const": true,
+      "default": true,
+      "title": "Qualified",
+      "type": "boolean"
+    },
+    "campaign_qualified": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Qualified",
+      "type": "boolean"
+    },
+    "execution_authority_granted": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authority Granted",
+      "type": "boolean"
+    },
+    "candidate_created": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Created",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "plan_id",
+    "flow_plan_id",
+    "coverage_ledger",
+    "attempt",
+    "completed_at"
+  ],
+  "title": "AdaptiveFlowQualificationOutcome",
+  "type": "object"
+}

@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "ApprovalAction": {
+      "enum": [
+        "run_validation",
+        "run_critic",
+        "run_untrusted_build",
+        "mutate_target_state",
+        "use_real_credentials",
+        "external_callback",
+        "submit_report",
+        "review_report",
+        "export_report",
+        "execute_red_team_action"
+      ],
+      "title": "ApprovalAction",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authority and cleanup proof for one completed admitted replan action.",
+  "properties": {
+    "receipt_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "admission_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Admission Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "source_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Checkpoint Id",
+      "type": "string"
+    },
+    "result_checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Checkpoint Id",
+      "type": "string"
+    },
+    "action_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_action": {
+      "$ref": "#/$defs/ApprovalAction"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "cleanup_complete": {
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "sensitive_data_redacted": {
+      "title": "Sensitive Data Redacted",
+      "type": "boolean"
+    },
+    "execution_authority_granted": {
+      "default": false,
+      "title": "Execution Authority Granted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "admission_id",
+    "flow_plan_id",
+    "source_checkpoint_id",
+    "result_checkpoint_id",
+    "action_id",
+    "observation_id",
+    "approval_id",
+    "approval_action",
+    "approval_digest",
+    "completed_at",
+    "cleanup_complete",
+    "sensitive_data_redacted"
+  ],
+  "title": "RedTeamReplanExecutionReceipt",
+  "type": "object"
+}

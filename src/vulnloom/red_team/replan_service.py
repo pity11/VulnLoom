@@ -11,6 +11,7 @@ from vulnloom.policy import ActionRequest, DecisionEffect, PolicyEngine
 from .models import RedTeamActionKind, RedTeamReconAction, RedTeamReconCommand
 from .replan_models import (
     RedTeamReplanAdmission,
+    RedTeamReplanExecutionReceipt,
     RedTeamReplanProposal,
     RedTeamReplanToolView,
 )
@@ -183,11 +184,49 @@ class RedTeamReplanningService:
         ):
             raise RedTeamReplanRejected("Red Team replanned policy binding drifted")
         try:
-            return self.flow_service.execute_recon(
+            checkpoint, observation = self.flow_service.execute_recon(
                 command=command, scope=scope, adapter=adapter, now=now
             )
         except RedTeamRejected as exc:
             raise RedTeamReplanRejected(str(exc)) from exc
+        if not observation.cleanup_complete or not observation.sensitive_data_redacted:
+            return checkpoint, observation
+        existing_receipt = self.store.replan_execution_receipt_for_admission(
+            admission.admission_id
+        )
+        if existing_receipt is not None:
+            if (
+                existing_receipt.flow_plan_id != admission.flow_plan_id
+                or existing_receipt.source_checkpoint_id != admission.source_checkpoint_id
+                or existing_receipt.result_checkpoint_id != checkpoint.checkpoint_id
+                or existing_receipt.action_id != command.action.action_id
+                or existing_receipt.observation_id != observation.observation_id
+            ):
+                raise RedTeamReplanRejected(
+                    "completed Red Team replan Execution Receipt drifted"
+                )
+            return checkpoint, observation
+        receipt = RedTeamReplanExecutionReceipt.create(
+            admission_id=admission.admission_id,
+            flow_plan_id=admission.flow_plan_id,
+            source_checkpoint_id=admission.source_checkpoint_id,
+            result_checkpoint_id=checkpoint.checkpoint_id,
+            action_id=command.action.action_id,
+            observation_id=observation.observation_id,
+            approval_id=approval.approval_id,
+            approval_action=approval.action,
+            approval_digest=approval.action_digest,
+            completed_at=now,
+            cleanup_complete=observation.cleanup_complete,
+            sensitive_data_redacted=observation.sensitive_data_redacted,
+        )
+        try:
+            self.store.put_replan_execution_receipt(receipt)
+        except ValueError as exc:
+            raise RedTeamReplanRejected(
+                "Red Team replan Execution Receipt was not persisted"
+            ) from exc
+        return checkpoint, observation
 
     def cancel(
         self,

@@ -1585,6 +1585,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   模型调用或真实攻击。下一项为隔离靶场 A3/A4 资格纵切。
 - 全量门禁：1725 passed、43 skipped、85.54% coverage；527 份 schema、Ruff 和 diff check 通过。
 
+## B5.1 A3 Adaptive Flow 离线资格（已完成，offline_tested）
+
+- 新增 `Replan Execution Receipt`、`Adaptive Flow Trace`、`Coverage Ledger` 与
+  `Adaptive Flow Qualification` 领域术语；Receipt 证明历史 exact Approval/Observation/Cleanup，不授予重放或
+  下一步权限。
+- B1 成功执行现在持久化内容寻址 Receipt，绑定 Admission、源/结果 checkpoint、Action、Observation 和 Approval；
+  Action 完成后中断可通过既有幂等 Command 重放补写 Receipt，不会再次调用 adapter。
+- A3 资格只接受同一 Flow/Scope/Target 上至少两轮连续 Receipt，逐轮重读全部权威来源，要求下一轮从上一结果
+  checkpoint 继续、Observation 成功且脱敏、cleanup complete，并要求最终 Flow cleanly terminal、无遗留预留。
+- `AdaptiveCoverageLedger` 只投影实际覆盖的 Action kind、test class、Observation 和 cleanup；Outcome 固定为 A3，
+  禁止 A4 Campaign、执行授权、Candidate 或 Finding 声明。
+- 独立 ledger 覆盖幂等、STARTED/COMPLETED、超时、三次恢复上限和无部分发布；单轮、乱序、缺失证明、运行中
+  Flow、Scope 撤销和 schema 权限升级均 fail-closed。
+- 当前仅为离线 trace 资格，不构成真实容器/进程/网络隔离证明。下一项为 B5.2 隔离靶场 A3 运行资格，之后才进入
+  A4 Goal-driven Campaign 资格。
+- 全量门禁：1732 passed、43 skipped、85.55% coverage；533 份 schema、Ruff 和 diff check 通过。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

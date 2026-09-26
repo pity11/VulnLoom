@@ -60,6 +60,22 @@ _Avoid_: Write access, Exploit, Unbounded workflow action
 证明一次 Controlled State Mutation 已通过补偿动作恢复到变更前语义状态、同时保持修订序列单调递增的不可变事实；它不证明生产目标或外部系统已回滚。
 _Avoid_: Transaction rollback, Cleanup attempt, Production recovery
 
+**Replan Execution Receipt**：
+证明一个由 Observation 驱动的下一步已被 Control Plane 重新封存、获得精确 Approval、产生权威 Observation 并完成清理的不可变事实；它不授予再次执行或后续动作权限。
+_Avoid_: Action token, Replay permission, Agent claim
+
+**Adaptive Flow Trace**：
+同一 Scope 和 Target 内，至少两个按 checkpoint 顺序衔接的 Replan Execution Receipt 所组成的有限事实链；每一轮必须消费前序 Observation，且不能扩展目标或遗留未清理工作。
+_Avoid_: Agent transcript, Campaign, Free-form plan
+
+**Coverage Ledger**：
+对一个已完成研究流程实际覆盖的动作类别、测试类别、Observation 和清理状态所作的内容寻址事实投影；它不表示未覆盖部分安全，也不授予新增测试。
+_Avoid_: Security score, Scan completeness, Action budget
+
+**Adaptive Flow Qualification**：
+Control Plane 对一条权威 Adaptive Flow Trace 是否达到 A3 多轮自适应要求所作的限域资格决定；它不是 A4 Campaign 资格，也不是执行权限。
+_Avoid_: Autonomy grant, Campaign admission, Model capability claim
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

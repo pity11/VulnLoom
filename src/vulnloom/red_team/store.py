@@ -14,6 +14,7 @@ from .models import (
 )
 from .replan_models import (
     RedTeamReplanAdmission,
+    RedTeamReplanExecutionReceipt,
     RedTeamReplanProposal,
     RedTeamReplanToolView,
 )
@@ -101,6 +102,14 @@ class RedTeamStore:
             );
             CREATE INDEX IF NOT EXISTS red_team_active_replan_budget
                 ON red_team_replan_admissions(plan_id,state);
+            CREATE TABLE IF NOT EXISTS red_team_replan_execution_receipts (
+                receipt_id TEXT PRIMARY KEY,
+                admission_id TEXT NOT NULL UNIQUE,
+                action_id TEXT NOT NULL UNIQUE,
+                payload TEXT NOT NULL,
+                FOREIGN KEY(admission_id) REFERENCES red_team_replan_admissions(admission_id),
+                FOREIGN KEY(action_id) REFERENCES red_team_actions(action_id)
+            );
             """
         )
 
@@ -234,6 +243,84 @@ class RedTeamStore:
         if row is None:
             raise RedTeamStoreRejected("Red Team replan admission is unavailable")
         return str(row[0])
+
+    def put_replan_execution_receipt(
+        self, receipt: RedTeamReplanExecutionReceipt
+    ) -> RedTeamReplanExecutionReceipt:
+        try:
+            with self.connection:
+                row = self.connection.execute(
+                    "SELECT receipt_id,payload FROM red_team_replan_execution_receipts "
+                    "WHERE admission_id=? OR action_id=?",
+                    (receipt.admission_id, receipt.action_id),
+                ).fetchone()
+                if row is not None:
+                    existing = RedTeamReplanExecutionReceipt.model_validate_json(row[1])
+                    if row[0] != receipt.receipt_id or existing != receipt:
+                        raise RedTeamStoreRejected(
+                            "Red Team replan Execution Receipt collision"
+                        )
+                    return existing
+                if self.replan_admission_state(receipt.admission_id) != "consumed":
+                    raise RedTeamStoreRejected(
+                        "Red Team replan Execution Receipt requires consumed admission"
+                    )
+                self.connection.execute(
+                    "INSERT INTO red_team_replan_execution_receipts VALUES (?,?,?,?)",
+                    (
+                        receipt.receipt_id,
+                        receipt.admission_id,
+                        receipt.action_id,
+                        receipt.model_dump_json(),
+                    ),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise RedTeamStoreRejected(
+                "Red Team replan Execution Receipt transaction rejected"
+            ) from exc
+        return receipt
+
+    def replan_execution_receipt(
+        self, receipt_id: str
+    ) -> RedTeamReplanExecutionReceipt:
+        row = self.connection.execute(
+            "SELECT payload FROM red_team_replan_execution_receipts WHERE receipt_id=?",
+            (receipt_id,),
+        ).fetchone()
+        if row is None:
+            raise RedTeamStoreRejected(
+                "Red Team replan Execution Receipt is unavailable"
+            )
+        return RedTeamReplanExecutionReceipt.model_validate_json(row[0])
+
+    def replan_execution_receipt_for_admission(
+        self, admission_id: str
+    ) -> RedTeamReplanExecutionReceipt | None:
+        row = self.connection.execute(
+            "SELECT payload FROM red_team_replan_execution_receipts WHERE admission_id=?",
+            (admission_id,),
+        ).fetchone()
+        return (
+            None
+            if row is None
+            else RedTeamReplanExecutionReceipt.model_validate_json(row[0])
+        )
+
+    def has_unfinished_work(self, plan_id: str) -> bool:
+        started = self.connection.execute(
+            "SELECT count(*) FROM red_team_actions WHERE plan_id=? AND state='started'",
+            (plan_id,),
+        ).fetchone()[0]
+        reserved = self.connection.execute(
+            "SELECT count(*) FROM red_team_replan_admissions "
+            "WHERE plan_id=? AND state='reserved'",
+            (plan_id,),
+        ).fetchone()[0]
+        external = self.connection.execute(
+            "SELECT count(*) FROM red_team_external_action_reservations WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()[0]
+        return bool(started or reserved or external)
 
     def release_replan_admission(self, admission_id: str, *, state: str) -> None:
         if state not in {"cancelled", "expired"}:

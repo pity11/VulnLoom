@@ -355,6 +355,11 @@ unknown 均保留原有终态语义。离线验收完成了 `HTTP_HEAD → TLS_I
 因此 B1 达到 `offline_tested`。B2 才会在明确封存的路径集合上增加类型化 Web/API 只读观察；B1 不提供
 crawler、字典枚举、动态 Target 扩展或任意 HTTP 请求能力。
 
+B5.1 为成功且 cleanup-proven 的 Replan 执行增加 `ReplanExecutionReceipt`。Receipt 绑定 Admission、源/结果
+checkpoint、Action、Observation 和实际通过的 exact Approval；它只证明历史执行，固定不携带再次执行权限。
+崩溃发生在权威 Action 完成与 Receipt 写入之间时，可通过同一 Command 的只读重放补写 Receipt，不会再次调用
+adapter。
+
 ## B2.1 operator-sealed path GET observation
 
 B2.1 在 R7/R8 的 `EndpointSeedSet`、请求预算预留和 Flow ledger 上增加第二种且仅有的路径方法 `GET`。GET 计划
@@ -505,6 +510,22 @@ before→mutated→restored 间严格单调；只有状态确实变化、恢复�
 `violated` Signal，schema 固定禁止 Candidate、Finding 和 vulnerability claim。独立 materialization ledger 支持
 幂等、超时、最多三次显式恢复和无部分发布。当前证明只覆盖进程内合成 fixture，不构成 Docker/OS 隔离、真实账号、
 真实 HTTP/浏览器状态变化或生产回滚证明。
+
+## B5.1 offline A3 Adaptive Flow qualification
+
+B5.1 首先固定资格协议，不把 B1 的“两轮测试曾经通过”直接当作 A3 产品声明。`AdaptiveFlowQualificationPlan`
+只引用一个权威 Flow、最终 checkpoint 和按顺序排列的至少两份 `ReplanExecutionReceipt`；不包含原始 Target URL、
+命令、凭据、模型输出或执行参数，也不能请求 A4 Campaign 或新增执行权限。
+
+资格服务逐轮重读 Flow、Scope、Admission、Action、Observation、源/结果 checkpoint 和 Receipt，要求每轮都使用同一
+Target，源 Observation 与权威 checkpoint 一致，下一轮从上一轮结果继续，exact Approval 已证明，Observation
+成功、脱敏且 cleanup complete。最终 Flow 必须 cleanly terminal，不得存在 started Action、reserved Replan 或外部
+预算预留。单轮、乱序、缺失 Receipt、Scope 撤销、未终止 Flow 和来源漂移均在资格 checkpoint 前拒绝。
+
+通过后只产生内容寻址 `AdaptiveCoverageLedger` 和 `A3_ADAPTIVE_FLOW` 资格事实；Ledger 记录实际覆盖的 Action kind、
+test class、Observation 和 cleanup，不宣称未覆盖面安全，不创建 Candidate/Finding，也不把 Flow 升级为 A4。
+独立 ledger 支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复。本纵切只达到 `offline_tested`，未运行真实
+容器、私网靶场、模型或攻击；实际隔离 A3 准入和 A4 Campaign 资格仍是后续工作。
 
 ## Next development sequence
 

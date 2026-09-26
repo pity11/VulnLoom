@@ -313,6 +313,11 @@ from vulnloom.recommendations import (
     RoutedCandidateRecommendationProviderConfig,
 )
 from vulnloom.red_team import (
+    AdaptiveCoverageLedger,
+    AdaptiveFlowQualificationOutcome,
+    AdaptiveFlowQualificationPlan,
+    AdaptiveQualificationLimits,
+    AdaptiveRoundCoverage,
     AssetAdmissionDecision,
     AssetAttributionEvidence,
     AssetDiscoveryAuthorization,
@@ -422,6 +427,7 @@ from vulnloom.red_team import (
     RedTeamReconCommand,
     RedTeamReconObservation,
     RedTeamReplanAdmission,
+    RedTeamReplanExecutionReceipt,
     RedTeamReplanProposal,
     RedTeamReplanToolView,
     RedTeamStopConditions,
@@ -574,6 +580,11 @@ from vulnloom.validation import (
 from vulnloom.workflows import WorkflowMode
 
 MODELS = (
+    AdaptiveCoverageLedger,
+    AdaptiveFlowQualificationOutcome,
+    AdaptiveFlowQualificationPlan,
+    AdaptiveQualificationLimits,
+    AdaptiveRoundCoverage,
     ModelCredentialReference,
     ModelEndpointReference,
     ModelProviderConfig,
@@ -728,6 +739,7 @@ MODELS = (
     RedTeamReconCommand,
     RedTeamReconObservation,
     RedTeamReplanAdmission,
+    RedTeamReplanExecutionReceipt,
     RedTeamReplanProposal,
     RedTeamReplanToolView,
     AttackObjective,

@@ -1,5 +1,24 @@
 """Authorized Red Team domain and offline-first application service."""
 
+from .adaptive_qualification_models import (
+    AdaptiveCoverageLedger,
+    AdaptiveFlowQualificationOutcome,
+    AdaptiveFlowQualificationPlan,
+    AdaptiveQualificationLimits,
+    AdaptiveQualificationState,
+    AdaptiveRoundCoverage,
+)
+from .adaptive_qualification_service import (
+    AdaptiveFlowQualificationService,
+    AdaptiveQualificationRejected,
+    AdaptiveQualificationTimedOut,
+)
+from .adaptive_qualification_store import (
+    AdaptiveQualificationClaim,
+    AdaptiveQualificationRecoveryRequired,
+    AdaptiveQualificationStore,
+    AdaptiveQualificationStoreRejected,
+)
 from .assertion_materialization_models import (
     SENSITIVE_ASSERTION_CLASSIFIER_DIGEST,
     EvidenceAssertionMaterialization,
@@ -315,6 +334,7 @@ from .openapi_store import (
 )
 from .replan_models import (
     RedTeamReplanAdmission,
+    RedTeamReplanExecutionReceipt,
     RedTeamReplanProposal,
     RedTeamReplanToolView,
 )
@@ -476,6 +496,19 @@ from .test_identity_store import (
 )
 
 __all__ = [
+    "AdaptiveCoverageLedger",
+    "AdaptiveFlowQualificationOutcome",
+    "AdaptiveFlowQualificationPlan",
+    "AdaptiveFlowQualificationService",
+    "AdaptiveQualificationClaim",
+    "AdaptiveQualificationLimits",
+    "AdaptiveQualificationRecoveryRequired",
+    "AdaptiveQualificationRejected",
+    "AdaptiveQualificationState",
+    "AdaptiveQualificationStore",
+    "AdaptiveQualificationStoreRejected",
+    "AdaptiveQualificationTimedOut",
+    "AdaptiveRoundCoverage",
     "AssetAdmissionDecision",
     "AssetAdmissionVerdict",
     "AssetAttributionEvidence",
@@ -781,6 +814,7 @@ __all__ = [
     "RedTeamRecoveryRequired",
     "RedTeamRejected",
     "RedTeamReplanAdmission",
+    "RedTeamReplanExecutionReceipt",
     "RedTeamReplanProposal",
     "RedTeamReplanRejected",
     "RedTeamReplanningService",

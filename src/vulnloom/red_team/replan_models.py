@@ -117,3 +117,42 @@ class RedTeamReplanAdmission(DomainModel):
             mode="python", exclude={"admission_id"}
         )
         return cls(admission_id=canonical_digest(expanded), **expanded)
+
+
+class RedTeamReplanExecutionReceipt(DomainModel):
+    """Authority and cleanup proof for one completed admitted replan action."""
+
+    receipt_id: Digest
+    admission_id: Digest
+    flow_plan_id: Digest
+    source_checkpoint_id: Digest
+    result_checkpoint_id: Digest
+    action_id: Digest
+    observation_id: Digest
+    approval_id: UUID
+    approval_action: ApprovalAction
+    approval_digest: Digest
+    completed_at: AwareDatetime
+    cleanup_complete: bool
+    sensitive_data_redacted: bool
+    execution_authority_granted: bool = False
+
+    @model_validator(mode="after")
+    def sealed(self) -> Self:
+        if (
+            self.approval_action is not ApprovalAction.EXECUTE_RED_TEAM_ACTION
+            or not self.cleanup_complete
+            or not self.sensitive_data_redacted
+            or self.execution_authority_granted
+            or self.receipt_id
+            != canonical_digest(self.model_dump(mode="python", exclude={"receipt_id"}))
+        ):
+            raise ValueError("Red Team replan Execution Receipt binding is invalid")
+        return self
+
+    @classmethod
+    def create(cls, **values: object) -> RedTeamReplanExecutionReceipt:
+        expanded = cls.model_construct(receipt_id="0" * 64, **values).model_dump(
+            mode="python", exclude={"receipt_id"}
+        )
+        return cls(receipt_id=canonical_digest(expanded), **expanded)

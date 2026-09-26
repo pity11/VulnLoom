@@ -197,14 +197,16 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **隔离靶场 A3/A4 资格纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.2 隔离靶场 A3 运行资格纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
 B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；没有接入真实登录、状态变更测试
 或第三方账户。B4.3 已在本地 fixture 中固定认证动作、登出清理与角色差异 Observation，没有访问公网或使用真实
 账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。下一步先把
-这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。只有出现新的用户
+这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。B5.1 已固定权威两轮 Replan Trace、
+Execution Receipt、Coverage Ledger 与离线 A3 资格，但尚未证明真实容器/进程/网络隔离；B5.2 继续补齐该运行
+资格。只有出现新的用户
 优先级决定，才从其他
 里程碑开始。
 
@@ -471,3 +473,19 @@ Credential Lease，并保持 STARTED 而不误报完成。违反角色不变量�
 schema 权限升级拒绝。本轮没有真实账户、真实 Target、HTTP/浏览器请求、外部网络、模型调用或真实攻击，也不构成
 Docker/OS 隔离证明。下一项为隔离靶场 A3/A4 资格纵切。
 最终全量门禁为 1725 passed、43 skipped、85.54% coverage；527 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.1 达到 `offline_tested`。B1 Replan 成功路径新增内容寻址
+`RedTeamReplanExecutionReceipt`，绑定 consumed Admission、源/结果 checkpoint、Action、Observation 与实际通过的
+exact `EXECUTE_RED_TEAM_ACTION` Approval；Receipt 不携带重放或执行权限。权威 Action 已完成但 Receipt 尚未写入
+时，同一 Command 的幂等重放可以补写证明而不再次调用 adapter。
+
+新增 `Adaptive Flow Trace`、`Coverage Ledger` 与 `Adaptive Flow Qualification` 领域术语和协议。资格服务只接受
+同一 Flow/Scope/Target 上至少两轮连续 Replan Receipt，逐轮复核 Observation 来源、checkpoint 前进、exact
+Approval、成功结果、脱敏与 cleanup，并要求最终 Flow cleanly terminal 且无 started/reserved 工作。通过后只发布
+A3 资格与实际覆盖投影，固定禁止 A4 Campaign 声明、执行授权、Candidate 和 Finding。
+
+独立 SQLite ledger 覆盖幂等、STARTED/COMPLETED、三次恢复上限、超时和无部分发布；专项回归覆盖成功、单轮、
+乱序、缺失 Receipt、未终止 Flow、Scope 撤销、超时恢复、恢复耗尽、原始 Target/秘密字段和 A4 权限升级拒绝。
+本轮没有真实容器、私网靶场、网络、模型调用或攻击，因此仍不构成 `isolated_integration_tested` 或 A4 资格。
+下一项为 B5.2 隔离靶场 A3 运行资格。
+最终全量门禁为 1732 passed、43 skipped、85.55% coverage；533 份 schema、Ruff 和 diff check 通过。
