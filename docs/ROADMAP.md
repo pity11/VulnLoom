@@ -1705,6 +1705,25 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   85.46% coverage；563 份 schema、Ruff 和 diff check 通过。
 - 下一项为 B5.8 隔离 Campaign Candidate Validation 执行与 fresh Evidence 绑定。
 
+## B5.8 隔离 Campaign Candidate Validation 执行（已完成，isolated_integration_tested）
+
+- 新增 `Campaign Candidate Validation Execution` 与 `Fresh Validation Evidence`。Plan 精确绑定 B5.7 Intake、
+  `VALIDATION_PENDING` checkpoint、Candidate/Target/Scope、validation context 和两份独立 sealed input。
+- 只有精确 `RUN_VALIDATION` Approval 可以启动执行；排队 Approval 不能重用。两个 Runner request 均固定 Validator、
+  零模型预算、单一工具、环境白名单、`network=none`、只读输入和不同 run/task/idempotency identity。
+- Worker 只产生受限 JSON。Control Plane 独立读取两个 sealed input、要求输出逐字段一致，并校验
+  Candidate/context/role、相同 response fingerprint、五类 fresh fact、两个新 Evidence ref 与前置 Campaign
+  Evidence 不相交，以及 cleanup complete；Worker 不能自报验证事实。
+- 成功后原子生成 `REPRODUCED` ValidationRun、EvidenceBundle 与 `VALIDATION_PENDING → VALIDATED` checkpoint；
+  Outcome 固定仍需独立 Critic，不创建 Finding 或授权 Submission。
+- SQLite ledger 覆盖幂等、唯一消费、三次恢复、超时、中断、Scope/source 漂移、Approval 错绑、输出畸形、replay
+  不一致与旧 Evidence 重用；失败路径不发布完成 checkpoint。
+- 本机已缓存镜像的两次实际 Docker canary 证明无网络、非 root、只读输入、seccomp/NoNewPrivs/零 capability、无
+  Docker socket、受限输出和容器删除。本机只构成 local Docker 证明；没有公网、真实模型、真实账户或真实攻击。
+- 全量离线门禁为 1780 passed、46 skipped、85.75% coverage；569 份 schema、Ruff 和 diff check 通过；显式本机
+  Docker canary 另为 1 passed。
+- 下一项为 B5.9 Campaign Candidate Critic Intake 与独立反证门禁。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

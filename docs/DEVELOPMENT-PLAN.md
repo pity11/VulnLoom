@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.8 隔离 Campaign Candidate Validation 执行与 fresh Evidence 绑定**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.9 Campaign Candidate Critic Intake 与独立反证门禁**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -211,9 +211,9 @@ DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执�
 恢复与清理。B5.4 已用实际无网络容器证明六阶段精确批准、预算停止、超时回收和完整清理，但仍不执行 Campaign
 动作。B5.5 已关闭隔离编排与 Evidence 闭环，B5.6 已用精确人工 Approval 将 unresolved Closure 原子物化为独立
 `PROPOSED` Campaign Candidate；B5.7 已以独立排队 Approval 和权威 Lifecycle Checkpoint 将其推进至
-`VALIDATION_PENDING`，但尚未启动 Validation、生成 fresh Evidence、执行 Critic 或创建 Finding。下一步只在
-既有隔离资格与固定 Target/Scope 内实现 B5.8，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从
-其他里程碑开始。
+`VALIDATION_PENDING`。B5.8 已在精确 `RUN_VALIDATION` Approval 下完成两次独立无网络执行，生成 Candidate-bound
+fresh Evidence、ValidationRun 与 `VALIDATED` checkpoint；Critic 和 Finding 仍未执行。下一步实现 B5.9 独立
+Critic Intake，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -605,3 +605,27 @@ Checkpoint。本阶段没有 Runner、Broker、网络、模型、真实账户或
 Campaign Candidate Validation 执行与 fresh Evidence 绑定。
 
 全量离线门禁为 1772 passed、45 skipped、85.46% coverage；563 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.8 达到 `isolated_integration_tested`。新增 `Campaign Candidate Validation Execution`
+与 `Fresh Validation Evidence` 领域边界。Execution Plan 内容寻址绑定 B5.7 Intake Plan/Outcome、权威
+`VALIDATION_PENDING` checkpoint、Candidate/Target/Scope/version、validation context、两份不同 sealed snapshot
+以及两份独立 Validation Runner request。
+
+执行需要精确 `RUN_VALIDATION` Approval；B5.7 的排队 Approval 不能重用。两个请求均固定 Validator role、零模型
+预算、单一 `sandbox.test` 工具、显式环境白名单、`network=none`、只读输入与不同 run/task/idempotency identity。
+Worker 只能输出受限 JSON；可信 Control Plane 独立读取两个 sealed input，并要求 Worker 输出逐字段一致，再校验
+Candidate/context/role、相同 response fingerprint、五类 fresh fact、Evidence 与旧 Campaign Evidence 不相交，以及
+完整 cleanup。Worker 文本不能直接决定生命周期或 Evidence 事实。
+
+成功路径原子生成两个新 Evidence ref、五份 Candidate-bound fresh fact、`REPRODUCED` ValidationRun、EvidenceBundle
+和 `VALIDATION_PENDING → VALIDATED` checkpoint。Outcome 固定 `critic_required=true`、`critic_completed=false`、
+`finding_created=false`，因此仍不能进入 Finding。独立 SQLite ledger 覆盖幂等、唯一消费、三次恢复、超时、中断、
+Scope/source 漂移、Approval 错绑、replay 不一致、旧 Evidence 重用和零部分完成 checkpoint。
+
+本机使用已缓存镜像实际运行两次无网络 Docker Validation canary，证明非 root、只读输入、零 capability、
+NoNewPrivs、seccomp、无 Docker socket、受限输出发布和容器删除；本机只构成 local Docker 证明，rootless production
+仍由显式 Phase 3 门禁决定。没有公网访问、真实模型、真实账户、真实攻击或自动提交。下一项为 B5.9 Campaign
+Candidate Critic Intake 与独立反证门禁。
+
+全量离线门禁为 1780 passed、46 skipped、85.75% coverage；569 份 schema、Ruff 和 diff check 通过；显式本机
+Docker B5.8 canary 另为 1 passed，两个容器均已清理。

@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "CampaignCandidateValidationExecutionRole": {
+      "enum": [
+        "primary",
+        "replay"
+      ],
+      "title": "CampaignCandidateValidationExecutionRole",
+      "type": "string"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "const": "campaign-candidate-validation-output-v1",
+      "default": "campaign-candidate-validation-output-v1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "validation_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Digest",
+      "type": "string"
+    },
+    "role": {
+      "$ref": "#/$defs/CampaignCandidateValidationExecutionRole"
+    },
+    "response_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Response Fingerprint",
+      "type": "string"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/EvidenceFactKind"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "raw_values_retained": {
+      "const": false,
+      "default": false,
+      "title": "Raw Values Retained",
+      "type": "boolean"
+    },
+    "target_locator_retained": {
+      "const": false,
+      "default": false,
+      "title": "Target Locator Retained",
+      "type": "boolean"
+    },
+    "credential_material_retained": {
+      "const": false,
+      "default": false,
+      "title": "Credential Material Retained",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "validation_context_digest",
+    "role",
+    "response_fingerprint",
+    "facts"
+  ],
+  "title": "CampaignCandidateValidationWorkerOutput",
+  "type": "object"
+}

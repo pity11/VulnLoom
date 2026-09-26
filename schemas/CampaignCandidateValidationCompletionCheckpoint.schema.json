@@ -1,0 +1,134 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "validation_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Digest",
+      "type": "string"
+    },
+    "previous_state": {
+      "const": "validation_pending",
+      "default": "validation_pending",
+      "title": "Previous State",
+      "type": "string"
+    },
+    "state": {
+      "const": "validated",
+      "default": "validated",
+      "title": "State",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "validation_run_id": {
+      "format": "uuid",
+      "title": "Validation Run Id",
+      "type": "string"
+    },
+    "validation_run_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Run Digest",
+      "type": "string"
+    },
+    "evidence_bundle_id": {
+      "format": "uuid",
+      "title": "Evidence Bundle Id",
+      "type": "string"
+    },
+    "evidence_bundle_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Bundle Digest",
+      "type": "string"
+    },
+    "fresh_fact_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Fresh Fact Ids",
+      "type": "array"
+    },
+    "validation_started": {
+      "const": true,
+      "default": true,
+      "title": "Validation Started",
+      "type": "boolean"
+    },
+    "validation_completed": {
+      "const": true,
+      "default": true,
+      "title": "Validation Completed",
+      "type": "boolean"
+    },
+    "critic_completed": {
+      "const": false,
+      "default": false,
+      "title": "Critic Completed",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "execution_plan_id",
+    "candidate_id",
+    "candidate_digest",
+    "validation_context_digest",
+    "approval_id",
+    "approval_digest",
+    "validation_run_id",
+    "validation_run_digest",
+    "evidence_bundle_id",
+    "evidence_bundle_digest",
+    "fresh_fact_ids",
+    "recorded_at"
+  ],
+  "title": "CampaignCandidateValidationCompletionCheckpoint",
+  "type": "object"
+}

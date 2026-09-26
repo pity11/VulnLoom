@@ -1,0 +1,798 @@
+{
+  "$defs": {
+    "CampaignCandidateFreshEvidenceFact": {
+      "additionalProperties": false,
+      "properties": {
+        "fact_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fact Id",
+          "type": "string"
+        },
+        "execution_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Plan Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "validation_context_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Validation Context Digest",
+          "type": "string"
+        },
+        "fact": {
+          "$ref": "#/$defs/EvidenceFactKind"
+        },
+        "verdict": {
+          "const": "supported",
+          "default": "supported",
+          "title": "Verdict",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "producer_roles": {
+          "items": {
+            "$ref": "#/$defs/CampaignCandidateValidationExecutionRole"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Producer Roles",
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fact_id",
+        "execution_plan_id",
+        "candidate_id",
+        "validation_context_digest",
+        "fact",
+        "evidence_refs",
+        "producer_roles",
+        "observed_at"
+      ],
+      "title": "CampaignCandidateFreshEvidenceFact",
+      "type": "object"
+    },
+    "CampaignCandidateValidationCompletionCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "execution_plan_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Plan Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "candidate_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Digest",
+          "type": "string"
+        },
+        "validation_context_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Validation Context Digest",
+          "type": "string"
+        },
+        "previous_state": {
+          "const": "validation_pending",
+          "default": "validation_pending",
+          "title": "Previous State",
+          "type": "string"
+        },
+        "state": {
+          "const": "validated",
+          "default": "validated",
+          "title": "State",
+          "type": "string"
+        },
+        "approval_id": {
+          "format": "uuid",
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "approval_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Approval Digest",
+          "type": "string"
+        },
+        "validation_run_id": {
+          "format": "uuid",
+          "title": "Validation Run Id",
+          "type": "string"
+        },
+        "validation_run_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Validation Run Digest",
+          "type": "string"
+        },
+        "evidence_bundle_id": {
+          "format": "uuid",
+          "title": "Evidence Bundle Id",
+          "type": "string"
+        },
+        "evidence_bundle_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evidence Bundle Digest",
+          "type": "string"
+        },
+        "fresh_fact_ids": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "title": "Fresh Fact Ids",
+          "type": "array"
+        },
+        "validation_started": {
+          "const": true,
+          "default": true,
+          "title": "Validation Started",
+          "type": "boolean"
+        },
+        "validation_completed": {
+          "const": true,
+          "default": true,
+          "title": "Validation Completed",
+          "type": "boolean"
+        },
+        "critic_completed": {
+          "const": false,
+          "default": false,
+          "title": "Critic Completed",
+          "type": "boolean"
+        },
+        "finding_created": {
+          "const": false,
+          "default": false,
+          "title": "Finding Created",
+          "type": "boolean"
+        },
+        "cleanup_complete": {
+          "const": true,
+          "default": true,
+          "title": "Cleanup Complete",
+          "type": "boolean"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "execution_plan_id",
+        "candidate_id",
+        "candidate_digest",
+        "validation_context_digest",
+        "approval_id",
+        "approval_digest",
+        "validation_run_id",
+        "validation_run_digest",
+        "evidence_bundle_id",
+        "evidence_bundle_digest",
+        "fresh_fact_ids",
+        "recorded_at"
+      ],
+      "title": "CampaignCandidateValidationCompletionCheckpoint",
+      "type": "object"
+    },
+    "CampaignCandidateValidationExecutionRole": {
+      "enum": [
+        "primary",
+        "replay"
+      ],
+      "title": "CampaignCandidateValidationExecutionRole",
+      "type": "string"
+    },
+    "CleanupReport": {
+      "additionalProperties": false,
+      "properties": {
+        "processes_terminated": {
+          "title": "Processes Terminated",
+          "type": "boolean"
+        },
+        "network_released": {
+          "title": "Network Released",
+          "type": "boolean"
+        },
+        "writable_layer_removed": {
+          "title": "Writable Layer Removed",
+          "type": "boolean"
+        },
+        "temporary_mounts_removed": {
+          "title": "Temporary Mounts Removed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "processes_terminated",
+        "network_released",
+        "writable_layer_removed",
+        "temporary_mounts_removed"
+      ],
+      "title": "CleanupReport",
+      "type": "object"
+    },
+    "EvidenceBundle": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "format": "uuid",
+          "title": "Bundle Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "sealed_at": {
+          "format": "date-time",
+          "title": "Sealed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "evidence_refs"
+      ],
+      "title": "EvidenceBundle",
+      "type": "object"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "RunnerCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Checkpoint Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "uuid",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "format": "uuid",
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "attempt": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "task_id",
+        "target_id",
+        "target_version",
+        "scope_id",
+        "scope_version",
+        "policy_digest",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "attempt"
+      ],
+      "title": "RunnerCheckpoint",
+      "type": "object"
+    },
+    "SandboxOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "object_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "logical_name": {
+          "pattern": "^output\\.json$",
+          "title": "Logical Name",
+          "type": "string"
+        },
+        "size": {
+          "exclusiveMinimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "content_ref": {
+          "pattern": "^objects/[0-9a-f]{64}/output\\.json$",
+          "title": "Content Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "logical_name",
+        "size",
+        "sha256",
+        "content_ref"
+      ],
+      "title": "SandboxOutput",
+      "type": "object"
+    },
+    "SandboxRunResult": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/SandboxRunStatus"
+        },
+        "sandbox_profile_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sandbox Profile Digest",
+          "type": "string"
+        },
+        "invocation_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Invocation Digest",
+          "type": "string"
+        },
+        "budget_used": {
+          "$ref": "#/$defs/TaskBudget"
+        },
+        "usage": {
+          "$ref": "#/$defs/SandboxUsage"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "outputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SandboxOutput"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunnerCheckpoint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error_codes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "cleanup": {
+          "$ref": "#/$defs/CleanupReport"
+        }
+      },
+      "required": [
+        "run_id",
+        "task_id",
+        "status",
+        "sandbox_profile_digest",
+        "invocation_digest",
+        "budget_used",
+        "usage",
+        "cleanup"
+      ],
+      "title": "SandboxRunResult",
+      "type": "object"
+    },
+    "SandboxRunStatus": {
+      "enum": [
+        "completed",
+        "checkpointed",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ],
+      "title": "SandboxRunStatus",
+      "type": "string"
+    },
+    "SandboxUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "minimum": 0,
+          "title": "Wall Seconds",
+          "type": "number"
+        },
+        "cpu_millis": {
+          "minimum": 0,
+          "title": "Cpu Millis",
+          "type": "integer"
+        },
+        "peak_memory_bytes": {
+          "minimum": 0,
+          "title": "Peak Memory Bytes",
+          "type": "integer"
+        },
+        "pids_peak": {
+          "minimum": 0,
+          "title": "Pids Peak",
+          "type": "integer"
+        },
+        "open_files_peak": {
+          "minimum": 0,
+          "title": "Open Files Peak",
+          "type": "integer"
+        },
+        "output_bytes": {
+          "minimum": 0,
+          "title": "Output Bytes",
+          "type": "integer"
+        },
+        "temporary_bytes": {
+          "minimum": 0,
+          "title": "Temporary Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "cpu_millis",
+        "peak_memory_bytes",
+        "pids_peak",
+        "open_files_peak",
+        "output_bytes",
+        "temporary_bytes"
+      ],
+      "title": "SandboxUsage",
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "title": "Wall Seconds",
+          "type": "integer"
+        },
+        "model_tokens": {
+          "minimum": 0,
+          "title": "Model Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "wall_seconds",
+        "model_tokens",
+        "tool_calls"
+      ],
+      "title": "TaskBudget",
+      "type": "object"
+    },
+    "ValidationResult": {
+      "enum": [
+        "reproduced",
+        "not_reproduced",
+        "inconclusive",
+        "policy_stopped",
+        "timed_out"
+      ],
+      "title": "ValidationResult",
+      "type": "string"
+    },
+    "ValidationRun": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "format": "uuid",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "target_version": {
+          "minLength": 1,
+          "title": "Target Version",
+          "type": "string"
+        },
+        "scope_version": {
+          "minimum": 1,
+          "title": "Scope Version",
+          "type": "integer"
+        },
+        "sandbox_image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sandbox Image Digest",
+          "type": "string"
+        },
+        "policy_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Digest",
+          "type": "string"
+        },
+        "plan": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Plan",
+          "type": "array"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ValidationResult"
+        },
+        "side_effects": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Side Effects",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "resource_usage": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": "Resource Usage",
+          "type": "object"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "target_version",
+        "scope_version",
+        "sandbox_image_digest",
+        "policy_digest",
+        "plan",
+        "started_at",
+        "finished_at",
+        "result"
+      ],
+      "title": "ValidationRun",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Outcome Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "primary_result": {
+      "$ref": "#/$defs/SandboxRunResult"
+    },
+    "replay_result": {
+      "$ref": "#/$defs/SandboxRunResult"
+    },
+    "fresh_evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Fresh Evidence Refs",
+      "type": "array"
+    },
+    "fresh_facts": {
+      "items": {
+        "$ref": "#/$defs/CampaignCandidateFreshEvidenceFact"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Fresh Facts",
+      "type": "array"
+    },
+    "validation_run": {
+      "$ref": "#/$defs/ValidationRun"
+    },
+    "evidence_bundle": {
+      "$ref": "#/$defs/EvidenceBundle"
+    },
+    "checkpoint": {
+      "$ref": "#/$defs/CampaignCandidateValidationCompletionCheckpoint"
+    },
+    "attempt": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "validation_reproduced": {
+      "const": true,
+      "default": true,
+      "title": "Validation Reproduced",
+      "type": "boolean"
+    },
+    "critic_required": {
+      "const": true,
+      "default": true,
+      "title": "Critic Required",
+      "type": "boolean"
+    },
+    "critic_completed": {
+      "const": false,
+      "default": false,
+      "title": "Critic Completed",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "submission_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Submission Authorized",
+      "type": "boolean"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "outcome_id",
+    "execution_plan_id",
+    "primary_result",
+    "replay_result",
+    "fresh_evidence_refs",
+    "fresh_facts",
+    "validation_run",
+    "evidence_bundle",
+    "checkpoint",
+    "attempt",
+    "completed_at"
+  ],
+  "title": "CampaignCandidateValidationExecutionOutcome",
+  "type": "object"
+}

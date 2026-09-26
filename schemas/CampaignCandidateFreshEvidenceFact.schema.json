@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "CampaignCandidateValidationExecutionRole": {
+      "enum": [
+        "primary",
+        "replay"
+      ],
+      "title": "CampaignCandidateValidationExecutionRole",
+      "type": "string"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fact_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fact Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "validation_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Digest",
+      "type": "string"
+    },
+    "fact": {
+      "$ref": "#/$defs/EvidenceFactKind"
+    },
+    "verdict": {
+      "const": "supported",
+      "default": "supported",
+      "title": "Verdict",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "producer_roles": {
+      "items": {
+        "$ref": "#/$defs/CampaignCandidateValidationExecutionRole"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Producer Roles",
+      "type": "array"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fact_id",
+    "execution_plan_id",
+    "candidate_id",
+    "validation_context_digest",
+    "fact",
+    "evidence_refs",
+    "producer_roles",
+    "observed_at"
+  ],
+  "title": "CampaignCandidateFreshEvidenceFact",
+  "type": "object"
+}

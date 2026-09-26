@@ -188,6 +188,30 @@ from .business_flow_store import (
     BusinessInvariantStore,
     BusinessInvariantStoreRejected,
 )
+from .campaign_candidate_execution_models import (
+    CAMPAIGN_CANDIDATE_VALIDATION_OUTPUT_CONTRACT,
+    CampaignCandidateFreshEvidenceFact,
+    CampaignCandidateValidationCompletionCheckpoint,
+    CampaignCandidateValidationExecutionLimits,
+    CampaignCandidateValidationExecutionOutcome,
+    CampaignCandidateValidationExecutionPlan,
+    CampaignCandidateValidationExecutionRole,
+    CampaignCandidateValidationExecutionState,
+    CampaignCandidateValidationWorkerOutput,
+)
+from .campaign_candidate_execution_service import (
+    CampaignCandidateValidationExecutionRejected,
+    CampaignCandidateValidationExecutionService,
+    CampaignCandidateValidationExecutionTimedOut,
+    CampaignCandidateValidationIntakeSource,
+    CampaignCandidateValidationOutputReader,
+)
+from .campaign_candidate_execution_store import (
+    CampaignCandidateValidationExecutionClaim,
+    CampaignCandidateValidationExecutionRecoveryRequired,
+    CampaignCandidateValidationExecutionStore,
+    CampaignCandidateValidationExecutionStoreRejected,
+)
 from .campaign_candidate_models import (
     CampaignCandidate,
     CampaignCandidateIntakeLimits,
@@ -205,6 +229,8 @@ from .campaign_candidate_service import (
 from .campaign_candidate_state_machine import (
     CampaignCandidateTransitionRejected,
     admit_campaign_candidate_validation,
+    complete_campaign_candidate_validation,
+    start_campaign_candidate_validation,
 )
 from .campaign_candidate_store import (
     CampaignCandidateIntakeClaim,
@@ -686,8 +712,23 @@ __all__ = [
     "CampaignCandidateIntakeStoreRejected",
     "CampaignCandidateIntakeTimedOut",
     "CampaignCandidateIntakeSource",
+    "CAMPAIGN_CANDIDATE_VALIDATION_OUTPUT_CONTRACT",
+    "CampaignCandidateFreshEvidenceFact",
     "CampaignCandidateLifecycleCheckpoint",
     "CampaignCandidateTransitionRejected",
+    "CampaignCandidateValidationCompletionCheckpoint",
+    "CampaignCandidateValidationExecutionClaim",
+    "CampaignCandidateValidationExecutionLimits",
+    "CampaignCandidateValidationExecutionOutcome",
+    "CampaignCandidateValidationExecutionPlan",
+    "CampaignCandidateValidationExecutionRecoveryRequired",
+    "CampaignCandidateValidationExecutionRejected",
+    "CampaignCandidateValidationExecutionRole",
+    "CampaignCandidateValidationExecutionService",
+    "CampaignCandidateValidationExecutionState",
+    "CampaignCandidateValidationExecutionStore",
+    "CampaignCandidateValidationExecutionStoreRejected",
+    "CampaignCandidateValidationExecutionTimedOut",
     "CampaignCandidateValidationIntakeClaim",
     "CampaignCandidateValidationIntakeLimits",
     "CampaignCandidateValidationIntakeOutcome",
@@ -699,8 +740,13 @@ __all__ = [
     "CampaignCandidateValidationIntakeStore",
     "CampaignCandidateValidationIntakeStoreRejected",
     "CampaignCandidateValidationIntakeTimedOut",
+    "CampaignCandidateValidationIntakeSource",
+    "CampaignCandidateValidationOutputReader",
+    "CampaignCandidateValidationWorkerOutput",
     "REQUIRED_FRESH_CAMPAIGN_VALIDATION_FACTS",
     "admit_campaign_candidate_validation",
+    "complete_campaign_candidate_validation",
+    "start_campaign_candidate_validation",
     "CampaignEvidenceAssessmentSource",
     "CampaignEvidenceClosure",
     "CampaignEvidenceClosureDisposition",

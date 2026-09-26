@@ -228,6 +228,14 @@ _Avoid_: Mutable candidate, Worker state, Agent memory
 将一个仍为 `PROPOSED` 的 Campaign Candidate 与全新 Validation 要求封存，并经精确人工 Approval 推进到 `VALIDATION_PENDING` 的门禁；它不执行 Validation，也不复用 Campaign 前置 Evidence 作为 ValidationRun。
 _Avoid_: Validation run, Evidence replay, Automatic queue
 
+**Campaign Candidate Validation Execution**：
+对一个已进入 `VALIDATION_PENDING` 的 Campaign Candidate，在精确 `RUN_VALIDATION` Approval 下执行两次相互独立、无网络且候选绑定的验证，并由 Control Plane 判定是否推进到 `VALIDATED`；它不能完成 Critic 或创建 Finding。
+_Avoid_: Validation intake, Worker verdict, Finding promotion
+
+**Fresh Validation Evidence**：
+由当前 Campaign Candidate 的独立 Validation Execution 新产生、绑定同一 validation context 且不与 Campaign 前置 Evidence 重合的脱敏事实集合；旧 Evidence、单次输出或 Worker 声明都不能替代它。
+_Avoid_: Campaign evidence, Reused evidence, Worker claim
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue
