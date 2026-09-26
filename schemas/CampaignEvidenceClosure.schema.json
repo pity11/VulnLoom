@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "CampaignEvidenceClosureDisposition": {
+      "enum": [
+        "unresolved_candidate",
+        "refuted",
+        "inconclusive"
+      ],
+      "title": "CampaignEvidenceClosureDisposition",
+      "type": "string"
+    },
+    "EvidenceAssessmentVerdict": {
+      "enum": [
+        "candidate_eligible",
+        "negative",
+        "inconclusive"
+      ],
+      "title": "EvidenceAssessmentVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "closure_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Closure Id",
+      "type": "string"
+    },
+    "orchestration_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Plan Id",
+      "type": "string"
+    },
+    "campaign_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Campaign Plan Id",
+      "type": "string"
+    },
+    "runtime_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Outcome Id",
+      "type": "string"
+    },
+    "evidence_assessment_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Assessment Id",
+      "type": "string"
+    },
+    "evidence_requirement_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Requirement Id",
+      "type": "string"
+    },
+    "disposition": {
+      "$ref": "#/$defs/CampaignEvidenceClosureDisposition"
+    },
+    "assessment_verdict": {
+      "$ref": "#/$defs/EvidenceAssessmentVerdict"
+    },
+    "phase_checkpoint_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 6,
+      "title": "Phase Checkpoint Ids",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "unresolved_candidate_recorded": {
+      "title": "Unresolved Candidate Recorded",
+      "type": "boolean"
+    },
+    "candidate_created": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Created",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "action_execution_authority_granted": {
+      "const": false,
+      "default": false,
+      "title": "Action Execution Authority Granted",
+      "type": "boolean"
+    },
+    "submission_granted": {
+      "const": false,
+      "default": false,
+      "title": "Submission Granted",
+      "type": "boolean"
+    },
+    "closed_at": {
+      "format": "date-time",
+      "title": "Closed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "closure_id",
+    "orchestration_plan_id",
+    "campaign_plan_id",
+    "runtime_outcome_id",
+    "evidence_assessment_id",
+    "evidence_requirement_id",
+    "disposition",
+    "assessment_verdict",
+    "phase_checkpoint_ids",
+    "evidence_refs",
+    "unresolved_candidate_recorded",
+    "closed_at"
+  ],
+  "title": "CampaignEvidenceClosure",
+  "type": "object"
+}

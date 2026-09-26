@@ -598,7 +598,9 @@ B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方�
 离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
 清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复；B5.1/B5.2
 已完成离线 A3 事实链与实际隔离容器运行资格；B5.3 已完成 A4 的有限目标、固定目标集、阶段 DAG、预算与停止条件
-结构资格；B5.4 已用实际无网络容器证明精确阶段准入、预算停止、超时回收与清理。下一步进入 B5.5 隔离 A4
-Campaign 编排与 Evidence 闭环；B5.4 资格事实仍不能被解释为可直接执行的 Campaign。任何新
+结构资格；B5.4 已用实际无网络容器证明精确阶段准入、预算停止、超时回收与清理。B5.5 已在可信 Control Plane
+中完成六阶段可恢复编排，并把完整 B3 Evidence Assessment 安全关闭为明确的 unresolved Candidate 终态；B5.4
+资格 Approval 不能重用为 B5.5 阶段 Approval，阶段 Approval 也不能替代 Action Approval。闭环不创建 Candidate
+或 Finding。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

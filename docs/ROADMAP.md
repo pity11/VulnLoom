@@ -1656,6 +1656,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   Docker B5.4 canary 另为 1 passed。
 - 下一项为 B5.5 隔离 A4 Campaign 编排与 Evidence 闭环。
 
+## B5.5 隔离 A4 Campaign 编排与 Evidence 闭环（已完成，offline_tested）
+
+- 新增 `Campaign Orchestration Run`、`Campaign Evidence Closure` 与 `Unresolved Campaign Candidate`；闭环是
+  Evidence Assessment 的类型化终态，不是漏洞确认、Candidate 实体或 Finding。
+- Orchestration Plan 内容寻址绑定 B5.3 Campaign、B5.4 Runtime Qualification、固定 Target/Phase Graph、当前
+  Scope/version 和 B3 Evidence Assessment。隔离事实只继承经过实际容器验证的 B5.4 权威 Outcome，本阶段不以
+  配置、提示词或模拟结果新增隔离声明。
+- 六阶段由可信 Control Plane 顺序推进；每阶段使用绑定 `orchestration_plan_id + phase_id + ordinal` 的新
+  `ADVANCE_CAMPAIGN_PHASE` Approval。B5.4 资格 Approval 不可重用，阶段 Approval 不授予 Action 权限。
+- SQLite ledger 逐阶段原子 checkpoint；中断恢复不重复已完成阶段且最多三次。Scope 撤销、过期、来源漂移、
+  Approval 缺失/错绑/乱序、超时和 cleanup unknown 均 fail-closed 且不发布闭环。
+- 首个完整正向纵切消费 Observation、独立 Validation、Critic 和 Cleanup Assertion，把 `candidate_eligible`
+  明确落为 `unresolved_candidate`；固定不创建 Candidate/Finding，不授予动作、扩域、凭据或 Submission 权限。
+- 本阶段没有公网、真实模型、真实账户、真实攻击或自动提交。全量门禁为 1760 passed、45 skipped、85.59%
+  coverage；555 份 schema、Ruff 和 diff check 通过；既有 B5.4 实际 Docker canary 在当前提交上复跑 1 passed，
+  全部容器均已清理。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

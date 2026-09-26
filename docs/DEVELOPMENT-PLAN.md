@@ -542,3 +542,23 @@ timeout-cleanup 容器；全部 network-none、只读 qualification mount、零�
 通过才可产生 production Campaign runtime admission。下一项为 B5.5 隔离 A4 Campaign 编排与 Evidence 闭环。
 最终全量离线门禁为 1754 passed、45 skipped、85.62% coverage；550 份 schema、Ruff 和 diff check 通过；
 显式本地 Docker B5.4 canary 另为 1 passed。
+
+进展记录（2026-09-26）：B5.5 达到 `offline_tested`，并以前序 B5.4 的实际隔离容器资格作为强制来源。
+新增 `Campaign Orchestration Run`、`Campaign Evidence Closure` 与 `Unresolved Campaign Candidate` 领域边界，
+以及内容寻址 Orchestration Plan、六阶段 checkpoint、Evidence Closure 和 Outcome。Plan 逐项绑定 B5.3
+Campaign、B5.4 Runtime Qualification、固定 Target/Phase Graph、当前 Scope/version 与 B3 Evidence Assessment；
+任一权威来源或 digest 漂移均在首个 checkpoint 前 fail-closed。
+
+实际编排只在可信 Control Plane 中推进六个固定阶段。每阶段需要新生成且精确绑定
+`orchestration_plan_id + phase_id + ordinal` 的 `ADVANCE_CAMPAIGN_PHASE` Approval，B5.4 资格探针的阶段批准不能
+重放为 B5.5 编排批准，阶段批准也不能替代阶段内 Action Approval。本纵切不调用 Runner、Broker、模型、网络或
+攻击 adapter，不执行任何 Action；它消费已完成的类型化 Observation/Validation/Critic/Cleanup Assertion。
+
+SQLite ledger 在每阶段原子写 checkpoint，中断后只从下一阶段继续，恢复最多三次；超时、过期 Plan、Scope
+撤销、批准缺失/错绑/乱序、来源漂移和 cleanup unknown 均不发布闭环。首个正向纵切把 `candidate_eligible`
+Evidence Assessment 如实关闭为 `unresolved_candidate`，固定 `candidate_created=false`、`finding_created=false`，
+不授予动作、扩域、凭据或 Submission 权限。B5.5 没有新增隔离实现或扩大 B5.4 的容器事实；隔离声明只来自
+经过实际 Docker 验证的 B5.4 Runtime Qualification。
+
+全量离线门禁为 1760 passed、45 skipped、85.59% coverage；555 份 schema、Ruff 和 diff check 通过；既有
+B5.4 实际 Docker canary 在当前提交上复跑 1 passed，全部容器均已清理。

@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "CampaignPhaseKind": {
+      "enum": [
+        "scope_confirmation",
+        "observation",
+        "hypothesis",
+        "validation",
+        "critic_review",
+        "cleanup_confirmation"
+      ],
+      "title": "CampaignPhaseKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "orchestration_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Orchestration Plan Id",
+      "type": "string"
+    },
+    "phase_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Phase Id",
+      "type": "string"
+    },
+    "phase_kind": {
+      "$ref": "#/$defs/CampaignPhaseKind"
+    },
+    "ordinal": {
+      "maximum": 6,
+      "minimum": 1,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_action": {
+      "const": "advance_campaign_phase",
+      "default": "advance_campaign_phase",
+      "title": "Approval Action",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "target_set_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Target Set Unchanged",
+      "type": "boolean"
+    },
+    "no_action_executed": {
+      "const": true,
+      "default": true,
+      "title": "No Action Executed",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "orchestration_plan_id",
+    "phase_id",
+    "phase_kind",
+    "ordinal",
+    "approval_id",
+    "approval_digest",
+    "evidence_refs",
+    "recorded_at"
+  ],
+  "title": "CampaignPhaseCheckpoint",
+  "type": "object"
+}

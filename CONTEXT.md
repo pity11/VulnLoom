@@ -200,6 +200,18 @@ _Avoid_: Automatic retest, Same-run replay, Vulnerability confirmation
 把一份完整、类型化且 Evidence 与 Validation 分离的反证审查结论物化为 Critic Assertion；它不执行审查或测试，也不批准 Candidate 或 Finding。
 _Avoid_: Automated critic, Candidate approval, Finding confirmation
 
+**Campaign Orchestration Run**：
+在固定 Scope、Target 集和六阶段图内，由 Control Plane 按精确阶段 Approval 推进并持久化 checkpoint 的一次有限运行；阶段准入不授予阶段内 Action 权限。
+_Avoid_: Agent loop, Autonomous attack, Phase qualification
+
+**Campaign Evidence Closure**：
+Campaign 完成 Observation、Validation、独立 Critic 与 Cleanup 后，对一份权威 Evidence Assessment 做出的内容寻址终态；它可以明确记录未解决、反证成立或不确定，但不是 Finding。
+_Avoid_: Vulnerability confirmation, Finding promotion, Model verdict
+
+**Unresolved Campaign Candidate**：
+Evidence 已满足 Candidate 提议资格、但尚未创建 Candidate 且未经过 Candidate 生命周期与 Finding 晋升门禁的 Campaign 终态。
+_Avoid_: Candidate, Finding, Confirmed vulnerability
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue
