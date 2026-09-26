@@ -545,6 +545,23 @@ fail-closed。
 容器边界但不能形成生产 Runner 准入；只有版本化 rootless Engine 同时通过时，Outcome 才能把
 `production_runner_admitted` 置为 true。独立 ledger 支持幂等、STARTED/COMPLETED、超时与最多三次显式恢复。
 
+## B5.3 offline A4 Goal-driven Campaign qualification
+
+B5.3 只固定 A4 的结构资格，不启动 Campaign。`GoalDrivenCampaignPlan` 至少扇入两条不同、已完成且仍与当前
+Scope/version 一致的 B5.2 Runtime Qualification；每条绑定都重算 B5.1 Plan/Outcome、Coverage Ledger 和 B5.2
+Plan/Outcome 的内容摘要，并要求隔离与清理事实完整。单条 Flow、重复 Flow、来源漂移、过期或撤销 Scope 均在
+资格 checkpoint 前 fail-closed。
+
+Campaign Goal 只保存目标陈述摘要和所需 Evidence 类别；目标集合由已封存 Flow 唯一推导，不能在资格时或运行时
+扩展。Phase Graph 固定为 scope confirmation、observation、hypothesis、validation、critic review、cleanup
+confirmation 六阶段有限 DAG，每个阶段均有 Flow、Action 与 wall-time 上限并要求人工转换批准。全局预算覆盖阶段
+预算，停止条件强制包含 Scope 撤销、预算/期限耗尽、清理失败、连续失败和目标达成。
+
+Outcome 仅证明这些有限结构满足 A4 资格合同，并继承输入中最低的 runtime assurance；它固定
+`campaign_started=false`，不授予动作执行、动态扩域、凭据、Submission、Candidate 或 Finding 权限。独立 ledger
+支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复；计划与持久化 schema 不携带原始 URL、主机名、命令、
+载荷、秘密或 Docker socket。本纵切为 `offline_tested`，不构成 A4 Runtime、生产 Campaign 准入或真实目标测试。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -558,6 +575,7 @@ Assertion；完整链只能给出 Candidate 资格，仍不创建 Candidate 或 
 B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方测试身份的 opaque admission contract；B4.2 已完成
 离线 Vault credential lease、exact Approval binding 与隔离 Session 生命周期；B4.3 已完成本地 fixture 认证、登出
 清理与角色差异 Observation；B4.4 已完成本地业务不变量、双 Approval 状态变更和可验证补偿恢复；B5.1/B5.2
-已完成离线 A3 事实链与实际隔离容器运行资格。下一步进入 A4 Goal-driven Campaign 资格协议。任何新
+已完成离线 A3 事实链与实际隔离容器运行资格；B5.3 已完成 A4 的有限目标、固定目标集、阶段 DAG、预算与停止条件
+结构资格。下一步进入 B5.4 隔离 A4 Campaign Runtime 资格，仍不得把资格事实解释为可直接执行的 Campaign。任何新
 Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

@@ -78,6 +78,12 @@ timeout-cleanup 两个实际 Post-exploitation 容器探针；Observation 仅保
 inspection、环境值或输出。本地 Docker Desktop 与版本化 rootless production assurance 分开建模，因此本地
 canary 不能把 `production_runner_admitted` 置为 true。
 
+B5.3 把至少两条已完成的 B5.2 Flow 资格扇入一份有限 A4 Campaign 结构，但资格服务不调用 Runner、Broker、模型
+或网络 adapter。目标集合只能从已封存 Flow 推导，六阶段 DAG 与全局预算均内容寻址且不可在运行时扩张；Scope
+撤销、预算/期限耗尽、清理失败、连续失败与目标达成都必须停止。每个阶段转换仍要求操作员批准，Outcome 固定不
+启动 Campaign、不授予执行/扩域/凭据/Submission 权限，也不能创建 Candidate 或 Finding。只有后续独立的隔离
+Runtime 纵切实际证明阶段调度、停止、恢复和清理后，才可以声明 A4 Runtime 资格。
+
 S1.3 已将秘密泄漏回归收敛为内容寻址的八表面资格合同：Worker output、Provider transport、exception chain、
 event log、Evidence、Report、CLI/API 和 model context 缺一不可。计划与 observation 只保存表面、测试产物摘要、
 布尔安全结论和有界错误码，schema 无法承载 canary、stdout、stderr、payload 或 environment；缺失、重复、摘要

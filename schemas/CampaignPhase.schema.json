@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "CampaignPhaseKind": {
+      "enum": [
+        "scope_confirmation",
+        "observation",
+        "hypothesis",
+        "validation",
+        "critic_review",
+        "cleanup_confirmation"
+      ],
+      "title": "CampaignPhaseKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "phase_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Phase Id",
+      "type": "string"
+    },
+    "ordinal": {
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Ordinal",
+      "type": "integer"
+    },
+    "kind": {
+      "$ref": "#/$defs/CampaignPhaseKind"
+    },
+    "prerequisite_phase_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Prerequisite Phase Ids",
+      "type": "array"
+    },
+    "max_flow_materializations": {
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Max Flow Materializations",
+      "type": "integer"
+    },
+    "max_actions": {
+      "maximum": 128,
+      "minimum": 1,
+      "title": "Max Actions",
+      "type": "integer"
+    },
+    "wall_seconds": {
+      "maximum": 86400,
+      "minimum": 1,
+      "title": "Wall Seconds",
+      "type": "integer"
+    },
+    "transition_requires_operator_approval": {
+      "const": true,
+      "default": true,
+      "title": "Transition Requires Operator Approval",
+      "type": "boolean"
+    },
+    "execution_authority_granted": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authority Granted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "phase_id",
+    "ordinal",
+    "kind",
+    "max_flow_materializations",
+    "max_actions",
+    "wall_seconds"
+  ],
+  "title": "CampaignPhase",
+  "type": "object"
+}

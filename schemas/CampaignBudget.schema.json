@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_flow_materializations": {
+      "maximum": 64,
+      "minimum": 6,
+      "title": "Max Flow Materializations",
+      "type": "integer"
+    },
+    "max_actions": {
+      "maximum": 512,
+      "minimum": 6,
+      "title": "Max Actions",
+      "type": "integer"
+    },
+    "wall_seconds": {
+      "maximum": 86400,
+      "minimum": 60,
+      "title": "Wall Seconds",
+      "type": "integer"
+    },
+    "max_consecutive_failures": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Max Consecutive Failures",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "max_flow_materializations",
+    "max_actions",
+    "wall_seconds",
+    "max_consecutive_failures"
+  ],
+  "title": "CampaignBudget",
+  "type": "object"
+}

@@ -84,6 +84,18 @@ _Avoid_: Sandbox configuration, Unit-test fixture, Isolation claim
 把既有 Adaptive Flow Qualification、共享隔离准入合同与该流程专属 Runtime Isolation Evidence 扇入后形成的 A3 运行资格；它不授予动作执行权，也不构成 A4 Campaign 资格或生产环境准入。
 _Avoid_: Runtime permission, Production admission, Campaign qualification
 
+**Campaign Goal**：
+一次授权研究 Campaign 希望获得的有限、内容寻址 Evidence 条件；它约束“证明什么”，不描述命令、载荷或如何执行。
+_Avoid_: Free-form objective, Agent prompt, Attack command
+
+**Campaign Phase Graph**：
+把 Campaign 拆成有限、有向无环阶段及其预算、前置阶段和人工转换门禁的封存结构；运行时不得增加阶段、目标或预算。
+_Avoid_: Agent plan, Dynamic queue, Execution trace
+
+**Goal-driven Campaign Qualification**：
+Control Plane 对多个已完成 A3 Runtime Qualification、Campaign Goal、目标集合、阶段图和停止条件所作的 A4 结构资格决定；它不启动 Campaign，也不授予任何动作、网络、凭据或 Submission 权限。
+_Avoid_: Campaign run, Autonomous execution, Blanket approval
+
 **Artifact**：
 进入 quarantine 的原始研究输入，以内容摘要唯一标识；它尚未获得可分析、可执行或属于 Scope 的承诺。
 _Avoid_: Target, Workspace, Attachment

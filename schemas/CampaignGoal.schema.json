@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "CampaignGoalKind": {
+      "enum": [
+        "coverage_completion",
+        "evidence_requirement_satisfaction"
+      ],
+      "title": "CampaignGoalKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "goal_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/CampaignGoalKind"
+    },
+    "statement_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Statement Digest",
+      "type": "string"
+    },
+    "required_evidence_classes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Required Evidence Classes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "goal_id",
+    "kind",
+    "statement_digest",
+    "required_evidence_classes"
+  ],
+  "title": "CampaignGoal",
+  "type": "object"
+}

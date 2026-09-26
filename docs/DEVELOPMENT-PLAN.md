@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.3 A4 Goal-driven Campaign 资格协议纵切**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.4 隔离 A4 Campaign Runtime 资格纵切**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -206,8 +206,9 @@ B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Sessio
 账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。下一步先把
 这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。B5.1 已固定权威两轮 Replan Trace、
 Execution Receipt、Coverage Ledger 与离线 A3 资格；B5.2 已用实际 Docker 成功/超时探针完成 Flow 专属的
-运行隔离扇入，并显式区分本地 Docker 与 rootless production assurance。下一步固定 A4 的目标、预算、阶段、停止
-条件和恢复协议，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
+运行隔离扇入，并显式区分本地 Docker 与 rootless production assurance。B5.3 已固定 A4 的目标、目标集合、阶段
+DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执行权。下一步用隔离 Runtime 证明阶段调度、停止、
+恢复与清理，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
 优先级决定，才从其他
 里程碑开始。
 
@@ -508,3 +509,18 @@ STARTED/COMPLETED、超时、显式恢复和三次上限；离线拒绝覆盖 Sc
 A4/执行权限升级。下一项为 B5.3 A4 Goal-driven Campaign 资格协议。
 最终全量离线门禁为 1739 passed、44 skipped、85.57% coverage；537 份 schema、Ruff 和 diff check 通过；
 显式本地 Docker B5.2 canary 另为 1 passed。
+
+进展记录（2026-09-26）：B5.3 达到 `offline_tested`。新增 `Campaign Goal`、`Campaign Phase Graph` 与
+`Goal-driven Campaign Qualification` 领域边界，以及内容寻址 Goal、Flow Qualification Binding、六阶段 DAG、
+全局预算、停止条件、Plan 与 Outcome。Plan 至少绑定两条不同 B5.2 Runtime Qualification，目标集合只能由这些
+Flow 推导；服务逐条重算 B5.1/B5.2 provenance，并要求当前 Scope、隔离和清理事实完整。
+
+阶段固定为 scope confirmation、observation、hypothesis、validation、critic review 与 cleanup confirmation；
+每阶段具备 Flow/Action/时间上限和人工转换门禁，全局强制在 Scope 撤销、预算或期限耗尽、清理失败、连续失败与
+目标达成时停止。Outcome 继承最低 runtime assurance，但固定不启动 Campaign，不授予执行、动态扩域、凭据、
+Submission、Candidate 或 Finding 权限。资格服务没有 Runner、Broker、模型、网络或攻击 adapter 依赖。
+
+独立 SQLite ledger 覆盖幂等、STARTED/COMPLETED、超时、三次恢复上限和内容冲突；专项回归覆盖成功、输入顺序
+归一化、单/重复 Flow、Scope 撤销、来源漂移、阶段图/预算/权限升级拒绝、最低 assurance、恢复耗尽和敏感字段
+排除。本轮没有容器、网络、模型调用或攻击，只达到结构资格；下一项为 B5.4 隔离 A4 Campaign Runtime 资格。
+最终全量离线门禁为 1747 passed、44 skipped、85.62% coverage；545 份 schema、Ruff 和 diff check 通过。

@@ -1,0 +1,43 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "stop_on_scope_revocation": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Scope Revocation",
+      "type": "boolean"
+    },
+    "stop_on_budget_exhaustion": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Budget Exhaustion",
+      "type": "boolean"
+    },
+    "stop_on_deadline": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Deadline",
+      "type": "boolean"
+    },
+    "stop_on_cleanup_failure": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Cleanup Failure",
+      "type": "boolean"
+    },
+    "stop_on_consecutive_failures": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Consecutive Failures",
+      "type": "boolean"
+    },
+    "stop_on_goal_reached": {
+      "const": true,
+      "default": true,
+      "title": "Stop On Goal Reached",
+      "type": "boolean"
+    }
+  },
+  "title": "CampaignStopConditions",
+  "type": "object"
+}

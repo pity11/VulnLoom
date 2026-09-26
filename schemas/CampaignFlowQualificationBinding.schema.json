@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "RuntimeAssuranceLevel": {
+      "enum": [
+        "local_docker",
+        "rootless_production"
+      ],
+      "title": "RuntimeAssuranceLevel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "binding_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "flow_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Flow Plan Id",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "adaptive_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adaptive Plan Id",
+      "type": "string"
+    },
+    "adaptive_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Adaptive Outcome Id",
+      "type": "string"
+    },
+    "coverage_ledger_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Coverage Ledger Id",
+      "type": "string"
+    },
+    "runtime_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Plan Id",
+      "type": "string"
+    },
+    "runtime_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Outcome Id",
+      "type": "string"
+    },
+    "runtime_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Runtime Outcome Digest",
+      "type": "string"
+    },
+    "assurance_level": {
+      "$ref": "#/$defs/RuntimeAssuranceLevel"
+    },
+    "isolated_lab_qualified": {
+      "const": true,
+      "default": true,
+      "title": "Isolated Lab Qualified",
+      "type": "boolean"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "execution_authority_granted": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authority Granted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "binding_id",
+    "flow_plan_id",
+    "target_id",
+    "scope_id",
+    "scope_version",
+    "adaptive_plan_id",
+    "adaptive_outcome_id",
+    "coverage_ledger_id",
+    "runtime_plan_id",
+    "runtime_outcome_id",
+    "runtime_outcome_digest",
+    "assurance_level"
+  ],
+  "title": "CampaignFlowQualificationBinding",
+  "type": "object"
+}

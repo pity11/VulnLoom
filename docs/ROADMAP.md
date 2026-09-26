@@ -1619,6 +1619,23 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   Docker B5.2 canary 另为 1 passed。
 - 下一项为 B5.3 A4 Goal-driven Campaign 资格协议。
 
+## B5.3 A4 Goal-driven Campaign 结构资格（已完成，offline_tested）
+
+- 新增 `Campaign Goal`、`Campaign Phase Graph` 与 `Goal-driven Campaign Qualification` 领域边界；Goal 只描述
+  内容寻址 Evidence 条件，不包含命令、载荷或提示词。
+- Plan 至少绑定两条不同且完整的 B5.2 Runtime Qualification，并逐条复核 B5.1/B5.2 Plan、Outcome、Coverage
+  Ledger、Scope/version、隔离与清理 provenance；单条、重复、漂移或已撤销来源均 fail-closed。
+- 目标集合只能由绑定 Flow 推导；六阶段有限 DAG 固定顺序、前置关系、逐阶段人工转换门禁和 Flow/Action/时间
+  预算，全局停止条件覆盖 Scope、预算、期限、清理、连续失败和目标达成。
+- Outcome 继承最低 runtime assurance，但固定不启动 Campaign，不授予执行、动态扩域、凭据或 Submission 权限，
+  也不创建 Candidate/Finding。资格服务不调用 Runner、Broker、模型、网络或攻击 adapter。
+- 独立 SQLite ledger 覆盖幂等、STARTED/COMPLETED、超时、最多三次显式恢复和身份内容冲突；专项回归覆盖成功、
+  乱序输入归一化、单/重复 Flow、Scope 撤销、provenance 漂移、非法阶段图、预算越界、权限升级、最低 assurance、
+  恢复耗尽和敏感字段/schema 排除。
+- 全量离线门禁：1747 passed、44 skipped、85.62% coverage；545 份 schema、Ruff 和 diff check 通过。
+- 本纵切只达到 `offline_tested`，不构成 A4 Runtime 或生产 Campaign 准入。下一项为 B5.4 隔离 A4 Campaign
+  Runtime 资格纵切。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。
