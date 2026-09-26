@@ -197,21 +197,23 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.5 隔离 A4 Campaign 编排与 Evidence 闭环**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.8 隔离 Campaign Candidate Validation 执行与 fresh Evidence 绑定**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
 B4.2 已实现完全离线的短期 credential lease、Approval 绑定和 Session 生命周期；没有接入真实登录、状态变更测试
 或第三方账户。B4.3 已在本地 fixture 中固定认证动作、登出清理与角色差异 Observation，没有访问公网或使用真实
-账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。下一步先把
-这些离线合同带入隔离靶场资格门禁，而不是直接连接公网或生产目标。B5.1 已固定权威两轮 Replan Trace、
+账户。B4.4 已固定本地业务流程不变量、状态变更双 Approval 和可验证补偿恢复，仍未接入真实目标。B5.1 已固定
+权威两轮 Replan Trace、
 Execution Receipt、Coverage Ledger 与离线 A3 资格；B5.2 已用实际 Docker 成功/超时探针完成 Flow 专属的
 运行隔离扇入，并显式区分本地 Docker 与 rootless production assurance。B5.3 已固定 A4 的目标、目标集合、阶段
 DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执行权。下一步用隔离 Runtime 证明阶段调度、停止、
 恢复与清理。B5.4 已用实际无网络容器证明六阶段精确批准、预算停止、超时回收和完整清理，但仍不执行 Campaign
-动作。下一步在隔离 fixture 中把已准入阶段编排到 Evidence 闭环，不直接增加公网、真实模型或攻击执行能力。只有出现新的用户
-优先级决定，才从其他
-里程碑开始。
+动作。B5.5 已关闭隔离编排与 Evidence 闭环，B5.6 已用精确人工 Approval 将 unresolved Closure 原子物化为独立
+`PROPOSED` Campaign Candidate；B5.7 已以独立排队 Approval 和权威 Lifecycle Checkpoint 将其推进至
+`VALIDATION_PENDING`，但尚未启动 Validation、生成 fresh Evidence、执行 Critic 或创建 Finding。下一步只在
+既有隔离资格与固定 Target/Scope 内实现 B5.8，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从
+其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -582,3 +584,24 @@ Target、凭据、模型 token、Docker socket、响应和载荷，并拒绝直�
 Candidate Validation Intake 与状态机绑定。
 
 全量离线门禁为 1766 passed、45 skipped、85.50% coverage；559 份 schema、Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.7 达到 `offline_tested`。新增 `Campaign Candidate Lifecycle Checkpoint` 与
+`Campaign Candidate Validation Intake` 领域边界，以及独立 `QUEUE_CAMPAIGN_CANDIDATE_VALIDATION` Approval
+Action。不可变 Campaign Candidate 继续证明其创建时为 `PROPOSED`；权威 Lifecycle Checkpoint 单独记录
+`PROPOSED → VALIDATION_PENDING`，避免通过改写 Candidate 快照或 Worker 文本推进状态。
+
+Validation Intake Plan 内容寻址绑定 B5.6 Candidate Intake Plan/Outcome、Candidate ID/digest、固定
+Target/version、Scope/version、漏洞类别、CWE 和前置 Campaign Evidence 引用，并生成独立 validation context。
+合同强制后续重新获得 sealed GET、未认证证明、敏感数据类别、独立 replay 和 redaction boundary 五类 fresh fact；
+前置 Campaign Evidence 固定 `accepted_as_validation=false`。
+
+排队 Approval 与执行 Approval 被明确分离：只有精确 `QUEUE_CAMPAIGN_CANDIDATE_VALIDATION` Approval 才能进入
+`VALIDATION_PENDING`，既有 `RUN_VALIDATION` Approval 不能重用为排队许可，本阶段也不生成 ValidationRun、执行
+请求、Critic 或 Finding。纯状态机拒绝从非 `PROPOSED` 状态进入 Intake。
+
+独立 SQLite ledger 覆盖原子 checkpoint、幂等、候选唯一消费、三次恢复上限、超时、中断和内容冲突；Scope
+撤销、Candidate/source 漂移、错误 Approval 与权限升级均在状态变化前 fail-closed。失败路径不留下 Lifecycle
+Checkpoint。本阶段没有 Runner、Broker、网络、模型、真实账户或攻击，也不新增隔离声明。下一项为 B5.8 隔离
+Campaign Candidate Validation 执行与 fresh Evidence 绑定。
+
+全量离线门禁为 1772 passed、45 skipped、85.46% coverage；563 份 schema、Ruff 和 diff check 通过。

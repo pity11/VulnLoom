@@ -145,6 +145,25 @@ class CampaignCandidateIntakeStore:
             raise KeyError(candidate_id)
         return CampaignCandidateIntakeOutcome.model_validate_json(row["outcome_json"]).candidate
 
+    def plan(self, plan_id: str) -> CampaignCandidateIntakePlan:
+        row = self.connection.execute(
+            "SELECT plan_json FROM red_team_campaign_candidate_intakes WHERE intake_plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(plan_id)
+        return CampaignCandidateIntakePlan.model_validate_json(row["plan_json"])
+
+    def outcome(self, plan_id: str) -> CampaignCandidateIntakeOutcome:
+        row = self.connection.execute(
+            "SELECT outcome_json FROM red_team_campaign_candidate_intakes "
+            "WHERE intake_plan_id=? AND state='completed'",
+            (plan_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(plan_id)
+        return CampaignCandidateIntakeOutcome.model_validate_json(row["outcome_json"])
+
     def state(self, plan_id: str) -> tuple[CampaignCandidateIntakeState, int] | None:
         row = self.connection.execute(
             "SELECT state,attempt FROM red_team_campaign_candidate_intakes WHERE intake_plan_id=?",

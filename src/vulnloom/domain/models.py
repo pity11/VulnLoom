@@ -124,6 +124,7 @@ class ApprovalAction(StrEnum):
     EXECUTE_RED_TEAM_ACTION = "execute_red_team_action"
     ADVANCE_CAMPAIGN_PHASE = "advance_campaign_phase"
     CREATE_CAMPAIGN_CANDIDATE = "create_campaign_candidate"
+    QUEUE_CAMPAIGN_CANDIDATE_VALIDATION = "queue_campaign_candidate_validation"
 
 
 class EvidenceKind(StrEnum):

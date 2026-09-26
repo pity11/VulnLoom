@@ -269,6 +269,8 @@ def test_human_approval_materializes_only_a_proposed_campaign_candidate(approved
     assert outcome.validation_started is False
     assert outcome.finding_created is False
     assert store.candidate(candidate.candidate_id) == candidate
+    assert store.plan(plan.intake_plan_id) == plan
+    assert store.outcome(plan.intake_plan_id) == outcome
     assert store.state(plan.intake_plan_id) == (
         CampaignCandidateIntakeState.COMPLETED,
         1,

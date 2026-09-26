@@ -1689,6 +1689,22 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
   全量门禁为 1766 passed、45 skipped、85.50% coverage；559 份 schema、Ruff 和 diff check 通过。
 - 下一项为 B5.7 Campaign Candidate Validation Intake 与状态机绑定。
 
+## B5.7 Campaign Candidate Validation Intake 与状态机（已完成，offline_tested）
+
+- 新增 `Campaign Candidate Lifecycle Checkpoint` 和 `Campaign Candidate Validation Intake`。不可变 Candidate
+  快照保持创建时的 `PROPOSED`，权威 checkpoint 单独记录 `PROPOSED → VALIDATION_PENDING`。
+- 新增 `QUEUE_CAMPAIGN_CANDIDATE_VALIDATION` Approval，并与真正执行所需的 `RUN_VALIDATION` 明确分离；两类
+  Approval 不可互换或重放。
+- Plan 绑定 B5.6 Candidate Intake Plan/Outcome、Candidate ID/digest、固定 Target/version、Scope/version、漏洞
+  类别、CWE、Campaign Evidence 引用和独立 validation context。
+- 后续 Validation 必须重新取得 sealed GET、未认证证明、敏感数据类别、独立 replay 和 redaction boundary 五类
+  fresh fact；Campaign 前置 Evidence 固定不能作为 Candidate ValidationRun。
+- Outcome 只形成 `VALIDATION_PENDING` checkpoint，不启动执行、不创建 ValidationRun、不完成 Critic 或 Finding。
+  SQLite ledger 覆盖幂等、唯一消费、三次恢复、超时、中断、Scope 撤销、来源漂移和零部分状态发布。
+- 本阶段没有 Runner、Broker、网络、模型、真实账户、真实攻击或自动提交。全量门禁为 1772 passed、45 skipped、
+  85.46% coverage；563 份 schema、Ruff 和 diff check 通过。
+- 下一项为 B5.8 隔离 Campaign Candidate Validation 执行与 fresh Evidence 绑定。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

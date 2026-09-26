@@ -603,6 +603,8 @@ B4.0 已完成授权派生资产发现与三态准入；B4.1 已完成控制方�
 资格 Approval 不能重用为 B5.5 阶段 Approval，阶段 Approval 也不能替代 Action Approval。闭环不创建 Candidate
 或 Finding。B5.6 进一步要求精确人工 `CREATE_CAMPAIGN_CANDIDATE` Approval，才把 unresolved Closure 原子物化
 为独立的 `PROPOSED` Campaign Candidate；它必须重新经过 Candidate-bound Validation 与 Critic，Campaign 前置
-Evidence 不能冒充 ValidationRun，也不能绕过 Finding Gate。任何新
-Action 仍必须重新封存并经过 Scope、预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
+Evidence 不能冒充 ValidationRun，也不能绕过 Finding Gate。新的 Validation 还必须经过 B5.7 独立
+`QUEUE_CAMPAIGN_CANDIDATE_VALIDATION` Approval 进入 `VALIDATION_PENDING`；排队许可与 `RUN_VALIDATION`
+执行许可不可互换，且必须重新取得 Candidate-bound fresh Evidence。任何新 Action 仍必须重新封存并经过 Scope、
+预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

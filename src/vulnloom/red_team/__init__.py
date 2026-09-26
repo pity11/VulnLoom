@@ -202,11 +202,35 @@ from .campaign_candidate_service import (
     CampaignCandidateIntakeTimedOut,
     CampaignOrchestrationOutcomeSource,
 )
+from .campaign_candidate_state_machine import (
+    CampaignCandidateTransitionRejected,
+    admit_campaign_candidate_validation,
+)
 from .campaign_candidate_store import (
     CampaignCandidateIntakeClaim,
     CampaignCandidateIntakeRecoveryRequired,
     CampaignCandidateIntakeStore,
     CampaignCandidateIntakeStoreRejected,
+)
+from .campaign_candidate_validation_models import (
+    REQUIRED_FRESH_CAMPAIGN_VALIDATION_FACTS,
+    CampaignCandidateLifecycleCheckpoint,
+    CampaignCandidateValidationIntakeLimits,
+    CampaignCandidateValidationIntakeOutcome,
+    CampaignCandidateValidationIntakePlan,
+    CampaignCandidateValidationIntakeState,
+)
+from .campaign_candidate_validation_service import (
+    CampaignCandidateIntakeSource,
+    CampaignCandidateValidationIntakeRejected,
+    CampaignCandidateValidationIntakeService,
+    CampaignCandidateValidationIntakeTimedOut,
+)
+from .campaign_candidate_validation_store import (
+    CampaignCandidateValidationIntakeClaim,
+    CampaignCandidateValidationIntakeRecoveryRequired,
+    CampaignCandidateValidationIntakeStore,
+    CampaignCandidateValidationIntakeStoreRejected,
 )
 from .campaign_models import (
     CampaignBudget,
@@ -661,6 +685,22 @@ __all__ = [
     "CampaignCandidateIntakeStore",
     "CampaignCandidateIntakeStoreRejected",
     "CampaignCandidateIntakeTimedOut",
+    "CampaignCandidateIntakeSource",
+    "CampaignCandidateLifecycleCheckpoint",
+    "CampaignCandidateTransitionRejected",
+    "CampaignCandidateValidationIntakeClaim",
+    "CampaignCandidateValidationIntakeLimits",
+    "CampaignCandidateValidationIntakeOutcome",
+    "CampaignCandidateValidationIntakePlan",
+    "CampaignCandidateValidationIntakeRecoveryRequired",
+    "CampaignCandidateValidationIntakeRejected",
+    "CampaignCandidateValidationIntakeService",
+    "CampaignCandidateValidationIntakeState",
+    "CampaignCandidateValidationIntakeStore",
+    "CampaignCandidateValidationIntakeStoreRejected",
+    "CampaignCandidateValidationIntakeTimedOut",
+    "REQUIRED_FRESH_CAMPAIGN_VALIDATION_FACTS",
+    "admit_campaign_candidate_validation",
     "CampaignEvidenceAssessmentSource",
     "CampaignEvidenceClosure",
     "CampaignEvidenceClosureDisposition",

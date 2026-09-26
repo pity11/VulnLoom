@@ -220,6 +220,14 @@ _Avoid_: Source Candidate, Evidence closure, Confirmed vulnerability
 把一个精确 unresolved Campaign Evidence Closure 封存为 Candidate 创建计划并交由人工 Approval 决定的门禁；拒绝、超时或中断不得留下部分 Candidate。
 _Avoid_: Automatic promotion, Finding intake, Agent decision
 
+**Campaign Candidate Lifecycle Checkpoint**：
+记录 Campaign Candidate 当前权威生命周期状态及其前序状态的内容寻址事实；不可变 Candidate 快照只证明创建时为 `PROPOSED`，不能替代生命周期推进记录。
+_Avoid_: Mutable candidate, Worker state, Agent memory
+
+**Campaign Candidate Validation Intake**：
+将一个仍为 `PROPOSED` 的 Campaign Candidate 与全新 Validation 要求封存，并经精确人工 Approval 推进到 `VALIDATION_PENDING` 的门禁；它不执行 Validation，也不复用 Campaign 前置 Evidence 作为 ValidationRun。
+_Avoid_: Validation run, Evidence replay, Automatic queue
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

@@ -1,0 +1,229 @@
+{
+  "$defs": {
+    "CampaignCandidateValidationIntakeLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "title": "CampaignCandidateValidationIntakeLimits",
+      "type": "object"
+    },
+    "EvidenceFactKind": {
+      "enum": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven",
+        "access_control_enforced",
+        "public_by_design",
+        "synthetic_or_placeholder_data",
+        "environment_or_version_mismatch",
+        "no_state_change_proven",
+        "no_test_artifacts_remain"
+      ],
+      "title": "EvidenceFactKind",
+      "type": "string"
+    },
+    "VulnerabilityClass": {
+      "enum": [
+        "unauthenticated_sensitive_data_exposure"
+      ],
+      "title": "VulnerabilityClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "validation_intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Intake Plan Id",
+      "type": "string"
+    },
+    "candidate_intake_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Intake Plan Id",
+      "type": "string"
+    },
+    "candidate_intake_plan_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Intake Plan Digest",
+      "type": "string"
+    },
+    "candidate_intake_outcome_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Intake Outcome Id",
+      "type": "string"
+    },
+    "candidate_intake_outcome_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Intake Outcome Digest",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "target_id": {
+      "format": "uuid",
+      "title": "Target Id",
+      "type": "string"
+    },
+    "target_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Version",
+      "type": "string"
+    },
+    "scope_id": {
+      "format": "uuid",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "scope_version": {
+      "minimum": 1,
+      "title": "Scope Version",
+      "type": "integer"
+    },
+    "vulnerability_class": {
+      "$ref": "#/$defs/VulnerabilityClass"
+    },
+    "cwe": {
+      "pattern": "^CWE-[1-9][0-9]*$",
+      "title": "Cwe",
+      "type": "string"
+    },
+    "initial_candidate_state": {
+      "const": "proposed",
+      "default": "proposed",
+      "title": "Initial Candidate State",
+      "type": "string"
+    },
+    "requested_candidate_state": {
+      "const": "validation_pending",
+      "default": "validation_pending",
+      "title": "Requested Candidate State",
+      "type": "string"
+    },
+    "prior_campaign_evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Prior Campaign Evidence Refs",
+      "type": "array"
+    },
+    "required_fresh_facts": {
+      "default": [
+        "sealed_get_succeeded",
+        "unauthenticated_request_proven",
+        "sensitive_data_class_present",
+        "independent_replay_matched",
+        "redaction_boundary_proven"
+      ],
+      "items": {
+        "$ref": "#/$defs/EvidenceFactKind"
+      },
+      "title": "Required Fresh Facts",
+      "type": "array"
+    },
+    "validation_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Validation Context Digest",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/CampaignCandidateValidationIntakeLimits"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deadline": {
+      "format": "date-time",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "human_approval_required": {
+      "const": true,
+      "default": true,
+      "title": "Human Approval Required",
+      "type": "boolean"
+    },
+    "prior_campaign_evidence_accepted_as_validation": {
+      "const": false,
+      "default": false,
+      "title": "Prior Campaign Evidence Accepted As Validation",
+      "type": "boolean"
+    },
+    "validation_execution_requested": {
+      "const": false,
+      "default": false,
+      "title": "Validation Execution Requested",
+      "type": "boolean"
+    },
+    "critic_bypass_requested": {
+      "const": false,
+      "default": false,
+      "title": "Critic Bypass Requested",
+      "type": "boolean"
+    },
+    "finding_creation_requested": {
+      "const": false,
+      "default": false,
+      "title": "Finding Creation Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "validation_intake_plan_id",
+    "candidate_intake_plan_id",
+    "candidate_intake_plan_digest",
+    "candidate_intake_outcome_id",
+    "candidate_intake_outcome_digest",
+    "candidate_id",
+    "candidate_digest",
+    "target_id",
+    "target_version",
+    "scope_id",
+    "scope_version",
+    "vulnerability_class",
+    "cwe",
+    "prior_campaign_evidence_refs",
+    "validation_context_digest",
+    "limits",
+    "created_at",
+    "deadline",
+    "idempotency_key"
+  ],
+  "title": "CampaignCandidateValidationIntakePlan",
+  "type": "object"
+}
