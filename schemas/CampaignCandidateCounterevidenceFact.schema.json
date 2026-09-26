@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "CounterevidenceAngle": {
+      "enum": [
+        "security_control",
+        "reachability",
+        "environment_parity",
+        "version_binding"
+      ],
+      "title": "CounterevidenceAngle",
+      "type": "string"
+    },
+    "CounterevidenceDisposition": {
+      "enum": [
+        "ruled_out",
+        "confirmed",
+        "inconclusive"
+      ],
+      "title": "CounterevidenceDisposition",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "fact_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fact Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "review_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Context Digest",
+      "type": "string"
+    },
+    "review_producer_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Producer Digest",
+      "type": "string"
+    },
+    "angle": {
+      "$ref": "#/$defs/CounterevidenceAngle"
+    },
+    "disposition": {
+      "$ref": "#/$defs/CounterevidenceDisposition"
+    },
+    "evidence_refs": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "rationale_code": {
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+      "title": "Rationale Code",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fact_id",
+    "execution_plan_id",
+    "candidate_id",
+    "review_context_digest",
+    "review_producer_digest",
+    "angle",
+    "disposition",
+    "evidence_refs",
+    "rationale_code",
+    "observed_at"
+  ],
+  "title": "CampaignCandidateCounterevidenceFact",
+  "type": "object"
+}

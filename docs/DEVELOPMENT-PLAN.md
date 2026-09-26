@@ -197,7 +197,7 @@ Release Gate 和覆盖账本；不在该工作流内另造分析器、Runner 或
    `git diff --check`；
 8. 检查 diff 不含凭据、私有 endpoint、完整认证响应或原始敏感数据；未经授权不 push。
 
-当前下一项工作固定为 **B5.10 隔离 Campaign Candidate Critic 执行与反证绑定**。A1 通用 Project Recipe
+当前下一项工作固定为 **B5.11 独立 Campaign Candidate Finding Promotion Gate**。A1 通用 Project Recipe
 Registry、B1 Observation-driven bounded replanning、B2 Web/API 只读面深化与 Shared Assurance S1 已关闭；
 B3.1-B3.4、B4.0 与 B4.1 已达到 `offline_tested`。B4.0 尚无真实测绘平台 adapter、公网查询或主动探测；B4.1
 只固定控制方测试身份的 opaque reference、用途、Target/Scope、撤销和过期边界，没有获取凭据或创建 Session。
@@ -213,8 +213,9 @@ DAG、预算、停止条件和恢复协议，但不启动 Campaign 或授予执�
 `PROPOSED` Campaign Candidate；B5.7 已以独立排队 Approval 和权威 Lifecycle Checkpoint 将其推进至
 `VALIDATION_PENDING`。B5.8 已在精确 `RUN_VALIDATION` Approval 下完成两次独立无网络执行，生成 Candidate-bound
 fresh Evidence、ValidationRun 与 `VALIDATED` checkpoint。B5.9 已用独立排队 Approval、review context 和 producer
-分离约束把它准入 `PENDING` Critic；Critic 执行、CriticReview 和 Finding 仍未发生。下一步实现 B5.10 隔离
-Critic 执行与反证绑定，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从其他里程碑开始。
+分离约束把它准入 `PENDING` Critic；B5.10 已在精确 `RUN_CRITIC` Approval 下完成独立无网络隔离审查，由可信
+Control Plane 绑定四类 counterevidence 并生成 CriticReview，仍固定不创建 Finding。下一步实现独立 Finding
+Promotion Gate，不直接连接公网或生产目标。只有出现新的用户优先级决定，才从其他里程碑开始。
 
 进展记录（2026-09-21）：S1.1 的类型化七 probe 资格协议、Docker 完整挂载/host 资源复核、离线拒绝与清理回归、
 以及 rootless 组合 canary 已实现。commit `4363236151e67e04022b926cbdccf0fffd223412` 的专用 rootless Linux
@@ -648,3 +649,23 @@ Runner、Broker、Docker、网络、模型、真实账户、真实攻击或自�
 Campaign Candidate Critic 执行与独立 counterevidence 绑定。
 
 全量离线门禁为 1785 passed、46 skipped、85.78% coverage；573 份 schema、变更文件 Ruff 和 diff check 通过。
+
+进展记录（2026-09-26）：B5.10 达到 `isolated_integration_tested`。新增内容寻址 Critic Execution Plan、受限
+Worker Output、Independent Counterevidence Fact、完成 checkpoint 与 Outcome。Plan 和执行前复核完整绑定 B5.9
+Plan/Outcome/PENDING checkpoint，以及 B5.8 Candidate、ValidationRun、EvidenceBundle、五份 fresh fact、
+Target/Scope/version、review context、producer、Policy、Sandbox request 与 counterevidence 输入。
+
+只有精确 `RUN_CRITIC` Approval 可以启动执行；B5.9 排队 Approval 不可重用。Critic Worker 固定零模型预算、单一
+工具、显式环境白名单、`network=none` 和只读 counterevidence mount。Worker 只返回四角度类型化脱敏观察，并须
+逐字段等于 Control Plane 独立读取的 sealed input；最终 verdict、CriticReview 和 Candidate 终态由可信代码计算。
+Validation Evidence 与 counterevidence 强制不相交。
+
+成功路径可生成 accepted/rejected/inconclusive CriticReview，但固定 `finding_created=false`、
+`finding_promotion_required=true`、`submission_authorized=false`。SQLite ledger 覆盖唯一消费、幂等、
+STARTED/COMPLETED、最多三次恢复、超时、中断、来源/Scope/Approval/输出漂移和 cleanup 门禁。
+
+本机实际 Docker canary 已证明非 root、只读输入、零 capability、NoNewPrivs、seccomp、无 Docker socket、
+`network=none`、受限输出和容器删除；本机只构成 local Docker 隔离证明。没有公网、真实模型、真实账户、真实攻击
+或自动提交。全量离线门禁为 1793 passed、47 skipped、85.74% coverage；579 份 schema、Ruff 和 diff check
+通过；显式本机 Docker B5.10 canary 另为 1 passed。下一项为 B5.11 独立 Campaign Candidate Finding Promotion
+Gate。

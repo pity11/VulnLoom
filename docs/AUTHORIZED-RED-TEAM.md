@@ -584,6 +584,27 @@ Outcome 只表示该 B5.3 Campaign 结构通过 A4 隔离运行边界资格，�
 本地 Docker Desktop 只能产生 `local_docker`，版本化 rootless Phase 3 通过后才能声明 production runtime admitted。
 独立 ledger 支持幂等、STARTED/COMPLETED、超时和最多三次显式恢复。
 
+## B5.10 isolated Campaign Candidate Critic execution
+
+B5.10 消费 B5.9 已完成的 `PENDING` Critic Intake，但排队许可仍不是执行权。Execution Plan 内容寻址绑定
+B5.9 Plan/Outcome/checkpoint，并逐项绑定 B5.8 Candidate、`REPRODUCED` ValidationRun、EvidenceBundle、五份
+fresh fact、Target/Scope/version、独立 review context、validation/review producer、Policy 和唯一 Sandbox request。
+
+执行只接受精确且未过期的 `RUN_CRITIC` Approval。Worker 固定为 Critic role、零模型预算、单一类型化工具、
+显式环境白名单、`network=none` 和一个只读 counterevidence mount。Worker 输出只有四个固定角度、disposition、
+rationale code 与 digest 引用，禁止原始值、Target locator、credential、Candidate 决策和 Finding 请求；输出必须与
+Control Plane 独立读取的 sealed input 逐字段一致。
+
+可信 Control Plane 在 ledger claim 前后重读 B5.8/B5.9 权威来源，检查 Scope、Target/version、producer、请求、
+cleanup 和所有 digest，并拒绝任何 Validation Evidence 作为 counterevidence。通过后确定性生成四份 Independent
+Counterevidence Fact、CriticReview 和 verdict 对应的 Candidate 终态。accepted 可到 `CRITIC_REVIEWED`，rejected
+到 `REJECTED`，inconclusive 保持 `VALIDATED`；三者都不能创建 Finding，后续 Promotion 必须使用独立门禁。
+
+执行 ledger 事务性保存 STARTED/COMPLETED，唯一消费 Candidate/B5.9 Intake，完成态只读幂等，未完成态最多恢复
+三次。超时、中断、来源漂移、Approval 错绑、Worker 输出漂移或 cleanup 不完整都不发布 CriticReview。本机实际
+Docker canary 已验证非 root、只读输入、零 capability、NoNewPrivs、seccomp、network-none、无 Docker socket 和
+容器删除；没有公网、真实模型、真实账户、真实攻击或自动提交。
+
 ## Next development sequence
 
 Authorized Red Team 的当前后续顺序以 `docs/DEVELOPMENT-PLAN.md` 为准：共享 S1 与 B1 已关闭，B2.1 已完成精确
@@ -609,7 +630,9 @@ Evidence 不能冒充 ValidationRun，也不能绕过 Finding Gate。新的 Vali
 校验五类 Candidate-bound fresh Evidence 后才记录 `VALIDATED`；Worker 输出不能自证结论，且 Critic/Finding 仍未
 完成。B5.9 再要求独立 `QUEUE_CAMPAIGN_CANDIDATE_CRITIC` Approval，绑定精确 ValidationRun、EvidenceBundle、
 fresh facts、完整反证角度及与验证生产者分离的 review context；它只记录 `PENDING` Critic，不能复用
-`RUN_CRITIC`、不能把 Validation Evidence 当作 counterevidence，也不产生 CriticReview 或 Finding。任何新 Action
+`RUN_CRITIC`、不能把 Validation Evidence 当作 counterevidence，也不产生 CriticReview 或 Finding。B5.10 进一步
+要求精确 `RUN_CRITIC` Approval 和独立无网络 Worker，并由 Control Plane 绑定四角度 counterevidence、生成
+CriticReview 和终态；Finding 仍未创建，下一项为独立 Finding Promotion Gate。任何新 Action
 仍必须重新封存并经过 Scope、
 预算、Policy 和必要 Approval；不加入 crawler、字典枚举、公网扫描、动态
 的未授权 Target 扩展、真实第三方账户、横向移动或持久化。

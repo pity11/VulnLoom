@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "CandidateState": {
+      "enum": [
+        "proposed",
+        "rejected",
+        "duplicate",
+        "validation_pending",
+        "validation_running",
+        "validated",
+        "inconclusive",
+        "critic_reviewed",
+        "promoted"
+      ],
+      "title": "CandidateState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "checkpoint_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Checkpoint Id",
+      "type": "string"
+    },
+    "execution_plan_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Plan Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Digest",
+      "type": "string"
+    },
+    "previous_candidate_state": {
+      "const": "validated",
+      "default": "validated",
+      "title": "Previous Candidate State",
+      "type": "string"
+    },
+    "candidate_state": {
+      "$ref": "#/$defs/CandidateState"
+    },
+    "critic_state": {
+      "const": "completed",
+      "default": "completed",
+      "title": "Critic State",
+      "type": "string"
+    },
+    "approval_id": {
+      "format": "uuid",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approval_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Digest",
+      "type": "string"
+    },
+    "critic_review_id": {
+      "format": "uuid",
+      "title": "Critic Review Id",
+      "type": "string"
+    },
+    "critic_review_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Critic Review Digest",
+      "type": "string"
+    },
+    "counterevidence_fact_ids": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Counterevidence Fact Ids",
+      "type": "array"
+    },
+    "cleanup_complete": {
+      "const": true,
+      "default": true,
+      "title": "Cleanup Complete",
+      "type": "boolean"
+    },
+    "finding_created": {
+      "const": false,
+      "default": false,
+      "title": "Finding Created",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "checkpoint_id",
+    "execution_plan_id",
+    "candidate_id",
+    "candidate_digest",
+    "candidate_state",
+    "approval_id",
+    "approval_digest",
+    "critic_review_id",
+    "critic_review_digest",
+    "counterevidence_fact_ids",
+    "recorded_at"
+  ],
+  "title": "CampaignCandidateCriticCompletionCheckpoint",
+  "type": "object"
+}

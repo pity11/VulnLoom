@@ -244,6 +244,14 @@ _Avoid_: Critic execution, Review verdict, Finding promotion
 与 Candidate validation context 和验证生产者相分离的内容寻址审查上下文；它绑定精确 ValidationRun、EvidenceBundle、fresh facts 与完整反证角度，但本身不构成反证或审查结论。
 _Avoid_: Validation context reuse, Counterevidence, Critic verdict
 
+**Campaign Candidate Critic Execution**：
+在精确 `RUN_CRITIC` Approval 下，以独立 review producer 和只读 counterevidence 输入执行的短生命周期隔离审查；Worker 只返回受限类型化观察，最终 CriticReview 与 Candidate 终态由 Control Plane 确定性计算。
+_Avoid_: Worker verdict, Finding promotion, Validation replay
+
+**Independent Counterevidence Fact**：
+由 Campaign Candidate Critic Execution 产生、绑定一个反证角度、独立 review context/producer 和非 Validation Evidence 引用的脱敏事实；它不能授予 Finding 或 Submission 权限。
+_Avoid_: Validation evidence, Worker narrative, Finding
+
 **Endpoint Recon Plan**：
 从一个 Endpoint Seed Set 确定性生成的有预算只读计划，每个 seed 恰好对应一次禁重定向的 HEAD 步骤。
 _Avoid_: Crawler plan, Scan campaign, Dynamic queue

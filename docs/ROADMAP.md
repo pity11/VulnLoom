@@ -1741,6 +1741,27 @@ S1.4 最终纵切已完成本地 checkpoint custody 和真实入口迁移。`Fil
 - 全量离线门禁为 1785 passed、46 skipped、85.78% coverage；573 份 schema、变更文件 Ruff 和 diff check 通过。
 - 下一项为 B5.10 隔离 Campaign Candidate Critic 执行与独立 counterevidence 绑定。
 
+## B5.10 隔离 Campaign Candidate Critic 执行与独立反证绑定（已完成，isolated_integration_tested）
+
+- 新增类型化 Critic Execution Plan、受限 Worker Output、Independent Counterevidence Fact、完成 checkpoint 与
+  Outcome；Plan 完整绑定 B5.9 Plan/Outcome/checkpoint，以及 B5.8 Candidate、ValidationRun、EvidenceBundle、
+  五份 fresh fact、Target/Scope/version、review context 和 producer 身份。
+- 只有精确、有效且内容绑定的 `RUN_CRITIC` Approval 才能执行；B5.9 排队 Approval 不可复用。Critic request 固定
+  `WorkerRole.CRITIC`、零模型预算、单一 `critic.review` 工具、显式环境白名单、`network=none` 和一个只读
+  counterevidence mount。
+- Worker 输出只能包含四个类型化反证角度、disposition、rationale code 和 digest 引用，并必须逐字段等于可信
+  Control Plane 读取的 sealed input；Worker 不能请求 Candidate 决策或 Finding 创建。
+- Control Plane 重读并核对全部 B5.8/B5.9 provenance，强制 counterevidence 与 Validation Evidence 不相交，
+  再确定性生成 Independent Counterevidence Fact、CriticReview 和 verdict 对应终态；Outcome 固定
+  `finding_created=false`、`finding_promotion_required=true`、`submission_authorized=false`。
+- 独立 SQLite ledger 覆盖唯一消费、幂等、STARTED/COMPLETED、三次恢复上限、超时、中断、Scope/source 漂移、
+  Approval 错绑、输出漂移与 cleanup 门禁；失败路径不发布 CriticReview 或完成 checkpoint。
+- 实际本机 Docker canary 已证明非 root、只读 counterevidence 输入、零 capability、NoNewPrivs、seccomp、
+  `network=none`、无宿主 Docker socket、受限输出和容器完整删除。本机只构成 local Docker 证明；没有公网、
+  真实模型、真实账户、真实攻击或自动提交。
+- 全量离线门禁为 1793 passed、47 skipped、85.74% coverage；579 份 schema、Ruff 和 diff check 通过；显式
+  本机 Docker B5.10 canary 另为 1 passed。下一项为 B5.11 独立 Campaign Candidate Finding Promotion Gate。
+
 ## 延后事项
 
 - 面向未授权公网的自主资产发现；授权实体范围内的被动发现已由 B4.0 约束。

@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "CounterevidenceAngle": {
+      "enum": [
+        "security_control",
+        "reachability",
+        "environment_parity",
+        "version_binding"
+      ],
+      "title": "CounterevidenceAngle",
+      "type": "string"
+    },
+    "CounterevidenceAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "angle": {
+          "$ref": "#/$defs/CounterevidenceAngle"
+        },
+        "disposition": {
+          "$ref": "#/$defs/CounterevidenceDisposition"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "rationale_code": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Rationale Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "angle",
+        "disposition",
+        "rationale_code"
+      ],
+      "title": "CounterevidenceAssessment",
+      "type": "object"
+    },
+    "CounterevidenceDisposition": {
+      "enum": [
+        "ruled_out",
+        "confirmed",
+        "inconclusive"
+      ],
+      "title": "CounterevidenceDisposition",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "const": "campaign-candidate-critic-output-v1",
+      "default": "campaign-candidate-critic-output-v1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "review_context_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Context Digest",
+      "type": "string"
+    },
+    "review_producer_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Producer Digest",
+      "type": "string"
+    },
+    "assessments": {
+      "items": {
+        "$ref": "#/$defs/CounterevidenceAssessment"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Assessments",
+      "type": "array"
+    },
+    "raw_values_retained": {
+      "const": false,
+      "default": false,
+      "title": "Raw Values Retained",
+      "type": "boolean"
+    },
+    "target_locator_retained": {
+      "const": false,
+      "default": false,
+      "title": "Target Locator Retained",
+      "type": "boolean"
+    },
+    "credential_material_retained": {
+      "const": false,
+      "default": false,
+      "title": "Credential Material Retained",
+      "type": "boolean"
+    },
+    "candidate_decision_requested": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Decision Requested",
+      "type": "boolean"
+    },
+    "finding_creation_requested": {
+      "const": false,
+      "default": false,
+      "title": "Finding Creation Requested",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "review_context_digest",
+    "review_producer_digest",
+    "assessments"
+  ],
+  "title": "CampaignCandidateCriticWorkerOutput",
+  "type": "object"
+}
